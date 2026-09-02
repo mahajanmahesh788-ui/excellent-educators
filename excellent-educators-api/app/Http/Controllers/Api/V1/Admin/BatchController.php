@@ -1,0 +1,138 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1\Admin;
+
+use App\Actions\Batches\AssignCommonTeacher;
+use App\Actions\Batches\CreateBatch;
+use App\Actions\Batches\EnrollStudent;
+use App\Actions\Batches\UnassignCommonTeacher;
+use App\Actions\Batches\UnenrollStudent;
+use App\Actions\Batches\UpdateBatch;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Admin\AssignCommonTeacherRequest;
+use App\Http\Requests\Api\V1\Admin\EnrollStudentRequest;
+use App\Http\Requests\Api\V1\Admin\StoreBatchRequest;
+use App\Http\Requests\Api\V1\Admin\UpdateBatchRequest;
+use App\Http\Resources\Api\V1\BatchResource;
+use App\Http\Resources\Api\V1\StudentResource;
+use App\Enums\ProfileStatus;
+use App\Models\Batch;
+use App\Models\StudentProfile;
+use App\Models\TeacherProfile;
+use App\Support\ApiResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class BatchController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $batches = Batch::query()
+            ->with(['careerCompassLevel', 'activeTeacherAssignment.teacher'])
+            ->withCount('activeEnrollments')
+            ->when($request->filled('career_compass_level_id'), fn ($query) => $query->where('career_compass_level_id', $request->string('career_compass_level_id')))
+            ->when($request->string('search')->toString(), function ($query, string $search): void {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
+            ->when($request->has('without_common_teacher'), fn ($query) => $query->whereDoesntHave('activeTeacherAssignment'))
+            ->when($request->has('full'), function ($query): void {
+                $maxPerBatch = (int) config('excellent_educators.batch.max_active_students', 40);
+                $query->whereIn('id', function ($sub) use ($maxPerBatch): void {
+                    $sub->select('batch_id')
+                        ->from('batch_students')
+                        ->whereNull('left_at')
+                        ->where('status', ProfileStatus::Active->value)
+                        ->groupBy('batch_id')
+                        ->havingRaw('count(*) >= ?', [$maxPerBatch]);
+                });
+            })
+            ->orderBy('name')
+            ->paginate((int) $request->integer('per_page', 15));
+
+        return ApiResponse::success(
+            'Batches fetched successfully.',
+            BatchResource::collection($batches)->resolve(),
+            [
+                'page' => $batches->currentPage(),
+                'per_page' => $batches->perPage(),
+                'total' => $batches->total(),
+            ],
+        );
+    }
+
+    public function store(StoreBatchRequest $request, CreateBatch $createBatch): JsonResponse
+    {
+        $batch = $createBatch->execute($request->validated());
+        $batch->load(['careerCompassLevel', 'activeTeacherAssignment.teacher'])->loadCount('activeEnrollments');
+
+        return ApiResponse::success('Batch created successfully.', BatchResource::make($batch)->resolve(), status: 201);
+    }
+
+    public function show(Batch $batch): JsonResponse
+    {
+        $batch->load(['careerCompassLevel', 'activeTeacherAssignment.teacher'])->loadCount('activeEnrollments');
+
+        return ApiResponse::success('Batch fetched successfully.', BatchResource::make($batch)->resolve());
+    }
+
+    public function update(UpdateBatchRequest $request, Batch $batch, UpdateBatch $updateBatch): JsonResponse
+    {
+        $batch = $updateBatch->execute($batch, $request->validated());
+        $batch->load(['careerCompassLevel', 'activeTeacherAssignment.teacher'])->loadCount('activeEnrollments');
+
+        return ApiResponse::success('Batch updated successfully.', BatchResource::make($batch)->resolve());
+    }
+
+    public function students(Batch $batch): JsonResponse
+    {
+        $students = $batch->activeEnrollments()
+            ->with([
+                'student.user',
+                'student.careerCompassLevel',
+                'student.activeEnrollment.batch.activeTeacherAssignment.teacher',
+                'student.activeMasterTeacherAssignment.teacher',
+            ])
+            ->get()
+            ->pluck('student');
+
+        return ApiResponse::success(
+            'Batch students fetched successfully.',
+            StudentResource::collection($students)->resolve(),
+        );
+    }
+
+    public function enroll(EnrollStudentRequest $request, Batch $batch, EnrollStudent $enrollStudent): JsonResponse
+    {
+        $student = StudentProfile::query()->findOrFail($request->string('student_id'));
+        $enrollStudent->execute($batch, $student, $request->user());
+        $batch->load(['careerCompassLevel', 'activeTeacherAssignment.teacher'])->loadCount('activeEnrollments');
+
+        return ApiResponse::success('Student enrolled successfully.', BatchResource::make($batch)->resolve());
+    }
+
+    public function unenroll(Batch $batch, StudentProfile $student, UnenrollStudent $unenrollStudent): JsonResponse
+    {
+        $unenrollStudent->execute($batch, $student);
+        $batch->load(['careerCompassLevel', 'activeTeacherAssignment.teacher'])->loadCount('activeEnrollments');
+
+        return ApiResponse::success('Student removed from batch.', BatchResource::make($batch)->resolve());
+    }
+
+    public function assignTeacher(AssignCommonTeacherRequest $request, Batch $batch, AssignCommonTeacher $assignCommonTeacher): JsonResponse
+    {
+        $teacher = TeacherProfile::query()->findOrFail($request->string('teacher_id'));
+        $assignCommonTeacher->execute($batch, $teacher, $request->user());
+        $batch->load(['careerCompassLevel', 'activeTeacherAssignment.teacher'])->loadCount('activeEnrollments');
+
+        return ApiResponse::success('Common Teacher assigned successfully.', BatchResource::make($batch)->resolve());
+    }
+
+    public function unassignTeacher(Batch $batch, UnassignCommonTeacher $unassignCommonTeacher): JsonResponse
+    {
+        $unassignCommonTeacher->execute($batch);
+        $batch->load(['careerCompassLevel', 'activeTeacherAssignment.teacher'])->loadCount('activeEnrollments');
+
+        return ApiResponse::success('Common Teacher removed successfully.', BatchResource::make($batch)->resolve());
+    }
+}

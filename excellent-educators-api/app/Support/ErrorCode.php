@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Support;
+
+final class ErrorCode
+{
+    public const UNAUTHENTICATED = 'UNAUTHENTICATED';
+
+    public const FORBIDDEN = 'FORBIDDEN';
+
+    public const NOT_FOUND = 'NOT_FOUND';
+
+    public const VALIDATION_ERROR = 'VALIDATION_ERROR';
+
+    public const CONFLICT = 'CONFLICT';
+
+    public const TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS';
+
+    public const SERVER_ERROR = 'SERVER_ERROR';
+
+    public const INVALID_CREDENTIALS = 'INVALID_CREDENTIALS';
+
+    public const ACCOUNT_INACTIVE = 'ACCOUNT_INACTIVE';
+
+    public const BATCH_FULL = 'BATCH_FULL';
+
+    public const ASSIGNMENT_ACTIVE = 'ASSIGNMENT_ACTIVE';
+
+    public const STUDENT_CODE_IMMUTABLE = 'STUDENT_CODE_IMMUTABLE';
+
+    public const ASSESSMENT_NOT_READY = 'ASSESSMENT_NOT_READY';
+
+    public const ASSESSMENT_NOT_ACTIVE = 'ASSESSMENT_NOT_ACTIVE';
+
+    public const ASSESSMENT_LEVEL_MISMATCH = 'ASSESSMENT_LEVEL_MISMATCH';
+
+    public const ASSESSMENT_ALREADY_SUBMITTED = 'ASSESSMENT_ALREADY_SUBMITTED';
+
+    public const ASSESSMENT_INCOMPLETE = 'ASSESSMENT_INCOMPLETE';
+
+    public const ASSESSMENT_LOCKED = 'ASSESSMENT_LOCKED';
+
+    public const FEEDBACK_LOCKED = 'FEEDBACK_LOCKED';
+
+    public const FEEDBACK_DUPLICATE = 'FEEDBACK_DUPLICATE';
+}
