@@ -2,6 +2,7 @@
 
 namespace App\Actions\Batches;
 
+use App\Actions\Notifications\DispatchAssignmentNotifications;
 use App\Enums\ProfileStatus;
 use App\Exceptions\ApiException;
 use App\Models\Batch;
@@ -13,6 +14,10 @@ use Illuminate\Support\Facades\DB;
 
 class EnrollStudent
 {
+    public function __construct(
+        private readonly DispatchAssignmentNotifications $dispatchAssignmentNotifications,
+    ) {}
+
     public function execute(Batch $batch, StudentProfile $student, User $actor): BatchStudent
     {
         if ($student->career_compass_level_id !== $batch->career_compass_level_id) {
@@ -23,7 +28,7 @@ class EnrollStudent
             );
         }
 
-        return DB::transaction(function () use ($batch, $student, $actor): BatchStudent {
+        $enrollment = DB::transaction(function () use ($batch, $student, $actor): BatchStudent {
             $batch = Batch::query()->lockForUpdate()->findOrFail($batch->id);
 
             $maxActive = (int) config('excellent_educators.batch.max_active_students', 40);
@@ -78,5 +83,9 @@ class EnrollStudent
                 'enrolled_at' => now(),
             ]);
         });
+
+        $this->dispatchAssignmentNotifications->studentEnrolled($batch, $student);
+
+        return $enrollment;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Batches;
 
+use App\Actions\Notifications\DispatchAssignmentNotifications;
 use App\Enums\ProfileStatus;
 use App\Exceptions\ApiException;
 use App\Models\Batch;
@@ -11,6 +12,10 @@ use App\Support\ErrorCode;
 
 class UnenrollStudent
 {
+    public function __construct(
+        private readonly DispatchAssignmentNotifications $dispatchAssignmentNotifications,
+    ) {}
+
     public function execute(Batch $batch, StudentProfile $student): BatchStudent
     {
         $enrollment = BatchStudent::query()
@@ -33,6 +38,10 @@ class UnenrollStudent
             'status' => ProfileStatus::Inactive,
         ]);
 
-        return $enrollment->refresh();
+        $enrollment = $enrollment->refresh();
+
+        $this->dispatchAssignmentNotifications->studentUnenrolled($batch, $student);
+
+        return $enrollment;
     }
 }

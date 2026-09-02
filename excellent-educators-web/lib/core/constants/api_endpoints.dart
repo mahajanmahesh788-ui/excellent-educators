@@ -74,4 +74,9 @@ abstract final class ApiEndpoints {
   static const adminRequests = '/api/v1/admin/requests';
   static String adminRequest(String id) => '/api/v1/admin/requests/$id';
   static String adminRequestResolve(String id) => '/api/v1/admin/requests/$id/resolve';
+
+  static const notifications = '/api/v1/notifications';
+  static const notificationsUnreadCount = '/api/v1/notifications/unread-count';
+  static const notificationsReadAll = '/api/v1/notifications/read-all';
+  static String notificationRead(String id) => '/api/v1/notifications/$id/read';
 }

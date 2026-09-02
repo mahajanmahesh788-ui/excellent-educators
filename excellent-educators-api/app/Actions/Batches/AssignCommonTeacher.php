@@ -2,6 +2,7 @@
 
 namespace App\Actions\Batches;
 
+use App\Actions\Notifications\DispatchAssignmentNotifications;
 use App\Enums\RoleName;
 use App\Exceptions\ApiException;
 use App\Models\Batch;
@@ -13,6 +14,10 @@ use Illuminate\Support\Facades\DB;
 
 class AssignCommonTeacher
 {
+    public function __construct(
+        private readonly DispatchAssignmentNotifications $dispatchAssignmentNotifications,
+    ) {}
+
     public function execute(Batch $batch, TeacherProfile $teacher, User $actor): BatchTeacher
     {
         if (! $teacher->user->hasRole(RoleName::CommonTeacher->value)) {
@@ -23,10 +28,13 @@ class AssignCommonTeacher
             );
         }
 
-        return DB::transaction(function () use ($batch, $teacher, $actor): BatchTeacher {
+        $previousTeacher = null;
+
+        $assignment = DB::transaction(function () use ($batch, $teacher, $actor, &$previousTeacher): BatchTeacher {
             $current = BatchTeacher::query()
                 ->where('batch_id', $batch->id)
                 ->whereNull('ended_at')
+                ->with('teacher')
                 ->lockForUpdate()
                 ->first();
 
@@ -35,6 +43,7 @@ class AssignCommonTeacher
             }
 
             if ($current) {
+                $previousTeacher = $current->teacher;
                 $current->update(['ended_at' => now()]);
             }
 
@@ -46,5 +55,13 @@ class AssignCommonTeacher
                 'created_at' => now(),
             ]);
         });
+
+        if ($previousTeacher === null && $assignment->wasRecentlyCreated) {
+            $this->dispatchAssignmentNotifications->commonTeacherAssigned($batch, $teacher);
+        } elseif ($previousTeacher !== null) {
+            $this->dispatchAssignmentNotifications->commonTeacherAssigned($batch, $teacher, $previousTeacher);
+        }
+
+        return $assignment;
     }
 }

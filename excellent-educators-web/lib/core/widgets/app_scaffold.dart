@@ -4,6 +4,7 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_info.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
+import 'package:excellent_educators_web/features/notifications/presentation/widgets/notification_bell_button.dart';
 import 'package:excellent_educators_web/features/auth/domain/entities/app_user.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:flutter/material.dart';
@@ -97,6 +98,7 @@ class AppScaffold extends ConsumerWidget {
         title: Text(title),
         actions: [
           ...?actions,
+          if (_showNotifications(user)) const NotificationBellButton(),
           TextButton(
             onPressed: () => confirmSignOut(context, ref),
             child: const Text('Sign out', style: TextStyle(color: Colors.white)),
@@ -199,6 +201,13 @@ class AppScaffold extends ConsumerWidget {
         const _NavItem('Profile', Icons.person_outline, RoutePaths.studentProfile),
       ],
     ];
+  }
+
+  bool _showNotifications(AppUser? user) {
+    if (user == null) {
+      return false;
+    }
+    return user.isStudent || user.isCommonTeacher || user.isMasterTeacher;
   }
 }
 

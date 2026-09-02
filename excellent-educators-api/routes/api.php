@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\Auth\LoginPageController;
 use App\Http\Controllers\Api\V1\MasterTeacher\DashboardController as MasterTeacherDashboardController;
 use App\Http\Controllers\Api\V1\MasterTeacher\FeedbackController as MasterTeacherFeedbackController;
 use App\Http\Controllers\Api\V1\MasterTeacher\StudentController as MasterTeacherStudentController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\Student\AdminRequestController as StudentAdminRequestController;
 use App\Http\Controllers\Api\V1\Student\AssessmentController as StudentAssessmentController;
 use App\Http\Controllers\Api\V1\Student\ProfileController;
@@ -38,6 +39,13 @@ Route::prefix('auth')->group(function (): void {
         Route::get('me', [AuthController::class, 'me']);
         Route::put('password', [AuthController::class, 'changePassword']);
     });
+});
+
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead']);
 });
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function (): void {

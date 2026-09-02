@@ -34,6 +34,14 @@ abstract final class RoutePaths {
   static const studentFeedback = '/student/feedback';
   static const studentRequests = '/student/requests';
   static const studentRequestNew = '/student/requests/new';
+  static const studentNotifications = '/student/notifications';
+  static const teacherNotifications = '/teacher/notifications';
+
+  static String notificationsFor({
+    required bool isStudent,
+  }) {
+    return isStudent ? studentNotifications : teacherNotifications;
+  }
   static const adminAssessments = '/admin/assessments';
   static const adminAssessmentNew = '/admin/assessments/new';
   static const adminAssessmentDetail = '/admin/assessments/:id';

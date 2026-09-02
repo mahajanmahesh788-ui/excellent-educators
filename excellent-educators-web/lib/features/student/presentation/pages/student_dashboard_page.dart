@@ -125,6 +125,12 @@ class StudentDashboardPage extends ConsumerWidget {
             accent: const Color(0xFF4E8BC9),
           ),
           StudentStatChip(
+            icon: Icons.person_outline,
+            label: 'Common Teacher',
+            value: student.commonTeacher?.label ?? 'Not assigned',
+            accent: const Color(0xFFD4A843),
+          ),
+          StudentStatChip(
             icon: Icons.psychology_alt_rounded,
             label: 'Master Teacher',
             value: student.masterTeacher?.label ?? 'Not assigned',

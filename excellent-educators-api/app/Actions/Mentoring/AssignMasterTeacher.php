@@ -2,6 +2,7 @@
 
 namespace App\Actions\Mentoring;
 
+use App\Actions\Notifications\DispatchAssignmentNotifications;
 use App\Enums\RoleName;
 use App\Exceptions\ApiException;
 use App\Models\MasterTeacherAssignment;
@@ -13,6 +14,10 @@ use Illuminate\Support\Facades\DB;
 
 class AssignMasterTeacher
 {
+    public function __construct(
+        private readonly DispatchAssignmentNotifications $dispatchAssignmentNotifications,
+    ) {}
+
     public function execute(StudentProfile $student, TeacherProfile $teacher, User $actor): MasterTeacherAssignment
     {
         if (! $teacher->user->hasRole(RoleName::MasterTeacher->value)) {
@@ -23,10 +28,13 @@ class AssignMasterTeacher
             );
         }
 
-        return DB::transaction(function () use ($student, $teacher, $actor): MasterTeacherAssignment {
+        $previousTeacher = null;
+
+        $assignment = DB::transaction(function () use ($student, $teacher, $actor, &$previousTeacher): MasterTeacherAssignment {
             $current = MasterTeacherAssignment::query()
                 ->where('student_id', $student->id)
                 ->whereNull('ended_at')
+                ->with('teacher')
                 ->lockForUpdate()
                 ->first();
 
@@ -35,6 +43,7 @@ class AssignMasterTeacher
             }
 
             if ($current) {
+                $previousTeacher = $current->teacher;
                 $current->update(['ended_at' => now()]);
             }
 
@@ -46,5 +55,13 @@ class AssignMasterTeacher
                 'created_at' => now(),
             ]);
         });
+
+        if ($previousTeacher === null && $assignment->wasRecentlyCreated) {
+            $this->dispatchAssignmentNotifications->masterTeacherAssigned($student, $teacher);
+        } elseif ($previousTeacher !== null) {
+            $this->dispatchAssignmentNotifications->masterTeacherAssigned($student, $teacher, $previousTeacher);
+        }
+
+        return $assignment;
     }
 }

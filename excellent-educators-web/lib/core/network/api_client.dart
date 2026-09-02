@@ -80,6 +80,13 @@ class ApiClient {
     return _map(() => _envelope('PUT', path, data: data));
   }
 
+  Future<Map<String, dynamic>?> patch(
+    String path, {
+    Map<String, dynamic>? data,
+  }) {
+    return _map(() => _envelope('PATCH', path, data: data));
+  }
+
   Future<Map<String, dynamic>?> delete(String path) {
     return _map(() => _envelope('DELETE', path));
   }

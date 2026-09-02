@@ -17,6 +17,7 @@ import 'package:excellent_educators_web/features/auth/presentation/pages/session
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/pages/feedback_pages.dart';
 import 'package:excellent_educators_web/features/requests/presentation/pages/request_pages.dart';
+import 'package:excellent_educators_web/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:excellent_educators_web/features/student/presentation/pages/student_dashboard_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,6 +65,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             location == RoutePaths.forgotPassword || location == RoutePaths.resetPassword) {
           return home;
         }
+        if (location == '/notifications') {
+          return RoutePaths.notificationsFor(isStudent: user.isStudent);
+        }
         if (location.startsWith('/admin') && !user.isAdmin) {
           return home;
         }
@@ -72,7 +76,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             return home;
           }
           final masterTeacherRoutes = location.startsWith(RoutePaths.teacherProfile) ||
-              location.startsWith(RoutePaths.teacherRequests);
+              location.startsWith(RoutePaths.teacherRequests) ||
+              location.startsWith(RoutePaths.teacherNotifications);
           if (!masterTeacherRoutes) {
             return home;
           }
@@ -89,6 +94,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       return null;
     },
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Page not found'),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () {
+                final user = ref.read(authControllerProvider).user;
+                if (user == null) {
+                  context.go(RoutePaths.login);
+                  return;
+                }
+                context.go(RoutePaths.homeFor(
+                  isAdmin: user.isAdmin,
+                  isCommonTeacher: user.isCommonTeacher,
+                  isMasterTeacher: user.isMasterTeacher,
+                  isStudent: user.isStudent,
+                ));
+              },
+              child: const Text('Go home'),
+            ),
+          ],
+        ),
+      ),
+    ),
     routes: [
       GoRoute(
         path: RoutePaths.login,
@@ -266,6 +298,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.teacherRequestNew,
         builder: (context, state) => const TeacherNewRequestPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.studentNotifications,
+        builder: (context, state) => const NotificationsPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.teacherNotifications,
+        builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
         path: RoutePaths.studentDashboard,
