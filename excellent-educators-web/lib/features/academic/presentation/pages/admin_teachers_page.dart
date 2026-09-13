@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/admin_list_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/assessment_providers.dart';
@@ -32,7 +33,7 @@ class AdminTeachersPage extends ConsumerWidget {
         children: [
           DirectoryToolbar(
             key: const ValueKey('admin-teachers-toolbar'),
-            searchHint: 'Search name, employee code, phone, or email',
+            searchHint: 'Search name, phone, address, or email',
             searchQuery: filter.search,
             onSearchChanged: (value) {
               ref.read(adminTeachersFilterProvider.notifier).state =
@@ -65,7 +66,7 @@ class AdminTeachersPage extends ConsumerWidget {
                   return const EmptyHint(
                     'No teachers yet',
                     icon: EmptyIcons.teachers,
-                    subtitle: 'Add teachers and assign Common or Master Teacher roles.',
+                    subtitle: 'Add Master Teachers to mentor students.',
                   );
                 }
 
@@ -117,9 +118,9 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
   final _password = TextEditingController();
   final _phone = TextEditingController();
   final _whatsapp = TextEditingController();
-  final _employeeCode = TextEditingController();
-  final _roles = <String>{'common_teacher'};
+  final _address = TextEditingController();
   bool _saving = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -128,12 +129,12 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
     _password.dispose();
     _phone.dispose();
     _whatsapp.dispose();
-    _employeeCode.dispose();
+    _address.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _roles.isEmpty) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
     setState(() => _saving = true);
@@ -144,8 +145,8 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
         'password': _password.text,
         'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
         'whatsapp_number': _whatsapp.text.trim().isEmpty ? null : _whatsapp.text.trim(),
-        'employee_code': _employeeCode.text.trim().isEmpty ? null : _employeeCode.text.trim(),
-        'roles': _roles.toList(),
+        'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
+        'roles': ['master_teacher'],
       });
       ref.invalidate(adminTeachersProvider);
       ref.invalidate(adminDashboardProvider);
@@ -175,20 +176,28 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
           children: [
             TextFormField(
               controller: _name,
+              textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(labelText: 'Full name'),
               validator: _required,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _email,
+              keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(labelText: 'Email'),
               validator: _required,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _password,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Temporary password'),
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: 'Temporary password',
+                suffixIcon: IconButton(
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                ),
+              ),
               validator: _required,
             ),
             const SizedBox(height: 12),
@@ -213,34 +222,14 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _employeeCode,
-              decoration: const InputDecoration(labelText: 'Employee code (optional)'),
-            ),
-            const SizedBox(height: 16),
-            Text('Roles', style: Theme.of(context).textTheme.titleSmall),
-            CheckboxListTile(
-              value: _roles.contains('common_teacher'),
-              title: const Text('Common Teacher'),
-              subtitle: const Text('Assigned to a batch. Can view student profiles only.'),
-              onChanged: (value) => setState(() {
-                if (value == true) {
-                  _roles.add('common_teacher');
-                } else {
-                  _roles.remove('common_teacher');
-                }
-              }),
-            ),
-            CheckboxListTile(
-              value: _roles.contains('master_teacher'),
-              title: const Text('Master Teacher'),
-              subtitle: const Text('Assigned to students. Writes monthly development feedback later.'),
-              onChanged: (value) => setState(() {
-                if (value == true) {
-                  _roles.add('master_teacher');
-                } else {
-                  _roles.remove('master_teacher');
-                }
-              }),
+              controller: _address,
+              maxLines: 2,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Address',
+                hintText: 'Enter teacher address',
+                alignLabelWithHint: true,
+              ),
             ),
             const SizedBox(height: 24),
             FilledButton(
@@ -255,6 +244,167 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  String? _required(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'This field is required.';
+    }
+    return null;
+  }
+}
+
+class AdminEditTeacherPage extends ConsumerStatefulWidget {
+  const AdminEditTeacherPage({super.key, required this.teacherId});
+
+  final String teacherId;
+
+  @override
+  ConsumerState<AdminEditTeacherPage> createState() => _AdminEditTeacherPageState();
+}
+
+class _AdminEditTeacherPageState extends ConsumerState<AdminEditTeacherPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+  final _whatsapp = TextEditingController();
+  final _address = TextEditingController();
+  String? _status;
+  String? _boundTeacherId;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    _whatsapp.dispose();
+    _address.dispose();
+    super.dispose();
+  }
+
+  void _bind(TeacherDto teacher) {
+    if (_boundTeacherId == teacher.id) {
+      return;
+    }
+    _boundTeacherId = teacher.id;
+    _name.text = teacher.fullName;
+    _phone.text = teacher.phone ?? '';
+    _whatsapp.text = teacher.whatsappNumber ?? '';
+    _address.text = teacher.address ?? '';
+    _status = teacher.status;
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ref.read(academicRepositoryProvider).updateTeacher(widget.teacherId, {
+        'name': _name.text.trim(),
+        'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+        'whatsapp_number': _whatsapp.text.trim().isEmpty ? null : _whatsapp.text.trim(),
+        'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
+        'status': _status,
+        'roles': ['master_teacher'],
+      });
+      ref.invalidate(adminTeacherProvider(widget.teacherId));
+      ref.invalidate(adminTeachersProvider);
+      ref.invalidate(adminDashboardProvider);
+      if (mounted) {
+        context.go(RoutePaths.adminTeacher(widget.teacherId));
+      }
+    } catch (error) {
+      if (mounted) {
+        showFailure(context, error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final teacherValue = ref.watch(adminTeacherProvider(widget.teacherId));
+
+    return AppFormPage(
+      title: 'Edit teacher',
+      backTo: RoutePaths.adminTeacher(widget.teacherId),
+      child: AsyncBody(
+        value: teacherValue,
+        onRetry: () => ref.invalidate(adminTeacherProvider(widget.teacherId)),
+        builder: (teacher) {
+          if (_boundTeacherId != teacher.id) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _bind(teacher));
+            });
+            return const Center(child: CircularProgressIndicator());
+          }
+          return SingleChildScrollView(
+            child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _name,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(labelText: 'Full name'),
+                  validator: _required,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _address,
+                  maxLines: 2,
+                  decoration: const InputDecoration(labelText: 'Address'),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _phone,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone number',
+                    prefixText: '+91  ',
+                  ),
+                  validator: validateOptionalPhone,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _whatsapp,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'WhatsApp number (optional)',
+                    prefixText: '+91  ',
+                  ),
+                  validator: validateOptionalPhone,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  key: ValueKey(_status),
+                  value: _status,
+                  decoration: const InputDecoration(labelText: 'Status'),
+                  items: const [
+                    DropdownMenuItem(value: 'active', child: Text('Active')),
+                    DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
+                  ],
+                  onChanged: (value) => setState(() => _status = value),
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Save changes'),
+                ),
+              ],
+            ),
+            ),
+          );
+        },
       ),
     );
   }

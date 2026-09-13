@@ -1,5 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Api\V1\Admin\GoogleMeetController as AdminGoogleMeetController;
+use App\Http\Controllers\Api\V1\Admin\AcademicLevelController;
+use App\Http\Controllers\Api\V1\Admin\ScheduleController as AdminScheduleController;
+use App\Http\Controllers\Api\V1\Admin\StudentLearningController as AdminStudentLearningController;
+use App\Http\Controllers\Api\V1\Admin\WeeklyLearningController as AdminWeeklyLearningController;
+use App\Http\Controllers\Api\V1\Student\BookingController as StudentBookingController;
+use App\Http\Controllers\Api\V1\Teacher\ScheduleController as TeacherScheduleController;
 use App\Http\Controllers\Api\V1\Admin\AdminRequestController as AdminAdminRequestController;
 use App\Http\Controllers\Api\V1\Admin\AptitudeAssessmentController as AdminAptitudeAssessmentController;
 use App\Http\Controllers\Api\V1\Admin\BatchController as AdminBatchController;
@@ -7,6 +15,7 @@ use App\Http\Controllers\Api\V1\Admin\CareerCompassLevelController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\DevelopmentController as AdminDevelopmentController;
 use App\Http\Controllers\Api\V1\Admin\LoginPageContentController as AdminLoginPageContentController;
+use App\Http\Controllers\Api\V1\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Api\V1\Admin\StudentController as AdminStudentController;
 use App\Http\Controllers\Api\V1\Admin\StudentMentorController;
 use App\Http\Controllers\Api\V1\Admin\TeacherController as AdminTeacherController;
@@ -15,6 +24,8 @@ use App\Http\Controllers\Api\V1\Auth\LoginPageController;
 use App\Http\Controllers\Api\V1\MasterTeacher\DashboardController as MasterTeacherDashboardController;
 use App\Http\Controllers\Api\V1\MasterTeacher\FeedbackController as MasterTeacherFeedbackController;
 use App\Http\Controllers\Api\V1\MasterTeacher\StudentController as MasterTeacherStudentController;
+use App\Http\Controllers\Api\V1\MasterTeacher\StudentLearningController as MasterTeacherStudentLearningController;
+use App\Http\Controllers\Api\V1\Student\LearningJournalController as StudentLearningJournalController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\Student\AdminRequestController as StudentAdminRequestController;
 use App\Http\Controllers\Api\V1\Student\AssessmentController as StudentAssessmentController;
@@ -24,6 +35,7 @@ use App\Http\Controllers\Api\V1\Teacher\AssessmentController as TeacherAssessmen
 use App\Http\Controllers\Api\V1\Teacher\BatchController as TeacherBatchController;
 use App\Http\Controllers\Api\V1\Teacher\ProfileController as TeacherProfileController;
 use App\Http\Controllers\Api\V1\Teacher\StudentController as TeacherStudentController;
+use App\Http\Controllers\Api\V1\Teacher\StudentLearningController as TeacherStudentLearningController;
 use App\Http\Controllers\Api\V1\Teacher\StudentFeedbackController as TeacherStudentFeedbackController;
 use App\Http\Controllers\Api\V1\Teacher\StudentResultController as TeacherStudentResultController;
 use Illuminate\Support\Facades\Route;
@@ -58,6 +70,9 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::put('students/{student}', [AdminStudentController::class, 'update']);
     Route::put('students/{student}/mentor', [StudentMentorController::class, 'update']);
     Route::delete('students/{student}/mentor', [StudentMentorController::class, 'destroy']);
+    Route::get('students/{student}/learning-journal', [AdminStudentLearningController::class, 'journal']);
+    Route::get('students/{student}/learning-journal/{journey}/{week}', [AdminStudentLearningController::class, 'week']);
+    Route::post('students/{student}/promote', [AdminStudentLearningController::class, 'promote']);
 
     Route::get('teachers', [AdminTeacherController::class, 'index']);
     Route::post('teachers', [AdminTeacherController::class, 'store']);
@@ -69,11 +84,23 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::post('batches', [AdminBatchController::class, 'store']);
     Route::get('batches/{batch}', [AdminBatchController::class, 'show']);
     Route::put('batches/{batch}', [AdminBatchController::class, 'update']);
+    Route::patch('batches/{batch}/status', [AdminBatchController::class, 'toggleStatus']);
     Route::get('batches/{batch}/students', [AdminBatchController::class, 'students']);
     Route::post('batches/{batch}/students', [AdminBatchController::class, 'enroll']);
     Route::delete('batches/{batch}/students/{student}', [AdminBatchController::class, 'unenroll']);
     Route::post('batches/{batch}/teacher', [AdminBatchController::class, 'assignTeacher']);
     Route::delete('batches/{batch}/teacher', [AdminBatchController::class, 'unassignTeacher']);
+
+    Route::get('levels', [AcademicLevelController::class, 'index']);
+    Route::post('levels', [AcademicLevelController::class, 'store']);
+    Route::get('levels/{level}', [AcademicLevelController::class, 'show']);
+    Route::put('levels/{level}', [AcademicLevelController::class, 'update']);
+    Route::delete('levels/{level}', [AcademicLevelController::class, 'destroy']);
+    Route::post('levels/{level}/batches', [AdminBatchController::class, 'storeForLevel']);
+    Route::post('levels/{level}/teachers', [AcademicLevelController::class, 'assignTeacher']);
+    Route::delete('levels/{level}/teachers/{teacher}', [AcademicLevelController::class, 'unassignTeacher']);
+    Route::get('levels/{level}/weekly-learnings', [AdminWeeklyLearningController::class, 'index']);
+    Route::put('levels/{level}/weekly-learnings', [AdminWeeklyLearningController::class, 'upsert']);
 
     Route::get('assessments', [AdminAptitudeAssessmentController::class, 'index']);
     Route::post('assessments', [AdminAptitudeAssessmentController::class, 'store']);
@@ -98,18 +125,58 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('students/{student}/feedback/summary', [AdminDevelopmentController::class, 'studentFeedbackSummary']);
     Route::get('feedback-catalog', [AdminDevelopmentController::class, 'feedbackCatalog']);
 
+    Route::get('google/meet', [AdminGoogleMeetController::class, 'show']);
+    Route::post('google/meet/authorize', [AdminGoogleMeetController::class, 'start']);
+    Route::post('google/meet/spaces', [AdminGoogleMeetController::class, 'store']);
+
+    Route::get('attendance', [AdminAttendanceController::class, 'index']);
+    Route::get('attendance/{issue}', [AdminAttendanceController::class, 'show']);
+    Route::post('attendance/{issue}/resolve', [AdminAttendanceController::class, 'resolve']);
+
     Route::get('login-page', [AdminLoginPageContentController::class, 'show']);
     Route::put('login-page', [AdminLoginPageContentController::class, 'update']);
+    Route::get('settings', [AdminSettingsController::class, 'show']);
+    Route::put('settings', [AdminSettingsController::class, 'update']);
 
     Route::get('requests', [AdminAdminRequestController::class, 'index']);
     Route::get('requests/{adminRequest}', [AdminAdminRequestController::class, 'show']);
     Route::post('requests/{adminRequest}/resolve', [AdminAdminRequestController::class, 'resolve']);
+
+    Route::get('schedule/teachers', [AdminScheduleController::class, 'teachers']);
+    Route::get('schedule/day', [AdminScheduleController::class, 'day']);
+    Route::get('schedule/week', [AdminScheduleController::class, 'week']);
+    Route::get('schedule/month', [AdminScheduleController::class, 'month']);
+    Route::get('schedule/leaves', [AdminScheduleController::class, 'leaves']);
+    Route::post('schedule/teachers/{teacher}/breaks', [AdminScheduleController::class, 'upsertBreaks']);
+    Route::post('schedule/teachers/{teacher}/leaves', [AdminScheduleController::class, 'storeLeave']);
+    Route::delete('schedule/leaves/{leave}', [AdminScheduleController::class, 'destroyLeave']);
+    Route::get('schedule/bookings', [AdminScheduleController::class, 'bookings']);
+    Route::post('schedule/bookings', [AdminScheduleController::class, 'storeBooking']);
+    Route::put('schedule/bookings/{booking}', [AdminScheduleController::class, 'updateBooking']);
+    Route::delete('schedule/bookings/{booking}', [AdminScheduleController::class, 'destroyBooking']);
+    Route::post('schedule/bookings/{booking}/complete', [AdminScheduleController::class, 'completeBooking']);
+    Route::get('schedule/teachers/{teacher}/availability', [AdminScheduleController::class, 'availability']);
+    Route::put('schedule/teachers/{teacher}/availability', [AdminScheduleController::class, 'updateAvailability']);
+    Route::post('schedule/teachers/{teacher}/availability/overrides', [AdminScheduleController::class, 'storeAvailabilityOverride']);
+    Route::delete('schedule/teachers/{teacher}/availability/overrides/{override}', [AdminScheduleController::class, 'destroyAvailabilityOverride']);
 });
 
 Route::middleware(['auth:sanctum', 'role:common_teacher|master_teacher'])->group(function (): void {
     Route::get('teacher/profile', [TeacherProfileController::class, 'show']);
     Route::get('teacher/requests', [TeacherAdminRequestController::class, 'index']);
     Route::post('teacher/requests', [TeacherAdminRequestController::class, 'store']);
+    Route::get('teacher/schedule/day', [TeacherScheduleController::class, 'day']);
+    Route::get('teacher/schedule/week', [TeacherScheduleController::class, 'week']);
+    Route::get('teacher/schedule/month', [TeacherScheduleController::class, 'month']);
+    Route::get('teacher/schedule/breaks', [TeacherScheduleController::class, 'breaks']);
+    Route::put('teacher/schedule/breaks', [TeacherScheduleController::class, 'upsertBreaks']);
+    Route::get('teacher/schedule/leaves', [TeacherScheduleController::class, 'leaves']);
+    Route::post('teacher/schedule/leaves', [TeacherScheduleController::class, 'storeLeave']);
+    Route::delete('teacher/schedule/leaves/{leave}', [TeacherScheduleController::class, 'destroyLeave']);
+    Route::post('teacher/schedule/bookings/{booking}/complete', [TeacherScheduleController::class, 'completeBooking']);
+    Route::post('teacher/schedule/bookings/{booking}/join', [TeacherScheduleController::class, 'joinBooking']);
+    Route::post('teacher/schedule/bookings/{booking}/attendance-reports', [TeacherScheduleController::class, 'reportStudent']);
+    Route::post('teacher/schedule/bookings/{booking}/whatsapp', [TeacherScheduleController::class, 'whatsappStudent']);
 });
 
 Route::middleware(['auth:sanctum', 'role:common_teacher'])->prefix('teacher')->group(function (): void {
@@ -125,6 +192,8 @@ Route::middleware(['auth:sanctum', 'role:common_teacher'])->prefix('teacher')->g
     Route::get('students/{student}/results', [TeacherStudentResultController::class, 'show']);
     Route::get('students/{student}/feedback', [TeacherStudentFeedbackController::class, 'index']);
     Route::get('students/{student}/feedback/summary', [TeacherStudentFeedbackController::class, 'summary']);
+    Route::get('students/{student}/learning-journal', [TeacherStudentLearningController::class, 'journal']);
+    Route::get('students/{student}/learning-journal/{journey}/{week}', [TeacherStudentLearningController::class, 'week']);
 });
 
 Route::middleware(['auth:sanctum', 'role:master_teacher'])->prefix('master-teacher')->group(function (): void {
@@ -138,6 +207,9 @@ Route::middleware(['auth:sanctum', 'role:master_teacher'])->prefix('master-teach
     Route::put('students/{student}/feedback/{feedback}', [MasterTeacherFeedbackController::class, 'update']);
     Route::delete('students/{student}/feedback/{feedback}', [MasterTeacherFeedbackController::class, 'destroy']);
     Route::get('students/{student}/results', [MasterTeacherFeedbackController::class, 'results']);
+    Route::get('students/{student}/learning-journal', [MasterTeacherStudentLearningController::class, 'journal']);
+    Route::get('students/{student}/learning-journal/{journey}/{week}', [MasterTeacherStudentLearningController::class, 'week']);
+    Route::post('students/{student}/promote', [MasterTeacherStudentLearningController::class, 'promote']);
 });
 
 Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->group(function (): void {
@@ -149,4 +221,17 @@ Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->group(fu
     Route::get('feedback/summary', [StudentAssessmentController::class, 'feedbackSummary']);
     Route::get('requests', [StudentAdminRequestController::class, 'index']);
     Route::post('requests', [StudentAdminRequestController::class, 'store']);
+    Route::get('bookings/eligibility', [StudentBookingController::class, 'eligibility']);
+    Route::get('bookings/teachers', [StudentBookingController::class, 'teachers']);
+    Route::get('bookings/availability', [StudentBookingController::class, 'availability']);
+    Route::get('bookings', [StudentBookingController::class, 'index']);
+    Route::post('bookings', [StudentBookingController::class, 'store']);
+    Route::get('bookings/{booking}', [StudentBookingController::class, 'show']);
+    Route::put('bookings/{booking}', [StudentBookingController::class, 'reschedule']);
+    Route::post('bookings/{booking}/join', [StudentBookingController::class, 'join']);
+    Route::post('bookings/{booking}/attendance-reports', [StudentBookingController::class, 'reportTeacher']);
+    Route::get('learning/dashboard', [StudentLearningJournalController::class, 'dashboard']);
+    Route::get('learning/journal', [StudentLearningJournalController::class, 'index']);
+    Route::get('learning/journal/{journey}/{week}', [StudentLearningJournalController::class, 'show']);
+    Route::post('learning/journal/{journey}/{week}', [StudentLearningJournalController::class, 'submit']);
 });

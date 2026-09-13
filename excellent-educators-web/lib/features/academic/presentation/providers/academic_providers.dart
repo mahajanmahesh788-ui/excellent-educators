@@ -12,6 +12,14 @@ final careerCompassLevelsProvider = FutureProvider<List<CareerCompassLevelDto>>(
   return ref.watch(academicRepositoryProvider).careerCompassLevels();
 });
 
+final adminLevelsProvider = FutureProvider.autoDispose<List<AcademicLevelDto>>((ref) {
+  return ref.watch(academicRepositoryProvider).adminLevels();
+});
+
+final adminLevelProvider = FutureProvider.autoDispose.family<AcademicLevelDto, String>((ref, id) {
+  return ref.watch(academicRepositoryProvider).adminLevel(id);
+});
+
 final adminBatchProvider = FutureProvider.autoDispose.family<BatchDto, String>((ref, id) {
   return ref.watch(academicRepositoryProvider).adminBatch(id);
 });
@@ -34,7 +42,7 @@ final masterTeacherStudentsFilterProvider = StateProvider<MasterTeacherStudentsF
   return MasterTeacherStudentsFilter.currentMonth();
 });
 
-final masterTeacherStudentsProvider = FutureProvider.autoDispose<List<StudentDto>>((ref) {
+final masterTeacherStudentsProvider = FutureProvider.autoDispose<MasterTeacherRosterDto>((ref) {
   final filter = ref.watch(masterTeacherStudentsFilterProvider);
   return ref.watch(academicRepositoryProvider).masterTeacherStudents(filter);
 });

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1\MasterTeacher;
 
+use App\Feedback\StudentsDueForRating;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\StudentResource;
+use App\Models\MonthlyFeedback;
 use App\Models\StudentProfile;
 use App\Support\ApiResponse;
 use App\Support\AppClock;
@@ -22,26 +24,50 @@ class StudentController extends Controller
 
         ['year' => $year, 'month' => $month] = $this->resolveYearMonth($request);
 
-        $studentIds = $teacher->activeMasterTeacherAssignments()->pluck('student_id');
+        $studentIds = $teacher->rosterStudentIds();
+        $dueIds = app(StudentsDueForRating::class)->idsFor($teacher, $year, $month);
         $students = StudentProfile::query()
             ->whereIn('id', $studentIds)
             ->with([
                 'user',
                 'careerCompassLevel',
+                'academicLevel.masterTeachers.user',
+                'activeEnrollment.batch.level.masterTeachers.user',
                 'activeEnrollment.batch.activeTeacherAssignment.teacher',
                 'activeMasterTeacherAssignment.teacher',
             ])
-            ->when($request->has('rated'), function ($query) use ($request, $year, $month): void {
+            ->when($request->filled('level_id'), function ($query) use ($request): void {
+                $levelId = $request->string('level_id')->toString();
+                $query->where(function ($inner) use ($levelId): void {
+                    $inner->where('level_id', $levelId)
+                        ->orWhereHas('activeEnrollment.batch', fn ($batch) => $batch->where('level_id', $levelId));
+                });
+            })
+            ->when($request->filled('batch_id'), function ($query) use ($request): void {
+                $query->whereHas('activeEnrollment', fn ($enrollment) => $enrollment
+                    ->whereNull('left_at')
+                    ->where('batch_id', $request->string('batch_id')));
+            })
+            ->when($request->has('rated'), function ($query) use ($request, $year, $month, $dueIds): void {
                 $rated = $request->boolean('rated');
                 if ($rated) {
                     $query->whereHas('monthlyFeedbacks', fn ($feedback) => $feedback
                         ->where('year', $year)
                         ->where('month', $month));
-                } else {
-                    $query->whereDoesntHave('monthlyFeedbacks', fn ($feedback) => $feedback
+
+                    return;
+                }
+
+                if ($dueIds->isEmpty()) {
+                    $query->whereRaw('1 = 0');
+
+                    return;
+                }
+
+                $query->whereIn('id', $dueIds)
+                    ->whereDoesntHave('monthlyFeedbacks', fn ($feedback) => $feedback
                         ->where('year', $year)
                         ->where('month', $month));
-                }
             })
             ->orderBy('full_name')
             ->get();
@@ -53,7 +79,17 @@ class StudentController extends Controller
             ->selectRaw('monthly_feedbacks.student_id, avg(monthly_feedback_items.rating) as overall_average')
             ->pluck('overall_average', 'student_id');
 
-        $students->each(function (StudentProfile $student) use ($averages, $year, $month): void {
+        $feedbackByStudent = $dueIds->isEmpty()
+            ? collect()
+            : MonthlyFeedback::query()
+                ->where('master_teacher_id', $teacher->id)
+                ->whereIn('student_id', $dueIds)
+                ->where('year', $year)
+                ->where('month', $month)
+                ->get(['id', 'student_id'])
+                ->keyBy('student_id');
+
+        $students->each(function (StudentProfile $student) use ($averages, $year, $month, $dueIds, $feedbackByStudent): void {
             $student->feedback_filter_year = $year;
             $student->feedback_filter_month = $month;
             $student->loadCount([
@@ -66,18 +102,39 @@ class StudentController extends Controller
                     ->where('month', $month),
             ]);
             $student->feedback_overall_average = $averages[$student->id] ?? null;
+            $due = $dueIds->contains($student->id);
+            $feedbackId = $feedbackByStudent->get($student->id)?->id;
+            $student->can_rate_this_month = $due && $feedbackId === null;
+            $student->can_edit_rating_this_month = $due && $feedbackId !== null;
+            $student->monthly_feedback_id = $feedbackId;
         });
+
+        $levels = $teacher->academicLevels()
+            ->with(['batches' => fn ($query) => $query->orderBy('name')])
+            ->orderBy('name')
+            ->get()
+            ->map(fn ($level) => [
+                'id' => $level->id,
+                'name' => $level->name,
+                'batches' => $level->batches->map(fn ($batch) => [
+                    'id' => $batch->id,
+                    'name' => $batch->name,
+                ])->values()->all(),
+            ])
+            ->values()
+            ->all();
 
         return ApiResponse::success(
             'Students fetched successfully.',
             StudentResource::collection($students)->resolve(),
+            ['levels' => $levels],
         );
     }
 
     public function show(Request $request, StudentProfile $student): JsonResponse
     {
         $teacher = $request->user()?->teacherProfile;
-        $assigned = $teacher && $teacher->activeMasterTeacherAssignments()->where('student_id', $student->id)->exists();
+        $assigned = $teacher && $teacher->canAccessStudent($student);
         if (! $assigned) {
             return ApiResponse::error('This action is unauthorized.', 'FORBIDDEN', null, 403);
         }
@@ -87,6 +144,8 @@ class StudentController extends Controller
         $student->load([
             'user',
             'careerCompassLevel',
+            'academicLevel.masterTeachers.user',
+            'activeEnrollment.batch.level.masterTeachers.user',
             'activeEnrollment.batch.activeTeacherAssignment.teacher',
             'activeMasterTeacherAssignment.teacher',
         ])->loadCount([
@@ -100,6 +159,17 @@ class StudentController extends Controller
             ->join('monthly_feedbacks', 'monthly_feedbacks.id', '=', 'monthly_feedback_items.monthly_feedback_id')
             ->where('monthly_feedbacks.student_id', $student->id)
             ->avg('monthly_feedback_items.rating');
+
+        $due = app(StudentsDueForRating::class)->idsFor($teacher, $year, $month)->contains($student->id);
+        $feedback = MonthlyFeedback::query()
+            ->where('student_id', $student->id)
+            ->where('master_teacher_id', $teacher->id)
+            ->where('year', $year)
+            ->where('month', $month)
+            ->first();
+        $student->can_rate_this_month = $due && $feedback === null;
+        $student->can_edit_rating_this_month = $due && $feedback !== null;
+        $student->monthly_feedback_id = $feedback?->id;
 
         return ApiResponse::success('Student fetched successfully.', StudentResource::make($student)->resolve());
     }

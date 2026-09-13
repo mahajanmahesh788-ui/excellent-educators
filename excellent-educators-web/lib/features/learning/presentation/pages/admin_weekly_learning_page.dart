@@ -1,0 +1,526 @@
+import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
+import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
+import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
+import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class AdminWeeklyLearningPage extends ConsumerStatefulWidget {
+  const AdminWeeklyLearningPage({super.key, required this.levelId});
+
+  final String levelId;
+
+  @override
+  ConsumerState<AdminWeeklyLearningPage> createState() => _AdminWeeklyLearningPageState();
+}
+
+class _AdminWeeklyLearningPageState extends ConsumerState<AdminWeeklyLearningPage> {
+  var _week = 1;
+  final _video = TextEditingController();
+  final _questions = <_QuestionDraft>[];
+  var _boundLevelId = '';
+  var _saving = false;
+
+  @override
+  void dispose() {
+    _video.dispose();
+    for (final question in _questions) {
+      question.dispose();
+    }
+    super.dispose();
+  }
+
+  void _loadWeek(List<WeeklyLearningContentDto> content) {
+    final unit = content.where((item) => item.weekNumber == _week).firstOrNull;
+    _video.text = unit?.videoUrl ?? '';
+    for (final question in _questions) {
+      question.dispose();
+    }
+    _questions
+      ..clear()
+      ..addAll(
+        unit == null || unit.questions.isEmpty
+            ? [_QuestionDraft()]
+            : unit.questions.map(_QuestionDraft.fromDto),
+      );
+  }
+
+  Future<void> _save() async {
+    if (_video.text.trim().isEmpty) {
+      showFailure(context, 'Enter a video link for this week.');
+      return;
+    }
+    for (final question in _questions) {
+      if (question.text.text.trim().isEmpty) {
+        showFailure(context, 'Every question needs text.');
+        return;
+      }
+      if (question.options.length < 2) {
+        showFailure(context, 'Each question needs at least two options.');
+        return;
+      }
+      if (question.options.every((option) => !option.isCorrect)) {
+        showFailure(context, 'Mark at least one correct answer for each question.');
+        return;
+      }
+      if (question.options.any((option) => option.text.text.trim().isEmpty)) {
+        showFailure(context, 'Every option needs text.');
+        return;
+      }
+    }
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(learningRepositoryProvider).upsertWeeklyLearning(
+            levelId: widget.levelId,
+            weekNumber: _week,
+            videoUrl: _video.text.trim(),
+            questions: [
+              for (final question in _questions)
+                {
+                  'question_text': question.text.text.trim(),
+                  'options': [
+                    for (final option in question.options)
+                      {
+                        'option_text': option.text.text.trim(),
+                        'is_correct': option.isCorrect,
+                      },
+                  ],
+                },
+            ],
+          );
+      ref.invalidate(adminWeeklyLearningsProvider(widget.levelId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Week $_week saved.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) showFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final level = ref.watch(adminLevelProvider(widget.levelId));
+    final units = ref.watch(adminWeeklyLearningsProvider(widget.levelId));
+
+    return AppScaffold(
+      title: 'Learning Journey',
+      backTo: RoutePaths.adminBatch(widget.levelId),
+      body: AsyncBody(
+        value: level,
+        onRetry: () => ref.invalidate(adminLevelProvider(widget.levelId)),
+        builder: (levelData) {
+          return AsyncBody(
+            value: units,
+            onRetry: () => ref.invalidate(adminWeeklyLearningsProvider(widget.levelId)),
+            builder: (content) {
+              if (_boundLevelId != widget.levelId) {
+                _boundLevelId = widget.levelId;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  setState(() => _loadWeek(content));
+                });
+              }
+              final savedWeeks = content.map((item) => item.weekNumber).toSet();
+              return ListView(
+                padding: const EdgeInsets.only(bottom: 48),
+                children: [
+                  Text(
+                    '${levelData.name} · Week $_week',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Brand.navy,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  _WeekStrip(
+                    selected: _week,
+                    savedWeeks: savedWeeks,
+                    onSelect: (week) => setState(() {
+                      _week = week;
+                      _loadWeek(content);
+                    }),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _video,
+                    decoration: const InputDecoration(
+                      labelText: 'Video link',
+                      hintText: 'https://',
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      const Text(
+                        'Questions',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                      ),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: () => setState(() => _questions.add(_QuestionDraft())),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add question'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  for (var index = 0; index < _questions.length; index++) _questionEditor(index),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton(
+                      onPressed: _saving ? null : _save,
+                      child: _saving
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                          : Text('Save week $_week'),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _questionEditor(int index) {
+    final question = _questions[index];
+    return Card(
+      key: ValueKey('question-$index-${question.text.hashCode}'),
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Brand.navyDeep.withValues(alpha: 0.08),
+                  Brand.navy.withValues(alpha: 0.04),
+                ],
+              ),
+              border: Border(
+                bottom: BorderSide(color: Brand.gold.withValues(alpha: 0.35)),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Brand.navyDeep,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Q${index + 1}',
+                    style: const TextStyle(color: Brand.gold, fontWeight: FontWeight.w800, fontSize: 12),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: question.text,
+                    minLines: 1,
+                    maxLines: 4,
+                    style: const TextStyle(
+                      color: Brand.navyDeep,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                      height: 1.35,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Question',
+                      labelStyle: TextStyle(color: Brand.navy.withValues(alpha: 0.7), fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.7),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Brand.navy.withValues(alpha: 0.15)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Brand.gold, width: 1.5),
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _questions.length == 1
+                      ? null
+                      : () => setState(() {
+                            final removed = _questions.removeAt(index);
+                            removed.dispose();
+                          }),
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            color: const Color(0xFFFAF7F0),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Answer options',
+                  style: TextStyle(color: Brand.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.3),
+                ),
+                const SizedBox(height: 8),
+                for (var optionIndex = 0; optionIndex < question.options.length; optionIndex++)
+                  _optionEditor(question, optionIndex),
+                TextButton(
+                  onPressed: () => setState(() => question.options.add(_OptionDraft())),
+                  child: const Text('Add option'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _optionEditor(_QuestionDraft question, int index) {
+    final option = question.options[index];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: option.text,
+              style: const TextStyle(color: Brand.ink, fontWeight: FontWeight.w400, fontSize: 13, height: 1.3),
+              decoration: InputDecoration(
+                labelText: 'Option ${index + 1}',
+                labelStyle: const TextStyle(color: Brand.muted, fontSize: 12),
+                isDense: true,
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE8E0D4)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Brand.gold.withValues(alpha: 0.7)),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Tooltip(
+            message: 'Correct answer',
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Checkbox(
+                  value: option.isCorrect,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  side: const BorderSide(color: Brand.navy, width: 1.6),
+                  fillColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Brand.navy;
+                    }
+                    return Colors.white;
+                  }),
+                  checkColor: Brand.gold,
+                  onChanged: (value) => setState(() => option.isCorrect = value ?? false),
+                ),
+                const Text(
+                  'Correct',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Brand.navy),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: question.options.length <= 2
+                ? null
+                : () => setState(() {
+                      final removed = question.options.removeAt(index);
+                      removed.dispose();
+                    }),
+            icon: const Icon(Icons.close, size: 18),
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeekStrip extends StatefulWidget {
+  const _WeekStrip({
+    required this.selected,
+    required this.savedWeeks,
+    required this.onSelect,
+  });
+
+  final int selected;
+  final Set<int> savedWeeks;
+  final ValueChanged<int> onSelect;
+
+  @override
+  State<_WeekStrip> createState() => _WeekStripState();
+}
+
+class _WeekStripState extends State<_WeekStrip> {
+  final _controller = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToSelected());
+  }
+
+  @override
+  void didUpdateWidget(covariant _WeekStrip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selected != widget.selected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToSelected());
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _jumpToSelected() {
+    if (!_controller.hasClients) return;
+    final offset = ((widget.selected - 1) * 42.0) - 80;
+    _controller.animateTo(
+      offset.clamp(0, _controller.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        IconButton(
+          tooltip: 'Previous week',
+          visualDensity: VisualDensity.compact,
+          onPressed: widget.selected > 1 ? () => widget.onSelect(widget.selected - 1) : null,
+          icon: const Icon(Icons.chevron_left),
+        ),
+        Expanded(
+          child: SizedBox(
+            height: 40,
+            child: ListView.separated(
+              controller: _controller,
+              scrollDirection: Axis.horizontal,
+              itemCount: 52,
+              separatorBuilder: (_, _) => const SizedBox(width: 6),
+              itemBuilder: (context, index) {
+                final week = index + 1;
+                final isSelected = week == widget.selected;
+                final saved = widget.savedWeeks.contains(week);
+                return InkWell(
+                  onTap: () => widget.onSelect(week),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isSelected ? Brand.navy : Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected
+                            ? Brand.navy
+                            : saved
+                                ? Brand.gold
+                                : const Color(0xFFD7CDBB),
+                      ),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Text(
+                          '$week',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: isSelected ? Colors.white : Brand.navy,
+                          ),
+                        ),
+                        if (saved)
+                          const Positioned(
+                            top: 2,
+                            right: 2,
+                            child: Icon(Icons.check, size: 9, color: Brand.gold),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Next week',
+          visualDensity: VisualDensity.compact,
+          onPressed: widget.selected < 52 ? () => widget.onSelect(widget.selected + 1) : null,
+          icon: const Icon(Icons.chevron_right),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuestionDraft {
+  _QuestionDraft()
+      : text = TextEditingController(),
+        options = [_OptionDraft(), _OptionDraft()];
+
+  _QuestionDraft.fromDto(LearningQuestionDto dto)
+      : text = TextEditingController(text: dto.questionText),
+        options = dto.options.isEmpty
+            ? [_OptionDraft(), _OptionDraft()]
+            : dto.options.map(_OptionDraft.fromDto).toList();
+
+  final TextEditingController text;
+  final List<_OptionDraft> options;
+
+  void dispose() {
+    text.dispose();
+    for (final option in options) {
+      option.dispose();
+    }
+  }
+}
+
+class _OptionDraft {
+  _OptionDraft() : text = TextEditingController();
+
+  _OptionDraft.fromDto(LearningOptionDto dto)
+      : text = TextEditingController(text: dto.optionText),
+        isCorrect = dto.isCorrect == true;
+
+  final TextEditingController text;
+  bool isCorrect = false;
+
+  void dispose() => text.dispose();
+}

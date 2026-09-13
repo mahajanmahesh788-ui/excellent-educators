@@ -26,9 +26,7 @@ class DeleteMonthlyFeedback
                 throw new ApiException(ErrorCode::FORBIDDEN, 'Only the assigned Master Teacher can delete this feedback.', 403);
             }
 
-            $assigned = $teacher->activeMasterTeacherAssignments()
-                ->where('student_id', $student->id)
-                ->exists();
+            $assigned = $teacher->canAccessStudent($student);
 
             if (! $assigned || $feedback->master_teacher_id !== $teacher->id) {
                 throw new ApiException(

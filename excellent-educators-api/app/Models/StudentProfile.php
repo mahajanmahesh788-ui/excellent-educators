@@ -18,11 +18,13 @@ class StudentProfile extends Model
     protected $fillable = [
         'user_id',
         'student_code',
+        'level_id',
         'career_compass_level_id',
         'class_grade',
         'full_name',
         'phone',
         'whatsapp_number',
+        'address',
         'guardian_name',
         'guardian_phone',
         'status',
@@ -41,6 +43,11 @@ class StudentProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function academicLevel(): BelongsTo
+    {
+        return $this->belongsTo(AcademicLevel::class, 'level_id');
     }
 
     public function careerCompassLevel(): BelongsTo
@@ -83,6 +90,26 @@ class StudentProfile extends Model
     public function monthlyFeedbacks(): HasMany
     {
         return $this->hasMany(MonthlyFeedback::class, 'student_id');
+    }
+
+    public function sessionBookings(): HasMany
+    {
+        return $this->hasMany(SessionBooking::class, 'student_id');
+    }
+
+    public function levelJourneys(): HasMany
+    {
+        return $this->hasMany(StudentLevelJourney::class, 'student_id');
+    }
+
+    public function currentLevelJourney(): HasOne
+    {
+        return $this->hasOne(StudentLevelJourney::class, 'student_id')->whereNull('ended_at');
+    }
+
+    public function weeklyAssignmentAttempts(): HasMany
+    {
+        return $this->hasMany(WeeklyAssignmentAttempt::class, 'student_id');
     }
 
     public function scopeActive(Builder $query): Builder

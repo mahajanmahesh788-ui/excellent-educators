@@ -38,37 +38,62 @@ class StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compass = student.careerCompassLevel;
+    Widget? assessmentBadge;
+    if (student.hasSubmittedAptitudeAssessment) {
+      assessmentBadge = const _InfoChip('Assessment submitted', tone: _ChipTone.success);
+    } else if (student.aptitudeAssessmentStatus == 'pending') {
+      assessmentBadge = const _InfoChip('Assessment pending', tone: _ChipTone.warning);
+    }
+
+    final ratingBadge = highlightOverallRating ? _OverallRatingBadge(student: student) : null;
+    Widget? trailing;
+    if (assessmentBadge != null && ratingBadge != null) {
+      trailing = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          assessmentBadge,
+          const SizedBox(width: 8),
+          ratingBadge,
+        ],
+      );
+    } else {
+      trailing = assessmentBadge ?? ratingBadge;
+    }
+
     final chips = <_InfoChip>[
-      if (student.hasSubmittedAptitudeAssessment)
-        const _InfoChip('Assessment submitted', tone: _ChipTone.success)
-      else if (student.aptitudeAssessmentStatus == 'pending')
-        const _InfoChip('Assessment pending', tone: _ChipTone.warning),
       if (showMonthRatingStatus)
         student.feedbackFilterMonthCompleted
             ? const _InfoChip('Rated', tone: _ChipTone.success)
             : const _InfoChip('Not rated', tone: _ChipTone.warning),
     ];
+    final title = student.studentCode.isNotEmpty
+        ? '${student.fullName} (${student.studentCode})'
+        : student.fullName;
+
     return _DirectoryCard(
       initials: _initials(student.fullName),
-      title: student.fullName,
-      subtitle: student.studentCode,
+      title: title,
+      subtitle: null,
       chips: chips,
-      trailing: highlightOverallRating ? _OverallRatingBadge(student: student) : null,
+      trailing: trailing,
       facts: [
         if (student.createdAt != null)
           _Fact('Registered', formatDisplayDateTime(student.createdAt)),
-        if (compass != null)
-          _Fact('Career Compass', '${compass.name} · Classes ${compass.classFrom}–${compass.classTo}'),
+        if (student.classGrade > 0)
+          _Fact('Class', 'Class ${student.classGrade}'),
         if (student.phone.isNotEmpty) _Fact('Phone', student.phone),
         if (student.whatsappNumber != null && student.whatsappNumber!.isNotEmpty)
           _Fact('WhatsApp', student.whatsappNumber!),
-        _Fact('Batch', student.batch?.label ?? 'Not in a batch'),
-        _Fact('Master Teacher', student.masterTeacher?.label ?? 'Not assigned'),
+        if (student.address != null && student.address!.isNotEmpty)
+          _Fact('Address', student.address!),
+        if (student.level != null && !student.level!.isEmpty)
+          _Fact('Level', student.level!.label)
+        else if (student.batch != null && !student.batch!.isEmpty)
+          _Fact('Level', student.batch!.label),
+        if (student.batch != null && !student.batch!.isEmpty && student.level != null && !student.level!.isEmpty)
+          _Fact('Batch', student.batch!.label),
         if (student.feedbackTotalSessions > 0)
           _Fact('Monthly ratings', '${student.feedbackTotalSessions} on record'),
-        if (student.commonTeacher != null && !student.commonTeacher!.isEmpty)
-          _Fact('Common Teacher', student.commonTeacher!.label),
       ],
       action: action,
       onTap: onTap,
@@ -77,32 +102,56 @@ class StudentCard extends StatelessWidget {
 }
 
 class TeacherCard extends StatelessWidget {
-  const TeacherCard({super.key, required this.teacher, this.onTap});
+  const TeacherCard({super.key, required this.teacher, this.onTap, this.action, this.trailing});
 
   final TeacherDto teacher;
   final VoidCallback? onTap;
+  final Widget? action;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
-    final roles = <_InfoChip>[
-      if (teacher.isCommonTeacher) const _InfoChip('Common Teacher', tone: _ChipTone.commonTeacher),
-      if (teacher.isMasterTeacher) const _InfoChip('Master Teacher', tone: _ChipTone.masterTeacher),
-    ];
     return _DirectoryCard(
       initials: _initials(teacher.fullName),
       title: teacher.fullName,
       subtitle: teacher.email,
-      chips: roles,
+      chips: const [],
       facts: [
         if (teacher.createdAt != null)
           _Fact('Registered', formatDisplayDateTime(teacher.createdAt)),
-        if (teacher.employeeCode != null && teacher.employeeCode!.isNotEmpty)
-          _Fact('Employee code', teacher.employeeCode!),
         if (teacher.phone != null && teacher.phone!.isNotEmpty) _Fact('Phone', teacher.phone!),
         if (teacher.whatsappNumber != null && teacher.whatsappNumber!.isNotEmpty)
           _Fact('WhatsApp', teacher.whatsappNumber!),
-        if (teacher.isCommonTeacher) _Fact('Active batches', '${teacher.activeBatchCount ?? 0}'),
-        if (teacher.isMasterTeacher) _Fact('Assigned students', '${teacher.activeMenteeCount ?? 0}'),
+        if (teacher.address != null && teacher.address!.isNotEmpty)
+          _Fact('Address', teacher.address!),
+        _Fact('Assigned level', teacher.assignedLevelsLabel),
+      ],
+      action: action,
+      trailing: trailing,
+      onTap: onTap,
+    );
+  }
+}
+
+class AcademicLevelCard extends StatelessWidget {
+  const AcademicLevelCard({super.key, required this.level, this.onTap});
+
+  final AcademicLevelDto level;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DirectoryCard(
+      initials: _initials(level.name),
+      title: level.name,
+      subtitle: 'Academic year ${level.academicYear}',
+      chips: [
+        _InfoChip('${level.batchesCount} ${level.batchesCount == 1 ? 'batch' : 'batches'}'),
+      ],
+      facts: [
+        _Fact('Total students', '${level.studentsCount}'),
+        _Fact('Batches', '${level.batchesCount} sections'),
+        _Fact('Year', '${level.academicYear}'),
       ],
       onTap: onTap,
     );
@@ -117,18 +166,14 @@ class BatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compass = batch.careerCompassLevel;
     return _DirectoryCard(
       initials: _initials(batch.name),
       title: batch.name,
-      subtitle: compass == null
-          ? 'Academic year ${batch.academicYear}'
-          : '${compass.name} · Classes ${compass.classFrom}–${compass.classTo}',
+      subtitle: 'Academic year ${batch.academicYear}',
       chips: [if (batch.isFull) const _InfoChip('Full')],
       facts: [
         _Fact('Students', '${batch.activeStudentCount} / ${batch.maxActiveStudents} active'),
         _Fact('Seats left', '${(batch.maxActiveStudents - batch.activeStudentCount).clamp(0, batch.maxActiveStudents)}'),
-        _Fact('Common Teacher', batch.commonTeacher?.label ?? 'Not assigned'),
         _Fact('Year', '${batch.academicYear}'),
       ],
       onTap: onTap,

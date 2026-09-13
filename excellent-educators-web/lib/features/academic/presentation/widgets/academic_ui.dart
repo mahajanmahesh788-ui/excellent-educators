@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/empty_state.dart';
 import 'package:excellent_educators_web/features/academic/data/academic_repository.dart';
@@ -81,21 +82,28 @@ Future<T?> pickOption<T>({
   return showDialog<T>(
     context: context,
     builder: (context) {
-      return SimpleDialog(
-        title: Text(title),
-        children: [
-          if (options.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('No options available.'),
-            )
-          else
-            for (final option in options)
-              SimpleDialogOption(
-                onPressed: () => Navigator.of(context).pop(option),
-                child: Text(label(option)),
-              ),
-        ],
+      return AppModalDialog(
+        title: title,
+        maxWidth: 380,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (options.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text('No options available.', style: TextStyle(color: Brand.muted)),
+              )
+            else
+              for (final option in options)
+                ListTile(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  onTap: () => Navigator.of(context).pop(option),
+                  title: Text(label(option)),
+                  trailing: const Icon(Icons.chevron_right, size: 18, color: Brand.muted),
+                ),
+          ],
+        ),
       );
     },
   );
@@ -107,6 +115,8 @@ Future<TeacherDto?> pickTeacher({
   required String title,
   String? role,
   String? highlightLevelId,
+  String? excludeLevelId,
+  Set<String>? excludeTeacherIds,
   String? emptyMessage,
 }) {
   return showDialog<TeacherDto>(
@@ -119,6 +129,8 @@ Future<TeacherDto?> pickTeacher({
         repo: repo,
         role: role,
         highlightLevelId: highlightLevelId,
+        excludeLevelId: excludeLevelId,
+        excludeTeacherIds: excludeTeacherIds,
         emptyMessage: emptyMessage,
       );
     },
@@ -155,6 +167,8 @@ class _TeacherSearchDialog extends StatefulWidget {
     required this.repo,
     this.role,
     this.highlightLevelId,
+    this.excludeLevelId,
+    this.excludeTeacherIds,
     this.emptyMessage,
   });
 
@@ -162,6 +176,8 @@ class _TeacherSearchDialog extends StatefulWidget {
   final AcademicRepository repo;
   final String? role;
   final String? highlightLevelId;
+  final String? excludeLevelId;
+  final Set<String>? excludeTeacherIds;
   final String? emptyMessage;
 
   @override
@@ -200,15 +216,22 @@ class _TeacherSearchDialogState extends State<_TeacherSearchDialog> {
         search: _search.text.trim(),
         status: 'active',
         role: widget.role,
+        excludeLevelId: widget.excludeLevelId,
         page: page,
       );
       if (!mounted) {
         return;
       }
+      final parsed = widget.repo.parseTeachers(result);
+      final filtered = widget.excludeTeacherIds != null && widget.excludeTeacherIds!.isNotEmpty
+          ? parsed.where((t) => !widget.excludeTeacherIds!.contains(t.id)).toList()
+          : parsed;
       setState(() {
         _page = page;
-        _total = result.total;
-        _items = widget.repo.parseTeachers(result);
+        _total = widget.excludeTeacherIds != null && widget.excludeTeacherIds!.isNotEmpty
+            ? filtered.length
+            : result.total;
+        _items = filtered;
         _loading = false;
       });
     } catch (_) {
@@ -255,7 +278,7 @@ class _TeacherSearchDialogState extends State<_TeacherSearchDialog> {
               child: TextField(
                 controller: _search,
                 decoration: const InputDecoration(
-                  hintText: 'Search name, employee code, or email',
+                  hintText: 'Search name, phone, or email',
                   prefixIcon: Icon(Icons.search, size: 20),
                   isDense: true,
                 ),
@@ -560,19 +583,6 @@ class _PickerTeacherTile extends StatelessWidget {
                       teacher.email.isEmpty ? 'No email on file' : teacher.email,
                       style: const TextStyle(color: Brand.muted, fontSize: 13),
                     ),
-                    if (teacher.isCommonTeacher || teacher.isMasterTeacher) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          if (teacher.isCommonTeacher)
-                            const _PickerChip(label: 'Common Teacher', tone: _PickerChipTone.commonTeacher),
-                          if (teacher.isMasterTeacher)
-                            const _PickerChip(label: 'Master Teacher', tone: _PickerChipTone.masterTeacher),
-                        ],
-                      ),
-                    ],
                     const SizedBox(height: 8),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,7 +600,7 @@ class _PickerTeacherTile extends StatelessWidget {
                     if (highlighted) ...[
                       const SizedBox(height: 6),
                       const Text(
-                        'Already teaches this Career Compass level',
+                        'Already teaches this level',
                         style: TextStyle(color: Color(0xFF2E7D32), fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                     ],

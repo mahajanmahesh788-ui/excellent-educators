@@ -69,16 +69,48 @@ abstract final class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: Brand.gold,
-          foregroundColor: Brand.navyDeep,
-          minimumSize: const Size.fromHeight(52),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.3),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: Brand.navy,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(88, 40),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, letterSpacing: 0.1),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Brand.navy,
+          minimumSize: const Size(88, 40),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          side: const BorderSide(color: Color(0xFFC9D4E3)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: Brand.navy,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         ),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: Brand.gold,
-        foregroundColor: Brand.navyDeep,
+        backgroundColor: Brand.navy,
+        foregroundColor: Colors.white,
+      ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+        titleTextStyle: TextStyle(
+          color: Brand.navy,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+        contentTextStyle: TextStyle(
+          color: Brand.muted,
+          fontSize: 14,
+        ),
+        actionsPadding: EdgeInsets.fromLTRB(20, 0, 20, 16),
       ),
     );
   }

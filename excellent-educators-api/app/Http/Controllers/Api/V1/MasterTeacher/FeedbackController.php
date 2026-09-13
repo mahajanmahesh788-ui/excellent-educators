@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api\V1\MasterTeacher;
 
 use App\Actions\Audit\RecordAuditEvent;
+use App\Actions\Feedback\BuildFeedbackSummary;
 use App\Actions\Feedback\CreateMonthlyFeedback;
 use App\Actions\Feedback\DeleteMonthlyFeedback;
 use App\Actions\Feedback\UpdateMonthlyFeedback;
-use App\Actions\Feedback\BuildFeedbackSummary;
+use App\Feedback\StudentsDueForRating;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\MasterTeacher\StoreMonthlyFeedbackRequest;
 use App\Http\Requests\Api\V1\MasterTeacher\UpdateMonthlyFeedbackRequest;
@@ -18,9 +19,11 @@ use App\Models\Dimension;
 use App\Models\MonthlyFeedback;
 use App\Models\StudentProfile;
 use App\Support\ApiResponse;
+use App\Support\AppClock;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class FeedbackController extends Controller
 {
@@ -75,6 +78,20 @@ class FeedbackController extends Controller
         $teacher = $request->user()?->teacherProfile;
         if ($teacher === null) {
             return ApiResponse::error('Teacher profile not found.', ErrorCode::NOT_FOUND, null, 404);
+        }
+
+        $sessionDate = Carbon::parse(
+            $request->validated('session_date') ?? AppClock::todayString(),
+            config('app.timezone'),
+        )->startOfDay();
+        $dueIds = app(StudentsDueForRating::class)->idsFor($teacher, $sessionDate->year, $sessionDate->month);
+        if (! $dueIds->contains($student->id)) {
+            return ApiResponse::error(
+                'Add a monthly rating only after this student completes a Master Class.',
+                ErrorCode::FEEDBACK_NOT_DUE,
+                null,
+                409,
+            );
         }
 
         $feedback = $createMonthlyFeedback->execute($teacher, $student, $request->validated());

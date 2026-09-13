@@ -169,6 +169,12 @@ class StudentRatingsSection extends ConsumerWidget {
         label: const Text('Add monthly rating'),
       );
     }
+    if (currentMonth == null) {
+      return Text(
+        'Add monthly rating after this student completes a Master Class.',
+        style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
+      );
+    }
     if (currentMonth != null && currentMonth.editable && onEditRating != null) {
       return Wrap(
         spacing: 8,

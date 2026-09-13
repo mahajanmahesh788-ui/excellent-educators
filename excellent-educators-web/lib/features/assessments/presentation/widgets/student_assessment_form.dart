@@ -95,7 +95,7 @@ class _QuestionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE6DCCB)),
       ),
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.none,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -123,7 +123,7 @@ class _QuestionCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    'Q$index',
+                    'Moment $index',
                     style: const TextStyle(
                       color: Brand.gold,
                       fontWeight: FontWeight.w800,
@@ -182,37 +182,41 @@ class _OptionTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
+        mouseCursor: SystemMouseCursors.click,
         borderRadius: BorderRadius.circular(8),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: selected ? Brand.gold : const Color(0xFFE8E0D4),
-              width: selected ? 1.5 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-                color: selected ? Brand.goldDark : const Color(0xFF9CA3AF),
-                size: 16,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: selected ? Brand.gold : const Color(0xFFE8E0D4),
+                width: selected ? 1.5 : 1,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: selected ? Brand.navyDeep : Brand.muted,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                    fontSize: 12.5,
-                    height: 1.3,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                  color: selected ? Brand.goldDark : const Color(0xFF9CA3AF),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: selected ? Brand.navyDeep : Brand.muted,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      fontSize: 13,
+                      height: 1.3,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/assessments/data/dto/assessment_dtos.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
@@ -28,20 +29,12 @@ class _MandatoryAssessmentPanelState extends ConsumerState<MandatoryAssessmentPa
       return;
     }
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Submit your assessment?'),
-        content: const Text(
-          'This is a one-time aptitude assessment. Once submitted, you cannot change your answers.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Review')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Submit now')),
-        ],
-      ),
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: 'Submit assessment?',
+      message: 'This is a one-time snapshot of what you enjoy, how you focus, and how you think. You cannot change answers after you submit.',
+      confirmLabel: 'Submit',
+      cancelLabel: 'Cancel',
     );
     if (confirmed != true) {
       return;
@@ -83,13 +76,13 @@ class _MandatoryAssessmentPanelState extends ConsumerState<MandatoryAssessmentPa
 
     return payload.when(
       loading: () => const StudentSectionCard(
-        icon: Icons.quiz_rounded,
-        title: 'Aptitude assessment',
+        icon: Icons.auto_awesome_rounded,
+        title: 'Discover what lights you up',
         child: Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: Brand.gold))),
       ),
       error: (error, _) => StudentSectionCard(
         icon: Icons.cloud_off_rounded,
-        title: 'Aptitude assessment',
+        title: 'Discover what lights you up',
         child: Column(
           children: [
             Text(error.toString(), textAlign: TextAlign.center),
@@ -113,26 +106,47 @@ class _MandatoryAssessmentPanelState extends ConsumerState<MandatoryAssessmentPa
 
         return StudentSectionCard(
           icon: Icons.auto_awesome_rounded,
-          title: 'One-time aptitude assessment',
+          title: 'Discover what lights you up',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF0E2744), Color(0xFF1A3D66)],
+                    colors: [Color(0xFF0E2744), Color(0xFF1A3D66), Color(0xFF3D2E14)],
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Complete this assessment to unlock your dashboard.',
-                      style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 12, height: 1.3),
+                      'Your interests. Your hobbies. Your focus. Your mindset.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        height: 1.25,
+                      ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
+                    Text(
+                      'There are no right answers — this is about you. Tell us what you enjoy, how you like to spend time, what holds your attention, and how you think. Your teachers will use this to guide you in a way that fits who you already are.',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.84), fontSize: 13.5, height: 1.45),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: const [
+                        _SparkChip('Interests'),
+                        _SparkChip('Hobbies'),
+                        _SparkChip('Focus'),
+                        _SparkChip('Mindset'),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: LinearProgressIndicator(
@@ -144,7 +158,7 @@ class _MandatoryAssessmentPanelState extends ConsumerState<MandatoryAssessmentPa
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '$answered of $total questions answered',
+                      '$answered of $total moments captured',
                       style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12),
                     ),
                   ],
@@ -171,7 +185,7 @@ class _MandatoryAssessmentPanelState extends ConsumerState<MandatoryAssessmentPa
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Brand.navyDeep),
                       )
-                    : const Text('Submit assessment'),
+                    : const Text('Submit'),
               ),
             ],
           ),
@@ -201,7 +215,7 @@ class _CompletionCardState extends State<_CompletionCard> {
   Widget build(BuildContext context) {
     return StudentSectionCard(
       icon: Icons.check_circle_rounded,
-      title: 'Assessment complete',
+      title: 'You have been heard',
       child: Column(
         children: [
           Container(
@@ -214,11 +228,33 @@ class _CompletionCardState extends State<_CompletionCard> {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Thank you! Your teachers will review your assessment and share feedback with you on your dashboard.',
+            'Thank you for sharing what you love and how you think. Your teachers will use this to guide you — and you will see their notes here on your dashboard.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Brand.muted, height: 1.45),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SparkChip extends StatelessWidget {
+  const _SparkChip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Brand.gold.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Brand.gold.withValues(alpha: 0.45)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(color: Color(0xFFE8D19A), fontWeight: FontWeight.w700, fontSize: 12),
       ),
     );
   }

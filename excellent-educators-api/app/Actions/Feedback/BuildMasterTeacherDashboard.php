@@ -2,6 +2,7 @@
 
 namespace App\Actions\Feedback;
 
+use App\Feedback\StudentsDueForRating;
 use App\Models\MonthlyFeedback;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class BuildMasterTeacherDashboard
 {
+    public function __construct(private readonly StudentsDueForRating $studentsDueForRating) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -18,19 +21,22 @@ class BuildMasterTeacherDashboard
     {
         ['year' => $year, 'month' => $month] = AppClock::currentYearMonth();
 
-        $studentIds = $teacher->activeMasterTeacherAssignments()->pluck('student_id');
+        $studentIds = $teacher->rosterStudentIds();
         $assignedStudents = $studentIds->count();
+        $dueIds = $this->studentsDueForRating->idsFor($teacher, $year, $month);
 
-        $ratedThisMonth = $assignedStudents === 0
-            ? 0
+        $feedbackByStudent = $dueIds->isEmpty()
+            ? collect()
             : MonthlyFeedback::query()
                 ->where('master_teacher_id', $teacher->id)
-                ->whereIn('student_id', $studentIds)
+                ->whereIn('student_id', $dueIds)
                 ->where('year', $year)
                 ->where('month', $month)
-                ->count();
+                ->get(['id', 'student_id'])
+                ->keyBy('student_id');
 
-        $notRatedThisMonth = max(0, $assignedStudents - $ratedThisMonth);
+        $ratedThisMonth = $feedbackByStudent->count();
+        $notRatedThisMonth = max(0, $dueIds->count() - $ratedThisMonth);
 
         $totalRatings = MonthlyFeedback::query()
             ->where('master_teacher_id', $teacher->id)
@@ -47,17 +53,15 @@ class BuildMasterTeacherDashboard
 
         $byMonth = $this->ratingsByMonth($teacher->id, $studentIds);
 
-        $pendingStudents = $studentIds->isEmpty()
+        $pendingStudents = $dueIds->isEmpty()
             ? collect()
             : StudentProfile::query()
-                ->whereIn('id', $studentIds)
-                ->whereDoesntHave('monthlyFeedbacks', fn ($feedback) => $feedback
-                    ->where('master_teacher_id', $teacher->id)
-                    ->where('year', $year)
-                    ->where('month', $month))
+                ->whereIn('id', $dueIds)
                 ->orderBy('full_name')
-                ->limit(6)
-                ->get(['id', 'full_name', 'student_code']);
+                ->get(['id', 'full_name', 'student_code'])
+                ->sortBy(fn (StudentProfile $student) => $feedbackByStudent->has($student->id) ? 1 : 0)
+                ->values()
+                ->take(8);
 
         $studentsAssessmentPending = $studentIds->isEmpty()
             ? 0
@@ -66,9 +70,9 @@ class BuildMasterTeacherDashboard
                 ->whereDoesntHave('latestAptitudeAssessmentResult')
                 ->count();
 
-        $completionRate = $assignedStudents === 0
+        $completionRate = $dueIds->isEmpty()
             ? 0
-            : round($ratedThisMonth / $assignedStudents, 2);
+            : round($ratedThisMonth / $dueIds->count(), 2);
 
         return [
             'current_month' => [
@@ -86,11 +90,18 @@ class BuildMasterTeacherDashboard
             ],
             'by_month' => $byMonth,
             'pending_students' => $pendingStudents
-                ->map(fn (StudentProfile $student): array => [
-                    'id' => $student->id,
-                    'full_name' => $student->full_name,
-                    'student_code' => $student->student_code,
-                ])
+                ->map(function (StudentProfile $student) use ($feedbackByStudent): array {
+                    $feedbackId = $feedbackByStudent->get($student->id)?->id;
+
+                    return [
+                        'id' => $student->id,
+                        'full_name' => $student->full_name,
+                        'student_code' => $student->student_code,
+                        'monthly_feedback_id' => $feedbackId,
+                        'can_rate' => $feedbackId === null,
+                        'can_edit_rating' => $feedbackId !== null,
+                    ];
+                })
                 ->values()
                 ->all(),
         ];

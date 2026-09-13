@@ -1,3 +1,4 @@
+import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
@@ -43,6 +44,15 @@ class AdminDashboardPage extends ConsumerWidget {
                   StatTile(label: 'Active teachers', value: '${counts.activeTeachers}'),
                   StatTile(label: 'Active batches', value: '${counts.activeBatches}'),
                   StatTile(label: 'Inactive students', value: '${counts.inactiveStudents}'),
+                  StatTile(label: 'Total classes', value: '${counts.totalClasses}'),
+                  StatTile(label: 'Completed classes', value: '${counts.completedClasses}'),
+                  StatTile(label: 'Pending conflicts', value: '${counts.pendingVerification}'),
+                  StatTile(label: 'Student reports', value: '${counts.studentAttendanceReports}'),
+                  StatTile(label: 'Teacher reports', value: '${counts.teacherAttendanceReports}'),
+                  StatTile(label: 'Teacher absence', value: '${counts.verifiedTeacherAbsence}'),
+                  StatTile(label: 'Student absence', value: '${counts.verifiedStudentAbsence}'),
+                  StatTile(label: 'Technical issues', value: '${counts.technicalIssues}'),
+                  StatTile(label: 'Rebookings given', value: '${counts.rebookingsGiven}'),
                 ],
               ),
               const SizedBox(height: 20),
@@ -51,6 +61,12 @@ class AdminDashboardPage extends ConsumerWidget {
                 style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 18),
               ),
               const SizedBox(height: 8),
+              AttentionCard(
+                label: 'Pending class conflicts',
+                count: counts.pendingVerification,
+                onTap: () => context.go(RoutePaths.adminAttendance),
+              ),
+              const SizedBox(height: 6),
               AttentionCard(
                 label: 'Students not in a batch',
                 count: counts.studentsWithoutBatch,
@@ -85,6 +101,39 @@ class AdminDashboardPage extends ConsumerWidget {
                 label: 'Full batches (40 students)',
                 count: counts.fullBatches,
                 onTap: () => context.go(batchesRouteWithAttention('full')),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Google Meet',
+                style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 18),
+              ),
+              const SizedBox(height: 8),
+              Material(
+                color: const Color(0xFFFBF6EA),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: Brand.gold),
+                ),
+                child: InkWell(
+                  onTap: () => context.go(RoutePaths.adminSettings),
+                  borderRadius: BorderRadius.circular(12),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    child: Row(
+                      children: [
+                        Icon(Icons.videocam_outlined, color: Brand.navy),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Open Google Meet — Connect Google',
+                            style: TextStyle(color: Brand.navy, fontSize: 13, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: Brand.navy),
+                      ],
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               const Text(

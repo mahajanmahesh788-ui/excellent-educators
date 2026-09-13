@@ -40,7 +40,7 @@ class GenerateStudentCode
                 ->where('academic_year', $academicYear)
                 ->update(['last_seq' => $next]);
 
-            return sprintf('%s-%s-%s-%04d', $ccPrefix, $campaign, $yearSuffix, $next);
+            return sprintf('%s-%04d', $yearSuffix, $next);
         });
     }
 }

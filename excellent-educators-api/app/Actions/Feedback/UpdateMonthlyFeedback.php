@@ -28,9 +28,7 @@ class UpdateMonthlyFeedback
         }
 
         if (! $adminOverride) {
-            $assigned = $teacher->activeMasterTeacherAssignments()
-                ->where('student_id', $student->id)
-                ->exists();
+            $assigned = $teacher->canAccessStudent($student);
 
             if (! $assigned || $feedback->master_teacher_id !== $teacher->id) {
                 throw new ApiException(

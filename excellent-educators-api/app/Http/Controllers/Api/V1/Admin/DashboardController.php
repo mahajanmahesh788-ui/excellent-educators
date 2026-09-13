@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Attendance\AttendanceService;
 use App\Enums\BatchStatus;
 use App\Enums\ProfileStatus;
+use App\Feedback\StudentsDueForRating;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\CareerCompassLevel;
@@ -15,9 +17,9 @@ use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
 {
-    public function show(): JsonResponse
+    public function show(AttendanceService $attendance, StudentsDueForRating $studentsDueForRating): JsonResponse
     {
-        $maxPerBatch = (int) config('excellent_educators.batch.max_active_students', 40);
+        $maxPerBatch = app(\App\Support\AppSettings::class)->maxActiveStudents();
 
         $activeStudents = StudentProfile::query()->where('status', ProfileStatus::Active->value)->count();
         $inactiveStudents = StudentProfile::query()->where('status', ProfileStatus::Inactive->value)->count();
@@ -53,13 +55,16 @@ class DashboardController extends Controller
             ->whereDoesntHave('latestAptitudeAssessmentResult')
             ->count();
 
-        $studentsWithoutRatingThisMonth = StudentProfile::query()
-            ->where('status', ProfileStatus::Active->value)
-            ->whereHas('activeMasterTeacherAssignment')
-            ->whereDoesntHave('monthlyFeedbacks', fn ($feedback) => $feedback
-                ->where('year', $year)
-                ->where('month', $month))
-            ->count();
+        $dueIds = $studentsDueForRating->idsThisMonth($year, $month);
+        $studentsWithoutRatingThisMonth = $dueIds->isEmpty()
+            ? 0
+            : StudentProfile::query()
+                ->where('status', ProfileStatus::Active->value)
+                ->whereIn('id', $dueIds)
+                ->whereDoesntHave('monthlyFeedbacks', fn ($feedback) => $feedback
+                    ->where('year', $year)
+                    ->where('month', $month))
+                ->count();
 
         $byCareerCompass = CareerCompassLevel::query()
             ->orderBy('class_from')
@@ -96,6 +101,7 @@ class DashboardController extends Controller
                 'full_batches' => $fullBatches,
                 'students_assessment_pending' => $studentsAssessmentPending,
                 'students_without_rating_this_month' => $studentsWithoutRatingThisMonth,
+                ...$attendance->dashboardCounts(),
             ],
             'career_compass' => $byCareerCompass,
         ]);

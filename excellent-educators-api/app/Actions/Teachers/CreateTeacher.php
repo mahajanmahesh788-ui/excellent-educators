@@ -4,10 +4,12 @@ namespace App\Actions\Teachers;
 
 use App\Enums\ProfileStatus;
 use App\Enums\RoleName;
+use App\Enums\TeacherWorkType;
 use App\Enums\UserStatus;
 use App\Exceptions\ApiException;
 use App\Models\TeacherProfile;
 use App\Models\User;
+use App\Scheduling\TeacherAvailability;
 use App\Support\ErrorCode;
 use Illuminate\Support\Facades\DB;
 
@@ -21,12 +23,13 @@ class CreateTeacher
      *     employee_code?: string|null,
      *     phone?: string|null,
      *     whatsapp_number?: string|null,
-     *     roles: array<int, string>
+     *     address?: string|null,
+     *     roles?: array<int, string>
      * }  $input
      */
     public function execute(array $input): TeacherProfile
     {
-        $roles = $input['roles'];
+        $roles = ! empty($input['roles']) ? $input['roles'] : [RoleName::MasterTeacher->value];
         $allowed = [RoleName::CommonTeacher->value, RoleName::MasterTeacher->value];
         foreach ($roles as $role) {
             if (! in_array($role, $allowed, true)) {
@@ -48,14 +51,19 @@ class CreateTeacher
             ]);
             $user->syncRoles($roles);
 
-            return TeacherProfile::query()->create([
+            $profile = TeacherProfile::query()->create([
                 'user_id' => $user->id,
                 'employee_code' => $input['employee_code'] ?? null,
                 'full_name' => $input['name'],
                 'phone' => $input['phone'] ?? null,
                 'whatsapp_number' => $input['whatsapp_number'] ?? null,
+                'address' => $input['address'] ?? null,
                 'status' => ProfileStatus::Active,
+                'work_type' => TeacherWorkType::FullTime->value,
             ]);
+            app(TeacherAvailability::class)->seedDefaultWeekly($profile);
+
+            return $profile;
         });
     }
 }

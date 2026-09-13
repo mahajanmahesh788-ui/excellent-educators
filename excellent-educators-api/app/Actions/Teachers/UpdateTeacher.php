@@ -33,7 +33,9 @@ class UpdateTeacher
             'employee_code' => array_key_exists('employee_code', $input) ? $input['employee_code'] : $teacher->employee_code,
             'phone' => array_key_exists('phone', $input) ? $input['phone'] : $teacher->phone,
             'whatsapp_number' => array_key_exists('whatsapp_number', $input) ? $input['whatsapp_number'] : $teacher->whatsapp_number,
+            'address' => array_key_exists('address', $input) ? $input['address'] : $teacher->address,
             'status' => $input['status'] ?? $teacher->status,
+            'work_type' => array_key_exists('work_type', $input) ? $input['work_type'] : $teacher->work_type,
         ]);
         $teacher->save();
 

@@ -10,6 +10,8 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:excellent_educators_web/features/academic/presentation/widgets/master_teacher_progress_panel.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_ui.dart';
+import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/widgets/teacher_availability_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -28,6 +30,7 @@ class _AdminStudentDetailPageState extends ConsumerState<AdminStudentDetailPage>
   final _name = TextEditingController();
   final _phone = TextEditingController();
   final _whatsapp = TextEditingController();
+  final _address = TextEditingController();
   final _guardianName = TextEditingController();
   final _guardianPhone = TextEditingController();
   String? _status;
@@ -40,6 +43,7 @@ class _AdminStudentDetailPageState extends ConsumerState<AdminStudentDetailPage>
     _name.dispose();
     _phone.dispose();
     _whatsapp.dispose();
+    _address.dispose();
     _guardianName.dispose();
     _guardianPhone.dispose();
     super.dispose();
@@ -53,6 +57,7 @@ class _AdminStudentDetailPageState extends ConsumerState<AdminStudentDetailPage>
     _name.text = student.fullName;
     _phone.text = student.phone;
     _whatsapp.text = student.whatsappNumber ?? '';
+    _address.text = student.address ?? '';
     _guardianName.text = student.guardianName ?? '';
     _guardianPhone.text = student.guardianPhone ?? '';
     _status = student.status;
@@ -81,6 +86,7 @@ class _AdminStudentDetailPageState extends ConsumerState<AdminStudentDetailPage>
         'name': _name.text.trim(),
         'phone': _phone.text.trim(),
         'whatsapp_number': _whatsapp.text.trim().isEmpty ? null : _whatsapp.text.trim(),
+        'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
         'guardian_name': _guardianName.text.trim().isEmpty ? null : _guardianName.text.trim(),
         'guardian_phone': _guardianPhone.text.trim().isEmpty ? null : _guardianPhone.text.trim(),
         'status': _status,
@@ -129,7 +135,6 @@ class _AdminStudentDetailPageState extends ConsumerState<AdminStudentDetailPage>
                 onReviewResults: student.hasSubmittedAptitudeAssessment
                     ? () => context.go(RoutePaths.adminStudentResultsFor(student.id))
                     : null,
-                onAssignMasterTeacher: () => _assignMentor(context, student),
                 onOpenBatch: student.batch != null && !student.batch!.isEmpty
                     ? () => context.go(RoutePaths.adminBatch(student.batch!.id))
                     : null,
@@ -152,6 +157,12 @@ class _AdminStudentDetailPageState extends ConsumerState<AdminStudentDetailPage>
                       ),
                     const SizedBox(height: 12),
                     FilledButton.icon(
+                      onPressed: () => context.go(RoutePaths.adminStudentJournalFor(student.id)),
+                      icon: const Icon(Icons.menu_book_outlined),
+                      label: const Text('Learning journal'),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
                       onPressed: () => context.go(RoutePaths.adminStudentResultsFor(student.id)),
                       icon: const Icon(Icons.insights),
                       label: const Text('View aptitude results'),
@@ -168,6 +179,8 @@ class _AdminStudentDetailPageState extends ConsumerState<AdminStudentDetailPage>
               ),
               const SizedBox(height: 12),
               AdminStudentFeedbackSection(student: student),
+              const SizedBox(height: 12),
+              _PromoteStudentCard(studentId: student.id, currentLevelId: student.level?.id),
               const SizedBox(height: 12),
               DetailSection(
                 title: 'Profile details',
@@ -244,6 +257,12 @@ class _AdminStudentDetailPageState extends ConsumerState<AdminStudentDetailPage>
                         ),
                         const SizedBox(height: 12),
                         TextFormField(
+                          controller: _address,
+                          maxLines: 2,
+                          decoration: const InputDecoration(labelText: 'Address', alignLabelWithHint: true),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
                           controller: _guardianName,
                           decoration: const InputDecoration(labelText: 'Guardian name'),
                         ),
@@ -272,30 +291,6 @@ class _AdminStudentDetailPageState extends ConsumerState<AdminStudentDetailPage>
     );
   }
 
-  Future<void> _assignMentor(BuildContext context, StudentDto student) async {
-    final repo = ref.read(academicRepositoryProvider);
-    try {
-      final selected = await pickTeacher(
-        context: context,
-        repo: repo,
-        title: 'Assign Master Teacher',
-        role: 'master_teacher',
-        emptyMessage: 'No Master Teachers found. Add a teacher with the Master Teacher role first.',
-      );
-      if (selected == null) {
-        return;
-      }
-      await repo.assignMasterTeacher(studentId: student.id, teacherId: selected.id);
-      ref.invalidate(adminStudentProvider(widget.studentId));
-      ref.invalidate(adminStudentsProvider);
-      ref.invalidate(adminDashboardProvider);
-    } catch (error) {
-      if (context.mounted) {
-        showFailure(context, error);
-      }
-    }
-  }
-
   String? _required(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'This field is required.';
@@ -308,18 +303,14 @@ class _StudentAdminWorkflow extends StatelessWidget {
   const _StudentAdminWorkflow({
     required this.student,
     this.onReviewResults,
-    required this.onAssignMasterTeacher,
     this.onOpenBatch,
   });
 
   final StudentDto student;
   final VoidCallback? onReviewResults;
-  final VoidCallback onAssignMasterTeacher;
   final VoidCallback? onOpenBatch;
 
   bool get _inBatch => student.batch != null && !student.batch!.isEmpty;
-  bool get _hasCommonTeacher => student.commonTeacher != null && !student.commonTeacher!.isEmpty;
-  bool get _hasMasterTeacher => student.masterTeacher != null && !student.masterTeacher!.isEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -350,45 +341,13 @@ class _StudentAdminWorkflow extends StatelessWidget {
       ),
       _WorkflowStep(
         number: 4,
-        title: 'Enroll in batch',
+        title: 'Enroll in level & batch',
         subtitle: _inBatch
             ? student.batch!.label
-            : 'Add student to a batch (Batches → Enroll student)',
+            : 'Add student to a level (Levels → Enroll student)',
         state: _inBatch ? _WorkflowStepState.done : _WorkflowStepState.action,
-        actionLabel: _inBatch ? 'Open batch' : 'Go to batches',
+        actionLabel: _inBatch ? 'Open level' : 'Go to levels',
         onAction: _inBatch ? onOpenBatch : () => context.go(RoutePaths.adminBatches),
-      ),
-      _WorkflowStep(
-        number: 5,
-        title: 'Assign Common Teacher',
-        subtitle: _hasCommonTeacher
-            ? student.commonTeacher!.label
-            : _inBatch
-                ? 'Open the batch and assign a Common Teacher'
-                : 'Complete batch enrollment first',
-        state: _hasCommonTeacher
-            ? _WorkflowStepState.done
-            : _inBatch
-                ? _WorkflowStepState.action
-                : _WorkflowStepState.locked,
-        actionLabel: 'Assign on batch',
-        onAction: _inBatch ? onOpenBatch : null,
-      ),
-      _WorkflowStep(
-        number: 6,
-        title: 'Assign Master Teacher',
-        subtitle: _hasMasterTeacher
-            ? student.masterTeacher!.label
-            : student.hasSubmittedAptitudeAssessment
-                ? 'One mentor per student for feedback and guidance'
-                : 'Review assessment results first',
-        state: _hasMasterTeacher
-            ? _WorkflowStepState.done
-            : student.hasSubmittedAptitudeAssessment
-                ? _WorkflowStepState.action
-                : _WorkflowStepState.locked,
-        actionLabel: _hasMasterTeacher ? 'Change Master Teacher' : 'Assign Master Teacher',
-        onAction: student.hasSubmittedAptitudeAssessment ? onAssignMasterTeacher : null,
       ),
     ];
 
@@ -396,7 +355,7 @@ class _StudentAdminWorkflow extends StatelessWidget {
       title: 'Admin workflow',
       children: [
         Text(
-          'Follow these steps in order: create login → student submits → you review → assign teachers.',
+          'Follow these steps in order: create login → student submits → you review → enroll in level & batch.',
           style: TextStyle(color: Brand.muted.withValues(alpha: 0.95), fontSize: 13),
         ),
         const SizedBox(height: 12),
@@ -496,234 +455,119 @@ class _WorkflowStepTile extends StatelessWidget {
   }
 }
 
-class AdminTeacherDetailPage extends ConsumerStatefulWidget {
+class AdminTeacherDetailPage extends ConsumerWidget {
   const AdminTeacherDetailPage({super.key, required this.teacherId});
 
   final String teacherId;
 
   @override
-  ConsumerState<AdminTeacherDetailPage> createState() => _AdminTeacherDetailPageState();
-}
-
-class _AdminTeacherDetailPageState extends ConsumerState<AdminTeacherDetailPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _name = TextEditingController();
-  final _phone = TextEditingController();
-  final _whatsapp = TextEditingController();
-  final _employeeCode = TextEditingController();
-  final _roles = <String>{};
-  String? _status;
-  String? _boundTeacherId;
-  bool _saving = false;
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _phone.dispose();
-    _whatsapp.dispose();
-    _employeeCode.dispose();
-    super.dispose();
-  }
-
-  void _bind(TeacherDto teacher) {
-    if (_boundTeacherId == teacher.id) {
-      return;
-    }
-    _boundTeacherId = teacher.id;
-    _name.text = teacher.fullName;
-    _phone.text = teacher.phone ?? '';
-    _whatsapp.text = teacher.whatsappNumber ?? '';
-    _employeeCode.text = teacher.employeeCode ?? '';
-    _status = teacher.status;
-    _roles
-      ..clear()
-      ..addAll([
-        if (teacher.isCommonTeacher) 'common_teacher',
-        if (teacher.isMasterTeacher) 'master_teacher',
-      ]);
-  }
-
-  void _scheduleBind(TeacherDto teacher) {
-    if (_boundTeacherId == teacher.id) {
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _boundTeacherId == teacher.id) {
-        return;
-      }
-      setState(() => _bind(teacher));
-    });
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate() || _roles.isEmpty) {
-      return;
-    }
-    setState(() => _saving = true);
-    try {
-      await ref.read(academicRepositoryProvider).updateTeacher(widget.teacherId, {
-        'name': _name.text.trim(),
-        'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-        'whatsapp_number': _whatsapp.text.trim().isEmpty ? null : _whatsapp.text.trim(),
-        'employee_code': _employeeCode.text.trim().isEmpty ? null : _employeeCode.text.trim(),
-        'status': _status,
-        'roles': _roles.toList(),
-      });
-      ref.invalidate(adminTeacherProvider(widget.teacherId));
-      ref.invalidate(adminTeachersProvider);
-      ref.invalidate(adminDashboardProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Teacher updated.')));
-      }
-    } catch (error) {
-      if (mounted) {
-        showFailure(context, error);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final teacherValue = ref.watch(adminTeacherProvider(widget.teacherId));
+  Widget build(BuildContext context, WidgetRef ref) {
+    final teacherValue = ref.watch(adminTeacherProvider(teacherId));
 
     return AppScaffold(
       title: 'Teacher',
       backTo: RoutePaths.adminTeachers,
       body: AsyncBody(
         value: teacherValue,
-        onRetry: () => ref.invalidate(adminTeacherProvider(widget.teacherId)),
+        onRetry: () => ref.invalidate(adminTeacherProvider(teacherId)),
         builder: (teacher) {
-          _scheduleBind(teacher);
           return ListView(
             children: [
-              TeacherCard(teacher: teacher),
-              if (teacher.isMasterTeacher) ...[
-                const SizedBox(height: 20),
-                const Text(
-                  'Rating progress',
-                  style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 18),
+              TeacherCard(
+                teacher: teacher,
+                trailing: IconButton(
+                  tooltip: 'Edit teacher',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => context.go(RoutePaths.adminTeacherEditFor(teacherId)),
                 ),
-                const SizedBox(height: 8),
-                _AdminTeacherProgressSection(teacherId: widget.teacherId),
+              ),
+              const SizedBox(height: 10),
+              TeacherAvailabilitySummary(teacherId: teacherId),
+              if (teacher.isMasterTeacher) ...[
+                const SizedBox(height: 12),
+                _AdminTeacherProgressSection(teacherId: teacherId),
               ],
-              const SizedBox(height: 12),
-              DetailSection(
-                title: 'Account',
-                children: [
-                  DetailRow(label: 'Email', value: teacher.email),
-                  if (teacher.createdAt != null)
-                    DetailRow(label: 'Registered', value: formatDisplayDateTime(teacher.createdAt)),
-                  if (teacher.employeeCode != null && teacher.employeeCode!.isNotEmpty)
-                    DetailRow(label: 'Employee code', value: teacher.employeeCode!),
-                  if (teacher.phone != null && teacher.phone!.isNotEmpty)
-                    DetailRow(label: 'Phone', value: teacher.phone!),
-                  if (teacher.whatsappNumber != null && teacher.whatsappNumber!.isNotEmpty)
-                    DetailRow(label: 'WhatsApp', value: teacher.whatsappNumber!),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DetailSection(
-                title: 'Edit teacher',
-                children: [
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextFormField(
-                          controller: _name,
-                          decoration: const InputDecoration(labelText: 'Full name'),
-                          validator: _required,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _employeeCode,
-                          decoration: const InputDecoration(labelText: 'Employee code'),
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _phone,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
-                            labelText: 'Phone number',
-                            prefixText: '+91  ',
-                          ),
-                          validator: validateOptionalPhone,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _whatsapp,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
-                            labelText: 'WhatsApp number (optional)',
-                            prefixText: '+91  ',
-                          ),
-                          validator: validateOptionalPhone,
-                        ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          key: ValueKey(_status),
-                          initialValue: _status,
-                          decoration: const InputDecoration(labelText: 'Status'),
-                          items: const [
-                            DropdownMenuItem(value: 'active', child: Text('Active')),
-                            DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-                          ],
-                          onChanged: (value) => setState(() => _status = value),
-                        ),
-                        const SizedBox(height: 8),
-                        CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          value: _roles.contains('common_teacher'),
-                          title: const Text('Common Teacher'),
-                          onChanged: (value) => setState(() {
-                            if (value == true) {
-                              _roles.add('common_teacher');
-                            } else {
-                              _roles.remove('common_teacher');
-                            }
-                          }),
-                        ),
-                        CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          value: _roles.contains('master_teacher'),
-                          title: const Text('Master Teacher'),
-                          onChanged: (value) => setState(() {
-                            if (value == true) {
-                              _roles.add('master_teacher');
-                            } else {
-                              _roles.remove('master_teacher');
-                            }
-                          }),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          onPressed: _saving ? null : _save,
-                          child: _saving
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Text('Save changes'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ],
           );
         },
       ),
     );
   }
+}
 
-  String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'This field is required.';
-    }
-    return null;
+class _PromoteStudentCard extends ConsumerStatefulWidget {
+  const _PromoteStudentCard({required this.studentId, this.currentLevelId});
+
+  final String studentId;
+  final String? currentLevelId;
+
+  @override
+  ConsumerState<_PromoteStudentCard> createState() => _PromoteStudentCardState();
+}
+
+class _PromoteStudentCardState extends ConsumerState<_PromoteStudentCard> {
+  String? _levelId;
+  var _saving = false;
+  String? _error;
+
+  @override
+  Widget build(BuildContext context) {
+    final levels = ref.watch(adminLevelsProvider);
+    return DetailSection(
+      title: 'Promote student',
+      children: [
+        AsyncBody(
+          value: levels,
+          onRetry: () => ref.invalidate(adminLevelsProvider),
+          builder: (items) {
+            final options = items.where((level) => level.id != widget.currentLevelId).toList();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('The new level starts from its own Week 1. Previous level history stays in the journal.'),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _levelId,
+                  decoration: const InputDecoration(labelText: 'New level'),
+                  items: [
+                    for (final level in options)
+                      DropdownMenuItem(value: level.id, child: Text(level.name)),
+                  ],
+                  onChanged: (value) => setState(() => _levelId = value),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_error!, style: const TextStyle(color: Colors.red)),
+                ],
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: _saving || _levelId == null
+                      ? null
+                      : () async {
+                          setState(() {
+                            _saving = true;
+                            _error = null;
+                          });
+                          try {
+                            await ref.read(learningRepositoryProvider).promoteStudent(
+                                  studentId: widget.studentId,
+                                  levelId: _levelId!,
+                                );
+                            ref.invalidate(adminStudentProvider(widget.studentId));
+                          } catch (error) {
+                            setState(() => _error = error.toString());
+                          } finally {
+                            if (mounted) setState(() => _saving = false);
+                          }
+                        },
+                  child: Text(_saving ? 'Promoting…' : 'Promote'),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
   }
 }
 
@@ -742,7 +586,16 @@ class _AdminTeacherProgressSection extends ConsumerWidget {
       builder: (data) {
         return MasterTeacherProgressPanel(
           data: data,
+          showPendingStudents: true,
           onPendingStudentTap: (student) => context.go(RoutePaths.adminStudent(student.id)),
+          onRateStudent: (student) => context.go(RoutePaths.adminFeedbackNewFor(student.id)),
+          onEditStudentRating: (student) {
+            final id = student.monthlyFeedbackId;
+            if (id == null || id.isEmpty) {
+              return;
+            }
+            context.go(RoutePaths.adminFeedbackEditFor(student.id, id));
+          },
         );
       },
     );

@@ -44,6 +44,7 @@ class UpdateStudent
             'full_name' => $input['name'] ?? $student->full_name,
             'phone' => $input['phone'] ?? $student->phone,
             'whatsapp_number' => array_key_exists('whatsapp_number', $input) ? $input['whatsapp_number'] : $student->whatsapp_number,
+            'address' => array_key_exists('address', $input) ? $input['address'] : $student->address,
             'career_compass_level_id' => $input['career_compass_level_id'] ?? $student->career_compass_level_id,
             'class_grade' => $input['class_grade'] ?? $student->class_grade,
             'guardian_name' => array_key_exists('guardian_name', $input) ? $input['guardian_name'] : $student->guardian_name,

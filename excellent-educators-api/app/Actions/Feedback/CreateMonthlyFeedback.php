@@ -59,11 +59,7 @@ class CreateMonthlyFeedback
 
     private function assertAssigned(TeacherProfile $teacher, StudentProfile $student): void
     {
-        $assigned = $teacher->activeMasterTeacherAssignments()
-            ->where('student_id', $student->id)
-            ->exists();
-
-        if (! $assigned) {
+        if (! $teacher->canAccessStudent($student)) {
             throw new ApiException(
                 ErrorCode::FORBIDDEN,
                 'Only the currently assigned Master Teacher can submit feedback for this student.',

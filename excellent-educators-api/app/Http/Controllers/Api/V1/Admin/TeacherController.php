@@ -21,14 +21,15 @@ class TeacherController extends Controller
     public function index(Request $request): JsonResponse
     {
         $teachers = TeacherProfile::query()
-            ->with(['user.roles', 'activeBatchAssignments.batch.careerCompassLevel'])
-            ->withCount(['activeBatchAssignments', 'activeMasterTeacherAssignments'])
+            ->with(['user.roles', 'academicLevels', 'activeBatchAssignments.batch.careerCompassLevel'])
+            ->withCount(['academicLevels', 'activeBatchAssignments', 'activeMasterTeacherAssignments'])
             ->when($request->string('search')->toString(), function ($query, string $search): void {
                 $digits = preg_replace('/\D+/', '', $search) ?? '';
 
                 $query->where(function ($inner) use ($search, $digits): void {
                     $inner->where('full_name', 'like', "%{$search}%")
                         ->orWhere('employee_code', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%")
                         ->orWhere('whatsapp_number', 'like', "%{$search}%")
                         ->orWhereHas('user', fn ($user) => $user->where('email', 'like', "%{$search}%"));
@@ -43,6 +44,10 @@ class TeacherController extends Controller
             ->when($request->filled('role'), function ($query) use ($request): void {
                 $role = $request->string('role')->toString();
                 $query->whereHas('user.roles', fn ($roles) => $roles->where('name', $role));
+            })
+            ->when($request->filled('exclude_level_id'), function ($query) use ($request): void {
+                $levelId = $request->string('exclude_level_id')->toString();
+                $query->whereDoesntHave('academicLevels', fn ($q) => $q->where('academic_levels.id', $levelId));
             })
             ->orderBy('full_name')
             ->paginate((int) $request->integer('per_page', 15));
@@ -68,7 +73,8 @@ class TeacherController extends Controller
 
     public function show(TeacherProfile $teacher): JsonResponse
     {
-        $teacher->load('user.roles')->loadCount(['activeBatchAssignments', 'activeMasterTeacherAssignments']);
+        $teacher->load(['user.roles', 'academicLevels'])
+            ->loadCount(['academicLevels', 'activeBatchAssignments', 'activeMasterTeacherAssignments']);
 
         return ApiResponse::success('Teacher fetched successfully.', TeacherResource::make($teacher)->resolve());
     }
@@ -95,7 +101,8 @@ class TeacherController extends Controller
     public function update(UpdateTeacherRequest $request, TeacherProfile $teacher, UpdateTeacher $updateTeacher): JsonResponse
     {
         $teacher = $updateTeacher->execute($teacher, $request->validated());
-        $teacher->load('user.roles')->loadCount(['activeBatchAssignments', 'activeMasterTeacherAssignments']);
+        $teacher->load(['user.roles', 'academicLevels'])
+            ->loadCount(['academicLevels', 'activeBatchAssignments', 'activeMasterTeacherAssignments']);
 
         return ApiResponse::success('Teacher updated successfully.', TeacherResource::make($teacher)->resolve());
     }

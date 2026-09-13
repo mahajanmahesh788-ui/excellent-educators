@@ -17,11 +17,21 @@ class StoreBatchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'career_compass_level_id' => ['required', 'ulid', 'exists:career_compass_levels,id'],
-            'name' => ['required', 'string', 'max:255'],
+            'career_compass_level_id' => ['nullable', 'ulid', 'exists:career_compass_levels,id'],
+            'name' => ['required', 'string', 'max:255', 'unique:batches,name'],
             'academic_year' => ['required', 'integer', 'min:2000', 'max:2100'],
             'starts_on' => ['nullable', 'date'],
             'ends_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'name.unique' => 'The level name has already been taken.',
         ];
     }
 }

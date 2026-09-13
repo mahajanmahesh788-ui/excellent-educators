@@ -1,4 +1,5 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/requests/presentation/providers/request_feature_providers.dart';
 import 'package:flutter/material.dart';
@@ -100,9 +101,9 @@ class _RequestStudentRemovalDialogState extends ConsumerState<_RequestStudentRem
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Remove student'),
-      content: Form(
+    return AppModalDialog(
+      title: 'Remove student',
+      child: Form(
         key: _formKey,
         child: SingleChildScrollView(
           child: Column(
@@ -126,22 +127,17 @@ class _RequestStudentRemovalDialogState extends ConsumerState<_RequestStudentRem
                 textCapitalization: TextCapitalization.sentences,
                 enabled: !_submitting,
               ),
+              const SizedBox(height: 20),
+              AppDialogActions(
+                confirmLabel: 'Send request',
+                isConfirming: _submitting,
+                onCancel: () => Navigator.of(context).pop(false),
+                onConfirm: _submit,
+              ),
             ],
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _submitting ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _submitting ? null : _submit,
-          child: _submitting
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Send request'),
-        ),
-      ],
     );
   }
 }

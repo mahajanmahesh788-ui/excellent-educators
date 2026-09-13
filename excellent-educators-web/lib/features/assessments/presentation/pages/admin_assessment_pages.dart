@@ -1,6 +1,7 @@
 import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -554,52 +555,50 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Select codes'),
-              content: SizedBox(
-                width: 280,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final dimension in DimensionCatalog.values)
-                      CheckboxListTile(
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        contentPadding: EdgeInsets.zero,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        title: Text(
-                          '${dimension.code} · ${dimension.name}',
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                        value: selected.contains(dimension.code),
-                        onChanged: (checked) {
-                          setDialogState(() {
-                            if (checked == true) {
-                              if (selected.length >= DimensionCatalog.maxCodesPerOption) {
-                                return;
-                              }
-                              selected.add(dimension.code);
-                            } else {
-                              selected.remove(dimension.code);
-                            }
-                          });
-                        },
+            return AppModalDialog(
+              title: 'Select codes',
+              maxWidth: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final dimension in DimensionCatalog.values)
+                    CheckboxListTile(
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(
+                        '${dimension.code} · ${dimension.name}',
+                        style: const TextStyle(fontSize: 13),
                       ),
-                  ],
-                ),
+                      value: selected.contains(dimension.code),
+                      onChanged: (checked) {
+                        setDialogState(() {
+                          if (checked == true) {
+                            if (selected.length >= DimensionCatalog.maxCodesPerOption) {
+                              return;
+                            }
+                            selected.add(dimension.code);
+                          } else {
+                            selected.remove(dimension.code);
+                          }
+                        });
+                      },
+                    ),
+                  const SizedBox(height: 16),
+                  AppDialogActions(
+                    confirmLabel: 'Done',
+                    onCancel: () => Navigator.pop(dialogContext),
+                    onConfirm: selected.isEmpty
+                        ? null
+                        : () {
+                            setState(() => option.dimensionCodes = List<String>.from(selected));
+                            Navigator.pop(dialogContext);
+                          },
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
-                FilledButton(
-                  onPressed: selected.isEmpty
-                      ? null
-                      : () {
-                          setState(() => option.dimensionCodes = List<String>.from(selected));
-                          Navigator.pop(dialogContext);
-                        },
-                  child: const Text('Done'),
-                ),
-              ],
             );
           },
         );

@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             CareerCompassLevelSeeder::class,
             DimensionSeeder::class,
             LoginPageContentSeeder::class,
+            LevelSeeder::class,
         ]);
     }
 }

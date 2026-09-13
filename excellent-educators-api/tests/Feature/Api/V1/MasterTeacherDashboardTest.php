@@ -2,9 +2,14 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Enums\AttendanceIssueType;
 use App\Enums\RoleName;
+use App\Enums\SessionBookingStatus;
+use App\Enums\SessionBookingType;
+use App\Models\AttendanceIssue;
 use App\Models\CareerCompassLevel;
 use App\Models\Dimension;
+use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
@@ -29,6 +34,7 @@ class MasterTeacherDashboardTest extends TestCase
     public function test_master_teacher_dashboard_returns_rating_progress(): void
     {
         [$admin, $student, $master] = $this->assignedPair();
+        $this->pastMeeting($student, $master);
         $dimension = Dimension::query()->where('code', 'TW')->firstOrFail();
         ['year' => $year, 'month' => $month] = AppClock::currentYearMonth();
 
@@ -56,7 +62,65 @@ class MasterTeacherDashboardTest extends TestCase
             ->assertJsonPath('data.current_month.year', $year)
             ->assertJsonPath('data.current_month.month', $month)
             ->assertJsonCount(1, 'data.by_month')
-            ->assertJsonPath('data.by_month.0.students_rated', 1);
+            ->assertJsonPath('data.by_month.0.students_rated', 1)
+            ->assertJsonPath('data.pending_students.0.can_edit_rating', true)
+            ->assertJsonPath('data.pending_students.0.can_rate', false);
+    }
+
+    public function test_not_rated_counts_only_held_meetings_without_attendance_complaints(): void
+    {
+        [, $student, $master] = $this->assignedPair();
+        $booking = $this->pastMeeting($student, $master);
+
+        $this->withToken($this->tokenFor($master->user->fresh()))->getJson('/api/v1/master-teacher/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.counts.assigned_students', 1)
+            ->assertJsonPath('data.counts.rated_this_month', 0)
+            ->assertJsonPath('data.counts.not_rated_this_month', 1)
+            ->assertJsonPath('data.pending_students.0.id', $student->id);
+
+        AttendanceIssue::query()->create([
+            'booking_id' => $booking->id,
+            'reporter_user_id' => $master->user_id,
+            'reporter_role' => 'master_teacher',
+            'issue_type' => AttendanceIssueType::StudentDidNotJoin->value,
+            'message' => 'Student did not attend',
+            'verification_status' => 'pending',
+        ]);
+
+        $this->withToken($this->tokenFor($master->user->fresh()))->getJson('/api/v1/master-teacher/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.counts.not_rated_this_month', 0)
+            ->assertJsonPath('data.pending_students', []);
+    }
+
+    public function test_introduction_call_does_not_put_student_on_dashboard_to_rate(): void
+    {
+        [, $student, $master] = $this->assignedPair();
+        $starts = AppClock::now()->subHours(2);
+        $ends = AppClock::now()->subHour();
+        SessionBooking::query()->create([
+            'student_id' => $student->id,
+            'teacher_id' => $master->id,
+            'type' => SessionBookingType::IntroductionCall->value,
+            'date' => $starts->toDateString(),
+            'starts_at' => $starts,
+            'ends_at' => $ends,
+            'status' => SessionBookingStatus::Completed->value,
+        ]);
+
+        $this->withToken($this->tokenFor($master->user->fresh()))->getJson('/api/v1/master-teacher/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.counts.not_rated_this_month', 0)
+            ->assertJsonPath('data.pending_students', []);
+
+        $this->pastMeeting($student, $master);
+
+        $this->withToken($this->tokenFor($master->user->fresh()))->getJson('/api/v1/master-teacher/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.counts.not_rated_this_month', 1)
+            ->assertJsonPath('data.pending_students.0.can_rate', true)
+            ->assertJsonPath('data.pending_students.0.can_edit_rating', false);
     }
 
     public function test_common_teacher_cannot_access_master_teacher_dashboard(): void
@@ -90,6 +154,22 @@ class MasterTeacherDashboardTest extends TestCase
         ])->assertOk();
 
         return [$admin, StudentProfile::query()->findOrFail($studentId), $master];
+    }
+
+    private function pastMeeting(StudentProfile $student, TeacherProfile $teacher): SessionBooking
+    {
+        $starts = AppClock::now()->subHours(2);
+        $ends = AppClock::now()->subHour();
+
+        return SessionBooking::query()->create([
+            'student_id' => $student->id,
+            'teacher_id' => $teacher->id,
+            'type' => SessionBookingType::MasterClass->value,
+            'date' => $starts->toDateString(),
+            'starts_at' => $starts,
+            'ends_at' => $ends,
+            'status' => SessionBookingStatus::Completed->value,
+        ]);
     }
 
     private function makeAdmin(): User

@@ -24,7 +24,7 @@ class StudentHeroCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0E2744), Color(0xFF1A3D66), Color(0xFF2A5580)],
+          colors: [Color(0xFF0B1F36), Color(0xFF163A5C), Color(0xFF1E4A73)],
         ),
         boxShadow: [
           BoxShadow(
@@ -270,6 +270,94 @@ class StudentQuickLink extends StatelessWidget {
               ),
               Icon(Icons.arrow_forward_ios_rounded, size: 14, color: color.withValues(alpha: 0.6)),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class StudentPremiumAction extends StatefulWidget {
+  const StudentPremiumAction({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  State<StudentPremiumAction> createState() => _StudentPremiumActionState();
+}
+
+class _StudentPremiumActionState extends State<StudentPremiumAction> {
+  var _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedScale(
+        scale: _hover ? 1.03 : 1,
+        duration: const Duration(milliseconds: 180),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(18),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 240,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: _hover
+                      ? const [Color(0xFFC6A15B), Color(0xFFE8D19A)]
+                      : const [Color(0xFF123152), Color(0xFF1C4A73)],
+                ),
+                border: Border.all(color: const Color(0x66E8D19A)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Brand.gold.withValues(alpha: _hover ? 0.28 : 0.12),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(widget.icon, color: _hover ? Brand.navyDeep : Brand.gold, size: 26),
+                  const SizedBox(height: 14),
+                  Text(
+                    widget.title,
+                    style: TextStyle(
+                      color: _hover ? Brand.navyDeep : Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.subtitle,
+                    style: TextStyle(
+                      color: _hover ? Brand.navy.withValues(alpha: 0.72) : Colors.white.withValues(alpha: 0.75),
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

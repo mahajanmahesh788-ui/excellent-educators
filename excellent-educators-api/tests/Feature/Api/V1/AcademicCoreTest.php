@@ -39,9 +39,9 @@ class AcademicCoreTest extends TestCase
 
         $response
             ->assertCreated()
-            ->assertJsonPath('data.student_code', 'CC1-APS-26-0001')
+            ->assertJsonPath('data.student_code', '26-0001')
             ->assertJsonPath('data.phone', '9876543210')
-            ->assertJsonPath('data.class_grade', 6);
+            ->assertJsonPath('data.class_grade', 5);
 
         $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/students', [
             'name' => 'No Phone',
@@ -106,6 +106,26 @@ class AcademicCoreTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('error.code', 'VALIDATION_ERROR')
             ->assertJsonStructure(['error' => ['details' => ['email']]]);
+    }
+
+    public function test_admin_creates_teacher_with_address_and_default_master_teacher_role(): void
+    {
+        $admin = $this->makeAdmin();
+        $token = $this->tokenFor($admin);
+
+        $response = $this->withToken($token)->postJson('/api/v1/admin/teachers', [
+            'name' => 'Meera Nair',
+            'email' => 'meera@excellenteducators.test',
+            'password' => 'TeacherPass1!',
+            'phone' => '9876500001',
+            'address' => '42 Residency Road, Bangalore',
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('data.full_name', 'Meera Nair')
+            ->assertJsonPath('data.address', '42 Residency Road, Bangalore')
+            ->assertJsonPath('data.roles.0', 'master_teacher');
     }
 
     public function test_batch_rejects_over_active_limit_and_assignments_keep_history(): void
@@ -218,10 +238,12 @@ class AcademicCoreTest extends TestCase
         $admin = $this->makeAdmin();
         $cc1 = CareerCompassLevel::query()->where('code', 'cc1')->firstOrFail();
 
+        $initialActiveBatches = Batch::query()->where('status', 'active')->count();
+
         $this->withToken($this->tokenFor($admin))->getJson('/api/v1/admin/dashboard')
             ->assertOk()
             ->assertJsonPath('data.counts.active_students', 0)
-            ->assertJsonPath('data.counts.active_batches', 0);
+            ->assertJsonPath('data.counts.active_batches', $initialActiveBatches);
 
         $batchId = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/batches', [
             'career_compass_level_id' => $cc1->id,
@@ -240,10 +262,8 @@ class AcademicCoreTest extends TestCase
         $this->withToken($this->tokenFor($admin))->getJson('/api/v1/admin/dashboard')
             ->assertOk()
             ->assertJsonPath('data.counts.active_students', 1)
-            ->assertJsonPath('data.counts.active_batches', 1)
-            ->assertJsonPath('data.counts.students_without_batch', 1)
+            ->assertJsonPath('data.counts.active_batches', $initialActiveBatches + 1)
             ->assertJsonPath('data.counts.students_without_master_teacher', 1)
-            ->assertJsonPath('data.counts.batches_without_common_teacher', 1)
             ->assertJsonPath('data.career_compass.0.code', 'cc1');
     }
 
@@ -275,6 +295,9 @@ class AcademicCoreTest extends TestCase
             'career_compass_level_id' => $cc1->id,
         ])->assertCreated()->json('data.id');
 
+        $unassignedProfile = StudentProfile::query()->findOrFail($unassignedId);
+        $this->withToken($token)->deleteJson("/api/v1/admin/batches/{$unassignedProfile->activeEnrollment->batch_id}/students/{$unassignedId}")->assertOk();
+
         $this->withToken($token)->postJson("/api/v1/admin/batches/{$batchId}/students", [
             'student_id' => $assignedId,
         ])->assertOk();
@@ -293,17 +316,74 @@ class AcademicCoreTest extends TestCase
             ->assertOk()
             ->assertJsonCount(2, 'data');
 
-        $this->withToken($token)->getJson('/api/v1/admin/batches?without_common_teacher=1&status=active')
+        $this->withToken($token)->getJson('/api/v1/admin/batches?without_common_teacher=1&status=active&search=Filter+Batch')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $batchId);
 
         config(['excellent_educators.batch.max_active_students' => 1]);
 
-        $this->withToken($token)->getJson('/api/v1/admin/batches?full=1')
+        $this->withToken($token)->getJson('/api/v1/admin/batches?full=1&search=Filter+Batch')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $batchId);
+    }
+
+    public function test_admin_creates_student_with_class_grade_and_address(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $response = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/students', [
+            'name' => 'Aarav Patel',
+            'email' => 'aarav@excellenteducators.test',
+            'password' => 'StudentPass1!',
+            'phone' => '9123456780',
+            'class_grade' => 5,
+            'address' => 'Flat 402, Green Meadows, Mumbai',
+            'academic_year' => 2026,
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('data.student_code', '26-0001')
+            ->assertJsonPath('data.class_grade', 5)
+            ->assertJsonPath('data.address', 'Flat 402, Green Meadows, Mumbai');
+
+        $response10 = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/students', [
+            'name' => 'Priya Singh',
+            'email' => 'priya@excellenteducators.test',
+            'password' => 'StudentPass1!',
+            'phone' => '9123456781',
+            'class_grade' => 10,
+            'academic_year' => 2026,
+        ]);
+
+        $response10
+            ->assertCreated()
+            ->assertJsonPath('data.student_code', '26-0002')
+            ->assertJsonPath('data.class_grade', 10);
+    }
+
+    public function test_admin_can_create_level_without_career_compass_and_duplicate_names_are_rejected(): void
+    {
+        $admin = $this->makeAdmin();
+        $token = $this->tokenFor($admin);
+
+        // Can create level without career_compass_level_id
+        $this->withToken($token)->postJson('/api/v1/admin/batches', [
+            'name' => 'Level 2',
+            'academic_year' => 2026,
+        ])->assertCreated()
+            ->assertJsonPath('data.name', 'Level 2')
+            ->assertJsonPath('data.academic_year', 2026);
+
+        // Duplicate level name must be rejected
+        $this->withToken($token)->postJson('/api/v1/admin/batches', [
+            'name' => 'Level 2',
+            'academic_year' => 2026,
+        ])->assertStatus(422)
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+            ->assertJsonPath('error.details.name.0', 'The level name has already been taken.');
     }
 
     private function makeAdmin(): User

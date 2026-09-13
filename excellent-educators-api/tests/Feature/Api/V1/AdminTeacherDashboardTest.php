@@ -3,8 +3,11 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\RoleName;
+use App\Enums\SessionBookingStatus;
+use App\Enums\SessionBookingType;
 use App\Models\CareerCompassLevel;
 use App\Models\Dimension;
+use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
@@ -30,6 +33,7 @@ class AdminTeacherDashboardTest extends TestCase
     {
         $admin = $this->makeAdmin();
         [$student, $master] = $this->assignedMasterTeacher($admin);
+        $this->pastMeeting($student, $master);
         $dimension = Dimension::query()->where('code', 'TW')->firstOrFail();
         ['year' => $year, 'month' => $month] = AppClock::currentYearMonth();
 
@@ -114,6 +118,22 @@ class AdminTeacherDashboardTest extends TestCase
         $profile->setRelation('user', $user);
 
         return $profile;
+    }
+
+    private function pastMeeting(StudentProfile $student, TeacherProfile $teacher): SessionBooking
+    {
+        $starts = AppClock::now()->subHours(2);
+        $ends = AppClock::now()->subHour();
+
+        return SessionBooking::query()->create([
+            'student_id' => $student->id,
+            'teacher_id' => $teacher->id,
+            'type' => SessionBookingType::MasterClass->value,
+            'date' => $starts->toDateString(),
+            'starts_at' => $starts,
+            'ends_at' => $ends,
+            'status' => SessionBookingStatus::Completed->value,
+        ]);
     }
 
     private function tokenFor(User $user): string

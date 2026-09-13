@@ -8,7 +8,6 @@ import 'package:excellent_educators_web/features/academic/presentation/pages/mas
 import 'package:excellent_educators_web/features/academic/presentation/pages/role_pages.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/teacher_assessment_pages.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/pages/admin_assessment_pages.dart';
-import 'package:excellent_educators_web/features/auth/presentation/pages/admin_login_page_editor.dart';
 import 'package:excellent_educators_web/features/auth/presentation/pages/change_password_page.dart';
 import 'package:excellent_educators_web/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:excellent_educators_web/features/auth/presentation/pages/login_page.dart';
@@ -17,8 +16,21 @@ import 'package:excellent_educators_web/features/auth/presentation/pages/session
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/pages/feedback_pages.dart';
 import 'package:excellent_educators_web/features/requests/presentation/pages/request_pages.dart';
+import 'package:excellent_educators_web/features/learning/presentation/pages/admin_weekly_learning_page.dart';
+import 'package:excellent_educators_web/features/learning/presentation/pages/learning_week_pages.dart';
+import 'package:excellent_educators_web/features/learning/presentation/pages/staff_learning_journal_page.dart';
+import 'package:excellent_educators_web/features/learning/presentation/pages/student_learning_journal_page.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/pages/notifications_page.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_attendance_page.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_schedule_page.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/widgets/teacher_availability_editor.dart';
+import 'package:excellent_educators_web/features/settings/presentation/pages/admin_settings_page.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/pages/student_booking_pages.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/pages/teacher_day_schedule_page.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/pages/teacher_student_briefing_page.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/pages/teacher_schedule_page.dart';
 import 'package:excellent_educators_web/features/student/presentation/pages/student_dashboard_page.dart';
+import 'package:excellent_educators_web/features/student/presentation/pages/student_teachers_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -77,7 +89,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           }
           final masterTeacherRoutes = location.startsWith(RoutePaths.teacherProfile) ||
               location.startsWith(RoutePaths.teacherRequests) ||
-              location.startsWith(RoutePaths.teacherNotifications);
+              location.startsWith(RoutePaths.teacherNotifications) ||
+              location.startsWith(RoutePaths.teacherSchedule);
           if (!masterTeacherRoutes) {
             return home;
           }
@@ -163,6 +176,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => AdminStudentDetailPage(studentId: state.pathParameters['id']!),
       ),
       GoRoute(
+        path: RoutePaths.adminStudentJournal,
+        builder: (context, state) => StaffLearningJournalPage(studentId: state.pathParameters['id']!, masterTeacher: false),
+      ),
+      GoRoute(
+        path: RoutePaths.adminStudentJournalWeek,
+        builder: (context, state) => StaffLearningWeekPage(
+          studentId: state.pathParameters['id']!,
+          journeyId: state.pathParameters['journeyId']!,
+          week: int.parse(state.pathParameters['week']!),
+          masterTeacher: false,
+        ),
+      ),
+      GoRoute(
         path: RoutePaths.adminFeedbackNew,
         builder: (context, state) => MonthlyFeedbackFormPage(
           studentId: state.pathParameters['id']!,
@@ -188,6 +214,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.adminTeacherNew,
         builder: (context, state) => const AdminCreateTeacherPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminTeacherEdit,
+        builder: (context, state) => AdminEditTeacherPage(teacherId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: RoutePaths.adminTeacherAvailability,
+        builder: (context, state) => TeacherAvailabilityEditPage(teacherId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminTeacherDetail,
@@ -223,7 +257,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.adminLoginPage,
-        builder: (context, state) => const AdminLoginPageEditor(),
+        redirect: (context, state) => RoutePaths.adminSettings,
+      ),
+      GoRoute(
+        path: RoutePaths.adminSettings,
+        builder: (context, state) => const AdminSettingsPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminSchedule,
+        builder: (context, state) => const AdminSchedulePage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminGoogleMeet,
+        redirect: (context, state) => RoutePaths.adminSettings,
+      ),
+      GoRoute(
+        path: RoutePaths.adminAttendance,
+        builder: (context, state) => const AdminAttendancePage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminWeeklyLearning,
+        builder: (context, state) => AdminWeeklyLearningPage(levelId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminRequests,
@@ -273,6 +327,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => MasterTeacherStudentDetailPage(studentId: state.pathParameters['id']!),
       ),
       GoRoute(
+        path: RoutePaths.masterTeacherStudentJournal,
+        builder: (context, state) => StaffLearningJournalPage(studentId: state.pathParameters['id']!, masterTeacher: true),
+      ),
+      GoRoute(
+        path: RoutePaths.masterTeacherStudentJournalWeek,
+        builder: (context, state) => StaffLearningWeekPage(
+          studentId: state.pathParameters['id']!,
+          journeyId: state.pathParameters['journeyId']!,
+          week: int.parse(state.pathParameters['week']!),
+          masterTeacher: true,
+        ),
+      ),
+      GoRoute(
         path: RoutePaths.masterTeacherFeedbackNew,
         builder: (context, state) => MonthlyFeedbackFormPage(
           studentId: state.pathParameters['id']!,
@@ -285,6 +352,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           studentId: state.pathParameters['id']!,
           feedbackId: state.pathParameters['feedbackId']!,
           audience: MonthlyFeedbackFormAudience.masterTeacher,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.teacherSchedule,
+        builder: (context, state) => const TeacherSchedulePage(),
+      ),
+      GoRoute(
+        path: RoutePaths.teacherDaySchedule,
+        builder: (context, state) => const TeacherDaySchedulePage(),
+      ),
+      GoRoute(
+        path: RoutePaths.teacherScheduleStudent,
+        builder: (context, state) => TeacherStudentBriefingPage(
+          studentId: state.pathParameters['id']!,
+          slotLabel: state.uri.queryParameters['slot'],
         ),
       ),
       GoRoute(
@@ -308,8 +390,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
+        path: RoutePaths.studentBookings,
+        builder: (context, state) => const StudentBookingsPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.studentBookNew,
+        builder: (context, state) {
+          final type = state.uri.queryParameters['type'];
+          return StudentBookingWizardPage(
+            type: type == null || type.isEmpty ? null : type,
+            bookingId: state.uri.queryParameters['bookingId'],
+          );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.studentTeachers,
+        builder: (context, state) => const StudentTeachersPage(),
+      ),
+      GoRoute(
         path: RoutePaths.studentDashboard,
         builder: (context, state) => const StudentDashboardPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.studentJournal,
+        builder: (context, state) => const StudentLearningJournalPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.studentJournalWeek,
+        builder: (context, state) => StudentLearningWeekPage(
+          journeyId: state.pathParameters['journeyId']!,
+          week: int.parse(state.pathParameters['week']!),
+        ),
       ),
       GoRoute(
         path: RoutePaths.studentProfile,

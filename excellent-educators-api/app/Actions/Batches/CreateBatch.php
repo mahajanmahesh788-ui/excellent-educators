@@ -9,7 +9,7 @@ class CreateBatch
 {
     /**
      * @param  array{
-     *     career_compass_level_id: string,
+     *     career_compass_level_id?: string|null,
      *     name: string,
      *     academic_year: int,
      *     starts_on?: string|null,
@@ -19,7 +19,7 @@ class CreateBatch
     public function execute(array $input): Batch
     {
         return Batch::query()->create([
-            'career_compass_level_id' => $input['career_compass_level_id'],
+            'career_compass_level_id' => $input['career_compass_level_id'] ?? null,
             'name' => $input['name'],
             'academic_year' => $input['academic_year'],
             'starts_on' => $input['starts_on'] ?? null,

@@ -73,7 +73,7 @@ class MonthlyFeedbackResource extends JsonResource
             return false;
         }
 
-        if (! $teacher->activeMasterTeacherAssignments()->where('student_id', $this->student_id)->exists()) {
+        if (! $teacher->canAccessStudent($this->student_id)) {
             return false;
         }
 
@@ -100,7 +100,7 @@ class MonthlyFeedbackResource extends JsonResource
             return false;
         }
 
-        if (! $teacher->activeMasterTeacherAssignments()->where('student_id', $this->student_id)->exists()) {
+        if (! $teacher->canAccessStudent($this->student_id)) {
             return false;
         }
 

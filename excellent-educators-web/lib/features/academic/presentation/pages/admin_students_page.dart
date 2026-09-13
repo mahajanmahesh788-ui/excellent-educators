@@ -39,7 +39,6 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
 
   Widget _buildStudentsToolbar({
     required AdminListFilter filter,
-    required List<DropdownMenuItem<String>> levelItems,
     PagedResult? page,
   }) {
     return DirectoryToolbar(
@@ -47,11 +46,6 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
       searchHint: 'Search name, Student ID, phone, or email',
       searchQuery: filter.search,
       onSearchChanged: (value) => _setFilter(filter.copyWith(search: value, page: 1)),
-      levelItems: levelItems.isEmpty ? null : levelItems,
-      selectedLevelId: filter.levelId,
-      onLevelChanged: levelItems.isEmpty
-          ? null
-          : (value) => _setFilter(filter.copyWith(levelId: value, page: 1, clearLevel: value == null)),
       statusItems: statusFilterItems,
       selectedStatus: filter.status,
       onStatusChanged: (value) => _setFilter(filter.copyWith(status: value, page: 1, clearStatus: value == null)),
@@ -74,12 +68,7 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
   Widget build(BuildContext context) {
     final filter = ref.watch(adminStudentsFilterProvider);
     final students = ref.watch(adminStudentsProvider(filter));
-    final levels = ref.watch(careerCompassLevelsProvider);
     final repo = ref.watch(academicRepositoryProvider);
-    final levelItems = levels.maybeWhen(
-      data: careerCompassDropdownItems,
-      orElse: () => <DropdownMenuItem<String>>[],
-    );
     final page = students.asData?.value;
 
     return AppScaffold(
@@ -92,7 +81,7 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildStudentsToolbar(filter: filter, levelItems: levelItems, page: page),
+          _buildStudentsToolbar(filter: filter, page: page),
           if (filter.attentionLabel != null) ...[
             const SizedBox(height: 8),
             ActiveFilterBanner(
@@ -141,21 +130,6 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
                     return StudentCard(
                       student: student,
                       onTap: () => context.go(RoutePaths.adminStudent(student.id)),
-                      action: OutlinedButton(
-                        onPressed: () => _assignMentor(context, student),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Brand.navy,
-                          side: const BorderSide(color: Brand.gold),
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                        ),
-                        child: Text(
-                          student.masterTeacher == null || student.masterTeacher!.isEmpty
-                              ? 'Assign Master Teacher'
-                              : 'Change Master Teacher',
-                        ),
-                      ),
                     );
                   },
                 );
@@ -165,29 +139,6 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
         ],
       ),
     );
-  }
-
-  Future<void> _assignMentor(BuildContext context, StudentDto student) async {
-    final repo = ref.read(academicRepositoryProvider);
-    try {
-      final selected = await pickTeacher(
-        context: context,
-        repo: repo,
-        title: 'Assign Master Teacher',
-        role: 'master_teacher',
-        emptyMessage: 'No Master Teachers found. Add a teacher with the Master Teacher role first.',
-      );
-      if (selected == null) {
-        return;
-      }
-      await repo.assignMasterTeacher(studentId: student.id, teacherId: selected.id);
-      ref.invalidate(adminStudentsProvider);
-      ref.invalidate(adminDashboardProvider);
-    } catch (error) {
-      if (context.mounted) {
-        showFailure(context, error);
-      }
-    }
   }
 }
 
@@ -203,43 +154,48 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
   final _name = TextEditingController();
   final _phone = TextEditingController();
   final _whatsapp = TextEditingController();
+  final _address = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _guardianName = TextEditingController();
-  String? _levelId;
+  int? _classGrade;
   bool _saving = false;
   bool _obscure = true;
-  bool _attempted = false;
 
   @override
   void dispose() {
     _name.dispose();
     _phone.dispose();
     _whatsapp.dispose();
+    _address.dispose();
     _email.dispose();
     _password.dispose();
     _guardianName.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    setState(() => _attempted = true);
-    if (!_formKey.currentState!.validate() || _levelId == null) {
+  Future<void> _submit(List<CareerCompassLevelDto> items) async {
+    if (!_formKey.currentState!.validate() || _classGrade == null) {
       return;
     }
+    final matchingLevel = items
+        .where((l) => _classGrade! >= l.classFrom && _classGrade! <= l.classTo)
+        .firstOrNull;
+
     setState(() => _saving = true);
     try {
       await ref.read(academicRepositoryProvider).createStudent({
         'name': _name.text.trim(),
         'phone': _phone.text.trim(),
         'whatsapp_number': _whatsapp.text.trim().isEmpty ? null : _whatsapp.text.trim(),
+        'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
         'email': _email.text.trim(),
         'password': _password.text,
-        'career_compass_level_id': _levelId,
+        'class_grade': _classGrade,
+        if (matchingLevel != null) 'career_compass_level_id': matchingLevel.id,
         'guardian_name': _guardianName.text.trim().isEmpty ? null : _guardianName.text.trim(),
       });
       ref.invalidate(adminStudentsProvider);
-      ref.invalidate(adminDashboardProvider);
       ref.invalidate(adminDashboardProvider);
       if (mounted) {
         context.go(RoutePaths.adminStudents);
@@ -271,14 +227,14 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(flex: 5, child: _IntroPanel(selectedId: _levelId, levels: items)),
+                    Expanded(flex: 5, child: _IntroPanel(selectedClassGrade: _classGrade, levels: items)),
                     const SizedBox(width: 28),
                     Expanded(flex: 7, child: _formCard(items)),
                   ],
                 )
               : Column(
                   children: [
-                    _IntroPanel(selectedId: _levelId, levels: items),
+                    _IntroPanel(selectedClassGrade: _classGrade, levels: items),
                     const SizedBox(height: 20),
                     _formCard(items),
                   ],
@@ -340,83 +296,25 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                     'Submitting this form creates the student and issues a Student ID. Confirmation is immediate.',
                     style: TextStyle(color: Brand.muted, height: 1.45),
                   ),
-                  const SizedBox(height: 22),
-                  const Text(
-                    'Career Compass',
-                    style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Class range is already defined by the selected level.',
-                    style: TextStyle(color: Brand.muted, fontSize: 13),
-                  ),
-                  const SizedBox(height: 12),
-                  ...items.map((level) {
-                    final selected = _levelId == level.id;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Material(
-                        color: selected ? const Color(0xFFFBF6EA) : Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: selected ? Brand.gold : const Color(0xFFD7CDBB),
-                            width: selected ? 1.6 : 1,
-                          ),
-                        ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(14),
-                          onTap: () => setState(() => _levelId = level.id),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            child: Row(
-                              children: [
-                                Text(
-                                  '✦',
-                                  style: TextStyle(
-                                    color: selected ? Brand.goldDark : Brand.muted,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${level.shortCode}  ${level.name}',
-                                        style: const TextStyle(
-                                          color: Brand.navy,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      Text(
-                                        'Classes ${level.classFrom}–${level.classTo}',
-                                        style: const TextStyle(color: Brand.muted, fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  selected ? Icons.check_circle : Icons.circle_outlined,
-                                  color: selected ? Brand.goldDark : Brand.muted,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                  if (_attempted && _levelId == null)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        'Select a Career Compass level.',
-                        style: TextStyle(color: Color(0xFFB42318), fontSize: 12),
-                      ),
+                  const SizedBox(height: 20),
+                  DropdownButtonFormField<int>(
+                    key: ValueKey(_classGrade),
+                    value: _classGrade,
+                    decoration: const InputDecoration(
+                      labelText: 'Class',
+                      hintText: 'Select student class',
                     ),
-                  const SizedBox(height: 8),
+                    items: [
+                      for (final grade in [5, 6, 7, 8, 9, 10, 11, 12])
+                        DropdownMenuItem(
+                          value: grade,
+                          child: Text('Class $grade (${_classOrdinal(grade)} Class)'),
+                        ),
+                    ],
+                    validator: (value) => value == null ? 'Please select a class.' : null,
+                    onChanged: (value) => setState(() => _classGrade = value),
+                  ),
+                  const SizedBox(height: 14),
                   TextFormField(
                     controller: _name,
                     textCapitalization: TextCapitalization.words,
@@ -442,6 +340,17 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                       prefixText: '+91  ',
                     ),
                     validator: validateOptionalPhone,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _address,
+                    maxLines: 2,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: 'Address',
+                      hintText: 'Enter student address',
+                      alignLabelWithHint: true,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
@@ -478,7 +387,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
-                    onPressed: _saving ? null : _submit,
+                    onPressed: _saving ? null : () => _submit(items),
                     child: _saving
                         ? const SizedBox(
                             width: 22,
@@ -505,14 +414,16 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
 }
 
 class _IntroPanel extends StatelessWidget {
-  const _IntroPanel({required this.selectedId, required this.levels});
+  const _IntroPanel({required this.selectedClassGrade, required this.levels});
 
-  final String? selectedId;
+  final int? selectedClassGrade;
   final List<CareerCompassLevelDto> levels;
 
   @override
   Widget build(BuildContext context) {
-    final selected = levels.where((level) => level.id == selectedId).firstOrNull;
+    final selectedLevel = selectedClassGrade == null
+        ? null
+        : levels.where((level) => selectedClassGrade! >= level.classFrom && selectedClassGrade! <= level.classTo).firstOrNull;
 
     return Padding(
       padding: const EdgeInsets.only(top: 8, right: 8),
@@ -540,11 +451,11 @@ class _IntroPanel extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           const Text(
-            'Choose a Career Compass level, then add contact details. The class band is already part of that level, and the Student ID is generated after you save.',
+            'Select the student’s class, then enter contact and address details. The Student ID is generated automatically after you save.',
             style: TextStyle(color: Brand.muted, fontSize: 16, height: 1.5),
           ),
           const SizedBox(height: 28),
-          if (selected != null)
+          if (selectedClassGrade != null)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
@@ -555,21 +466,45 @@ class _IntroPanel extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('✦  SELECTED LEVEL', style: TextStyle(color: Brand.gold, letterSpacing: 1.4, fontSize: 11, fontWeight: FontWeight.w700)),
+                  const Text('✦  SELECTED ENROLMENT', style: TextStyle(color: Brand.gold, letterSpacing: 1.4, fontSize: 11, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   Text(
-                    selected.name,
+                    'Class $selectedClassGrade (${_classOrdinal(selectedClassGrade!)} Class)',
                     style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
                   ),
-                  Text(
-                    'Classes ${selected.classFrom}–${selected.classTo}',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
+                  if (selectedLevel != null)
+                    Text(
+                      'Career Compass: ${selectedLevel.name} (${selectedLevel.shortCode})',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
                 ],
               ),
             ),
         ],
       ),
     );
+  }
+}
+
+String _classOrdinal(int grade) {
+  switch (grade) {
+    case 5:
+      return '5th';
+    case 6:
+      return '6th';
+    case 7:
+      return '7th';
+    case 8:
+      return '8th';
+    case 9:
+      return '9th';
+    case 10:
+      return '10th';
+    case 11:
+      return '11th';
+    case 12:
+      return '12th';
+    default:
+      return '${grade}th';
   }
 }

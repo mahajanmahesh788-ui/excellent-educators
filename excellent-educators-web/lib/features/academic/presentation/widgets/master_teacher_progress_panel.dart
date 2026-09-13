@@ -11,16 +11,22 @@ class MasterTeacherProgressPanel extends StatelessWidget {
     super.key,
     required this.data,
     this.onPendingStudentTap,
+    this.onRateStudent,
+    this.onEditStudentRating,
     this.onNotRatedTap,
     this.onAssessmentPendingTap,
     this.pendingStudentsTitle = 'Students awaiting rating',
+    this.showPendingStudents = true,
   });
 
   final MasterTeacherDashboardDto data;
   final ValueChanged<MasterTeacherPendingStudentDto>? onPendingStudentTap;
+  final ValueChanged<MasterTeacherPendingStudentDto>? onRateStudent;
+  final ValueChanged<MasterTeacherPendingStudentDto>? onEditStudentRating;
   final VoidCallback? onNotRatedTap;
   final VoidCallback? onAssessmentPendingTap;
   final String pendingStudentsTitle;
+  final bool showPendingStudents;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +66,7 @@ class MasterTeacherProgressPanel extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         AttentionCard(
-          label: 'Students without a rating this month',
+          label: 'Meetings held, not rated yet',
           count: counts.notRatedThisMonth,
           onTap: onNotRatedTap ?? () {},
         ),
@@ -72,7 +78,7 @@ class MasterTeacherProgressPanel extends StatelessWidget {
             onTap: onAssessmentPendingTap ?? () {},
           ),
         ],
-        if (data.pendingStudents.isNotEmpty) ...[
+        if (showPendingStudents && data.pendingStudents.isNotEmpty) ...[
           const SizedBox(height: 20),
           Text(
             pendingStudentsTitle,
@@ -110,7 +116,27 @@ class MasterTeacherProgressPanel extends StatelessWidget {
                             ],
                           ),
                         ),
-                        if (onPendingStudentTap != null)
+                        if (student.canEditRating && onEditStudentRating != null)
+                          FilledButton.tonal(
+                            style: FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              backgroundColor: const Color(0xFFFEF3C7),
+                              foregroundColor: const Color(0xFFB45309),
+                            ),
+                            onPressed: () => onEditStudentRating!(student),
+                            child: const Text('Edit rating'),
+                          )
+                        else if (student.canRate && onRateStudent != null)
+                          FilledButton.tonal(
+                            style: FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              backgroundColor: const Color(0xFFFEF3C7),
+                              foregroundColor: const Color(0xFFB45309),
+                            ),
+                            onPressed: () => onRateStudent!(student),
+                            child: const Text('Rate'),
+                          )
+                        else if (onPendingStudentTap != null)
                           const Icon(Icons.chevron_right_rounded, color: Brand.muted),
                       ],
                     ),
@@ -243,7 +269,7 @@ class MasterTeacherProgressHero extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${counts.ratedThisMonth} of ${counts.assignedStudents} students rated this month',
+            '${counts.ratedThisMonth} of ${counts.ratedThisMonth + counts.notRatedThisMonth} held meetings rated this month',
             style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],

@@ -16,9 +16,13 @@ class Batch extends Model
     use HasUlids, SoftDeletes;
 
     protected $fillable = [
+        'level_id',
         'career_compass_level_id',
         'name',
         'academic_year',
+        'year',
+        'month',
+        'enrolled_watermark',
         'starts_on',
         'ends_on',
         'status',
@@ -28,10 +32,18 @@ class Batch extends Model
     {
         return [
             'academic_year' => 'integer',
+            'year' => 'integer',
+            'month' => 'integer',
+            'enrolled_watermark' => 'integer',
             'starts_on' => 'date',
             'ends_on' => 'date',
             'status' => BatchStatus::class,
         ];
+    }
+
+    public function level(): BelongsTo
+    {
+        return $this->belongsTo(AcademicLevel::class, 'level_id');
     }
 
     public function careerCompassLevel(): BelongsTo

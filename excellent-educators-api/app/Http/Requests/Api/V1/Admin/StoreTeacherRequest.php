@@ -26,6 +26,10 @@ class StoreTeacherRequest extends FormRequest
             $merge['whatsapp_number'] = PhoneNumber::normalize($this->input('whatsapp_number'));
         }
 
+        if (! $this->has('roles')) {
+            $merge['roles'] = ['master_teacher'];
+        }
+
         if ($merge !== []) {
             $this->merge($merge);
         }
@@ -43,7 +47,8 @@ class StoreTeacherRequest extends FormRequest
             'employee_code' => ['nullable', 'string', 'max:32', 'unique:teacher_profiles,employee_code'],
             'phone' => ['nullable', 'string', 'min:10', 'max:15'],
             'whatsapp_number' => ['nullable', 'string', 'min:10', 'max:15'],
-            'roles' => ['required', 'array', 'min:1'],
+            'address' => ['nullable', 'string', 'max:1000'],
+            'roles' => ['sometimes', 'array', 'min:1'],
             'roles.*' => ['in:common_teacher,master_teacher'],
         ];
     }

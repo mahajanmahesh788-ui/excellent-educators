@@ -29,6 +29,14 @@ class MasterTeacherDashboardPage extends ConsumerWidget {
                 onNotRatedTap: () => _openNotRatedStudents(context, ref),
                 onAssessmentPendingTap: () => context.go(RoutePaths.masterTeacherStudents),
                 onPendingStudentTap: (student) => context.go(RoutePaths.masterTeacherStudentFor(student.id)),
+                onRateStudent: (student) => context.go(RoutePaths.masterTeacherFeedbackNewFor(student.id)),
+                onEditStudentRating: (student) {
+                  final id = student.monthlyFeedbackId;
+                  if (id == null || id.isEmpty) {
+                    return;
+                  }
+                  context.go(RoutePaths.masterTeacherFeedbackEditFor(student.id, id));
+                },
               ),
             ],
           );

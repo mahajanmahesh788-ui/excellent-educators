@@ -14,6 +14,8 @@ class UpdateBatch
         $batch->fill([
             'name' => $input['name'] ?? $batch->name,
             'academic_year' => $input['academic_year'] ?? $batch->academic_year,
+            'year' => $input['year'] ?? ($input['academic_year'] ?? $batch->year),
+            'month' => $input['month'] ?? $batch->month,
             'starts_on' => array_key_exists('starts_on', $input) ? $input['starts_on'] : $batch->starts_on,
             'ends_on' => array_key_exists('ends_on', $input) ? $input['ends_on'] : $batch->ends_on,
             'status' => $input['status'] ?? $batch->status,

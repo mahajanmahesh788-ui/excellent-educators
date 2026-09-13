@@ -15,13 +15,16 @@ use App\Http\Requests\Api\V1\Admin\StoreBatchRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateBatchRequest;
 use App\Http\Resources\Api\V1\BatchResource;
 use App\Http\Resources\Api\V1\StudentResource;
+use App\Enums\BatchStatus;
 use App\Enums\ProfileStatus;
+use App\Models\AcademicLevel;
 use App\Models\Batch;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class BatchController extends Controller
 {
@@ -37,7 +40,7 @@ class BatchController extends Controller
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->when($request->has('without_common_teacher'), fn ($query) => $query->whereDoesntHave('activeTeacherAssignment'))
             ->when($request->has('full'), function ($query): void {
-                $maxPerBatch = (int) config('excellent_educators.batch.max_active_students', 40);
+                $maxPerBatch = app(\App\Support\AppSettings::class)->maxActiveStudents();
                 $query->whereIn('id', function ($sub) use ($maxPerBatch): void {
                     $sub->select('batch_id')
                         ->from('batch_students')
@@ -133,6 +136,51 @@ class BatchController extends Controller
         $unassignCommonTeacher->execute($batch);
         $batch->load(['careerCompassLevel', 'activeTeacherAssignment.teacher'])->loadCount('activeEnrollments');
 
-        return ApiResponse::success('Common Teacher removed successfully.', BatchResource::make($batch)->resolve());
+        return ApiResponse::success('Teacher unassigned from batch.', BatchResource::make($batch)->resolve());
+    }
+
+    public function toggleStatus(Batch $batch): JsonResponse
+    {
+        $newStatus = ($batch->status === BatchStatus::Active || $batch->status === 'active') ? 'inactive' : 'active';
+        $batch->update(['status' => $newStatus]);
+        $batch->load(['level', 'careerCompassLevel', 'activeTeacherAssignment.teacher'])->loadCount('activeEnrollments');
+
+        return ApiResponse::success(
+            "Batch status updated to {$newStatus}.",
+            BatchResource::make($batch)->resolve(),
+        );
+    }
+
+    public function storeForLevel(Request $request, AcademicLevel $level): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('batches', 'name')->where('level_id', $level->id),
+            ],
+            'year' => ['nullable', 'integer', 'min:2000', 'max:2100'],
+            'month' => ['nullable', 'integer', 'min:1', 'max:12'],
+        ], [
+            'name.unique' => 'A batch with this name already exists in this level.',
+        ]);
+
+        $year = $validated['year'] ?? ($level->academic_year ?? (int) date('Y'));
+        $month = $validated['month'] ?? (int) date('n');
+
+        $batch = Batch::query()->create([
+            'level_id' => $level->id,
+            'name' => $validated['name'],
+            'academic_year' => $year,
+            'year' => $year,
+            'month' => $month,
+            'status' => 'active',
+            'enrolled_watermark' => 0,
+        ]);
+
+        $batch->loadCount('activeEnrollments');
+
+        return ApiResponse::success('Batch created successfully.', BatchResource::make($batch)->resolve(), status: 201);
     }
 }

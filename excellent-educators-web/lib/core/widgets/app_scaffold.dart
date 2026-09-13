@@ -4,9 +4,11 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_info.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
+import 'package:excellent_educators_web/core/widgets/portal_chrome.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/widgets/notification_bell_button.dart';
 import 'package:excellent_educators_web/features/auth/domain/entities/app_user.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -68,15 +70,22 @@ class AppScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).user;
-    final destinations = _destinations(user);
+    final pendingConflicts = user?.isAdmin == true
+        ? ref.watch(adminPendingConflictsCountProvider).valueOrNull ?? 0
+        : 0;
+    final destinations = _destinations(user, pendingConflicts);
     final location = GoRouterState.of(context).uri.path;
     final selected = destinations.indexWhere((item) => location.startsWith(item.path));
     final wide = MediaQuery.sizeOf(context).width >= Breakpoints.mobile;
 
-    final content = Padding(
+    final portal = user?.isCommonTeacher == true || user?.isMasterTeacher == true;
+    Widget content = Padding(
       padding: EdgeInsets.fromLTRB(wide ? 16 : 12, 12, wide ? 16 : 12, 12),
       child: body,
     );
+    if (portal) {
+      content = AnimatedPortalBackdrop(child: content);
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -130,7 +139,11 @@ class AppScaffold extends ConsumerWidget {
                       children: [
                         for (final item in destinations)
                           ListTile(
-                            leading: Icon(item.icon),
+                            leading: Badge(
+                              isLabelVisible: item.badgeCount != null && item.badgeCount! > 0,
+                              label: Text('${item.badgeCount ?? 0}'),
+                              child: Icon(item.icon),
+                            ),
                             title: Text(item.label),
                             selected: location.startsWith(item.path),
                             enabled: !disabledNavPaths.contains(item.path),
@@ -153,6 +166,7 @@ class AppScaffold extends ConsumerWidget {
       body: destinations.isEmpty || !wide
           ? SelectionArea(child: content)
           : Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _SideNav(
                   destinations: destinations,
@@ -170,7 +184,7 @@ class AppScaffold extends ConsumerWidget {
     );
   }
 
-  List<_NavItem> _destinations(AppUser? user) {
+  List<_NavItem> _destinations(AppUser? user, int pendingConflicts) {
     if (user == null) {
       return const [];
     }
@@ -179,9 +193,15 @@ class AppScaffold extends ConsumerWidget {
         const _NavItem('Dashboard', Icons.dashboard_outlined, RoutePaths.adminDashboard),
         const _NavItem('Students', Icons.school_outlined, RoutePaths.adminStudents),
         const _NavItem('Teachers', Icons.badge_outlined, RoutePaths.adminTeachers),
-        const _NavItem('Batches', Icons.groups_outlined, RoutePaths.adminBatches),
+        const _NavItem('Levels', Icons.layers_outlined, RoutePaths.adminBatches),
+        _NavItem(
+          'Conflicts',
+          Icons.report_outlined,
+          RoutePaths.adminAttendance,
+          badgeCount: pendingConflicts > 0 ? pendingConflicts : null,
+        ),
         const _NavItem('Assessments', Icons.quiz_outlined, RoutePaths.adminAssessments),
-        const _NavItem('Content', Icons.web_outlined, RoutePaths.adminLoginPage),
+        const _NavItem('Settings', Icons.settings_outlined, RoutePaths.adminSettings),
         const _NavItem('Requests', Icons.support_agent_outlined, RoutePaths.adminRequests),
       ],
       if (user.isCommonTeacher)
@@ -191,15 +211,12 @@ class AppScaffold extends ConsumerWidget {
       if (user.isMasterTeacher)
         const _NavItem('My students', Icons.psychology_outlined, RoutePaths.masterTeacherStudents),
       if (user.isCommonTeacher || user.isMasterTeacher) ...[
+        const _NavItem('Today schedule', Icons.today_outlined, RoutePaths.teacherDaySchedule),
+        const _NavItem('Take leave', Icons.event_busy_outlined, RoutePaths.teacherSchedule),
         const _NavItem('Request admin', Icons.support_agent_outlined, RoutePaths.teacherRequests),
         const _NavItem('Profile', Icons.person_outline, RoutePaths.teacherProfile),
       ],
-      if (user.isStudent) ...[
-        const _NavItem('Dashboard', Icons.dashboard_rounded, RoutePaths.studentDashboard),
-        const _NavItem('Feedback', Icons.forum_outlined, RoutePaths.studentFeedback),
-        const _NavItem('Request admin', Icons.support_agent_outlined, RoutePaths.studentRequests),
-        const _NavItem('Profile', Icons.person_outline, RoutePaths.studentProfile),
-      ],
+      if (user.isStudent) ...[]
     ];
   }
 
@@ -226,11 +243,12 @@ Future<void> confirmSignOut(BuildContext context, WidgetRef ref) async {
 }
 
 class _NavItem {
-  const _NavItem(this.label, this.icon, this.path);
+  const _NavItem(this.label, this.icon, this.path, {this.badgeCount});
 
   final String label;
   final IconData icon;
   final String path;
+  final int? badgeCount;
 }
 
 class _SideNav extends StatelessWidget {
@@ -271,7 +289,14 @@ class _SideNav extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                         child: Column(
                           children: [
-                            Icon(item.icon, color: color, size: 22),
+                            Badge(
+                              isLabelVisible: item.badgeCount != null && item.badgeCount! > 0,
+                              label: Text(
+                                '${item.badgeCount ?? 0}',
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+                              ),
+                              child: Icon(item.icon, color: color, size: 22),
+                            ),
                             const SizedBox(height: 4),
                             Text(
                               item.label,

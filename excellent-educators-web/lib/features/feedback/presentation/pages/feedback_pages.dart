@@ -4,6 +4,7 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
+import 'package:excellent_educators_web/features/academic/presentation/providers/admin_list_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
@@ -13,7 +14,9 @@ import 'package:excellent_educators_web/features/feedback/domain/feedback_form_v
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/feedback_rating_bar.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/student_feedback_month_view.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/student_read_only_ratings_section.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:excellent_educators_web/features/requests/presentation/widgets/request_student_removal_dialog.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,6 +54,12 @@ class MasterTeacherStudentDetailPage extends ConsumerWidget {
                   studentName: studentData.fullName,
                   studentCode: studentData.studentCode,
                 ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: () => context.go(RoutePaths.masterTeacherStudentJournalFor(studentId)),
+                icon: const Icon(Icons.menu_book_outlined),
+                label: const Text('Learning journal'),
               ),
               const SizedBox(height: 16),
               Text(
@@ -92,7 +101,9 @@ class MasterTeacherStudentDetailPage extends ConsumerWidget {
                 studentId: studentId,
                 audience: StudentRatingsAudience.masterTeacher,
                 student: studentData,
-                onAddRating: () => context.go(RoutePaths.masterTeacherFeedbackNewFor(studentId)),
+                onAddRating: studentData.canRateThisMonth
+                    ? () => context.go(RoutePaths.masterTeacherFeedbackNewFor(studentId))
+                    : null,
                 onEditRating: (feedbackId) =>
                     context.go(RoutePaths.masterTeacherFeedbackEditFor(studentId, feedbackId)),
                 onDeleteRating: (feedbackId) => _confirmDeleteRating(context, ref, studentId, feedbackId),
@@ -232,6 +243,8 @@ class _MonthlyFeedbackFormPageState extends ConsumerState<MonthlyFeedbackFormPag
         }
         ref.invalidate(adminStudentFeedbackProvider(widget.studentId));
         ref.invalidate(adminStudentFeedbackSummaryProvider(widget.studentId));
+        ref.invalidate(adminDashboardProvider);
+        ref.invalidate(adminTeacherDashboardProvider);
         if (mounted) {
           context.go(RoutePaths.adminStudent(widget.studentId));
         }
@@ -245,6 +258,8 @@ class _MonthlyFeedbackFormPageState extends ConsumerState<MonthlyFeedbackFormPag
         ref.invalidate(masterTeacherStudentFeedbackSummaryProvider(widget.studentId));
         ref.invalidate(masterTeacherStudentProvider(widget.studentId));
         ref.invalidate(masterTeacherStudentsProvider);
+        ref.invalidate(teacherDayScheduleProvider);
+        ref.invalidate(masterTeacherDashboardProvider);
         if (mounted) {
           context.go(RoutePaths.masterTeacherStudentFor(widget.studentId));
         }
@@ -405,16 +420,17 @@ class StudentFeedbackPage extends ConsumerWidget {
         },
         builder: (items) {
           if (items.isEmpty) {
-            return const EmptyState(
-              icon: EmptyIcons.ratings,
-              title: 'No ratings yet',
-              subtitle: 'Your Master Teacher will share one monthly development rating here.',
+            return const AcademyEmpty(
+              icon: Icons.forum_outlined,
+              title: 'No feedback yet',
+              body: 'Your teachers will share monthly notes here as your journey unfolds.',
             );
           }
 
           return AsyncBody(
             value: summary,
             builder: (summaryData) => ListView(
+              padding: const EdgeInsets.only(bottom: 32),
               children: [
                 StudentFeedbackMonthView(summary: summaryData, items: items),
                 const SizedBox(height: 8),

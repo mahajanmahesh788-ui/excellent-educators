@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
+import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/master_teacher_students_filter.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -10,6 +11,7 @@ import 'package:excellent_educators_web/features/assessments/presentation/provid
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/assessment_result_view.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/student_read_only_ratings_section.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_ui.dart';
 import 'package:excellent_educators_web/features/requests/presentation/widgets/request_student_removal_dialog.dart';
@@ -124,32 +126,31 @@ class MasterTeacherStudentsPage extends ConsumerWidget {
         children: [
           MasterTeacherStudentsFilterBar(
             filter: filter,
+            levels: students.asData?.value.levels ?? const [],
             onFilterChanged: (next) => ref.read(masterTeacherStudentsFilterProvider.notifier).state = next,
           ),
           Expanded(
             child: AsyncBody(
               value: students,
               onRetry: () => ref.invalidate(masterTeacherStudentsProvider),
-              builder: (items) {
+              builder: (roster) {
+                final items = roster.students;
                 if (items.isEmpty) {
-                  final filtered = filter.rated != MasterTeacherStudentsRatedFilter.all;
+                  final filtered = filter.rated != MasterTeacherStudentsRatedFilter.all ||
+                      filter.levelId.isNotEmpty ||
+                      filter.batchId.isNotEmpty;
                   return EmptyHint(
                     filtered ? 'No students match these filters' : 'No students assigned',
                     icon: EmptyIcons.students,
                     subtitle: filtered
-                        ? 'Try another month or change the rated filter.'
-                        : 'Students will appear here when admin assigns them to you.',
+                        ? 'Try another level, batch, month, or rated filter.'
+                        : 'Students will appear here when admin assigns you to their level.',
                   );
                 }
-                return ListView.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 6),
-                  itemBuilder: (context, index) => StudentCard(
-                    student: items[index],
-                    highlightOverallRating: true,
-                    showMonthRatingStatus: true,
-                    onTap: () => context.go(RoutePaths.masterTeacherStudentFor(items[index].id)),
-                  ),
+                return ListView(
+                  children: [
+                    ..._groupedStudentTiles(context, items),
+                  ],
                 );
               },
             ),
@@ -158,6 +159,67 @@ class MasterTeacherStudentsPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+List<Widget> _groupedStudentTiles(BuildContext context, List<StudentDto> items) {
+  final groups = <String, List<StudentDto>>{};
+  for (final student in items) {
+    final level = student.level != null && !student.level!.isEmpty ? student.level!.label : 'Unassigned level';
+    final batch = student.batch != null && !student.batch!.isEmpty ? student.batch!.label : 'No batch';
+    groups.putIfAbsent('$level|$batch', () => []).add(student);
+  }
+  final keys = groups.keys.toList()..sort();
+  final widgets = <Widget>[];
+  String? lastLevel;
+  for (final key in keys) {
+    final separator = key.indexOf('|');
+    final level = key.substring(0, separator);
+    final batch = key.substring(separator + 1);
+    if (level != lastLevel) {
+      widgets.add(
+        Padding(
+          padding: EdgeInsets.only(top: lastLevel == null ? 0 : 16, bottom: 8),
+          child: Text(
+            level,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Brand.navy),
+          ),
+        ),
+      );
+      lastLevel = level;
+    }
+    widgets.add(
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(batch, style: const TextStyle(fontWeight: FontWeight.w600, color: Brand.muted)),
+      ),
+    );
+    for (final student in groups[key]!) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: StudentCard(
+            student: student,
+            highlightOverallRating: true,
+            onTap: () => context.go(RoutePaths.masterTeacherStudentFor(student.id)),
+            action: student.canEditRatingThisMonth && student.monthlyFeedbackId != null
+                ? TextButton(
+                    onPressed: () => context.go(
+                      RoutePaths.masterTeacherFeedbackEditFor(student.id, student.monthlyFeedbackId!),
+                    ),
+                    child: const Text('Edit rating'),
+                  )
+                : student.canRateThisMonth
+                    ? TextButton(
+                        onPressed: () => context.go(RoutePaths.masterTeacherFeedbackNewFor(student.id)),
+                        child: const Text('Rate'),
+                      )
+                    : null,
+          ),
+        ),
+      );
+    }
+  }
+  return widgets;
 }
 
 class StudentProfilePage extends ConsumerWidget {
@@ -174,32 +236,29 @@ class StudentProfilePage extends ConsumerWidget {
         onRetry: () => ref.invalidate(studentProfileProvider),
         builder: (student) {
           return ListView(
+            padding: const EdgeInsets.only(bottom: 32),
             children: [
-              StudentHeroCard(
-                title: student.fullName,
-                subtitle: student.email,
-                trailing: CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Brand.gold.withValues(alpha: 0.22),
-                  child: Text(
-                    student.fullName.isNotEmpty ? student.fullName[0].toUpperCase() : '?',
-                    style: const TextStyle(color: Brand.gold, fontWeight: FontWeight.w800, fontSize: 22),
-                  ),
-                ),
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
+              AcademySurface(
+                child: Row(
                   children: [
-                    StudentStatChip(
-                      icon: Icons.badge_rounded,
-                      label: 'Student ID',
-                      value: student.studentCode,
-                    ),
-                    StudentStatChip(
-                      icon: Icons.school_rounded,
-                      label: 'Career Compass',
-                      value: student.careerCompassLevel?.displayName ?? '—',
-                      accent: const Color(0xFF4E8BC9),
+                    AcademyAvatar(name: student.fullName, size: 64),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            student.fullName,
+                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Academy.ink),
+                          ),
+                          Text(student.email, style: const TextStyle(color: Academy.muted)),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Student ID · ${student.studentCode}',
+                            style: const TextStyle(fontWeight: FontWeight.w700, color: Brand.navy),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -231,16 +290,27 @@ class StudentProfilePage extends ConsumerWidget {
                 title: 'Academic network',
                 child: Column(
                   children: [
-                    _ProfileRow(icon: Icons.groups_rounded, label: 'Batch', value: student.batch?.label ?? 'Not assigned'),
                     _ProfileRow(
-                      icon: Icons.person_outline_rounded,
-                      label: 'Common Teacher',
-                      value: student.commonTeacher?.label ?? 'Not assigned',
+                      icon: Icons.school_rounded,
+                      label: 'Class',
+                      value: student.classGrade > 0 ? 'Class ${student.classGrade}' : '—',
+                    ),
+                    _ProfileRow(
+                      icon: Icons.layers_rounded,
+                      label: 'Level',
+                      value: student.level?.label ?? 'Level 1',
+                    ),
+                    _ProfileRow(
+                      icon: Icons.groups_rounded,
+                      label: 'Batch',
+                      value: student.batch?.label ?? 'Not assigned',
                     ),
                     _ProfileRow(
                       icon: Icons.psychology_alt_rounded,
-                      label: 'Master Teacher',
-                      value: student.masterTeacher?.label ?? 'Not assigned',
+                      label: 'Master Teachers',
+                      value: student.masterTeachers.isNotEmpty
+                          ? student.masterTeachers.map((t) => t.fullName).join(', ')
+                          : 'None assigned',
                     ),
                   ],
                 ),
@@ -277,13 +347,6 @@ class TeacherProfilePage extends ConsumerWidget {
         value: profile,
         onRetry: () => ref.invalidate(teacherProfileProvider),
         builder: (teacher) {
-          final roles = <Widget>[
-            if (teacher.isCommonTeacher)
-              const _TeacherRoleChip(label: 'Common Teacher', background: Color(0xFFFBF6EA), color: Brand.goldDark),
-            if (teacher.isMasterTeacher)
-              const _TeacherRoleChip(label: 'Master Teacher', background: Color(0xFFE8EAF6), color: Color(0xFF3949AB)),
-          ];
-
           return ListView(
             children: [
               StudentHeroCard(
@@ -297,19 +360,19 @@ class TeacherProfilePage extends ConsumerWidget {
                     style: const TextStyle(color: Brand.gold, fontWeight: FontWeight.w800, fontSize: 22),
                   ),
                 ),
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    ...roles,
-                    if (teacher.employeeCode != null && teacher.employeeCode!.isNotEmpty)
-                      StudentStatChip(
-                        icon: Icons.badge_rounded,
-                        label: 'Employee code',
-                        value: teacher.employeeCode!,
-                      ),
-                  ],
-                ),
+                child: teacher.employeeCode != null && teacher.employeeCode!.isNotEmpty
+                    ? Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          StudentStatChip(
+                            icon: Icons.badge_rounded,
+                            label: 'Employee code',
+                            value: teacher.employeeCode!,
+                          ),
+                        ],
+                      )
+                    : null,
               ),
               const SizedBox(height: 20),
               StudentSectionCard(
@@ -339,18 +402,11 @@ class TeacherProfilePage extends ConsumerWidget {
                         label: 'Active batches',
                         value: '${teacher.activeBatchCount ?? 0}',
                       ),
-                    if (teacher.isMasterTeacher)
-                      _ProfileRow(
-                        icon: Icons.psychology_alt_rounded,
-                        label: 'Assigned students',
-                        value: '${teacher.activeMenteeCount ?? 0}',
-                      ),
-                    if (teacher.isCommonTeacher && teacher.careerCompassLevels.isNotEmpty)
-                      _ProfileRow(
-                        icon: Icons.school_rounded,
-                        label: 'Career Compass levels',
-                        value: teacher.levelsLabel,
-                      ),
+                    _ProfileRow(
+                      icon: Icons.layers_rounded,
+                      label: 'Assigned level',
+                      value: teacher.assignedLevelsLabel,
+                    ),
                   ],
                 ),
               ),

@@ -42,7 +42,14 @@ class StudentController extends Controller
             ->when($request->has('assessment_pending'), fn ($query) => $query->whereDoesntHave('latestAptitudeAssessmentResult'))
             ->when($request->has('without_rating_this_month'), function ($query): void {
                 ['year' => $year, 'month' => $month] = AppClock::currentYearMonth();
-                $query->whereHas('activeMasterTeacherAssignment')
+                $dueIds = app(\App\Feedback\StudentsDueForRating::class)->idsThisMonth($year, $month);
+                if ($dueIds->isEmpty()) {
+                    $query->whereRaw('1 = 0');
+
+                    return;
+                }
+
+                $query->whereIn('id', $dueIds)
                     ->whereDoesntHave('monthlyFeedbacks', fn ($feedback) => $feedback
                         ->where('year', $year)
                         ->where('month', $month));

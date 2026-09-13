@@ -25,4 +25,18 @@ final class PhoneNumber
 
         return $digits;
     }
+
+    public static function whatsAppDigits(?string $phone): ?string
+    {
+        $digits = self::normalize($phone);
+        if ($digits === null) {
+            return null;
+        }
+
+        if (strlen($digits) === 10) {
+            return '91'.$digits;
+        }
+
+        return $digits;
+    }
 }

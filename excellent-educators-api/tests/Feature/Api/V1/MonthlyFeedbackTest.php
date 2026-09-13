@@ -3,12 +3,16 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\RoleName;
+use App\Enums\SessionBookingStatus;
+use App\Enums\SessionBookingType;
 use App\Models\CareerCompassLevel;
 use App\Models\Dimension;
 use App\Models\MonthlyFeedback;
+use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
+use App\Support\AppClock;
 use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\DimensionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -33,7 +37,13 @@ class MonthlyFeedbackTest extends TestCase
 
         $this->withToken($this->tokenFor($master->user))->getJson('/api/v1/master-teacher/students')
             ->assertOk()
-            ->assertJsonPath('data.0.id', $student->id);
+            ->assertJsonPath('data.0.id', $student->id)
+            ->assertJsonPath('data.0.feedback.can_rate', true)
+            ->assertJsonPath('data.0.feedback.can_edit_rating', false);
+
+        $this->withToken($this->tokenFor($master->user))->getJson("/api/v1/master-teacher/students/{$student->id}")
+            ->assertOk()
+            ->assertJsonPath('data.feedback.can_rate', true);
 
         $sessionDate = now()->toDateString();
 
@@ -92,6 +102,8 @@ class MonthlyFeedbackTest extends TestCase
         [$admin, $student, $master] = $this->assignedPair();
         $dimension = Dimension::query()->firstOrFail();
         $token = $this->tokenFor($master->user);
+
+        $this->pastMasterClass($student, $master, AppClock::now()->setDate(2026, 8, 15)->setTime(11, 0));
 
         $this->withToken($token)->postJson(
             "/api/v1/master-teacher/students/{$student->id}/feedback",
@@ -259,6 +271,8 @@ class MonthlyFeedbackTest extends TestCase
             'teacher_id' => $newMaster->id,
         ])->assertOk();
 
+        $this->pastMasterClass($student, $newMaster);
+
         $this->withToken($this->tokenFor($newMaster->user))->postJson(
             "/api/v1/master-teacher/students/{$student->id}/feedback",
             $this->payload($dimension->id, sessionDate: now()->toDateString()),
@@ -269,6 +283,7 @@ class MonthlyFeedbackTest extends TestCase
     {
         [$admin, $student, $master] = $this->assignedPair();
         $dimension = Dimension::query()->firstOrFail();
+        $this->pastMasterClass($student, $master, AppClock::now()->setDate(2025, 1, 15)->setTime(11, 0));
 
         $feedbackId = $this->withToken($this->tokenFor($master->user))->postJson(
             "/api/v1/master-teacher/students/{$student->id}/feedback",
@@ -332,6 +347,7 @@ class MonthlyFeedbackTest extends TestCase
             $this->payload($dimension->id, 6, $sessionDate),
         )->assertCreated();
 
+        $this->pastMasterClass($student, $master, AppClock::now()->setDate(2026, 8, 18)->setTime(11, 0));
         $this->withToken($token)->postJson(
             "/api/v1/master-teacher/students/{$student->id}/feedback",
             $this->payload($dimension->id, 8, '2026-08-18'),
@@ -401,16 +417,19 @@ class MonthlyFeedbackTest extends TestCase
             'teacher_id' => $master->id,
         ])->assertOk();
 
-        return [$admin, StudentProfile::query()->findOrFail($studentId), $master];
+        $student = StudentProfile::query()->findOrFail($studentId);
+        $this->pastMasterClass($student, $master);
+
+        return [$admin, $student, $master];
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function payload(string $targetId, int $rating = 4, string $sessionDate = '2026-08-15'): array
+    private function payload(string $targetId, int $rating = 4, ?string $sessionDate = null): array
     {
         return [
-            'session_date' => $sessionDate,
+            'session_date' => $sessionDate ?? AppClock::todayString(),
             'items' => [[
                 'target_type' => 'dimension',
                 'target_id' => $targetId,
@@ -446,6 +465,22 @@ class MonthlyFeedbackTest extends TestCase
         $profile->setRelation('user', $user);
 
         return $profile;
+    }
+
+    private function pastMasterClass(StudentProfile $student, TeacherProfile $teacher, ?\Illuminate\Support\Carbon $ends = null): SessionBooking
+    {
+        $endsAt = $ends ?? AppClock::now()->subHour();
+        $startsAt = $endsAt->copy()->subHour();
+
+        return SessionBooking::query()->create([
+            'student_id' => $student->id,
+            'teacher_id' => $teacher->id,
+            'type' => SessionBookingType::MasterClass->value,
+            'date' => $startsAt->toDateString(),
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'status' => SessionBookingStatus::Completed->value,
+        ]);
     }
 
     private function tokenFor(User $user): string

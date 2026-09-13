@@ -7,7 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AdminLoginPageEditor extends ConsumerStatefulWidget {
-  const AdminLoginPageEditor({super.key});
+  const AdminLoginPageEditor({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   ConsumerState<AdminLoginPageEditor> createState() => _AdminLoginPageEditorState();
@@ -129,17 +131,15 @@ class _AdminLoginPageEditorState extends ConsumerState<AdminLoginPageEditor> {
   Widget build(BuildContext context) {
     final content = ref.watch(adminLoginPageContentProvider);
 
-    return AppScaffold(
-      title: 'Content',
-      body: AsyncBody(
-        value: content,
-        onRetry: () => ref.invalidate(adminLoginPageContentProvider),
-        builder: (data) {
-          _bind(data);
-          return Form(
-            key: _formKey,
-            child: ListView(
-              children: [
+    final editor = AsyncBody(
+      value: content,
+      onRetry: () => ref.invalidate(adminLoginPageContentProvider),
+      builder: (data) {
+        _bind(data);
+        return Form(
+          key: _formKey,
+          child: ListView(
+            children: [
                 const Text(
                   'Brand panel',
                   style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 18),
@@ -232,7 +232,15 @@ class _AdminLoginPageEditorState extends ConsumerState<AdminLoginPageEditor> {
             ),
           );
         },
-      ),
+      );
+
+    if (widget.embedded) {
+      return editor;
+    }
+
+    return AppScaffold(
+      title: 'Content',
+      body: editor,
     );
   }
 }

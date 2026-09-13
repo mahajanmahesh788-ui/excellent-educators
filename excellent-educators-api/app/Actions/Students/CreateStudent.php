@@ -2,11 +2,14 @@
 
 namespace App\Actions\Students;
 
+use App\Actions\Batches\AllocateBatchForStudent;
 use App\Actions\Identity\GenerateStudentCode;
+use App\Actions\Learning\StartStudentLevelJourney;
 use App\Enums\ProfileStatus;
 use App\Enums\RoleName;
 use App\Enums\UserStatus;
 use App\Exceptions\ApiException;
+use App\Models\AcademicLevel;
 use App\Models\CareerCompassLevel;
 use App\Models\StudentProfile;
 use App\Models\User;
@@ -15,17 +18,23 @@ use Illuminate\Support\Facades\DB;
 
 class CreateStudent
 {
-    public function __construct(private readonly GenerateStudentCode $generateStudentCode) {}
+    public function __construct(
+        private readonly GenerateStudentCode $generateStudentCode,
+        private readonly AllocateBatchForStudent $allocateBatchForStudent,
+        private readonly StartStudentLevelJourney $startStudentLevelJourney,
+    ) {}
 
     /**
      * @param  array{
      *     name: string,
      *     email: string,
      *     password: string,
-     *     career_compass_level_id: string,
+     *     level_id?: string|null,
+     *     career_compass_level_id?: string,
      *     class_grade?: int,
      *     phone: string,
      *     whatsapp_number?: string|null,
+     *     address?: string|null,
      *     academic_year?: int,
      *     guardian_name?: string|null,
      *     guardian_phone?: string|null
@@ -41,8 +50,22 @@ class CreateStudent
             );
         }
 
-        $level = CareerCompassLevel::query()->findOrFail($input['career_compass_level_id']);
-        $grade = (int) ($input['class_grade'] ?? $level->class_from);
+        if (! empty($input['career_compass_level_id'])) {
+            $level = CareerCompassLevel::query()->findOrFail($input['career_compass_level_id']);
+            $grade = (int) ($input['class_grade'] ?? $level->class_from);
+        } elseif (isset($input['class_grade'])) {
+            $grade = (int) $input['class_grade'];
+            $level = CareerCompassLevel::query()
+                ->where('class_from', '<=', $grade)
+                ->where('class_to', '>=', $grade)
+                ->firstOrFail();
+        } else {
+            throw new ApiException(
+                ErrorCode::VALIDATION_ERROR,
+                'Either class_grade or career_compass_level_id is required.',
+                422,
+            );
+        }
 
         if ($grade < $level->class_from || $grade > $level->class_to) {
             throw new ApiException(
@@ -55,7 +78,16 @@ class CreateStudent
 
         $academicYear = (int) ($input['academic_year'] ?? now()->year);
 
-        return DB::transaction(function () use ($input, $level, $grade, $academicYear): StudentProfile {
+        // Find AcademicLevel (default Level 1)
+        $academicLevel = null;
+        if (! empty($input['level_id'])) {
+            $academicLevel = AcademicLevel::query()->find($input['level_id']);
+        }
+        if (! $academicLevel) {
+            $academicLevel = AcademicLevel::query()->where('name', 'Level 1')->first();
+        }
+
+        return DB::transaction(function () use ($input, $level, $academicLevel, $grade, $academicYear): StudentProfile {
             $user = User::query()->create([
                 'name' => $input['name'],
                 'email' => $input['email'],
@@ -66,19 +98,29 @@ class CreateStudent
 
             $code = $this->generateStudentCode->execute($level, $academicYear);
 
-            return StudentProfile::query()->create([
+            $profile = StudentProfile::query()->create([
                 'user_id' => $user->id,
                 'student_code' => $code,
+                'level_id' => $academicLevel?->id,
                 'career_compass_level_id' => $level->id,
                 'class_grade' => $grade,
                 'full_name' => $input['name'],
                 'phone' => $input['phone'],
                 'whatsapp_number' => $input['whatsapp_number'] ?? null,
+                'address' => $input['address'] ?? null,
                 'guardian_name' => $input['guardian_name'] ?? null,
                 'guardian_phone' => $input['guardian_phone'] ?? null,
                 'status' => ProfileStatus::Active,
                 'id_academic_year' => $academicYear,
             ]);
+
+            if ($academicLevel) {
+                $actor = auth()->user() ?? $user;
+                $this->allocateBatchForStudent->execute($academicLevel, $profile, $actor);
+                $this->startStudentLevelJourney->execute($profile, $academicLevel);
+            }
+
+            return $profile;
         });
     }
 }

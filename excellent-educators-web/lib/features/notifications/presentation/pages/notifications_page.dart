@@ -47,6 +47,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         }
 
         return ListView.separated(
+          shrinkWrap: user?.isStudent ?? false,
+          physics: (user?.isStudent ?? false) ? const NeverScrollableScrollPhysics() : null,
           itemCount: items.length,
           separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, index) => _NotificationTile(

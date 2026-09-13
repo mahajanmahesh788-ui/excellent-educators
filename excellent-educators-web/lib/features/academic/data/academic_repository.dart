@@ -125,6 +125,7 @@ class AcademicRepository {
     String? search,
     String? status,
     String? role,
+    String? excludeLevelId,
     int page = 1,
     int perPage = 25,
   }) {
@@ -135,6 +136,7 @@ class AcademicRepository {
           if (search != null && search.isNotEmpty) 'search': search,
           if (status != null && status.isNotEmpty) 'status': status,
           if (role != null && role.isNotEmpty) 'role': role,
+          if (excludeLevelId != null && excludeLevelId.isNotEmpty) 'exclude_level_id': excludeLevelId,
           'page': page,
           'per_page': perPage,
         },
@@ -238,6 +240,74 @@ class AcademicRepository {
     return _run(() async {
       final json = await _client.put(ApiEndpoints.adminBatch(id), data: data);
       return BatchDto.fromJson(json!);
+    });
+  }
+
+  Future<BatchDto> toggleBatchStatus(String batchId) {
+    return _run(() async {
+      final json = await _client.patch(ApiEndpoints.adminBatchStatus(batchId));
+      return BatchDto.fromJson(json!);
+    });
+  }
+
+  Future<List<AcademicLevelDto>> adminLevels() {
+    return _run(() async {
+      final items = await _client.getList(ApiEndpoints.adminLevels);
+      return items
+          .whereType<Map>()
+          .map((item) => AcademicLevelDto.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+    });
+  }
+
+  Future<AcademicLevelDto> adminLevel(String id) {
+    return _run(() async {
+      final json = await _client.get(ApiEndpoints.adminLevel(id));
+      return AcademicLevelDto.fromJson(json!);
+    });
+  }
+
+  Future<AcademicLevelDto> createLevel(Map<String, dynamic> data) {
+    return _run(() async {
+      final json = await _client.post(ApiEndpoints.adminLevels, data: data);
+      return AcademicLevelDto.fromJson(json!);
+    });
+  }
+
+  Future<AcademicLevelDto> updateLevel(String id, Map<String, dynamic> data) {
+    return _run(() async {
+      final json = await _client.put(ApiEndpoints.adminLevel(id), data: data);
+      return AcademicLevelDto.fromJson(json!);
+    });
+  }
+
+  Future<BatchDto> createLevelBatch(String levelId, Map<String, dynamic> data) {
+    return _run(() async {
+      final json = await _client.post(ApiEndpoints.adminLevelBatches(levelId), data: data);
+      return BatchDto.fromJson(json!);
+    });
+  }
+
+  Future<AcademicLevelDto> assignLevelTeacher({
+    required String levelId,
+    required String teacherId,
+  }) {
+    return _run(() async {
+      final json = await _client.post(
+        ApiEndpoints.adminLevelTeachers(levelId),
+        data: {'teacher_id': teacherId},
+      );
+      return AcademicLevelDto.fromJson(json!);
+    });
+  }
+
+  Future<AcademicLevelDto> unassignLevelTeacher({
+    required String levelId,
+    required String teacherId,
+  }) {
+    return _run(() async {
+      final json = await _client.delete(ApiEndpoints.adminLevelTeacher(levelId, teacherId));
+      return AcademicLevelDto.fromJson(json!);
     });
   }
 
@@ -374,13 +444,17 @@ class AcademicRepository {
     });
   }
 
-  Future<List<StudentDto>> masterTeacherStudents(MasterTeacherStudentsFilter filter) {
+  Future<MasterTeacherRosterDto> masterTeacherStudents(MasterTeacherStudentsFilter filter) {
     return _run(() async {
-      final items = await _client.getList(
+      final page = await _client.getPage(
         ApiEndpoints.masterTeacherStudents,
         query: filter.toQuery(),
       );
-      return _students(items);
+      final levels = (page.meta['levels'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map((item) => MasterTeacherRosterLevelDto.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+      return MasterTeacherRosterDto(students: _students(page.items), levels: levels);
     });
   }
 

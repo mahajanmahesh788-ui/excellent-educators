@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Enums\PermissionName;
 use App\Enums\RoleName;
 use App\Models\MonthlyFeedback;
+use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\User;
 
@@ -21,13 +22,14 @@ class MonthlyFeedbackPolicy
         }
 
         if ($user->hasRole(RoleName::MasterTeacher)) {
-            return $user->teacherProfile?->activeMasterTeacherAssignments()
-                ->where('student_id', $student->id)
-                ->exists() ?? false;
+            if ($user->teacherProfile?->canAccessStudent($student) ?? false) {
+                return true;
+            }
+            return $this->hasBookingWith($user, $student);
         }
 
         if ($user->hasRole(RoleName::CommonTeacher)) {
-            return $this->commonTeacherAssigned($user, $student);
+            return $this->commonTeacherAssigned($user, $student) || $this->hasBookingWith($user, $student);
         }
 
         return false;
@@ -43,9 +45,7 @@ class MonthlyFeedbackPolicy
             return false;
         }
 
-        return $user->teacherProfile?->activeMasterTeacherAssignments()
-            ->where('student_id', $student->id)
-            ->exists() ?? false;
+        return $user->teacherProfile?->canAccessStudent($student) ?? false;
     }
 
     public function update(User $user, MonthlyFeedback $feedback): bool
@@ -106,5 +106,18 @@ class MonthlyFeedbackPolicy
         }
 
         return $teacher->activeBatchAssignments()->where('batch_id', $batchId)->exists();
+    }
+
+    private function hasBookingWith(User $user, StudentProfile $student): bool
+    {
+        $teacher = $user->teacherProfile;
+        if ($teacher === null) {
+            return false;
+        }
+
+        return SessionBooking::query()
+            ->where('teacher_id', $teacher->id)
+            ->where('student_id', $student->id)
+            ->exists();
     }
 }

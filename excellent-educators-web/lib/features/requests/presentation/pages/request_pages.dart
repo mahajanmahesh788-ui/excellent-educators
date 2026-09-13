@@ -28,6 +28,7 @@ class StudentRequestsPage extends ConsumerWidget {
           items: items,
           emptyMessage: 'No requests yet. Tap below to send your first request to admin.',
           newRoute: RoutePaths.studentRequestNew,
+          nested: false,
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -71,11 +72,13 @@ class _RequestListBody extends StatelessWidget {
     required this.items,
     required this.emptyMessage,
     required this.newRoute,
+    this.nested = false,
   });
 
   final List<AdminRequestDto> items;
   final String emptyMessage;
   final String newRoute;
+  final bool nested;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +99,8 @@ class _RequestListBody extends StatelessWidget {
     final completed = items.where((item) => item.isCompleted).toList();
 
     return ListView(
+      shrinkWrap: nested,
+      physics: nested ? const NeverScrollableScrollPhysics() : null,
       children: [
         if (pending.isNotEmpty) ...[
           const _SectionHeading('Pending'),
@@ -190,6 +195,7 @@ class _StudentNewRequestPageState extends ConsumerState<StudentNewRequestPage> {
         description: _description,
         saving: _saving,
         onSubmit: _submit,
+        nested: false,
       ),
     );
   }
@@ -266,6 +272,7 @@ class _NewRequestForm extends StatelessWidget {
     required this.description,
     required this.saving,
     required this.onSubmit,
+    this.nested = false,
   });
 
   final GlobalKey<FormState> formKey;
@@ -273,12 +280,15 @@ class _NewRequestForm extends StatelessWidget {
   final TextEditingController description;
   final bool saving;
   final VoidCallback onSubmit;
+  final bool nested;
 
   @override
   Widget build(BuildContext context) {
     return Form(
       key: formKey,
       child: ListView(
+        shrinkWrap: nested,
+        physics: nested ? const NeverScrollableScrollPhysics() : null,
         children: [
           const Text(
             'Send a request to the admin team. They will review and mark it as resolved when done.',

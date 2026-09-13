@@ -1,0 +1,261 @@
+import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:flutter/material.dart';
+
+abstract final class Academy {
+  static const canvas = Color(0xFFF4F1EA);
+  static const ink = Color(0xFF122033);
+  static const muted = Color(0xFF5E6A78);
+  static const line = Color(0xFFE6DFD2);
+  static const goldSoft = Color(0xFFF3E6C8);
+
+  static const pagePadding = EdgeInsets.fromLTRB(24, 24, 24, 48);
+
+  static EdgeInsets pageInsets(double width) {
+    if (width >= 1280) return const EdgeInsets.fromLTRB(40, 28, 40, 56);
+    if (width >= 900) return const EdgeInsets.fromLTRB(28, 24, 28, 48);
+    return const EdgeInsets.fromLTRB(16, 20, 16, 40);
+  }
+}
+
+class AcademyLabel extends StatelessWidget {
+  const AcademyLabel(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        fontSize: 11,
+        letterSpacing: 1.4,
+        fontWeight: FontWeight.w700,
+        color: Academy.muted,
+      ),
+    );
+  }
+}
+
+class AcademySurface extends StatefulWidget {
+  const AcademySurface({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(24),
+    this.onTap,
+  });
+
+  final Widget child;
+  final EdgeInsets padding;
+  final VoidCallback? onTap;
+
+  @override
+  State<AcademySurface> createState() => _AcademySurfaceState();
+}
+
+class _AcademySurfaceState extends State<AcademySurface> {
+  var _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final card = AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: double.infinity,
+      padding: widget.padding,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _hover ? const Color(0xFFD8C9A3) : Academy.line),
+        boxShadow: [
+          BoxShadow(
+            color: Brand.navy.withValues(alpha: _hover ? 0.08 : 0.04),
+            blurRadius: _hover ? 22 : 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: widget.child,
+    );
+
+    if (widget.onTap == null) {
+      return card;
+    }
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _hover ? 1.01 : 1,
+          duration: const Duration(milliseconds: 180),
+          child: card,
+        ),
+      ),
+    );
+  }
+}
+
+class AcademyButton extends StatefulWidget {
+  const AcademyButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.outlined = false,
+    this.busy = false,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final bool outlined;
+  final bool busy;
+
+  @override
+  State<AcademyButton> createState() => _AcademyButtonState();
+}
+
+class _AcademyButtonState extends State<AcademyButton> {
+  var _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = widget.onPressed == null || widget.busy;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedScale(
+        scale: !disabled && _hover ? 1.02 : 1,
+        duration: const Duration(milliseconds: 160),
+        child: FilledButton(
+          onPressed: disabled ? null : widget.onPressed,
+          style: FilledButton.styleFrom(
+            backgroundColor: widget.outlined ? Colors.white : Brand.navy,
+            foregroundColor: widget.outlined ? Brand.navy : Colors.white,
+            disabledBackgroundColor: const Color(0xFFD9D3C8),
+            minimumSize: const Size(0, 46),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            side: BorderSide(color: widget.outlined ? Academy.line : Colors.transparent),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: widget.busy
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.icon != null) ...[
+                      Icon(widget.icon, size: 18),
+                      const SizedBox(width: 8),
+                    ],
+                    Flexible(child: Text(widget.label, overflow: TextOverflow.ellipsis)),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class AcademyAvatar extends StatelessWidget {
+  const AcademyAvatar({super.key, required this.name, this.size = 64});
+
+  final String name;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final letter = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF163A5C), Color(0xFF0E2744)],
+        ),
+        border: Border.all(color: Brand.gold.withValues(alpha: 0.55), width: 1.5),
+      ),
+      child: Text(
+        letter,
+        style: TextStyle(
+          color: Brand.gold,
+          fontWeight: FontWeight.w800,
+          fontSize: size * 0.36,
+        ),
+      ),
+    );
+  }
+}
+
+class AcademyEmpty extends StatelessWidget {
+  const AcademyEmpty({
+    super.key,
+    required this.title,
+    required this.body,
+    this.action,
+    this.icon = Icons.auto_awesome_outlined,
+  });
+
+  final String title;
+  final String body;
+  final Widget? action;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return AcademySurface(
+      child: Column(
+        children: [
+          Icon(icon, size: 36, color: Brand.goldDark),
+          const SizedBox(height: 16),
+          Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Academy.ink)),
+          const SizedBox(height: 8),
+          Text(body, textAlign: TextAlign.center, style: const TextStyle(color: Academy.muted, height: 1.5)),
+          if (action != null) ...[const SizedBox(height: 20), action!],
+        ],
+      ),
+    );
+  }
+}
+
+class AcademyError extends StatelessWidget {
+  const AcademyError({super.key, required this.onRetry, this.message = 'Something went wrong while loading this page.'});
+
+  final VoidCallback onRetry;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return AcademyEmpty(
+      icon: Icons.cloud_off_outlined,
+      title: 'We could not load this just now',
+      body: message,
+      action: AcademyButton(label: 'Try again', onPressed: onRetry),
+    );
+  }
+}
+
+class AcademySkeleton extends StatelessWidget {
+  const AcademySkeleton({super.key, this.height = 160});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEDE7DB),
+        borderRadius: BorderRadius.circular(18),
+      ),
+    );
+  }
+}

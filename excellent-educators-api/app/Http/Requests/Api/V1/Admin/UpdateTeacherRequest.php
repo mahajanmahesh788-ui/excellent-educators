@@ -45,7 +45,9 @@ class UpdateTeacherRequest extends FormRequest
             ],
             'phone' => ['nullable', 'string', 'min:10', 'max:15'],
             'whatsapp_number' => ['nullable', 'string', 'min:10', 'max:15'],
+            'address' => ['nullable', 'string', 'max:1000'],
             'status' => ['sometimes', 'in:active,inactive'],
+            'work_type' => ['sometimes', 'in:full_time,part_time'],
             'roles' => ['sometimes', 'array', 'min:1'],
             'roles.*' => ['in:common_teacher,master_teacher'],
         ];

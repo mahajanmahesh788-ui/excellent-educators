@@ -20,6 +20,13 @@ class StudentResource extends JsonResource
         $master = $this->activeMasterTeacherAssignment?->teacher;
         $common = $batch?->activeTeacherAssignment?->teacher;
 
+        $level = $this->academicLevel ?? $batch?->level;
+        $masterTeachers = $level !== null
+            ? ($level->relationLoaded('masterTeachers')
+                ? $level->masterTeachers
+                : $level->masterTeachers()->with('user')->get())
+            : collect();
+
         return [
             'id' => $this->id,
             'student_code' => $this->student_code,
@@ -27,6 +34,7 @@ class StudentResource extends JsonResource
             'email' => $this->user?->email,
             'phone' => $this->phone,
             'whatsapp_number' => $this->whatsapp_number,
+            'address' => $this->address,
             'class_grade' => $this->class_grade,
             'status' => $this->status?->value ?? $this->status,
             'guardian_name' => $this->guardian_name,
@@ -36,6 +44,10 @@ class StudentResource extends JsonResource
                 'careerCompassLevel',
                 fn () => CareerCompassLevelResource::make($this->careerCompassLevel)->resolve(),
             ),
+            'level' => $level === null ? null : [
+                'id' => $level->id,
+                'name' => $level->name,
+            ],
             'batch' => $batch === null ? null : [
                 'id' => $batch->id,
                 'name' => $batch->name,
@@ -48,6 +60,7 @@ class StudentResource extends JsonResource
                 'id' => $master->id,
                 'full_name' => $master->full_name,
             ],
+            'master_teachers' => TeacherResource::collection($masterTeachers)->resolve(),
             'aptitude_assessment' => $this->when(
                 $this->relationLoaded('latestAptitudeAssessmentResult'),
                 fn () => $this->aptitudeAssessmentSummary(),
@@ -73,6 +86,9 @@ class StudentResource extends JsonResource
             'filter_month_sessions' => (int) ($this->feedback_filter_sessions ?? 0),
             'filter_month_completed' => (int) ($this->feedback_filter_sessions ?? 0) > 0,
             'overall_average' => $this->feedbackOverallAverage(),
+            'can_rate' => (bool) ($this->can_rate_this_month ?? false),
+            'can_edit_rating' => (bool) ($this->can_edit_rating_this_month ?? false),
+            'monthly_feedback_id' => $this->monthly_feedback_id ?? null,
         ];
     }
 

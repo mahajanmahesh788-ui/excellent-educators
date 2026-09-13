@@ -36,7 +36,8 @@ class UpdateStudentRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'career_compass_level_id' => ['sometimes', 'ulid', 'exists:career_compass_levels,id'],
-            'class_grade' => ['sometimes', 'integer', 'min:6', 'max:12'],
+            'class_grade' => ['sometimes', 'integer', 'min:5', 'max:12'],
+            'address' => ['nullable', 'string', 'max:1000'],
             'phone' => [
                 'sometimes',
                 'string',

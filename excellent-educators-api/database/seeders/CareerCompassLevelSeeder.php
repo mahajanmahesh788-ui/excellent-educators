@@ -13,7 +13,7 @@ class CareerCompassLevelSeeder extends Seeder
             [
                 'code' => 'cc1',
                 'name' => 'Career Compass 1',
-                'class_from' => 6,
+                'class_from' => 5,
                 'class_to' => 8,
             ],
             [
