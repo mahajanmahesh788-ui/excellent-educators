@@ -5,14 +5,12 @@ namespace Tests\Feature\Api\V1;
 use App\Enums\RoleName;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
-use App\Models\CareerCompassLevel;
 use App\Models\Dimension;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use App\Support\AppClock;
-use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\DimensionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,7 +24,7 @@ class AdminTeacherDashboardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class, DimensionSeeder::class]);
+        $this->seed([RoleSeeder::class, DimensionSeeder::class]);
     }
 
     public function test_admin_can_view_master_teacher_rating_progress(): void
@@ -70,12 +68,38 @@ class AdminTeacherDashboardTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_admin_can_view_teacher_history_timeline(): void
+    {
+        $admin = $this->makeAdmin();
+        [$student, $master] = $this->assignedMasterTeacher($admin);
+        $this->pastMeeting($student, $master, SessionBookingType::IntroductionCall);
+        $this->pastMeeting($student, $master, SessionBookingType::MasterClass);
+        \App\Models\TeacherLeave::query()->create([
+            'teacher_id' => $master->id,
+            'date' => AppClock::todayString(),
+            'start_time' => '06:00',
+            'end_time' => '23:00',
+            'is_full_day' => true,
+            'reason' => 'Personal',
+            'created_by' => $admin->id,
+        ]);
+
+        $this->withToken($this->tokenFor($admin))->getJson("/api/v1/admin/teachers/{$master->id}/history")
+            ->assertOk()
+            ->assertJsonPath('data.this_month.leave_days', 1)
+            ->assertJsonPath('data.this_month.interviews', 1)
+            ->assertJsonPath('data.this_month.master_classes', 1)
+            ->assertJsonPath('data.all_time.interviews', 1)
+            ->assertJsonPath('data.all_time.master_classes', 1)
+            ->assertJsonPath('data.by_month.0.interviews', 1)
+            ->assertJsonCount(3, 'data.events');
+    }
+
     /**
      * @return array{0: StudentProfile, 1: TeacherProfile}
      */
     private function assignedMasterTeacher(User $admin): array
     {
-        $cc1 = CareerCompassLevel::query()->where('code', 'cc1')->firstOrFail();
         $master = $this->makeTeacher(['master_teacher'], 'admin-dash-master@excellenteducators.test');
         $phone = (string) (9200000000 + random_int(1000, 9999));
 
@@ -84,7 +108,7 @@ class AdminTeacherDashboardTest extends TestCase
             'email' => 'admin-dash-student@excellenteducators.test',
             'password' => 'StudentPass1!',
             'phone' => $phone,
-            'career_compass_level_id' => $cc1->id,
+            'class_grade' => 5,
         ])->assertCreated()->json('data.id');
 
         $this->withToken($this->tokenFor($admin))->putJson("/api/v1/admin/students/{$studentId}/mentor", [
@@ -120,15 +144,18 @@ class AdminTeacherDashboardTest extends TestCase
         return $profile;
     }
 
-    private function pastMeeting(StudentProfile $student, TeacherProfile $teacher): SessionBooking
-    {
-        $starts = AppClock::now()->subHours(2);
-        $ends = AppClock::now()->subHour();
+    private function pastMeeting(
+        StudentProfile $student,
+        TeacherProfile $teacher,
+        SessionBookingType $type = SessionBookingType::MasterClass,
+    ): SessionBooking {
+        $starts = AppClock::now()->subHours($type === SessionBookingType::IntroductionCall ? 3 : 2);
+        $ends = AppClock::now()->subHours($type === SessionBookingType::IntroductionCall ? 2 : 1);
 
         return SessionBooking::query()->create([
             'student_id' => $student->id,
             'teacher_id' => $teacher->id,
-            'type' => SessionBookingType::MasterClass->value,
+            'type' => $type->value,
             'date' => $starts->toDateString(),
             'starts_at' => $starts,
             'ends_at' => $ends,

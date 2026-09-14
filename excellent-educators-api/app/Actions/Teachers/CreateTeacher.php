@@ -6,11 +6,9 @@ use App\Enums\ProfileStatus;
 use App\Enums\RoleName;
 use App\Enums\TeacherWorkType;
 use App\Enums\UserStatus;
-use App\Exceptions\ApiException;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use App\Scheduling\TeacherAvailability;
-use App\Support\ErrorCode;
 use Illuminate\Support\Facades\DB;
 
 class CreateTeacher
@@ -29,18 +27,7 @@ class CreateTeacher
      */
     public function execute(array $input): TeacherProfile
     {
-        $roles = ! empty($input['roles']) ? $input['roles'] : [RoleName::MasterTeacher->value];
-        $allowed = [RoleName::CommonTeacher->value, RoleName::MasterTeacher->value];
-        foreach ($roles as $role) {
-            if (! in_array($role, $allowed, true)) {
-                throw new ApiException(
-                    ErrorCode::VALIDATION_ERROR,
-                    'Teachers may only be assigned common_teacher and/or master_teacher.',
-                    422,
-                    ['roles' => ['Invalid role.']],
-                );
-            }
-        }
+        $roles = [RoleName::MasterTeacher->value];
 
         return DB::transaction(function () use ($input, $roles): TeacherProfile {
             $user = User::query()->create([

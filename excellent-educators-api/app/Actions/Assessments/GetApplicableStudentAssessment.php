@@ -12,13 +12,12 @@ class GetApplicableStudentAssessment
     public function execute(StudentProfile $student): ?AptitudeAssessment
     {
         return AptitudeAssessment::query()
-            ->where('career_compass_level_id', $student->career_compass_level_id)
             ->where('status', AptitudeAssessmentStatus::Active)
             ->whereDoesntHave('submittedAttempts', function ($query) use ($student): void {
                 $query->where('student_id', $student->id)
                     ->where('status', AssessmentAttemptStatus::Submitted->value);
             })
-            ->with(['careerCompassLevel', 'questions.options'])
+            ->with(['questions.options'])
             ->orderByDesc('updated_at')
             ->first();
     }
@@ -26,7 +25,6 @@ class GetApplicableStudentAssessment
     public function completedExists(StudentProfile $student): bool
     {
         return AptitudeAssessment::query()
-            ->where('career_compass_level_id', $student->career_compass_level_id)
             ->whereHas('submittedAttempts', function ($query) use ($student): void {
                 $query->where('student_id', $student->id)
                     ->where('status', AssessmentAttemptStatus::Submitted->value);

@@ -27,11 +27,6 @@ class AptitudeAssessmentResource extends JsonResource
             'title' => $this->title,
             'description' => $this->description,
             'status' => $this->status?->value ?? $this->status,
-            'career_compass_level' => $this->whenLoaded(
-                'careerCompassLevel',
-                fn () => CareerCompassLevelResource::make($this->careerCompassLevel)->resolve(),
-            ),
-            'career_compass_level_id' => $this->career_compass_level_id,
             'questions_count' => $this->questions_count ?? $this->questions->count(),
             'submitted_attempts_count' => $this->submitted_attempts_count
                 ?? ($this->relationLoaded('submittedAttempts') ? $this->submittedAttempts->count() : 0),

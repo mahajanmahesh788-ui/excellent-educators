@@ -23,7 +23,6 @@ class StudentMentorController extends Controller
         $assignMasterTeacher->execute($student, $teacher, $request->user());
         $student->load([
             'user',
-            'careerCompassLevel',
             'activeEnrollment.batch.activeTeacherAssignment.teacher',
             'activeMasterTeacherAssignment.teacher',
         ]);
@@ -39,7 +38,6 @@ class StudentMentorController extends Controller
         $unassignMasterTeacher->execute($student);
         $student->load([
             'user',
-            'careerCompassLevel',
             'activeEnrollment.batch.activeTeacherAssignment.teacher',
             'activeMasterTeacherAssignment.teacher',
         ]);

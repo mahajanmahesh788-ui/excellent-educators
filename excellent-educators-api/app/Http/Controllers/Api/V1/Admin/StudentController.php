@@ -35,8 +35,11 @@ class StudentController extends Controller
                     }
                 });
             })
-            ->when($request->filled('career_compass_level_id'), fn ($query) => $query->where('career_compass_level_id', $request->string('career_compass_level_id')))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
+            ->when($request->filled('level_id'), fn ($query) => $query->where('level_id', $request->string('level_id')))
+            ->when($request->filled('batch_id'), function ($query) use ($request): void {
+                $query->whereHas('activeEnrollment', fn ($enrollment) => $enrollment->where('batch_id', $request->string('batch_id')));
+            })
             ->when($request->has('without_batch'), fn ($query) => $query->whereDoesntHave('activeEnrollment'))
             ->when($request->has('without_master_teacher'), fn ($query) => $query->whereDoesntHave('activeMasterTeacherAssignment'))
             ->when($request->has('assessment_pending'), fn ($query) => $query->whereDoesntHave('latestAptitudeAssessmentResult'))
@@ -54,8 +57,24 @@ class StudentController extends Controller
                         ->where('year', $year)
                         ->where('month', $month));
             })
-            ->orderBy('full_name')
-            ->paginate((int) $request->integer('per_page', 15));
+            ->when($request->string('spotlight')->toString() === 'promoted', fn ($query) => $query->whereHas('levelJourneys', fn ($journey) => $journey->whereNotNull('ended_at')))
+            ->when($request->string('spotlight')->toString() === 'top_rated', fn ($query) => $query->whereHas('monthlyFeedbacks'))
+            ->when($request->filled('promoted_by_teacher'), function ($query) use ($request): void {
+                $teacherId = $request->string('promoted_by_teacher')->toString();
+                $studentIds = \App\Models\MasterTeacherAssignment::query()->where('teacher_id', $teacherId)->pluck('student_id');
+                $promotedIds = \App\Models\StudentLevelJourney::query()
+                    ->whereNotNull('ended_at')
+                    ->whereIn('student_id', $studentIds)
+                    ->pluck('student_id');
+                $query->whereIn('id', $promotedIds);
+            });
+
+        $spotlight = $request->string('spotlight')->toString();
+        if ($spotlight === 'longest') {
+            $students = $students->orderBy('created_at')->paginate((int) $request->integer('per_page', 15));
+        } else {
+            $students = $students->orderBy('full_name')->paginate((int) $request->integer('per_page', 15));
+        }
 
         return ApiResponse::success(
             'Students fetched successfully.',
@@ -101,7 +120,7 @@ class StudentController extends Controller
     {
         return [
             'user',
-            'careerCompassLevel',
+            'academicLevel',
             'activeEnrollment.batch.activeTeacherAssignment.teacher',
             'activeMasterTeacherAssignment.teacher',
             'latestAptitudeAssessmentResult.attempt.assessment',

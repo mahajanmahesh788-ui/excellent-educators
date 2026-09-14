@@ -1,4 +1,3 @@
-import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 
 class AptitudeOptionDto {
   const AptitudeOptionDto({
@@ -70,8 +69,6 @@ class AptitudeAssessmentDto {
     required this.title,
     required this.status,
     this.description,
-    this.careerCompassLevel,
-    this.careerCompassLevelId,
     this.questionsCount = 0,
     this.submittedAttemptsCount = 0,
     this.questions = const [],
@@ -84,10 +81,6 @@ class AptitudeAssessmentDto {
       title: json['title'] as String? ?? '',
       description: json['description'] as String?,
       status: json['status'] as String? ?? 'draft',
-      careerCompassLevel: json['career_compass_level'] is Map
-          ? CareerCompassLevelDto.fromJson(Map<String, dynamic>.from(json['career_compass_level'] as Map))
-          : null,
-      careerCompassLevelId: json['career_compass_level_id'] as String?,
       questionsCount: (json['questions_count'] as num?)?.toInt() ??
           (json['questions'] as List?)?.length ??
           0,
@@ -104,8 +97,6 @@ class AptitudeAssessmentDto {
   final String title;
   final String? description;
   final String status;
-  final CareerCompassLevelDto? careerCompassLevel;
-  final String? careerCompassLevelId;
   final int questionsCount;
   final int submittedAttemptsCount;
   final List<AptitudeQuestionDto> questions;
@@ -158,7 +149,6 @@ class AssessmentResultDto {
     required this.dimensions,
     this.assessmentTitle,
     this.assessmentId,
-    this.careerCompassLevel,
     this.submittedAt,
     this.studentName,
   });
@@ -169,9 +159,6 @@ class AssessmentResultDto {
       id: json['id'] as String? ?? '',
       assessmentId: assessment?['id'] as String?,
       assessmentTitle: assessment?['title'] as String?,
-      careerCompassLevel: json['career_compass_level'] is Map
-          ? CareerCompassLevelDto.fromJson(Map<String, dynamic>.from(json['career_compass_level'] as Map))
-          : null,
       submittedAt: json['submitted_at'] as String?,
       studentName: json['student'] is Map ? (json['student'] as Map)['full_name'] as String? : null,
       dimensions: (json['dimensions'] as List<dynamic>? ?? const [])
@@ -184,7 +171,6 @@ class AssessmentResultDto {
   final String id;
   final String? assessmentId;
   final String? assessmentTitle;
-  final CareerCompassLevelDto? careerCompassLevel;
   final String? submittedAt;
   final String? studentName;
   final List<DimensionScoreDto> dimensions;

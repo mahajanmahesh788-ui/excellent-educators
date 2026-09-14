@@ -36,7 +36,10 @@ class ApiClient {
                     ),
                 connectTimeout: const Duration(seconds: 20),
                 receiveTimeout: const Duration(seconds: 20),
-                headers: const {'Accept': 'application/json'},
+                headers: const {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json',
+                },
               ),
             ) {
     _dio.interceptors.add(
@@ -167,6 +170,20 @@ class ApiClient {
     final data = error.response?.data;
     if (data is Map<String, dynamic>) {
       return _fromEnvelope(data, error.response?.statusCode);
+    }
+    if (data is Map) {
+      return _fromEnvelope(Map<String, dynamic>.from(data), error.response?.statusCode);
+    }
+    if (error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.unknown) {
+      final origin = _dio.options.baseUrl;
+      return ApiException(
+        message:
+            'Cannot reach the API at $origin. Start the Laravel server (`php artisan serve`) and confirm CORS allows this web origin.',
+        statusCode: error.response?.statusCode,
+        code: 'NETWORK_ERROR',
+      );
     }
     return ApiException(
       message: error.message ?? 'Network error.',

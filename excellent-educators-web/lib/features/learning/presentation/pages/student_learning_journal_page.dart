@@ -20,33 +20,39 @@ class StudentLearningJournalPage extends ConsumerWidget {
         error: (_, _) => AcademyError(onRetry: () => ref.invalidate(studentLearningJournalProvider)),
         data: (data) {
           final current = data.levels.where((level) => level.isCurrent).firstOrNull;
+          final isMobile = MediaQuery.sizeOf(context).width < 600;
           return ListView(
-            padding: const EdgeInsets.only(bottom: 40),
+            padding: EdgeInsets.only(bottom: isMobile ? 20 : 40),
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  AcademyLabel('LEARNING JOURNEY'),
-                  SizedBox(height: 4),
+                children: [
+                  const AcademyLabel('LEARNING JOURNEY'),
+                  const SizedBox(height: 4),
                   Text(
                     'My Learning Journey',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Academy.ink, letterSpacing: -0.5),
+                    style: TextStyle(
+                      fontSize: isMobile ? 20 : 28,
+                      fontWeight: FontWeight.w800,
+                      color: Academy.ink,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     'Your journey is tracked by level and week — complete weekly assignments to level up.',
-                    style: TextStyle(fontSize: 14, color: Academy.muted),
+                    style: TextStyle(fontSize: isMobile ? 12.5 : 14, color: Academy.muted),
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: isMobile ? 10 : 18),
               if (current != null)
                 JourneyRibbon(
                   levelName: current.level.name,
                   currentWeek: current.weeks.isEmpty ? 1 : current.weeks.last.weekNumber,
                   weekCount: current.weekCount,
                 ),
-              const SizedBox(height: 22),
+              SizedBox(height: isMobile ? 12 : 22),
               LearningJournalTable(
                 journal: data,
                 staffView: false,

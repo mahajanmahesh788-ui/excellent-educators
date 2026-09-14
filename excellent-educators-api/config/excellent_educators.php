@@ -19,5 +19,6 @@ return [
     'attendance' => [
         'join_lead_minutes' => 2,
         'join_event_retain_days' => 2,
+        'absence_report_minutes' => 60,
     ],
 ];

@@ -23,14 +23,6 @@ class EnrollStudent
 
     public function execute(Batch $batch, StudentProfile $student, User $actor): BatchStudent
     {
-        if ($batch->career_compass_level_id && $student->career_compass_level_id !== $batch->career_compass_level_id) {
-            throw new ApiException(
-                ErrorCode::VALIDATION_ERROR,
-                'Student Career Compass level must match the level.',
-                422,
-            );
-        }
-
         $enrollment = DB::transaction(function () use ($batch, $student, $actor): BatchStudent {
             $batch = Batch::query()->lockForUpdate()->findOrFail($batch->id);
 

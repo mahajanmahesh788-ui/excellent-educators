@@ -17,7 +17,6 @@ class Batch extends Model
 
     protected $fillable = [
         'level_id',
-        'career_compass_level_id',
         'name',
         'academic_year',
         'year',
@@ -44,11 +43,6 @@ class Batch extends Model
     public function level(): BelongsTo
     {
         return $this->belongsTo(AcademicLevel::class, 'level_id');
-    }
-
-    public function careerCompassLevel(): BelongsTo
-    {
-        return $this->belongsTo(CareerCompassLevel::class);
     }
 
     public function enrollments(): HasMany

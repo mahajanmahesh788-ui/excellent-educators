@@ -300,6 +300,7 @@ class _StudentJourneyGrid extends StatelessWidget {
     final completedCount = group.weeks.where((w) => w.completed).length;
     final totalCount = group.weekCount > 0 ? group.weekCount : (group.weeks.isNotEmpty ? group.weeks.length : 52);
     final progressFraction = totalCount > 0 ? (completedCount / totalCount).clamp(0.0, 1.0) : 0.0;
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,10 +308,10 @@ class _StudentJourneyGrid extends StatelessWidget {
         // Level summary header
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(isMobile ? 12 : 20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(isMobile ? 14 : 18),
             border: Border.all(color: Academy.line),
             boxShadow: [
               BoxShadow(
@@ -328,12 +329,16 @@ class _StudentJourneyGrid extends StatelessWidget {
                 children: [
                   Text(
                     group.level.name,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Academy.ink),
+                    style: TextStyle(
+                      fontSize: isMobile ? 17 : 22,
+                      fontWeight: FontWeight.w800,
+                      color: Academy.ink,
+                    ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   if (group.isCurrent)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: Brand.gold.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(999),
@@ -342,12 +347,12 @@ class _StudentJourneyGrid extends StatelessWidget {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.star_rounded, size: 12, color: Color(0xFF6B4D00)),
-                          SizedBox(width: 4),
+                          Icon(Icons.star_rounded, size: 11, color: Color(0xFF6B4D00)),
+                          SizedBox(width: 3),
                           Text(
-                            'CURRENT LEVEL',
+                            'CURRENT',
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 9.5,
                               fontWeight: FontWeight.w800,
                               color: Color(0xFF6B4D00),
                               letterSpacing: 0.5,
@@ -358,17 +363,21 @@ class _StudentJourneyGrid extends StatelessWidget {
                     ),
                   const Spacer(),
                   Text(
-                    '$completedCount of $totalCount Weeks (${(progressFraction * 100).toInt()}%)',
-                    style: const TextStyle(color: Academy.ink, fontWeight: FontWeight.w700, fontSize: 13),
+                    '$completedCount / $totalCount (${(progressFraction * 100).toInt()}%)',
+                    style: TextStyle(
+                      color: Academy.ink,
+                      fontWeight: FontWeight.w700,
+                      fontSize: isMobile ? 11.5 : 13,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: isMobile ? 8 : 12),
               ClipRRect(
                 borderRadius: BorderRadius.circular(999),
                 child: LinearProgressIndicator(
                   value: progressFraction,
-                  minHeight: 8,
+                  minHeight: isMobile ? 6 : 8,
                   backgroundColor: const Color(0xFFEFE9DC),
                   valueColor: const AlwaysStoppedAnimation(Brand.gold),
                 ),
@@ -376,7 +385,7 @@ class _StudentJourneyGrid extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: isMobile ? 10 : 16),
 
         // Space-friendly responsive grid of week cards
         LayoutBuilder(
@@ -419,9 +428,10 @@ class _StudentWeekCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final completed = week.completed;
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
 
     return AcademySurface(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isMobile ? 11 : 16),
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

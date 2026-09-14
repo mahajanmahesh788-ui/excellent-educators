@@ -55,7 +55,6 @@ class StudentLearningController extends Controller
         $student = $promoteStudent->execute($student, $level, $request->user());
         $student->load([
             'user',
-            'careerCompassLevel',
             'academicLevel',
             'activeEnrollment.batch.activeTeacherAssignment.teacher',
             'activeMasterTeacherAssignment.teacher',

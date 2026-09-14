@@ -17,7 +17,6 @@ class StoreBatchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'career_compass_level_id' => ['nullable', 'ulid', 'exists:career_compass_levels,id'],
             'name' => ['required', 'string', 'max:255', 'unique:batches,name'],
             'academic_year' => ['required', 'integer', 'min:2000', 'max:2100'],
             'starts_on' => ['nullable', 'date'],

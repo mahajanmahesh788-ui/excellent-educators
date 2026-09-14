@@ -21,7 +21,6 @@ class StoreAptitudeAssessmentRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'career_compass_level_id' => ['required', 'ulid', 'exists:career_compass_levels,id'],
             'questions' => ['sometimes', 'array'],
             'questions.*.question_text' => ['required', 'string', 'max:2000'],
             'questions.*.display_order' => ['nullable', 'integer', 'min:1'],

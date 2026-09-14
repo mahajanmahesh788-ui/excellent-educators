@@ -12,7 +12,7 @@ class DirectoryToolbar extends StatefulWidget {
     this.levelItems,
     this.selectedLevelId,
     this.onLevelChanged,
-    this.levelLabel = 'Career Compass',
+    this.levelLabel = 'Level',
     this.statusItems,
     this.selectedStatus,
     this.onStatusChanged,
@@ -417,30 +417,110 @@ class AttentionCard extends StatelessWidget {
 }
 
 class StatTile extends StatelessWidget {
-  const StatTile({super.key, required this.label, required this.value});
+  const StatTile({
+    super.key,
+    required this.label,
+    required this.value,
+    this.icon,
+    this.onTap,
+    this.accentColor,
+    this.subtitle,
+    this.badge,
+  });
 
   final String label;
   final String value;
+  final IconData? icon;
+  final VoidCallback? onTap;
+  final Color? accentColor;
+  final String? subtitle;
+  final Widget? badge;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: const Border.fromBorderSide(BorderSide(color: Color(0xFFE6DCCB))),
+    final cardContent = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: accentColor ?? Brand.muted),
+                const SizedBox(width: 6),
+              ],
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: accentColor ?? Brand.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (badge != null) ...[
+                const SizedBox(width: 4),
+                badge!,
+              ] else if (onTap != null) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 14,
+                  color: (accentColor ?? Brand.muted).withValues(alpha: 0.6),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Brand.navy,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    subtitle!,
+                    style: const TextStyle(color: Brand.muted, fontSize: 11),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(color: Brand.muted, fontSize: 12)),
-            const SizedBox(height: 4),
-            Text(value, style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 22)),
-          ],
+    );
+
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: accentColor != null ? accentColor!.withValues(alpha: 0.35) : const Color(0xFFE6DCCB),
         ),
       ),
+      child: onTap != null
+          ? InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(12),
+              hoverColor: (accentColor ?? Brand.gold).withValues(alpha: 0.08),
+              child: cardContent,
+            )
+          : cardContent,
     );
   }
 }

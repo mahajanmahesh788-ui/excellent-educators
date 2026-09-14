@@ -20,7 +20,6 @@ class CreateAptitudeAssessment
     {
         return DB::transaction(function () use ($actor, $input) {
             $assessment = AptitudeAssessment::query()->create([
-                'career_compass_level_id' => $input['career_compass_level_id'],
                 'title' => $input['title'],
                 'description' => $input['description'] ?? null,
                 'status' => AptitudeAssessmentStatus::Draft,
@@ -33,7 +32,7 @@ class CreateAptitudeAssessment
                 $this->recordQuestionStructure->replace($assessment, $input['questions']);
             }
 
-            return $assessment->fresh(['careerCompassLevel', 'questions.options.dimensionCodes']) ?? $assessment;
+            return $assessment->fresh(['questions.options.dimensionCodes']) ?? $assessment;
         });
     }
 

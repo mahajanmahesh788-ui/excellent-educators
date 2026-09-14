@@ -16,7 +16,6 @@ use App\Models\TeacherDailyMeeting;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use App\Support\ErrorCode;
-use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\LevelSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,7 +29,7 @@ class TeacherDailyMeetingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class, LevelSeeder::class]);
+        $this->seed([RoleSeeder::class, LevelSeeder::class]);
         Carbon::setTestNow(Carbon::parse('2026-09-15 08:00:00', 'Asia/Kolkata'));
         $this->app->instance(GoogleMeetGateway::class, new FakeGoogleMeetGateway);
     }
@@ -137,7 +136,7 @@ class TeacherDailyMeetingTest extends TestCase
             'teacher_id' => $teacher->id,
             'type' => 'introduction_call',
             'date' => '2026-09-16',
-            'start' => '03:00',
+            'start' => '03:15',
         ])->assertUnprocessable();
 
         $this->assertSame(0, TeacherDailyMeeting::query()->count());

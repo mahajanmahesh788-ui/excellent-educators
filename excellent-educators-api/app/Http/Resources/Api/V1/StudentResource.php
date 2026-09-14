@@ -18,7 +18,6 @@ class StudentResource extends JsonResource
     {
         $batch = $this->activeEnrollment?->batch;
         $master = $this->activeMasterTeacherAssignment?->teacher;
-        $common = $batch?->activeTeacherAssignment?->teacher;
 
         $level = $this->academicLevel ?? $batch?->level;
         $masterTeachers = $level !== null
@@ -40,10 +39,6 @@ class StudentResource extends JsonResource
             'guardian_name' => $this->guardian_name,
             'guardian_phone' => $this->guardian_phone,
             'created_at' => $this->created_at?->toIso8601String(),
-            'career_compass_level' => $this->whenLoaded(
-                'careerCompassLevel',
-                fn () => CareerCompassLevelResource::make($this->careerCompassLevel)->resolve(),
-            ),
             'level' => $level === null ? null : [
                 'id' => $level->id,
                 'name' => $level->name,
@@ -51,10 +46,6 @@ class StudentResource extends JsonResource
             'batch' => $batch === null ? null : [
                 'id' => $batch->id,
                 'name' => $batch->name,
-            ],
-            'common_teacher' => $common === null ? null : [
-                'id' => $common->id,
-                'full_name' => $common->full_name,
             ],
             'master_teacher' => $master === null ? null : [
                 'id' => $master->id,

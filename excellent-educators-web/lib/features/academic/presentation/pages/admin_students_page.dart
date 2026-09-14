@@ -2,11 +2,9 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/network/api_client.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
-import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/admin_list_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/assessment_providers.dart';
-import 'package:excellent_educators_web/features/academic/presentation/pages/admin_dashboard_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/utils/admin_list_route_sync.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
@@ -174,13 +172,10 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
     super.dispose();
   }
 
-  Future<void> _submit(List<CareerCompassLevelDto> items) async {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _classGrade == null) {
       return;
     }
-    final matchingLevel = items
-        .where((l) => _classGrade! >= l.classFrom && _classGrade! <= l.classTo)
-        .firstOrNull;
 
     setState(() => _saving = true);
     try {
@@ -192,7 +187,6 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
         'email': _email.text.trim(),
         'password': _password.text,
         'class_grade': _classGrade,
-        if (matchingLevel != null) 'career_compass_level_id': matchingLevel.id,
         'guardian_name': _guardianName.text.trim().isEmpty ? null : _guardianName.text.trim(),
       });
       ref.invalidate(adminStudentsProvider);
@@ -213,40 +207,33 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
 
   @override
   Widget build(BuildContext context) {
-    final levels = ref.watch(careerCompassLevelsProvider);
     final wide = MediaQuery.sizeOf(context).width >= 960;
+
+    final content = wide
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 5, child: _IntroPanel(selectedClassGrade: _classGrade)),
+              const SizedBox(width: 28),
+              Expanded(flex: 7, child: _formCard()),
+            ],
+          )
+        : Column(
+            children: [
+              _IntroPanel(selectedClassGrade: _classGrade),
+              const SizedBox(height: 20),
+              _formCard(),
+            ],
+          );
 
     return AppScaffold(
       title: 'Add student',
       backTo: RoutePaths.adminStudents,
-      body: AsyncBody(
-        value: levels,
-        onRetry: () => ref.invalidate(careerCompassLevelsProvider),
-        builder: (items) {
-          final content = wide
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 5, child: _IntroPanel(selectedClassGrade: _classGrade, levels: items)),
-                    const SizedBox(width: 28),
-                    Expanded(flex: 7, child: _formCard(items)),
-                  ],
-                )
-              : Column(
-                  children: [
-                    _IntroPanel(selectedClassGrade: _classGrade, levels: items),
-                    const SizedBox(height: 20),
-                    _formCard(items),
-                  ],
-                );
-
-          return SingleChildScrollView(child: content);
-        },
-      ),
+      body: SingleChildScrollView(child: content),
     );
   }
 
-  Widget _formCard(List<CareerCompassLevelDto> items) {
+  Widget _formCard() {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -387,7 +374,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
-                    onPressed: _saving ? null : () => _submit(items),
+                    onPressed: _saving ? null : _submit,
                     child: _saving
                         ? const SizedBox(
                             width: 22,
@@ -414,17 +401,12 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
 }
 
 class _IntroPanel extends StatelessWidget {
-  const _IntroPanel({required this.selectedClassGrade, required this.levels});
+  const _IntroPanel({required this.selectedClassGrade});
 
   final int? selectedClassGrade;
-  final List<CareerCompassLevelDto> levels;
 
   @override
   Widget build(BuildContext context) {
-    final selectedLevel = selectedClassGrade == null
-        ? null
-        : levels.where((level) => selectedClassGrade! >= level.classFrom && selectedClassGrade! <= level.classTo).firstOrNull;
-
     return Padding(
       padding: const EdgeInsets.only(top: 8, right: 8),
       child: Column(
@@ -472,11 +454,6 @@ class _IntroPanel extends StatelessWidget {
                     'Class $selectedClassGrade (${_classOrdinal(selectedClassGrade!)} Class)',
                     style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
                   ),
-                  if (selectedLevel != null)
-                    Text(
-                      'Career Compass: ${selectedLevel.name} (${selectedLevel.shortCode})',
-                      style: const TextStyle(color: Colors.white70),
-                    ),
                 ],
               ),
             ),

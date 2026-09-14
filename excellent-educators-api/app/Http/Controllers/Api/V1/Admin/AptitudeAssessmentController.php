@@ -32,12 +32,7 @@ class AptitudeAssessmentController extends Controller
         $this->authorize('viewAny', AptitudeAssessment::class);
 
         $assessments = AptitudeAssessment::query()
-            ->with(['careerCompassLevel'])
             ->withCount(['questions', 'submittedAttempts as submitted_attempts_count'])
-            ->when($request->filled('career_compass_level_id'), fn ($query) => $query->where(
-                'career_compass_level_id',
-                $request->string('career_compass_level_id'),
-            ))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->orderByDesc('created_at')
             ->paginate((int) $request->integer('per_page', 15));
@@ -73,7 +68,7 @@ class AptitudeAssessmentController extends Controller
     public function show(AptitudeAssessment $aptitudeAssessment): JsonResponse
     {
         $this->authorize('view', $aptitudeAssessment);
-        $aptitudeAssessment->load(['careerCompassLevel', 'questions.options.dimensionCodes']);
+        $aptitudeAssessment->load(['questions.options.dimensionCodes']);
         $aptitudeAssessment->loadCount('submittedAttempts');
 
         return ApiResponse::success(
@@ -173,7 +168,7 @@ class AptitudeAssessmentController extends Controller
             $syncOptionDimensionCodes->execute($created, $option['dimension_codes']);
         }
 
-        $aptitudeAssessment->refresh()->load(['careerCompassLevel', 'questions.options.dimensionCodes']);
+        $aptitudeAssessment->refresh()->load(['questions.options.dimensionCodes']);
         $recordAuditEvent->execute('assessment.updated', $aptitudeAssessment, $request->user());
 
         return ApiResponse::success(
@@ -208,7 +203,7 @@ class AptitudeAssessmentController extends Controller
             $syncOptionDimensionCodes->execute($created, $option['dimension_codes']);
         }
 
-        $aptitudeAssessment->refresh()->load(['careerCompassLevel', 'questions.options.dimensionCodes']);
+        $aptitudeAssessment->refresh()->load(['questions.options.dimensionCodes']);
         $recordAuditEvent->execute('assessment.updated', $aptitudeAssessment, $request->user());
 
         return ApiResponse::success(
@@ -230,7 +225,7 @@ class AptitudeAssessmentController extends Controller
         $question->options()->delete();
         $question->delete();
 
-        $aptitudeAssessment->refresh()->load(['careerCompassLevel', 'questions.options.dimensionCodes']);
+        $aptitudeAssessment->refresh()->load(['questions.options.dimensionCodes']);
         $recordAuditEvent->execute('assessment.updated', $aptitudeAssessment, $request->user());
 
         return ApiResponse::success(
@@ -256,7 +251,7 @@ class AptitudeAssessmentController extends Controller
         ]);
         $syncOptionDimensionCodes->execute($option, $request->validated('dimension_codes'));
 
-        $aptitudeAssessment->refresh()->load(['careerCompassLevel', 'questions.options.dimensionCodes']);
+        $aptitudeAssessment->refresh()->load(['questions.options.dimensionCodes']);
         $recordAuditEvent->execute('assessment.updated', $aptitudeAssessment, $request->user());
 
         return ApiResponse::success(
@@ -282,7 +277,7 @@ class AptitudeAssessmentController extends Controller
             'display_order' => $request->validated('display_order') ?? $option->display_order,
         ]);
         $syncOptionDimensionCodes->execute($option, $request->validated('dimension_codes'));
-        $aptitudeAssessment->refresh()->load(['careerCompassLevel', 'questions.options.dimensionCodes']);
+        $aptitudeAssessment->refresh()->load(['questions.options.dimensionCodes']);
         $recordAuditEvent->execute('assessment.updated', $aptitudeAssessment, $request->user());
 
         return ApiResponse::success(
@@ -302,7 +297,7 @@ class AptitudeAssessmentController extends Controller
         $this->assertUnlocked($aptitudeAssessment);
 
         $option->delete();
-        $aptitudeAssessment->refresh()->load(['careerCompassLevel', 'questions.options.dimensionCodes']);
+        $aptitudeAssessment->refresh()->load(['questions.options.dimensionCodes']);
         $recordAuditEvent->execute('assessment.updated', $aptitudeAssessment, $request->user());
 
         return ApiResponse::success(
@@ -316,7 +311,7 @@ class AptitudeAssessmentController extends Controller
         $this->authorize('viewAttempts', $aptitudeAssessment);
 
         $results = $aptitudeAssessment->submittedAttempts()
-            ->with(['result.dimensions', 'result.student', 'result.attempt.assessment.careerCompassLevel'])
+            ->with(['result.dimensions', 'result.student'])
             ->get()
             ->map(fn ($attempt) => $attempt->result)
             ->filter();

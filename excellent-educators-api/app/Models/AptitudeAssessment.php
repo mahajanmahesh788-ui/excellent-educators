@@ -15,7 +15,6 @@ class AptitudeAssessment extends Model
     use HasUlids, SoftDeletes;
 
     protected $fillable = [
-        'career_compass_level_id',
         'title',
         'description',
         'status',
@@ -28,11 +27,6 @@ class AptitudeAssessment extends Model
         return [
             'status' => AptitudeAssessmentStatus::class,
         ];
-    }
-
-    public function careerCompassLevel(): BelongsTo
-    {
-        return $this->belongsTo(CareerCompassLevel::class);
     }
 
     public function creator(): BelongsTo

@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/app/theme/breakpoints.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/portal_chrome.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -46,6 +47,7 @@ class TeacherDaySchedulePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isMobile = Breakpoints.isMobile(context);
     final date = ref.watch(teacherDayScheduleDateProvider);
     final day = ref.watch(teacherDayScheduleProvider);
     final today = scheduleToday();
@@ -67,7 +69,10 @@ class TeacherDaySchedulePage extends ConsumerWidget {
       title: 'Today schedule',
       body: AnimatedPortalBackdrop(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 20,
+            vertical: isMobile ? 12 : 16,
+          ),
           children: [
             // 1. Hero Date Navigator Header
             _TeacherDayHero(
@@ -242,170 +247,179 @@ class _TeacherDayHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pretty = formatPrettyDate(date);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 600;
+        final pretty = formatPrettyDate(date);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0A1E34),
-            Color(0xFF0E2A4A),
-            Color(0xFF143B66),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Brand.navy.withValues(alpha: 0.22),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-        border: Border.all(color: Brand.gold.withValues(alpha: 0.3), width: 1.2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Row: Status badge + Gold Accent
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Brand.gold.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Brand.gold.withValues(alpha: 0.4)),
-                ),
-                child: const Icon(Icons.event_note_rounded, size: 18, color: Brand.gold),
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(isNarrow ? 14 : 20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(isNarrow ? 14 : 20),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF0A1E34),
+                Color(0xFF0E2A4A),
+                Color(0xFF143B66),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Brand.navy.withValues(alpha: 0.22),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
               ),
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isToday
-                      ? const Color(0xFF059669).withValues(alpha: 0.25)
-                      : (isTomorrow
-                          ? const Color(0xFF2563EB).withValues(alpha: 0.25)
-                          : Colors.white.withValues(alpha: 0.12)),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: isToday
-                        ? const Color(0xFF10B981)
-                        : (isTomorrow ? const Color(0xFF60A5FA) : Colors.white24),
+            ],
+            border: Border.all(color: Brand.gold.withValues(alpha: 0.3), width: 1.2),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Row: Status badge + Gold Accent
+              Row(
+                children: [
+                  Container(
+                    width: isNarrow ? 28 : 32,
+                    height: isNarrow ? 28 : 32,
+                    decoration: BoxDecoration(
+                      color: Brand.gold.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Brand.gold.withValues(alpha: 0.4)),
+                    ),
+                    child: Icon(Icons.event_note_rounded, size: isNarrow ? 15 : 18, color: Brand.gold),
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isToday) ...[
-                      const _PulsingLiveDot(color: Color(0xFF10B981)),
-                      const SizedBox(width: 6),
-                    ],
-                    Text(
-                      isToday
-                          ? "TODAY'S SCHEDULE"
-                          : (isTomorrow ? "TOMORROW'S AGENDA" : "SCHEDULE CALENDAR"),
-                      style: TextStyle(
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                    decoration: BoxDecoration(
+                      color: isToday
+                          ? const Color(0xFF059669).withValues(alpha: 0.25)
+                          : (isTomorrow
+                              ? const Color(0xFF2563EB).withValues(alpha: 0.25)
+                              : Colors.white.withValues(alpha: 0.12)),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
                         color: isToday
-                            ? const Color(0xFF6EE7B7)
-                            : (isTomorrow ? const Color(0xFF93C5FD) : Colors.white),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
+                            ? const Color(0xFF10B981)
+                            : (isTomorrow ? const Color(0xFF60A5FA) : Colors.white24),
                       ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isToday) ...[
+                          const _PulsingLiveDot(color: Color(0xFF10B981)),
+                          const SizedBox(width: 5),
+                        ],
+                        Text(
+                          isToday
+                              ? "TODAY'S SCHEDULE"
+                              : (isTomorrow ? "TOMORROW'S AGENDA" : "SCHEDULE CALENDAR"),
+                          style: TextStyle(
+                            color: isToday
+                                ? const Color(0xFF6EE7B7)
+                                : (isTomorrow ? const Color(0xFF93C5FD) : Colors.white),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              SizedBox(height: isNarrow ? 10 : 14),
+
+              // Date Headline
+              Text(
+                pretty,
+                style: TextStyle(
+                  fontSize: isNarrow ? 20 : 24,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Monitor upcoming student sessions, launch live meeting rooms, and record attendance.',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.72),
+                  fontSize: isNarrow ? 12 : 13,
+                  height: 1.35,
+                ),
+              ),
+
+              SizedBox(height: isNarrow ? 12 : 16),
+
+              // Segmented Date Bar
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    // Previous Day
+                    IconButton(
+                      onPressed: onPreviousDay,
+                      icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
+                      tooltip: 'Previous day',
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    ),
+
+                    // Today Pill
+                    _DateSelectorPill(
+                      label: 'Today',
+                      isSelected: isToday,
+                      icon: Icons.today_rounded,
+                      onTap: onSelectToday,
+                    ),
+
+                    // Tomorrow Pill
+                    _DateSelectorPill(
+                      label: 'Tomorrow',
+                      isSelected: isTomorrow,
+                      icon: Icons.event_rounded,
+                      onTap: onSelectTomorrow,
+                    ),
+
+                    // Date Picker Button
+                    _DateSelectorPill(
+                      label: date,
+                      isSelected: !isToday && !isTomorrow,
+                      icon: Icons.calendar_month_rounded,
+                      onTap: onPickDate,
+                    ),
+
+                    // Next Day
+                    IconButton(
+                      onPressed: onNextDay,
+                      icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                      tooltip: 'Next day',
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-
-          const SizedBox(height: 14),
-
-          // Date Headline
-          Text(
-            pretty,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: -0.4,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Monitor upcoming student sessions, launch live meeting rooms, and record attendance.',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.72),
-              fontSize: 13,
-              height: 1.4,
-            ),
-          ),
-
-          const SizedBox(height: 18),
-
-          // Segmented Date Bar
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            ),
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                // Previous Day
-                IconButton(
-                  onPressed: onPreviousDay,
-                  icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
-                  tooltip: 'Previous day',
-                  visualDensity: VisualDensity.compact,
-                ),
-
-                // Today Pill
-                _DateSelectorPill(
-                  label: 'Today',
-                  isSelected: isToday,
-                  icon: Icons.today_rounded,
-                  onTap: onSelectToday,
-                ),
-
-                // Tomorrow Pill
-                _DateSelectorPill(
-                  label: 'Tomorrow',
-                  isSelected: isTomorrow,
-                  icon: Icons.event_rounded,
-                  onTap: onSelectTomorrow,
-                ),
-
-                // Date Picker Button
-                _DateSelectorPill(
-                  label: date,
-                  isSelected: !isToday && !isTomorrow,
-                  icon: Icons.calendar_month_rounded,
-                  onTap: onPickDate,
-                ),
-
-                // Next Day
-                IconButton(
-                  onPressed: onNextDay,
-                  icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
-                  tooltip: 'Next day',
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -434,7 +448,7 @@ class _DateSelectorPill extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(10),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: isSelected ? Brand.gold : Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
@@ -456,16 +470,16 @@ class _DateSelectorPill extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  size: 14,
+                  size: 13,
                   color: isSelected ? Brand.navy : Colors.white,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 5),
                 Text(
                   label,
                   style: TextStyle(
                     color: isSelected ? Brand.navy : Colors.white,
                     fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                    fontSize: 12.5,
+                    fontSize: 12,
                   ),
                 ),
               ],
@@ -496,37 +510,57 @@ class _DayOverviewStats extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 600;
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
+
+        final cardTotal = _MetricCard(
+          title: 'Total Booked',
+          value: '$totalCount',
+          subtitle: totalCount == 1 ? '1 session' : '$totalCount sessions',
+          icon: Icons.calendar_today_rounded,
+          accentColor: Brand.navy,
+          iconBg: Brand.navy.withValues(alpha: 0.08),
+        );
+
+        final cardCompleted = _MetricCard(
+          title: 'Completed',
+          value: '$completedCount',
+          subtitle: completedCount == 0 ? 'None conducted' : '$completedCount conducted',
+          icon: Icons.check_circle_rounded,
+          accentColor: const Color(0xFF059669),
+          iconBg: const Color(0xFFECFDF5),
+        );
+
+        final cardUpcoming = _MetricCard(
+          title: 'Upcoming / Ready',
+          value: '$upcomingCount',
+          subtitle: upcomingCount == 0 ? 'No pending' : '$upcomingCount ready to meet',
+          icon: Icons.access_time_filled_rounded,
+          accentColor: const Color(0xFFD97706),
+          iconBg: const Color(0xFFFFFBEB),
+        );
+
+        if (isCompact) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: cardTotal),
+                  const SizedBox(width: 8),
+                  Expanded(child: cardCompleted),
+                ],
+              ),
+              const SizedBox(height: 8),
+              cardUpcoming,
+            ],
+          );
+        }
+
+        return Row(
           children: [
-            _MetricCard(
-              title: 'Total Booked',
-              value: '$totalCount',
-              subtitle: totalCount == 1 ? '1 student session' : '$totalCount student sessions',
-              icon: Icons.calendar_today_rounded,
-              accentColor: Brand.navy,
-              iconBg: Brand.navy.withValues(alpha: 0.08),
-              width: isCompact ? constraints.maxWidth : (constraints.maxWidth - 24) / 3,
-            ),
-            _MetricCard(
-              title: 'Completed',
-              value: '$completedCount',
-              subtitle: completedCount == 0 ? 'None finished yet' : '$completedCount conducted',
-              icon: Icons.check_circle_rounded,
-              accentColor: const Color(0xFF059669),
-              iconBg: const Color(0xFFECFDF5),
-              width: isCompact ? constraints.maxWidth : (constraints.maxWidth - 24) / 3,
-            ),
-            _MetricCard(
-              title: 'Upcoming / Ready',
-              value: '$upcomingCount',
-              subtitle: upcomingCount == 0 ? 'No pending sessions' : '$upcomingCount ready to meet',
-              icon: Icons.access_time_filled_rounded,
-              accentColor: const Color(0xFFD97706),
-              iconBg: const Color(0xFFFFFBEB),
-              width: isCompact ? constraints.maxWidth : (constraints.maxWidth - 24) / 3,
-            ),
+            Expanded(child: cardTotal),
+            const SizedBox(width: 12),
+            Expanded(child: cardCompleted),
+            const SizedBox(width: 12),
+            Expanded(child: cardUpcoming),
           ],
         );
       },
@@ -542,7 +576,6 @@ class _MetricCard extends StatefulWidget {
     required this.icon,
     required this.accentColor,
     required this.iconBg,
-    required this.width,
   });
 
   final String title;
@@ -551,7 +584,6 @@ class _MetricCard extends StatefulWidget {
   final IconData icon;
   final Color accentColor;
   final Color iconBg;
-  final double width;
 
   @override
   State<_MetricCard> createState() => _MetricCardState();
@@ -568,12 +600,11 @@ class _MetricCardState extends State<_MetricCard> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
-        width: widget.width,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         transform: Matrix4.translationValues(0, _isHovered ? -2 : 0, 0),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: _isHovered ? widget.accentColor.withValues(alpha: 0.5) : const Color(0xFFE2E8F0),
             width: _isHovered ? 1.5 : 1.0,
@@ -591,13 +622,13 @@ class _MetricCardState extends State<_MetricCard> {
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 color: widget.iconBg,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(widget.icon, color: widget.accentColor, size: 22),
+              child: Icon(widget.icon, color: widget.accentColor, size: 19),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -689,59 +720,61 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
         ? booking.studentName!.substring(0, 1).toUpperCase()
         : 'S';
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        transform: Matrix4.translationValues(0, _isHovered ? -3 : 0, 0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: _isHovered ? borderColor : borderColor.withValues(alpha: 0.9),
-            width: _isHovered ? 2.0 : 1.6,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: borderColor.withValues(alpha: _isHovered ? 0.22 : 0.12),
-              blurRadius: _isHovered ? 20 : 10,
-              offset: Offset(0, _isHovered ? 8 : 3),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: booking.studentId.isEmpty
-                  ? null
-                  : () => context.go(
-                        '${RoutePaths.teacherScheduleStudentFor(booking.studentId)}?slot=${Uri.encodeComponent('${formatHm(booking.start)} – ${formatHm(booking.end)}')}',
-                      ),
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isNarrow = constraints.maxWidth < 660;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 660;
 
-                    // The left Calendar Date Pillar
-                    final calendarBlock = Container(
-                      width: 66,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Brand.gold.withValues(alpha: 0.35)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Brand.navy.withValues(alpha: 0.06),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+        return MouseRegion(
+          onEnter: (_) => setState(() => _isHovered = true),
+          onExit: (_) => setState(() => _isHovered = false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            transform: Matrix4.translationValues(0, _isHovered ? -3 : 0, 0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(isNarrow ? 14 : 18),
+              border: Border.all(
+                color: _isHovered ? borderColor : borderColor.withValues(alpha: 0.9),
+                width: _isHovered ? 2.0 : 1.6,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: borderColor.withValues(alpha: _isHovered ? 0.22 : 0.12),
+                  blurRadius: _isHovered ? 20 : 10,
+                  offset: Offset(0, _isHovered ? 8 : 3),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(isNarrow ? 14 : 18),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: booking.studentId.isEmpty
+                      ? null
+                      : () => context.go(
+                            '${RoutePaths.teacherScheduleStudentFor(booking.studentId)}?slot=${Uri.encodeComponent('${formatHm(booking.start)} – ${formatHm(booking.end)}')}',
                           ),
-                        ],
-                      ),
+                  child: Padding(
+                    padding: EdgeInsets.all(isNarrow ? 12 : 18),
+                    child: Builder(
+                      builder: (context) {
+                        // The left Calendar Date Pillar
+                        final calendarBlock = Container(
+                          width: isNarrow ? 54 : 66,
+                          height: isNarrow ? 60 : 72,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(isNarrow ? 11 : 14),
+                            border: Border.all(color: Brand.gold.withValues(alpha: 0.35)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Brand.navy.withValues(alpha: 0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
                       child: Column(
                         children: [
                           Container(
@@ -934,7 +967,7 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                           ],
                         ),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
 
                         // Student Name & Time slot
                         Row(
@@ -942,18 +975,18 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                           children: [
                             // Initial Avatar
                             CircleAvatar(
-                              radius: 19,
+                              radius: isNarrow ? 16 : 19,
                               backgroundColor: Brand.navy,
                               child: Text(
                                 studentInitial,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Brand.gold,
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 15,
+                                  fontSize: isNarrow ? 13 : 15,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -962,37 +995,37 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                     children: [
                                       Text(
                                         booking.studentName ?? 'Student',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.w800,
-                                          fontSize: 16,
+                                          fontSize: isNarrow ? 14.5 : 16,
                                           color: Brand.navy,
                                           letterSpacing: -0.2,
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      const Icon(Icons.arrow_forward_ios_rounded, size: 11, color: Brand.gold),
+                                      const SizedBox(width: 6),
+                                      const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Brand.gold),
                                     ],
                                   ),
-                                  const SizedBox(height: 3),
+                                  const SizedBox(height: 2),
                                   Row(
                                     children: [
-                                      const Icon(Icons.access_time_rounded, size: 13, color: Color(0xFF64748B)),
+                                      const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF64748B)),
                                       const SizedBox(width: 4),
                                       Text(
                                         '${formatHm(booking.start)} – ${formatHm(booking.end)}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.w700,
-                                          fontSize: 12.5,
-                                          color: Color(0xFF334155),
+                                          fontSize: isNarrow ? 11.5 : 12.5,
+                                          color: const Color(0xFF334155),
                                         ),
                                       ),
                                       if (booking.attemptNumber != null) ...[
-                                        const SizedBox(width: 8),
+                                        const SizedBox(width: 6),
                                         const Text('•', style: TextStyle(color: Color(0xFF94A3B8))),
-                                        const SizedBox(width: 8),
+                                        const SizedBox(width: 6),
                                         Text(
                                           'Attempt ${booking.attemptNumber}',
-                                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                          style: TextStyle(fontSize: isNarrow ? 11 : 12, color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
                                         ),
                                       ],
                                     ],
@@ -1232,13 +1265,13 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               calendarBlock,
-                              const SizedBox(width: 14),
+                              const SizedBox(width: 10),
                               Expanded(child: detailsColumn),
                             ],
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 10),
                           const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           actionsRow,
                         ],
                       );
@@ -1265,6 +1298,8 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
         ),
       ),
     );
+  },
+);
   }
 }
 

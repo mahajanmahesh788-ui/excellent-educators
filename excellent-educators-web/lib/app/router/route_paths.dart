@@ -5,9 +5,12 @@ abstract final class RoutePaths {
   static const changePassword = '/change-password';
   static const session = '/session';
   static const adminDashboard = '/admin/dashboard';
+  static const adminBestStudents = '/admin/best-students';
+  static const adminBestTeachers = '/admin/best-teachers';
   static const adminStudents = '/admin/students';
   static const adminStudentNew = '/admin/students/new';
   static const adminStudentDetail = '/admin/students/:id';
+  static const adminStudentEdit = '/admin/students/:id/edit';
   static const adminStudentJournal = '/admin/students/:id/journal';
   static const adminStudentJournalWeek = '/admin/students/:id/journal/:journeyId/:week';
   static const adminStudentResults = '/admin/students/:id/results';
@@ -16,6 +19,8 @@ abstract final class RoutePaths {
   static const adminTeacherDetail = '/admin/teachers/:id';
   static const adminTeacherEdit = '/admin/teachers/:id/edit';
   static const adminTeacherAvailability = '/admin/teachers/:id/availability';
+  static const adminTeacherHistory = '/admin/teachers/:id/history';
+  static const adminTeacherPromoted = '/admin/teachers/:id/promoted';
   static const adminBatches = '/admin/batches';
   static const adminBatchNew = '/admin/batches/new';
   static const adminBatchDetail = '/admin/batches/:id';
@@ -64,6 +69,7 @@ abstract final class RoutePaths {
   static const adminSchedule = '/admin/schedule';
   static const adminGoogleMeet = '/admin/google-meet';
   static const adminAttendance = '/admin/attendance';
+  static String adminAttendanceIssue(String id) => '/admin/attendance?issue=$id';
   static const adminWeeklyLearning = '/admin/batches/:id/learning';
   static String adminLevelLearning(String levelId) => '/admin/batches/$levelId/learning';
   static const adminLoginPage = '/admin/login-page';
@@ -74,10 +80,13 @@ abstract final class RoutePaths {
 
   static String adminBatch(String id) => '/admin/batches/$id';
   static String adminStudent(String id) => '/admin/students/$id';
+  static String adminStudentEditFor(String id) => '/admin/students/$id/edit';
   static String adminStudentResultsFor(String id) => '/admin/students/$id/results';
   static String adminTeacher(String id) => '/admin/teachers/$id';
   static String adminTeacherEditFor(String id) => '/admin/teachers/$id/edit';
   static String adminTeacherAvailabilityFor(String id) => '/admin/teachers/$id/availability';
+  static String adminTeacherHistoryFor(String id) => '/admin/teachers/$id/history';
+  static String adminTeacherPromotedFor(String id) => '/admin/teachers/$id/promoted';
   static String teacherBatch(String id) => '/teacher/batches/$id/students';
   static String teacherAssessmentsFor(String id) => '/teacher/batches/$id/assessments';
   static String teacherAssessmentNewFor(String batchId) => '/teacher/batches/$batchId/assessments/new';
@@ -112,11 +121,11 @@ abstract final class RoutePaths {
     if (isAdmin) {
       return adminDashboard;
     }
-    if (isCommonTeacher) {
-      return teacherBatches;
-    }
     if (isMasterTeacher) {
       return masterTeacherDashboard;
+    }
+    if (isCommonTeacher) {
+      return teacherDaySchedule;
     }
     if (isStudent) {
       return studentDashboard;

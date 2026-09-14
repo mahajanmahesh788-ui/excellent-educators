@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/app/theme/breakpoints.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/auth/presentation/widgets/auth_form_card.dart';
 import 'package:flutter/material.dart';
@@ -52,6 +53,7 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isMobile = Breakpoints.isMobile(context);
 
     return AuthFormCard(
       child: Form(
@@ -62,20 +64,32 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
           children: [
             Text(
               'Reset your password',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: Brand.ink,
-              ),
+              style: isMobile
+                  ? const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Brand.ink,
+                    )
+                  : theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: Brand.ink,
+                    ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               'Enter the email you use to sign in. Students and teachers can use this form.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Brand.muted,
-                height: 1.45,
-              ),
+              style: isMobile
+                  ? const TextStyle(
+                      fontSize: 12.5,
+                      color: Brand.muted,
+                      height: 1.35,
+                    )
+                  : theme.textTheme.bodyMedium?.copyWith(
+                      color: Brand.muted,
+                      height: 1.45,
+                    ),
             ),
-            const SizedBox(height: 28),
+            SizedBox(height: isMobile ? 16 : 28),
             TextFormField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
@@ -96,9 +110,9 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
               onFieldSubmitted: (_) => _submit(),
             ),
             if (_message != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
@@ -106,14 +120,14 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
                 ),
                 child: Text(
                   _message!,
-                  style: const TextStyle(color: Color(0xFF2E7D32)),
+                  style: TextStyle(color: const Color(0xFF2E7D32), fontSize: isMobile ? 12 : 13),
                 ),
               ),
             ],
             if (_error != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
@@ -121,13 +135,18 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
                 ),
                 child: Text(
                   _error!,
-                  style: TextStyle(color: theme.colorScheme.error),
+                  style: TextStyle(color: theme.colorScheme.error, fontSize: isMobile ? 12 : 13),
                 ),
               ),
             ],
-            const SizedBox(height: 20),
+            SizedBox(height: isMobile ? 14 : 20),
             FilledButton(
               onPressed: _loading ? null : _submit,
+              style: isMobile
+                  ? FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(42),
+                    )
+                  : null,
               child: _loading
                   ? const SizedBox(
                       width: 20,
@@ -136,9 +155,16 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
                     )
                   : const Text('Send reset link'),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             TextButton(
               onPressed: () => context.go(RoutePaths.login),
+              style: isMobile
+                  ? TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    )
+                  : null,
               child: const Text('Back to sign in'),
             ),
           ],

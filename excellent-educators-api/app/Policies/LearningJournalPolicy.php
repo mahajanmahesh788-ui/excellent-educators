@@ -19,7 +19,7 @@ class LearningJournalPolicy
             return true;
         }
 
-        if ($user->hasRole(RoleName::MasterTeacher) || $user->hasRole(RoleName::CommonTeacher)) {
+        if ($user->hasRole(RoleName::MasterTeacher)) {
             return $this->teacherMayView($user, $student);
         }
 

@@ -19,7 +19,6 @@ class StudentProfile extends Model
         'user_id',
         'student_code',
         'level_id',
-        'career_compass_level_id',
         'class_grade',
         'full_name',
         'phone',
@@ -48,11 +47,6 @@ class StudentProfile extends Model
     public function academicLevel(): BelongsTo
     {
         return $this->belongsTo(AcademicLevel::class, 'level_id');
-    }
-
-    public function careerCompassLevel(): BelongsTo
-    {
-        return $this->belongsTo(CareerCompassLevel::class);
     }
 
     public function enrollments(): HasMany

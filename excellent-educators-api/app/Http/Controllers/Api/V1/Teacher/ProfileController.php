@@ -20,7 +20,7 @@ class ProfileController extends Controller
 
         $teacher->load([
             'user.roles',
-            'activeBatchAssignments.batch.careerCompassLevel',
+            'activeBatchAssignments.batch',
         ])->loadCount(['activeBatchAssignments', 'activeMasterTeacherAssignments']);
 
         return ApiResponse::success('Profile fetched successfully.', TeacherResource::make($teacher)->resolve());

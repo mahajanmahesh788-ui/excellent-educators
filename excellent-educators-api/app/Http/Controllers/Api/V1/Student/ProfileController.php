@@ -20,7 +20,6 @@ class ProfileController extends Controller
 
         $student->load([
             'user',
-            'careerCompassLevel',
             'academicLevel.masterTeachers.user',
             'activeEnrollment.batch.level.masterTeachers.user',
             'activeEnrollment.batch.activeTeacherAssignment.teacher',

@@ -5,7 +5,6 @@ namespace Tests\Feature\Api\V1;
 use App\Enums\RoleName;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
-use App\Models\CareerCompassLevel;
 use App\Models\Dimension;
 use App\Models\MonthlyFeedback;
 use App\Models\SessionBooking;
@@ -13,7 +12,6 @@ use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use App\Support\AppClock;
-use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\DimensionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,7 +25,7 @@ class MonthlyFeedbackTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class, DimensionSeeder::class]);
+        $this->seed([RoleSeeder::class, DimensionSeeder::class]);
     }
 
     public function test_master_teacher_can_view_assigned_students_and_create_feedback(): void
@@ -403,13 +401,12 @@ class MonthlyFeedbackTest extends TestCase
     private function assignedPair(): array
     {
         $admin = $this->makeAdmin();
-        $cc1 = CareerCompassLevel::query()->where('code', 'cc1')->firstOrFail();
         $studentId = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/students', [
             'name' => 'Feedback Student',
             'email' => 'fb-student@excellenteducators.test',
             'password' => 'StudentPass1!',
             'phone' => '9111111111',
-            'career_compass_level_id' => $cc1->id,
+            'class_grade' => 5,
         ])->assertCreated()->json('data.id');
 
         $master = $this->makeTeacher(['master_teacher'], 'fb-master@excellenteducators.test');

@@ -34,13 +34,6 @@ class AssessmentResultView extends StatelessWidget {
             result.assessmentTitle!,
             style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 14),
           ),
-        if (result.careerCompassLevel != null) ...[
-          SizedBox(height: compact ? 2 : 4),
-          Text(
-            result.careerCompassLevel!.displayName,
-            style: TextStyle(color: Brand.muted, fontSize: compact ? 12 : 14),
-          ),
-        ],
         if (result.submittedAt != null && !compact) ...[
           const SizedBox(height: 4),
           Text(

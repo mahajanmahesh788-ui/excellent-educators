@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Actions\Admin\BuildAdminAcademySnapshot;
 use App\Actions\Feedback\BuildMasterTeacherDashboard;
+use App\Actions\Teachers\BuildTeacherHistory;
 use App\Actions\Teachers\CreateTeacher;
 use App\Actions\Teachers\UpdateTeacher;
 use App\Enums\RoleName;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Admin\StoreTeacherRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateTeacherRequest;
+use App\Http\Resources\Api\V1\StudentResource;
 use App\Http\Resources\Api\V1\TeacherResource;
+use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Support\ApiResponse;
 use App\Support\ErrorCode;
@@ -21,7 +25,7 @@ class TeacherController extends Controller
     public function index(Request $request): JsonResponse
     {
         $teachers = TeacherProfile::query()
-            ->with(['user.roles', 'academicLevels', 'activeBatchAssignments.batch.careerCompassLevel'])
+            ->with(['user.roles', 'academicLevels', 'activeBatchAssignments.batch'])
             ->withCount(['academicLevels', 'activeBatchAssignments', 'activeMasterTeacherAssignments'])
             ->when($request->string('search')->toString(), function ($query, string $search): void {
                 $digits = preg_replace('/\D+/', '', $search) ?? '';
@@ -95,6 +99,30 @@ class TeacherController extends Controller
         return ApiResponse::success(
             'Teacher rating progress fetched successfully.',
             $buildMasterTeacherDashboard->execute($teacher),
+        );
+    }
+
+    public function history(TeacherProfile $teacher, BuildTeacherHistory $buildTeacherHistory): JsonResponse
+    {
+        return ApiResponse::success(
+            'Teacher history fetched successfully.',
+            $buildTeacherHistory->execute($teacher),
+        );
+    }
+
+    public function promotedStudents(TeacherProfile $teacher, BuildAdminAcademySnapshot $academySnapshot): JsonResponse
+    {
+        $payload = $academySnapshot->promotedStudentsFor($teacher);
+        $students = StudentProfile::query()
+            ->with(['user', 'academicLevel', 'activeEnrollment.batch'])
+            ->whereIn('id', $payload['student_ids'])
+            ->orderBy('full_name')
+            ->get();
+
+        return ApiResponse::success(
+            'Promoted students fetched successfully.',
+            StudentResource::collection($students)->resolve(),
+            ['count' => $payload['count']],
         );
     }
 

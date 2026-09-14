@@ -10,7 +10,6 @@ use App\Enums\RoleName;
 use App\Enums\UserStatus;
 use App\Exceptions\ApiException;
 use App\Models\AcademicLevel;
-use App\Models\CareerCompassLevel;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Support\ErrorCode;
@@ -30,7 +29,6 @@ class CreateStudent
      *     email: string,
      *     password: string,
      *     level_id?: string|null,
-     *     career_compass_level_id?: string,
      *     class_grade?: int,
      *     phone: string,
      *     whatsapp_number?: string|null,
@@ -50,29 +48,13 @@ class CreateStudent
             );
         }
 
-        if (! empty($input['career_compass_level_id'])) {
-            $level = CareerCompassLevel::query()->findOrFail($input['career_compass_level_id']);
-            $grade = (int) ($input['class_grade'] ?? $level->class_from);
-        } elseif (isset($input['class_grade'])) {
-            $grade = (int) $input['class_grade'];
-            $level = CareerCompassLevel::query()
-                ->where('class_from', '<=', $grade)
-                ->where('class_to', '>=', $grade)
-                ->firstOrFail();
-        } else {
+        $grade = isset($input['class_grade']) ? (int) $input['class_grade'] : 5;
+        if ($grade < 5 || $grade > 12) {
             throw new ApiException(
                 ErrorCode::VALIDATION_ERROR,
-                'Either class_grade or career_compass_level_id is required.',
+                "Class {$grade} is not valid. Must be between 5 and 12.",
                 422,
-            );
-        }
-
-        if ($grade < $level->class_from || $grade > $level->class_to) {
-            throw new ApiException(
-                ErrorCode::VALIDATION_ERROR,
-                "Class {$grade} is not valid for {$level->code}.",
-                422,
-                ['class_grade' => ["Must be between {$level->class_from} and {$level->class_to}."]],
+                ['class_grade' => ['Must be between 5 and 12.']],
             );
         }
 
@@ -87,7 +69,7 @@ class CreateStudent
             $academicLevel = AcademicLevel::query()->where('name', 'Level 1')->first();
         }
 
-        return DB::transaction(function () use ($input, $level, $academicLevel, $grade, $academicYear): StudentProfile {
+        return DB::transaction(function () use ($input, $academicLevel, $grade, $academicYear): StudentProfile {
             $user = User::query()->create([
                 'name' => $input['name'],
                 'email' => $input['email'],
@@ -96,13 +78,12 @@ class CreateStudent
             ]);
             $user->assignRole(RoleName::Student->value);
 
-            $code = $this->generateStudentCode->execute($level, $academicYear);
+            $code = $this->generateStudentCode->execute($academicYear);
 
             $profile = StudentProfile::query()->create([
                 'user_id' => $user->id,
                 'student_code' => $code,
                 'level_id' => $academicLevel?->id,
-                'career_compass_level_id' => $level->id,
                 'class_grade' => $grade,
                 'full_name' => $input['name'],
                 'phone' => $input['phone'],

@@ -49,7 +49,7 @@ class UpdateTeacherRequest extends FormRequest
             'status' => ['sometimes', 'in:active,inactive'],
             'work_type' => ['sometimes', 'in:full_time,part_time'],
             'roles' => ['sometimes', 'array', 'min:1'],
-            'roles.*' => ['in:common_teacher,master_teacher'],
+            'roles.*' => ['in:master_teacher'],
         ];
     }
 }

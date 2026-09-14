@@ -25,7 +25,7 @@ class BatchController extends Controller
         $batchIds = $teacher->activeBatchAssignments()->pluck('batch_id');
         $batches = Batch::query()
             ->whereIn('id', $batchIds)
-            ->with(['careerCompassLevel', 'activeTeacherAssignment.teacher'])
+            ->with(['activeTeacherAssignment.teacher'])
             ->withCount('activeEnrollments')
             ->orderBy('name')
             ->get();
@@ -44,7 +44,6 @@ class BatchController extends Controller
         $students = $batch->activeEnrollments()
             ->with([
                 'student.user',
-                'student.careerCompassLevel',
                 'student.activeEnrollment.batch.activeTeacherAssignment.teacher',
                 'student.activeMasterTeacherAssignment.teacher',
             ])

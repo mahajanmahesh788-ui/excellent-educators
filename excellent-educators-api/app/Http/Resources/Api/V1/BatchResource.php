@@ -16,8 +16,6 @@ class BatchResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $teacher = $this->activeTeacherAssignment?->teacher;
-
         return [
             'id' => $this->id,
             'level_id' => $this->level_id,
@@ -31,14 +29,6 @@ class BatchResource extends JsonResource
             'ends_on' => $this->ends_on?->toDateString(),
             'active_student_count' => $this->active_enrollments_count ?? $this->activeEnrollments()->count(),
             'max_active_students' => app(\App\Support\AppSettings::class)->maxActiveStudents(),
-            'career_compass_level' => $this->whenLoaded(
-                'careerCompassLevel',
-                fn () => CareerCompassLevelResource::make($this->careerCompassLevel)->resolve(),
-            ),
-            'common_teacher' => $teacher === null ? null : [
-                'id' => $teacher->id,
-                'full_name' => $teacher->full_name,
-            ],
         ];
     }
 }

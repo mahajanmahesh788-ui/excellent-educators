@@ -81,14 +81,6 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
             final activeList = _selectedTab == 0 ? upcoming : past;
             final completedCount = items.where((b) => b.isCompleted).length;
 
-            String nextSessionSummary = 'Up to date';
-            if (upcoming.isNotEmpty) {
-              final next = upcoming.first;
-              nextSessionSummary = '${next.typeLabel} · ${formatPrettyDate(next.date)}';
-            } else if (type != null) {
-              nextSessionSummary = bookingActionLabel(type);
-            }
-
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               children: [
@@ -106,11 +98,6 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
                 _StudentOverviewStats(
                   upcomingCount: upcoming.length,
                   completedCount: completedCount,
-                  nextSessionSummary: nextSessionSummary,
-                  hasActionableBooking: upcoming.isEmpty && type != null,
-                  onBook: type == null
-                      ? null
-                      : () => context.go('${RoutePaths.studentBookNew}?type=$type'),
                 ),
 
                 const SizedBox(height: 22),
@@ -235,140 +222,143 @@ class _StudentSessionsHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0A1E34),
-            Color(0xFF0E2A4A),
-            Color(0xFF143B66),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Brand.navy.withValues(alpha: 0.22),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 680;
+
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(isNarrow ? 14 : 22),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(isNarrow ? 14 : 20),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF0A1E34),
+                Color(0xFF0E2A4A),
+                Color(0xFF143B66),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Brand.navy.withValues(alpha: 0.22),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+            border: Border.all(color: Brand.gold.withValues(alpha: 0.35), width: 1.2),
           ),
-        ],
-        border: Border.all(color: Brand.gold.withValues(alpha: 0.35), width: 1.2),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isNarrow = constraints.maxWidth < 680;
-
-          final titleContent = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
+          child: Builder(
+            builder: (context) {
+              final titleContent = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Brand.gold.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Brand.gold.withValues(alpha: 0.4)),
-                    ),
-                    child: const Icon(Icons.stars_rounded, size: 18, color: Brand.gold),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Brand.gold.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Brand.gold.withValues(alpha: 0.5)),
-                    ),
-                    child: const Text(
-                      'STUDENT SESSIONS · ACADEMY CALENDAR',
-                      style: TextStyle(
-                        color: Brand.gold,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11,
-                        letterSpacing: 0.8,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: isNarrow ? 26 : 32,
+                        height: isNarrow ? 26 : 32,
+                        decoration: BoxDecoration(
+                          color: Brand.gold.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Brand.gold.withValues(alpha: 0.4)),
+                        ),
+                        child: Icon(Icons.stars_rounded, size: isNarrow ? 15 : 18, color: Brand.gold),
                       ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Brand.gold.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Brand.gold.withValues(alpha: 0.5)),
+                        ),
+                        child: const Text(
+                          'ACADEMY CALENDAR',
+                          style: TextStyle(
+                            color: Brand.gold,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isNarrow ? 8 : 12),
+                  Text(
+                    'My Sessions',
+                    style: TextStyle(
+                      fontSize: isNarrow ? 20 : 28,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Track upcoming live classes, 1-on-1 mentorship, and schedule history.',
+                    style: TextStyle(
+                      fontSize: isNarrow ? 12 : 14,
+                      color: Colors.white.withValues(alpha: 0.75),
+                      height: 1.35,
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'My Sessions',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Track upcoming live classes, 1-on-1 mentorship, and schedule history.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.75),
-                  height: 1.35,
-                ),
-              ),
-            ],
-          );
+              );
 
-          final bookButton = type == null
-              ? null
-              : ElevatedButton.icon(
-                  onPressed: onBook,
-                  icon: const Icon(Icons.add_circle_outline, size: 16, color: Brand.navy),
-                  label: Text(
-                    bookingActionLabel(type),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                      color: Brand.navy,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Brand.gold,
-                    foregroundColor: Brand.navy,
-                    elevation: 3,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+              final bookButton = type == null
+                  ? null
+                  : ElevatedButton.icon(
+                      onPressed: onBook,
+                      icon: const Icon(Icons.add_circle_outline, size: 16, color: Brand.navy),
+                      label: Text(
+                        bookingActionLabel(type),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: Brand.navy,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Brand.gold,
+                        foregroundColor: Brand.navy,
+                        elevation: 3,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    );
+
+              if (isNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titleContent,
+                    if (bookButton != null) ...[
+                      const SizedBox(height: 12),
+                      bookButton,
+                    ],
+                  ],
                 );
+              }
 
-          if (isNarrow) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                titleContent,
-                if (bookButton != null) ...[
-                  const SizedBox(height: 16),
-                  bookButton,
+              return Row(
+                children: [
+                  Expanded(child: titleContent),
+                  if (bookButton != null) ...[
+                    const SizedBox(width: 20),
+                    bookButton,
+                  ],
                 ],
-              ],
-            );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(child: titleContent),
-              if (bookButton != null) ...[
-                const SizedBox(width: 16),
-                bookButton,
-              ],
-            ],
-          );
-        },
-      ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -380,68 +370,35 @@ class _StudentOverviewStats extends StatelessWidget {
   const _StudentOverviewStats({
     required this.upcomingCount,
     required this.completedCount,
-    required this.nextSessionSummary,
-    this.hasActionableBooking = false,
-    this.onBook,
   });
 
   final int upcomingCount;
   final int completedCount;
-  final String nextSessionSummary;
-  final bool hasActionableBooking;
-  final VoidCallback? onBook;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 680;
-
-        final cards = [
-          _StudentMetricCard(
-            title: 'Upcoming Sessions',
+    return Row(
+      children: [
+        Expanded(
+          child: _StudentMetricCard(
+            title: 'Upcoming',
             value: '$upcomingCount',
-            subtitle: upcomingCount == 0 ? 'No active classes' : 'Scheduled & ready',
+            subtitle: upcomingCount == 0 ? 'None' : 'Ready',
             icon: Icons.event_available_rounded,
             accentColor: Brand.gold,
           ),
-          _StudentMetricCard(
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StudentMetricCard(
             title: 'Completed',
             value: '$completedCount',
-            subtitle: 'Attended sessions',
+            subtitle: 'Attended',
             icon: Icons.verified_rounded,
             accentColor: const Color(0xFF10B981),
           ),
-          _StudentMetricCard(
-            title: hasActionableBooking ? 'Next Step' : 'Next Session',
-            value: hasActionableBooking ? 'Ready to Book' : (upcomingCount > 0 ? 'Confirmed' : 'Up to date'),
-            subtitle: nextSessionSummary,
-            icon: Icons.timer_outlined,
-            accentColor: const Color(0xFF38BDF8),
-            onTap: hasActionableBooking ? onBook : null,
-          ),
-        ];
-
-        if (isNarrow) {
-          return Column(
-            children: [
-              for (int i = 0; i < cards.length; i++) ...[
-                cards[i],
-                if (i < cards.length - 1) const SizedBox(height: 10),
-              ],
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            for (int i = 0; i < cards.length; i++) ...[
-              Expanded(child: cards[i]),
-              if (i < cards.length - 1) const SizedBox(width: 12),
-            ],
-          ],
-        );
-      },
+        ),
+      ],
     );
   }
 }
@@ -734,43 +691,16 @@ class _ExecutiveStudentSessionCardState extends ConsumerState<_ExecutiveStudentS
         ? booking.teacherName!
         : 'Master Teacher';
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        transform: _hovered ? Matrix4.translationValues(0, -3, 0) : Matrix4.identity(),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: _hovered
-                ? Brand.gold.withValues(alpha: 0.6)
-                : Brand.gold.withValues(alpha: 0.22),
-            width: _hovered ? 1.4 : 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: _hovered
-                  ? Brand.gold.withValues(alpha: 0.2)
-                  : Brand.navy.withValues(alpha: 0.06),
-              blurRadius: _hovered ? 20 : 10,
-              offset: _hovered ? const Offset(0, 7) : const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isNarrow = constraints.maxWidth < 680;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 680;
 
-            // 1. Two-Tone Date Badge
+        // 1. Two-Tone Date Badge
             final dateBadge = Container(
-              width: 68,
-              height: 74,
+              width: isNarrow ? 56 : 68,
+              height: isNarrow ? 62 : 74,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(isNarrow ? 12 : 16),
                 border: Border.all(color: Brand.gold.withValues(alpha: 0.35)),
                 boxShadow: [
                   BoxShadow(
@@ -784,17 +714,17 @@ class _ExecutiveStudentSessionCardState extends ConsumerState<_ExecutiveStudentS
                 children: [
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: const BoxDecoration(
+                    padding: EdgeInsets.symmetric(vertical: isNarrow ? 2.5 : 4),
+                    decoration: BoxDecoration(
                       color: Brand.navy,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(isNarrow ? 11 : 15)),
                     ),
                     child: Center(
                       child: Text(
                         month,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Brand.gold,
-                          fontSize: 11,
+                          fontSize: isNarrow ? 9.5 : 11,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.0,
                         ),
@@ -803,29 +733,29 @@ class _ExecutiveStudentSessionCardState extends ConsumerState<_ExecutiveStudentS
                   ),
                   Expanded(
                     child: Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(15)),
+                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(isNarrow ? 11 : 15)),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             day,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Academy.ink,
-                              fontSize: 22,
+                              fontSize: isNarrow ? 18 : 22,
                               fontWeight: FontWeight.w900,
                               height: 1.0,
                             ),
                           ),
                           if (weekday.isNotEmpty) ...[
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 1),
                             Text(
                               weekday,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Academy.muted,
-                                fontSize: 10,
+                                fontSize: isNarrow ? 8.5 : 10,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.6,
                               ),
@@ -1250,37 +1180,64 @@ class _ExecutiveStudentSessionCardState extends ConsumerState<_ExecutiveStudentS
               ],
             );
 
-            if (isNarrow) {
-              return Column(
+        final content = isNarrow
+            ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       dateBadge,
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
                       Expanded(child: infoSection),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
+                  actionsSection,
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  dateBadge,
+                  const SizedBox(width: 18),
+                  Expanded(child: infoSection),
+                  const SizedBox(width: 16),
                   actionsSection,
                 ],
               );
-            }
 
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                dateBadge,
-                const SizedBox(width: 18),
-                Expanded(child: infoSection),
-                const SizedBox(width: 16),
-                actionsSection,
+        return MouseRegion(
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            transform: _hovered ? Matrix4.translationValues(0, -3, 0) : Matrix4.identity(),
+            padding: EdgeInsets.all(isNarrow ? 12 : 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(isNarrow ? 14 : 18),
+              border: Border.all(
+                color: _hovered
+                    ? Brand.gold.withValues(alpha: 0.6)
+                    : Brand.gold.withValues(alpha: 0.22),
+                width: _hovered ? 1.4 : 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _hovered
+                      ? Brand.gold.withValues(alpha: 0.2)
+                      : Brand.navy.withValues(alpha: 0.06),
+                  blurRadius: _hovered ? 20 : 10,
+                  offset: _hovered ? const Offset(0, 7) : const Offset(0, 3),
+                ),
               ],
-            );
-          },
-        ),
-      ),
+            ),
+            child: content,
+          ),
+        );
+      },
     );
   }
 }
@@ -1497,24 +1454,34 @@ class _StudentBookingWizardPageState extends ConsumerState<StudentBookingWizardP
         data: (state) {
           final type = _resolvedType(state);
           final canChooseType = !_reschedule && state.canBookIntroduction && state.canBookMasterClass && !_typeLocked;
+          final isMobile = MediaQuery.sizeOf(context).width < 768;
           return ListView(
-            padding: const EdgeInsets.only(bottom: 48),
+            padding: EdgeInsets.only(bottom: isMobile ? 24 : 48),
             children: [
               Text(
                 _reschedule ? 'Reschedule your session' : bookingActionLabel(type),
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Academy.ink),
+                style: TextStyle(
+                  fontSize: isMobile ? 20 : 28,
+                  fontWeight: FontWeight.w800,
+                  color: Academy.ink,
+                  letterSpacing: -0.4,
+                ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: isMobile ? 4 : 8),
               Text(
                 type == 'introduction_call'
                     ? (state.introductionLastChance
                         ? 'This is your last chance to complete the Introduction Call. Please be available at the booked time. If this slot is missed, another interview cannot be booked.'
                         : 'Choose a teacher, then pick one available time for your Introduction Call.')
                     : 'Choose a teacher, then pick one available time for your Master Class.',
-                style: const TextStyle(color: Academy.muted, height: 1.45),
+                style: TextStyle(
+                  color: Academy.muted,
+                  height: 1.4,
+                  fontSize: isMobile ? 13 : 14,
+                ),
               ),
               if (_reschedule && current != null) ...[
-                const SizedBox(height: 20),
+                SizedBox(height: isMobile ? 12 : 20),
                 AcademySurface(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1529,7 +1496,7 @@ class _StudentBookingWizardPageState extends ConsumerState<StudentBookingWizardP
                 ),
               ],
               if (canChooseType) ...[
-                const SizedBox(height: 24),
+                SizedBox(height: isMobile ? 14 : 24),
                 _TypeStep(
                   canIntro: state.canBookIntroduction,
                   canMaster: state.canBookMasterClass,
@@ -1541,17 +1508,21 @@ class _StudentBookingWizardPageState extends ConsumerState<StudentBookingWizardP
                   }),
                 ),
               ],
-              const SizedBox(height: 24),
+              SizedBox(height: isMobile ? 14 : 24),
               const AcademyLabel('Your faculty'),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: isMobile ? 4 : 8),
+              Text(
                 'Tap a teacher to continue. Their available times will appear below.',
-                style: TextStyle(color: Academy.muted, height: 1.45),
+                style: TextStyle(
+                  color: Academy.muted,
+                  height: 1.4,
+                  fontSize: isMobile ? 12 : 14,
+                ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: isMobile ? 10 : 16),
               teachers.when(
                 skipLoadingOnReload: true,
-                loading: () => const AcademySkeleton(height: 220),
+                loading: () => AcademySkeleton(height: isMobile ? 120 : 220),
                 error: (_, _) => AcademyError(onRetry: () => ref.invalidate(studentBookingTeachersProvider)),
                 data: (items) => TeacherPicker(
                   teachers: items,
@@ -1567,7 +1538,7 @@ class _StudentBookingWizardPageState extends ConsumerState<StudentBookingWizardP
                 ),
               ),
               if (_teacher != null) ...[
-                const SizedBox(height: 28),
+                SizedBox(height: isMobile ? 16 : 28),
                 _TimeStep(
                   teacherName: _teacher!.fullName,
                   teacherId: _teacher!.id,
@@ -1765,16 +1736,31 @@ class _ChoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     return AcademySurface(
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Academy.ink)),
-          const SizedBox(height: 8),
-          Text(body, style: const TextStyle(color: Academy.muted, height: 1.45)),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: isMobile ? 16 : 20,
+              fontWeight: FontWeight.w800,
+              color: Academy.ink,
+            ),
+          ),
+          SizedBox(height: isMobile ? 4 : 8),
+          Text(
+            body,
+            style: TextStyle(
+              color: Academy.muted,
+              height: 1.4,
+              fontSize: isMobile ? 12 : 14,
+            ),
+          ),
           if (selected) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: isMobile ? 6 : 8),
             const Text('Selected', style: TextStyle(color: Brand.goldDark, fontWeight: FontWeight.w700)),
           ],
         ],

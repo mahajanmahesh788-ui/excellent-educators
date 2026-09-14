@@ -21,7 +21,6 @@ class UpdateAptitudeAssessmentRequest extends FormRequest
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'career_compass_level_id' => ['sometimes', 'required', 'ulid', 'exists:career_compass_levels,id'],
             'questions' => ['sometimes', 'array'],
             'questions.*.question_text' => ['required_with:questions', 'string', 'max:2000'],
             'questions.*.display_order' => ['nullable', 'integer', 'min:1'],

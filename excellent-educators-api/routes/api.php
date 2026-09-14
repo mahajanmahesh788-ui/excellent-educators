@@ -11,7 +11,7 @@ use App\Http\Controllers\Api\V1\Teacher\ScheduleController as TeacherScheduleCon
 use App\Http\Controllers\Api\V1\Admin\AdminRequestController as AdminAdminRequestController;
 use App\Http\Controllers\Api\V1\Admin\AptitudeAssessmentController as AdminAptitudeAssessmentController;
 use App\Http\Controllers\Api\V1\Admin\BatchController as AdminBatchController;
-use App\Http\Controllers\Api\V1\Admin\CareerCompassLevelController;
+use App\Http\Controllers\Api\V1\Admin\DailyMeetingController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\DevelopmentController as AdminDevelopmentController;
 use App\Http\Controllers\Api\V1\Admin\LoginPageContentController as AdminLoginPageContentController;
@@ -31,8 +31,6 @@ use App\Http\Controllers\Api\V1\Student\AdminRequestController as StudentAdminRe
 use App\Http\Controllers\Api\V1\Student\AssessmentController as StudentAssessmentController;
 use App\Http\Controllers\Api\V1\Student\ProfileController;
 use App\Http\Controllers\Api\V1\Teacher\AdminRequestController as TeacherAdminRequestController;
-use App\Http\Controllers\Api\V1\Teacher\AssessmentController as TeacherAssessmentController;
-use App\Http\Controllers\Api\V1\Teacher\BatchController as TeacherBatchController;
 use App\Http\Controllers\Api\V1\Teacher\ProfileController as TeacherProfileController;
 use App\Http\Controllers\Api\V1\Teacher\StudentController as TeacherStudentController;
 use App\Http\Controllers\Api\V1\Teacher\StudentLearningController as TeacherStudentLearningController;
@@ -62,7 +60,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function (): void {
     Route::get('dashboard', [DashboardController::class, 'show']);
-    Route::get('career-compass-levels', [CareerCompassLevelController::class, 'index']);
 
     Route::get('students', [AdminStudentController::class, 'index']);
     Route::post('students', [AdminStudentController::class, 'store']);
@@ -78,6 +75,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::post('teachers', [AdminTeacherController::class, 'store']);
     Route::get('teachers/{teacher}', [AdminTeacherController::class, 'show']);
     Route::get('teachers/{teacher}/dashboard', [AdminTeacherController::class, 'dashboard']);
+    Route::get('teachers/{teacher}/history', [AdminTeacherController::class, 'history']);
+    Route::get('teachers/{teacher}/promoted-students', [AdminTeacherController::class, 'promotedStudents']);
     Route::put('teachers/{teacher}', [AdminTeacherController::class, 'update']);
 
     Route::get('batches', [AdminBatchController::class, 'index']);
@@ -88,8 +87,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('batches/{batch}/students', [AdminBatchController::class, 'students']);
     Route::post('batches/{batch}/students', [AdminBatchController::class, 'enroll']);
     Route::delete('batches/{batch}/students/{student}', [AdminBatchController::class, 'unenroll']);
-    Route::post('batches/{batch}/teacher', [AdminBatchController::class, 'assignTeacher']);
-    Route::delete('batches/{batch}/teacher', [AdminBatchController::class, 'unassignTeacher']);
 
     Route::get('levels', [AcademicLevelController::class, 'index']);
     Route::post('levels', [AcademicLevelController::class, 'store']);
@@ -179,15 +176,7 @@ Route::middleware(['auth:sanctum', 'role:common_teacher|master_teacher'])->group
     Route::post('teacher/schedule/bookings/{booking}/whatsapp', [TeacherScheduleController::class, 'whatsappStudent']);
 });
 
-Route::middleware(['auth:sanctum', 'role:common_teacher'])->prefix('teacher')->group(function (): void {
-    Route::get('batches', [TeacherBatchController::class, 'index']);
-    Route::get('batches/{batch}/students', [TeacherBatchController::class, 'students']);
-    Route::get('batches/{batch}/assessments', [TeacherAssessmentController::class, 'index']);
-    Route::post('batches/{batch}/assessments', [TeacherAssessmentController::class, 'store']);
-    Route::get('batches/{batch}/assessments/{assessment}', [TeacherAssessmentController::class, 'show']);
-    Route::put('batches/{batch}/assessments/{assessment}', [TeacherAssessmentController::class, 'update']);
-    Route::get('batches/{batch}/assessments/{assessment}/scores', [TeacherAssessmentController::class, 'scores']);
-    Route::put('batches/{batch}/assessments/{assessment}/scores', [TeacherAssessmentController::class, 'recordScores']);
+Route::middleware(['auth:sanctum', 'role:master_teacher'])->prefix('teacher')->group(function (): void {
     Route::get('students/{student}', [TeacherStudentController::class, 'show']);
     Route::get('students/{student}/results', [TeacherStudentResultController::class, 'show']);
     Route::get('students/{student}/feedback', [TeacherStudentFeedbackController::class, 'index']);

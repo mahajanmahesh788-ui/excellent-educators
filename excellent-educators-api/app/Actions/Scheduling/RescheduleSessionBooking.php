@@ -54,7 +54,7 @@ class RescheduleSessionBooking
                 && ! $this->eligibility->canBookMasterClass($student, $booking->id)) {
                 throw new ApiException(
                     ErrorCode::MASTER_CLASS_MONTHLY_LIMIT,
-                    'Master Class can be booked twice in a month if the first session is missed. Both chances are used, or a session is already booked.',
+                    'This Master Class is already used for this month.',
                     422,
                 );
             }

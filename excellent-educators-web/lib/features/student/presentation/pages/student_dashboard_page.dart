@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
@@ -13,11 +15,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class StudentDashboardPage extends ConsumerWidget {
+class StudentDashboardPage extends ConsumerStatefulWidget {
   const StudentDashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StudentDashboardPage> createState() => _StudentDashboardPageState();
+}
+
+class _StudentDashboardPageState extends ConsumerState<StudentDashboardPage> {
+  Timer? _refresh;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (!mounted) {
+        return;
+      }
+      ref.invalidate(studentBookingsProvider);
+      ref.invalidate(studentEligibilityProvider);
+    });
+  }
+
+  @override
+  void dispose() {
+    _refresh?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final profile = ref.watch(studentProfileProvider);
     final eligibility = ref.watch(studentEligibilityProvider);
     final bookings = ref.watch(studentBookingsProvider);
@@ -111,20 +138,25 @@ class StudentDashboardPage extends ConsumerWidget {
                   eligibility: eligibility.requireValue,
                   bookings: bookings.requireValue,
                 );
+          final isMobile = MediaQuery.sizeOf(context).width < 600;
           return ListView(
-            padding: const EdgeInsets.only(bottom: 48),
+            padding: EdgeInsets.only(bottom: isMobile ? 24 : 48),
             children: [
               if (snapshot == null)
                 const AcademySkeleton(height: 220)
               else
                 StudentHero(student: student, snapshot: snapshot),
-              const SizedBox(height: 24),
+              if (snapshot?.joinableSession != null) ...[
+                SizedBox(height: isMobile ? 10 : 16),
+                LiveJoinBanner(booking: snapshot!.joinableSession!),
+              ],
+              SizedBox(height: isMobile ? 12 : 24),
               learning.when(
                 loading: () => const AcademySkeleton(height: 180),
                 error: (_, _) => AcademyError(onRetry: () => ref.invalidate(studentLearningDashboardProvider)),
                 data: (dashboard) => CurrentLearningCard(dashboard: dashboard),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: isMobile ? 12 : 24),
               if (snapshot == null)
                 const AcademySkeleton(height: 200)
               else
@@ -134,7 +166,7 @@ class StudentDashboardPage extends ConsumerWidget {
                       return Column(
                         children: [
                           NextSessionCard(snapshot: snapshot),
-                          const SizedBox(height: 16),
+                          SizedBox(height: isMobile ? 12 : 16),
                           LearningJourney(snapshot: snapshot),
                         ],
                       );
@@ -149,25 +181,30 @@ class StudentDashboardPage extends ConsumerWidget {
                     );
                   },
                 ),
-              const SizedBox(height: 32),
+              SizedBox(height: isMobile ? 16 : 32),
               if (snapshot != null) MonthlyProgressCard(snapshot: snapshot),
-              const SizedBox(height: 32),
+              SizedBox(height: isMobile ? 16 : 32),
               const AcademyLabel('What would you like to do?'),
-              const SizedBox(height: 12),
+              SizedBox(height: isMobile ? 8 : 12),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final cols = constraints.maxWidth >= 900 ? 4 : constraints.maxWidth >= 640 ? 2 : 1;
+                  final cols = constraints.maxWidth >= 900
+                      ? (snapshot?.primaryType == null ? 3 : 4)
+                      : constraints.maxWidth >= 640
+                          ? 2
+                          : 1;
                   const gap = 12.0;
                   final width = (constraints.maxWidth - gap * (cols - 1)) / cols;
                   final actions = [
-                    QuickActionCard(
-                      title: bookingActionLabel(snapshot?.primaryType),
-                      body: 'Find your next available time.',
-                      onTap: () {
-                        final type = snapshot?.primaryType;
-                        context.go(type == null ? RoutePaths.studentBookNew : '${RoutePaths.studentBookNew}?type=$type');
-                      },
-                    ),
+                    if (snapshot?.primaryType != null)
+                      QuickActionCard(
+                        title: bookingActionLabel(snapshot?.primaryType),
+                        body: 'Find your next available time.',
+                        onTap: () {
+                          final type = snapshot?.primaryType;
+                          context.go(type == null ? RoutePaths.studentBookNew : '${RoutePaths.studentBookNew}?type=$type');
+                        },
+                      ),
                     QuickActionCard(
                       title: 'My sessions',
                       body: 'View upcoming and past sessions.',

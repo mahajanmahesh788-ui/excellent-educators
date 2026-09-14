@@ -112,6 +112,10 @@ class SchedulingTest extends TestCase
             'start' => '11:00',
         ])->assertCreated();
 
+        $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.can_book_introduction', false);
+
         $intro = SessionBooking::query()->first();
         $intro->update([
             'status' => 'completed',
@@ -145,19 +149,14 @@ class SchedulingTest extends TestCase
             'date' => '2026-09-12',
         ]);
 
-        $second = $this->withToken($token)->postJson('/api/v1/student/bookings', [
-            'teacher_id' => $teacher->id,
-            'type' => 'master_class',
-            'date' => '2026-09-20',
-            'start' => '12:00',
-        ])->assertCreated();
-
-        $this->assertSame(2, $second->json('data.attempt_number'));
+        $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.can_book_master_class', false);
 
         $this->withToken($token)->postJson('/api/v1/student/bookings', [
             'teacher_id' => $teacher->id,
             'type' => 'master_class',
-            'date' => '2026-09-21',
+            'date' => '2026-09-20',
             'start' => '12:00',
         ])
             ->assertUnprocessable()
@@ -343,5 +342,27 @@ class SchedulingTest extends TestCase
         $this->app['auth']->forgetGuards();
 
         return $user->createToken('test')->plainTextToken;
+    }
+
+    public function test_live_introduction_or_master_class_cannot_be_booked_again(): void
+    {
+        [$student, $teacher] = $this->makeStudentWithTeacher();
+        $token = $this->tokenFor($student->user);
+
+        $this->book($student, $teacher, 'introduction_call', '2026-09-16', '10:00');
+        Carbon::setTestNow(Carbon::parse('2026-09-16 10:10:00', 'Asia/Kolkata'));
+
+        $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.can_book_introduction', false)
+            ->assertJsonPath('data.has_upcoming_introduction', true);
+
+        $this->withToken($token)->postJson('/api/v1/student/bookings', [
+            'teacher_id' => $teacher->id,
+            'type' => 'introduction_call',
+            'date' => '2026-09-17',
+            'start' => '11:00',
+        ])
+            ->assertStatus(409);
     }
 }

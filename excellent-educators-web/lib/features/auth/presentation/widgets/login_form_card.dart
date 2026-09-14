@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:excellent_educators_web/app/theme/breakpoints.dart';
+
 class LoginFormCard extends ConsumerStatefulWidget {
   const LoginFormCard({super.key});
 
@@ -42,6 +44,7 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
     final theme = Theme.of(context);
+    final isMobile = Breakpoints.isMobile(context);
     final content = ref.watch(loginPageContentProvider).maybeWhen(
           data: (value) => value,
           orElse: () => LoginPageContentDto.defaults,
@@ -54,22 +57,34 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-                  Text(
-                    content.formTitle,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: Brand.ink,
-              ),
+            Text(
+              content.formTitle,
+              style: isMobile
+                  ? const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Brand.ink,
+                    )
+                  : theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: Brand.ink,
+                    ),
             ),
-            const SizedBox(height: 6),
-                  Text(
-                    content.formSubtitle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Brand.muted,
-                height: 1.45,
-              ),
+            const SizedBox(height: 4),
+            Text(
+              content.formSubtitle,
+              style: isMobile
+                  ? const TextStyle(
+                      fontSize: 12.5,
+                      color: Brand.muted,
+                      height: 1.35,
+                    )
+                  : theme.textTheme.bodyMedium?.copyWith(
+                      color: Brand.muted,
+                      height: 1.45,
+                    ),
             ),
-            const SizedBox(height: 28),
+            SizedBox(height: isMobile ? 16 : 28),
             TextFormField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
@@ -88,7 +103,7 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: isMobile ? 10 : 16),
             TextFormField(
               controller: _password,
               obscureText: _obscure,
@@ -109,18 +124,25 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
               },
               onFieldSubmitted: (_) => _submit(),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () => context.go(RoutePaths.forgotPassword),
+                style: isMobile
+                    ? TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      )
+                    : null,
                 child: const Text('Forgot password?'),
               ),
             ),
             if (auth.error != null) ...[
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
@@ -128,13 +150,18 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
                 ),
                 child: Text(
                   auth.error!,
-                  style: TextStyle(color: theme.colorScheme.error),
+                  style: TextStyle(color: theme.colorScheme.error, fontSize: isMobile ? 12 : 13),
                 ),
               ),
             ],
-            const SizedBox(height: 20),
+            SizedBox(height: isMobile ? 12 : 20),
             FilledButton(
               onPressed: auth.isLoading ? null : _submit,
+              style: isMobile
+                  ? FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(42),
+                    )
+                  : null,
               child: auth.isLoading
                   ? const SizedBox(
                       height: 20,

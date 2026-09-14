@@ -93,4 +93,20 @@ void main() {
     expect(week.score!.percentage, 80);
     expect(week.score!.display, '4/5');
   });
+
+  test('attempt answers match question options and correct states', () {
+    final attempt = LearningAttemptDto.fromJson({
+      'attempt_number': 1,
+      'submitted_at': '2026-09-13T10:00:00Z',
+      'answers': [
+        {'question_id': 'q1', 'option_id': 'opt_earth'},
+        {'question_id': 'q2', 'option_id': 'opt_sun'},
+      ],
+    });
+
+    expect(attempt.attemptNumber, 1);
+    expect(attempt.optionIdFor('q1'), 'opt_earth');
+    expect(attempt.optionIdFor('q2'), 'opt_sun');
+    expect(attempt.optionIdFor('q3'), isNull);
+  });
 }

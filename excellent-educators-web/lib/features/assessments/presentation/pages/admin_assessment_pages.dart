@@ -3,7 +3,6 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
-import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_ui.dart';
 import 'package:excellent_educators_web/features/assessments/data/dto/assessment_dtos.dart';
@@ -46,13 +45,11 @@ class AdminAssessmentsPage extends ConsumerWidget {
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final assessment = items[index];
-              final level = assessment.careerCompassLevel;
               return Card(
                 child: ListTile(
                   title: Text(assessment.title),
                   subtitle: Text(
                     [
-                      if (level != null) level.displayName,
                       assessment.status,
                       '${assessment.questionsCount} questions',
                       if (assessment.createdAt != null) formatDisplayDateTime(assessment.createdAt),
@@ -144,7 +141,6 @@ class _OptionDraft {
 
 class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
   final _title = TextEditingController();
-  String? _levelId;
   String? _status;
   bool _saving = false;
   List<_QuestionDraft> _questions = [_QuestionDraft()];
@@ -169,7 +165,6 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
 
   void _applyInitial(AptitudeAssessmentDto assessment) {
     _title.text = assessment.title;
-    _levelId = assessment.careerCompassLevel?.id ?? assessment.careerCompassLevelId;
     _status = assessment.status;
     for (final question in _questions) {
       question.dispose();
@@ -196,7 +191,6 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
   Map<String, dynamic> _payload() {
     return {
       'title': _title.text.trim(),
-      'career_compass_level_id': _levelId,
       'questions': [
         for (var i = 0; i < _questions.length; i++)
           {
@@ -218,9 +212,6 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
   String? _validate() {
     if (_title.text.trim().isEmpty) {
       return 'Title is required.';
-    }
-    if (_levelId == null) {
-      return 'Select a Career Compass level.';
     }
     if (_questions.isEmpty) {
       return 'Add at least one question.';
@@ -307,8 +298,6 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
 
   @override
   Widget build(BuildContext context) {
-    final levels = ref.watch(careerCompassLevelsProvider);
-
     return ListView(
       key: const PageStorageKey('admin-assessment-editor'),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -316,22 +305,6 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
         TextField(
           controller: _title,
           decoration: const InputDecoration(labelText: 'Title'),
-        ),
-        const SizedBox(height: 12),
-        AsyncBody(
-          value: levels,
-          builder: (items) {
-            return DropdownButtonFormField<String>(
-              key: const ValueKey('assessment-level-dropdown'),
-              initialValue: _levelId,
-              decoration: const InputDecoration(labelText: 'Career Compass level'),
-              items: [
-                for (final level in items)
-                  DropdownMenuItem(value: level.id, child: Text(level.displayName)),
-              ],
-              onChanged: (value) => setState(() => _levelId = value),
-            );
-          },
         ),
         const SizedBox(height: 20),
         const Text('Questions', style: TextStyle(fontWeight: FontWeight.w700, color: Brand.navy)),

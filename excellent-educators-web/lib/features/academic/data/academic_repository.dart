@@ -40,31 +40,32 @@ class AcademicRepository {
         .toList();
   }
 
-  Future<List<CareerCompassLevelDto>> careerCompassLevels() {
+  Future<AdminDashboardDto> adminDashboard({
+    int? year,
+    int? month,
+  }) {
     return _run(() async {
-      final items = await _client.getList(ApiEndpoints.careerCompassLevels);
-      return items
-          .whereType<Map>()
-          .map((item) => CareerCompassLevelDto.fromJson(Map<String, dynamic>.from(item)))
-          .toList();
-    });
-  }
-
-  Future<AdminDashboardDto> adminDashboard() {
-    return _run(() async {
-      final json = await _client.get(ApiEndpoints.adminDashboard);
+      final json = await _client.get(
+        ApiEndpoints.adminDashboard,
+        query: {
+          if (year != null) 'year': year.toString(),
+          if (month != null) 'month': month.toString(),
+        },
+      );
       return AdminDashboardDto.fromJson(json!);
     });
   }
 
   Future<PagedResult> adminStudents({
     String? search,
-    String? careerCompassLevelId,
     String? status,
+    String? levelId,
+    String? batchId,
     bool withoutBatch = false,
     bool withoutMasterTeacher = false,
     bool assessmentPending = false,
     bool withoutRatingThisMonth = false,
+    String? spotlight,
     int page = 1,
     int perPage = 25,
   }) {
@@ -73,13 +74,14 @@ class AcademicRepository {
         ApiEndpoints.adminStudents,
         query: {
           if (search != null && search.isNotEmpty) 'search': search,
-          if (careerCompassLevelId != null && careerCompassLevelId.isNotEmpty)
-            'career_compass_level_id': careerCompassLevelId,
           if (status != null && status.isNotEmpty) 'status': status,
+          if (levelId != null && levelId.isNotEmpty) 'level_id': levelId,
+          if (batchId != null && batchId.isNotEmpty) 'batch_id': batchId,
           if (withoutBatch) 'without_batch': 'true',
           if (withoutMasterTeacher) 'without_master_teacher': 'true',
           if (assessmentPending) 'assessment_pending': 'true',
           if (withoutRatingThisMonth) 'without_rating_this_month': 'true',
+          if (spotlight != null && spotlight.isNotEmpty) 'spotlight': spotlight,
           'page': '$page',
           'per_page': '$perPage',
         },
@@ -158,6 +160,20 @@ class AcademicRepository {
     });
   }
 
+  Future<TeacherHistoryDto> adminTeacherHistory(String id) {
+    return _run(() async {
+      final json = await _client.get(ApiEndpoints.adminTeacherHistory(id));
+      return TeacherHistoryDto.fromJson(json!);
+    });
+  }
+
+  Future<List<StudentDto>> adminTeacherPromotedStudents(String id) {
+    return _run(() async {
+      final items = await _client.getList(ApiEndpoints.adminTeacherPromotedStudents(id));
+      return _students(items);
+    });
+  }
+
   Future<TeacherDto> updateTeacher(String id, Map<String, dynamic> data) {
     return _run(() async {
       final json = await _client.put(ApiEndpoints.adminTeacher(id), data: data);
@@ -174,9 +190,7 @@ class AcademicRepository {
 
   Future<PagedResult> adminBatches({
     String? search,
-    String? careerCompassLevelId,
     String? status,
-    bool withoutCommonTeacher = false,
     bool full = false,
     int page = 1,
     int perPage = 25,
@@ -186,10 +200,7 @@ class AcademicRepository {
         ApiEndpoints.adminBatches,
         query: {
           if (search != null && search.isNotEmpty) 'search': search,
-          if (careerCompassLevelId != null && careerCompassLevelId.isNotEmpty)
-            'career_compass_level_id': careerCompassLevelId,
           if (status != null && status.isNotEmpty) 'status': status,
-          if (withoutCommonTeacher) 'without_common_teacher': 'true',
           if (full) 'full': 'true',
           'page': '$page',
           'per_page': '$perPage',
@@ -311,13 +322,6 @@ class AcademicRepository {
     });
   }
 
-  Future<BatchDto> unassignCommonTeacher(String batchId) {
-    return _run(() async {
-      final json = await _client.delete(ApiEndpoints.adminBatchTeacher(batchId));
-      return BatchDto.fromJson(json!);
-    });
-  }
-
   Future<StudentDto> unassignMasterTeacher(String studentId) {
     return _run(() async {
       final json = await _client.delete(ApiEndpoints.adminStudentMentor(studentId));
@@ -411,16 +415,6 @@ class AcademicRepository {
         .whereType<Map>()
         .map((item) => AssessmentScoreDto.fromJson(Map<String, dynamic>.from(item)))
         .toList();
-  }
-
-  Future<BatchDto> assignCommonTeacher({required String batchId, required String teacherId}) {
-    return _run(() async {
-      final json = await _client.post(
-        ApiEndpoints.adminBatchTeacher(batchId),
-        data: {'teacher_id': teacherId},
-      );
-      return BatchDto.fromJson(json!);
-    });
   }
 
   Future<List<BatchDto>> teacherBatches() {

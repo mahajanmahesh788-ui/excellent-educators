@@ -4,6 +4,7 @@ namespace App\Scheduling;
 
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
+use App\Models\ClassAttendance;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
@@ -35,8 +36,10 @@ class BookingEligibility
             'can_book_master_class' => $this->canBookMasterClass($student),
             'has_upcoming_introduction' => $hasUpcomingIntro,
             'has_master_class_this_month' => ! $this->canBookMasterClass($student) && $introCompleted,
+            'master_class_rebooking_available' => app(\App\Attendance\AttendanceService::class)
+                ->unusedRebookingFor($student->id, SessionBookingType::MasterClass) !== null,
             'master_class_attempts_used' => $this->masterClassesThisMonth($student)->count(),
-            'master_class_attempts_max' => 2,
+            'master_class_attempts_max' => 1,
             'level_started_on' => $this->levelStartedOn($student),
             'current_month' => AppClock::currentYearMonth(),
         ];
@@ -68,7 +71,12 @@ class BookingEligibility
             ->where('student_id', $student->id)
             ->where('type', $type->value)
             ->where('status', SessionBookingStatus::Scheduled->value)
-            ->where('starts_at', '>', $now)
+            ->where(function ($query) use ($now): void {
+                $query->where('ends_at', '>', $now)
+                    ->orWhere(function ($fallback) use ($now): void {
+                        $fallback->whereNull('ends_at')->where('starts_at', '>=', $now);
+                    });
+            })
             ->when($ignoreBookingId, fn ($q) => $q->where('id', '!=', $ignoreBookingId))
             ->exists();
     }
@@ -82,12 +90,51 @@ class BookingEligibility
             return false;
         }
 
-        $items = $this->masterClassesThisMonth($student, $ignoreBookingId);
-        if ($items->contains(fn (SessionBooking $booking) => $booking->status === SessionBookingStatus::Completed)) {
-            return false;
+        if (app(\App\Attendance\AttendanceService::class)
+            ->unusedRebookingFor($student->id, SessionBookingType::MasterClass) !== null) {
+            return true;
         }
 
-        return $items->count() < 2;
+        $items = $this->masterClassesThisMonth($student, $ignoreBookingId);
+        $this->heldMasterClassIds($items);
+
+        return $this->masterClassesThisMonth($student, $ignoreBookingId)->isEmpty();
+    }
+
+    /**
+     * @param  Collection<int, SessionBooking>  $items
+     * @return list<string>
+     */
+    private function heldMasterClassIds(Collection $items): array
+    {
+        if ($items->isEmpty()) {
+            return [];
+        }
+
+        $joinedIds = ClassAttendance::query()
+            ->whereIn('booking_id', $items->pluck('id'))
+            ->where('student_join_count', '>', 0)
+            ->pluck('booking_id')
+            ->all();
+        $now = AppClock::now();
+        $held = [];
+
+        foreach ($items as $booking) {
+            $status = $booking->status instanceof SessionBookingStatus
+                ? $booking->status
+                : SessionBookingStatus::from((string) $booking->status);
+            $ended = $booking->ends_at !== null && $now->gte($booking->ends_at);
+            $joined = in_array($booking->id, $joinedIds, true);
+
+            if ($status === SessionBookingStatus::Completed || ($ended && $joined)) {
+                $held[] = $booking->id;
+                if ($status === SessionBookingStatus::Scheduled && $ended && $joined) {
+                    $booking->update(['status' => SessionBookingStatus::Completed->value]);
+                }
+            }
+        }
+
+        return $held;
     }
 
     /**
@@ -106,6 +153,9 @@ class BookingEligibility
             ->get()
             ->filter(function (SessionBooking $booking) use ($month): bool {
                 $local = $booking->starts_at?->timezone(config('app.timezone'));
+                if ($local === null && $booking->date !== null) {
+                    $local = $booking->date->timezone(config('app.timezone'));
+                }
                 if ($local === null) {
                     return false;
                 }

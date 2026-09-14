@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/app/theme/breakpoints.dart';
+import 'package:excellent_educators_web/core/widgets/app_logo.dart';
 import 'package:excellent_educators_web/features/auth/presentation/widgets/login_brand_panel.dart';
 import 'package:flutter/material.dart';
 
@@ -60,19 +61,20 @@ class _CompactAuthLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const LoginBrandPanel(compact: true),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
-              child: Transform.translate(
-                offset: const Offset(0, -18),
-                child: form,
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Center(
+                child: AppLogo(height: 52),
               ),
-            ),
-          ],
+              const SizedBox(height: 14),
+              form,
+            ],
+          ),
         ),
       ),
     );

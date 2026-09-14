@@ -8,9 +8,6 @@ final academicRepositoryProvider = Provider<AcademicRepository>((ref) {
   return AcademicRepository(ref.watch(apiClientProvider));
 });
 
-final careerCompassLevelsProvider = FutureProvider<List<CareerCompassLevelDto>>((ref) {
-  return ref.watch(academicRepositoryProvider).careerCompassLevels();
-});
 
 final adminLevelsProvider = FutureProvider.autoDispose<List<AcademicLevelDto>>((ref) {
   return ref.watch(academicRepositoryProvider).adminLevels();

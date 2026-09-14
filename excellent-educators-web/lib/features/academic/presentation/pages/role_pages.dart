@@ -396,12 +396,6 @@ class TeacherProfilePage extends ConsumerWidget {
                 title: 'Assignments',
                 child: Column(
                   children: [
-                    if (teacher.isCommonTeacher)
-                      _ProfileRow(
-                        icon: Icons.groups_rounded,
-                        label: 'Active batches',
-                        value: '${teacher.activeBatchCount ?? 0}',
-                      ),
                     _ProfileRow(
                       icon: Icons.layers_rounded,
                       label: 'Assigned level',

@@ -95,7 +95,7 @@ class SubmitStudentAssessment
 
                 return $result->fresh([
                     'dimensions',
-                    'attempt.assessment.careerCompassLevel',
+                    'attempt.assessment',
                     'student',
                 ]) ?? $result;
             });
@@ -114,14 +114,6 @@ class SubmitStudentAssessment
             throw new ApiException(
                 ErrorCode::ASSESSMENT_NOT_ACTIVE,
                 'This assessment is not available.',
-                422,
-            );
-        }
-
-        if ($assessment->career_compass_level_id !== $student->career_compass_level_id) {
-            throw new ApiException(
-                ErrorCode::ASSESSMENT_LEVEL_MISMATCH,
-                'This assessment does not match the student Career Compass level.',
                 422,
             );
         }

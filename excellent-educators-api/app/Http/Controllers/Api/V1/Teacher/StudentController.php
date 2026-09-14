@@ -21,7 +21,6 @@ class StudentController extends Controller
 
         $student->load([
             'user',
-            'careerCompassLevel',
             'activeEnrollment.batch.activeTeacherAssignment.teacher',
             'activeMasterTeacherAssignment.teacher',
         ])->loadCount([

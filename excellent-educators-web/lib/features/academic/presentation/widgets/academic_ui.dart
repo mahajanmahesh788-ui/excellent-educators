@@ -141,7 +141,6 @@ Future<StudentDto?> pickStudent({
   required BuildContext context,
   required AcademicRepository repo,
   required String title,
-  String? careerCompassLevelId,
   bool withoutBatch = false,
   String? emptyMessage,
 }) {
@@ -153,7 +152,6 @@ Future<StudentDto?> pickStudent({
       return _StudentSearchDialog(
         title: title,
         repo: repo,
-        careerCompassLevelId: careerCompassLevelId,
         withoutBatch: withoutBatch,
         emptyMessage: emptyMessage,
       );
@@ -315,7 +313,7 @@ class _TeacherSearchDialogState extends State<_TeacherSearchDialog> {
                               itemBuilder: (context, index) {
                                 final teacher = _items[index];
                                 final teachesLevel = widget.highlightLevelId != null &&
-                                    teacher.careerCompassLevels.any((level) => level.id == widget.highlightLevelId);
+                                    teacher.assignedLevels.contains(widget.highlightLevelId);
                                 return _PickerTeacherTile(
                                   teacher: teacher,
                                   highlighted: teachesLevel,
@@ -358,14 +356,12 @@ class _StudentSearchDialog extends StatefulWidget {
   const _StudentSearchDialog({
     required this.title,
     required this.repo,
-    this.careerCompassLevelId,
     this.withoutBatch = false,
     this.emptyMessage,
   });
 
   final String title;
   final AcademicRepository repo;
-  final String? careerCompassLevelId;
   final bool withoutBatch;
   final String? emptyMessage;
 
@@ -376,16 +372,16 @@ class _StudentSearchDialog extends StatefulWidget {
 class _StudentSearchDialogState extends State<_StudentSearchDialog> {
   final _search = TextEditingController();
   Timer? _debounce;
-  var _loading = true;
-  var _error = false;
-  var _page = 1;
-  var _total = 0;
-  List<StudentDto> _items = [];
+  List<StudentDto> _items = const [];
+  bool _loading = true;
+  bool _error = false;
+  int _page = 1;
+  int _total = 0;
 
   @override
   void initState() {
     super.initState();
-    _load(page: 1);
+    _load();
   }
 
   @override
@@ -395,7 +391,7 @@ class _StudentSearchDialogState extends State<_StudentSearchDialog> {
     super.dispose();
   }
 
-  Future<void> _load({required int page}) async {
+  Future<void> _load({int page = 1}) async {
     setState(() {
       _loading = true;
       _error = false;
@@ -403,7 +399,6 @@ class _StudentSearchDialogState extends State<_StudentSearchDialog> {
     try {
       final result = await widget.repo.adminStudents(
         search: _search.text.trim(),
-        careerCompassLevelId: widget.careerCompassLevelId,
         status: 'active',
         withoutBatch: widget.withoutBatch,
         page: page,
@@ -624,8 +619,6 @@ class _PickerStudentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final level = student.careerCompassLevel;
-
     return Material(
       color: Colors.white,
       shape: RoundedRectangleBorder(
@@ -671,10 +664,6 @@ class _PickerStudentTile extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        if (level != null)
-                          _PickerChip(label: level.displayName, tone: _PickerChipTone.level)
-                        else
-                          const _PickerChip(label: 'No Career Compass level', tone: _PickerChipTone.muted),
                         _PickerChip(label: student.studentCode, tone: _PickerChipTone.muted),
                         if (student.classGrade > 0)
                           _PickerChip(label: 'Class ${student.classGrade}', tone: _PickerChipTone.muted),

@@ -45,7 +45,7 @@ class DevelopmentController extends Controller
 
         $results = AptitudeAssessmentResult::query()
             ->where('student_id', $student->id)
-            ->with(['dimensions', 'attempt.assessment.careerCompassLevel', 'student'])
+            ->with(['dimensions', 'attempt.assessment', 'student'])
             ->orderByDesc('calculated_at')
             ->get();
 

@@ -30,7 +30,6 @@ class UpdateAptitudeAssessment
             }
 
             $assessment->fill([
-                'career_compass_level_id' => $input['career_compass_level_id'] ?? $assessment->career_compass_level_id,
                 'title' => $input['title'] ?? $assessment->title,
                 'description' => array_key_exists('description', $input) ? $input['description'] : $assessment->description,
                 'updated_by' => $actor->id,
@@ -46,7 +45,7 @@ class UpdateAptitudeAssessment
                 $this->recordQuestionStructure->replace($assessment, $input['questions']);
             }
 
-            return $assessment->fresh(['careerCompassLevel', 'questions.options.dimensionCodes']) ?? $assessment;
+            return $assessment->fresh(['questions.options.dimensionCodes']) ?? $assessment;
         });
     }
 }

@@ -6,12 +6,46 @@ import 'package:go_router/go_router.dart';
 
 const _attentionQueryKey = 'attention';
 
-String studentsRouteWithAttention(String attentionKey) {
-  return '${RoutePaths.adminStudents}?$_attentionQueryKey=$attentionKey';
+String studentsRouteWithAttention(String attentionKey, {String? levelId, String? status}) {
+  return studentsRouteWithFilters(attentionKey: attentionKey, levelId: levelId, status: status);
 }
 
-String batchesRouteWithAttention(String attentionKey) {
-  return '${RoutePaths.adminBatches}?$_attentionQueryKey=$attentionKey';
+String batchesRouteWithAttention(String attentionKey, {String? levelId, String? status}) {
+  return batchesRouteWithFilters(attentionKey: attentionKey, levelId: levelId, status: status);
+}
+
+String studentsRouteWithFilters({
+  String? attentionKey,
+  String? status,
+  String? levelId,
+  String? batchId,
+}) {
+  final params = <String, String>{
+    if (attentionKey != null && attentionKey.isNotEmpty) _attentionQueryKey: attentionKey,
+    if (status != null && status.isNotEmpty) 'status': status,
+    if (levelId != null && levelId.isNotEmpty) 'level_id': levelId,
+    if (batchId != null && batchId.isNotEmpty) 'batch_id': batchId,
+  };
+  if (params.isEmpty) {
+    return RoutePaths.adminStudents;
+  }
+  return Uri(path: RoutePaths.adminStudents, queryParameters: params).toString();
+}
+
+String batchesRouteWithFilters({
+  String? attentionKey,
+  String? status,
+  String? levelId,
+}) {
+  final params = <String, String>{
+    if (attentionKey != null && attentionKey.isNotEmpty) _attentionQueryKey: attentionKey,
+    if (status != null && status.isNotEmpty) 'status': status,
+    if (levelId != null && levelId.isNotEmpty) 'level_id': levelId,
+  };
+  if (params.isEmpty) {
+    return RoutePaths.adminBatches;
+  }
+  return Uri(path: RoutePaths.adminBatches, queryParameters: params).toString();
 }
 
 void scheduleStudentsFilterFromRoute(
@@ -20,11 +54,23 @@ void scheduleStudentsFilterFromRoute(
   required bool Function() isMounted,
 }) {
   final attention = state.uri.queryParameters[_attentionQueryKey];
-  if (attention == null || attention.isEmpty) {
+  final status = state.uri.queryParameters['status'];
+  final levelId = state.uri.queryParameters['level_id'];
+  final batchId = state.uri.queryParameters['batch_id'];
+
+  if ((attention == null || attention.isEmpty) &&
+      (status == null || status.isEmpty) &&
+      (levelId == null || levelId.isEmpty) &&
+      (batchId == null || batchId.isEmpty)) {
     return;
   }
 
-  final next = AdminListFilter(status: 'active', attentionKey: attention);
+  final next = AdminListFilter(
+    status: status ?? 'active',
+    attentionKey: attention,
+    levelId: levelId,
+    batchId: batchId,
+  );
   if (ref.read(adminStudentsFilterProvider) == next) {
     return;
   }
@@ -46,11 +92,20 @@ void scheduleBatchesFilterFromRoute(
   required bool Function() isMounted,
 }) {
   final attention = state.uri.queryParameters[_attentionQueryKey];
-  if (attention == null || attention.isEmpty) {
+  final status = state.uri.queryParameters['status'];
+  final levelId = state.uri.queryParameters['level_id'];
+
+  if ((attention == null || attention.isEmpty) &&
+      (status == null || status.isEmpty) &&
+      (levelId == null || levelId.isEmpty)) {
     return;
   }
 
-  final next = AdminListFilter(status: 'active', attentionKey: attention);
+  final next = AdminListFilter(
+    status: status ?? 'active',
+    attentionKey: attention,
+    levelId: levelId,
+  );
   if (ref.read(adminBatchesFilterProvider) == next) {
     return;
   }

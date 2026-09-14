@@ -124,10 +124,18 @@ class AttendanceService
     public function report(SessionBooking $booking, User $reporter, AttendanceIssueType $type, string $message): AttendanceIssue
     {
         $now = AppClock::now();
-        if ($booking->ends_at === null || $now->lt($booking->ends_at->timezone(config('app.timezone')))) {
+        $ends = $booking->ends_at?->timezone(config('app.timezone'));
+        if ($ends === null || $now->lt($ends)) {
             throw new ApiException(
                 ErrorCode::ATTENDANCE_REPORT_TOO_EARLY,
                 'Attendance issues can be reported after the class ends.',
+                422,
+            );
+        }
+        if (! $this->withinAbsenceReportWindow($ends, $now)) {
+            throw new ApiException(
+                ErrorCode::ATTENDANCE_REPORT_TOO_LATE,
+                'This report can only be submitted within 1 hour after the class ends.',
                 422,
             );
         }
@@ -266,12 +274,17 @@ class AttendanceService
         }
         $canStudentJoin = $viewer === 'student' && $booking->status === SessionBookingStatus::Scheduled && $studentJoinOpen;
         $canTeacherJoin = $viewer === 'teacher' && $booking->status !== SessionBookingStatus::Cancelled;
-        $canReportTeacher = $viewer === 'student' && $classEnded && ! $issues->contains(
-            fn (AttendanceIssue $issue) => $issue->issue_type === AttendanceIssueType::TeacherDidNotJoin,
-        );
-        $canReportStudent = $viewer === 'teacher' && $classEnded && ! $studentJoined && ! $issues->contains(
-            fn (AttendanceIssue $issue) => $issue->issue_type === AttendanceIssueType::StudentDidNotJoin,
-        );
+        $canReportTeacher = $viewer === 'student'
+            && $this->withinAbsenceReportWindow($ends, $now)
+            && ! $issues->contains(
+                fn (AttendanceIssue $issue) => $issue->issue_type === AttendanceIssueType::TeacherDidNotJoin,
+            );
+        $canReportStudent = $viewer === 'teacher'
+            && $this->withinAbsenceReportWindow($ends, $now)
+            && ! $studentJoined
+            && ! $issues->contains(
+                fn (AttendanceIssue $issue) => $issue->issue_type === AttendanceIssueType::StudentDidNotJoin,
+            );
         $isMasterClass = $booking->type === SessionBookingType::MasterClass;
         $existingRating = null;
         if ($isMasterClass && $booking->student_id && $booking->teacher_id && $booking->date) {
@@ -352,18 +365,36 @@ class AttendanceService
     /**
      * @return array<string, int>
      */
-    public function dashboardCounts(): array
+    public function dashboardCounts(?int $year = null, ?int $month = null): array
     {
+        $bookingFilter = function ($query) use ($year, $month): void {
+            if ($year !== null && $month !== null) {
+                $query->whereYear('date', $year)->whereMonth('date', $month);
+            }
+        };
+
+        $issueFilter = function ($query) use ($year, $month): void {
+            if ($year !== null && $month !== null) {
+                $query->whereYear('created_at', $year)->whereMonth('created_at', $month);
+            }
+        };
+
+        $attendanceFilter = function ($query) use ($year, $month): void {
+            if ($year !== null && $month !== null) {
+                $query->whereYear('rebooking_granted_at', $year)->whereMonth('rebooking_granted_at', $month);
+            }
+        };
+
         return [
-            'total_classes' => SessionBooking::query()->where('status', '!=', SessionBookingStatus::Cancelled->value)->count(),
-            'completed_classes' => SessionBooking::query()->where('status', SessionBookingStatus::Completed->value)->count(),
-            'pending_verification' => AttendanceIssue::query()->where('verification_status', AttendanceVerificationStatus::Pending->value)->count(),
-            'student_attendance_reports' => AttendanceIssue::query()->where('reporter_role', 'student')->count(),
-            'teacher_attendance_reports' => AttendanceIssue::query()->where('reporter_role', 'teacher')->count(),
-            'verified_teacher_absence' => AttendanceIssue::query()->where('admin_decision', AttendanceDecision::TeacherAbsent->value)->count(),
-            'verified_student_absence' => AttendanceIssue::query()->where('admin_decision', AttendanceDecision::StudentAbsent->value)->count(),
-            'technical_issues' => AttendanceIssue::query()->where('admin_decision', AttendanceDecision::TechnicalIssue->value)->count(),
-            'rebookings_given' => ClassAttendance::query()->where('rebooking_granted', true)->count(),
+            'total_classes' => SessionBooking::query()->where('status', '!=', SessionBookingStatus::Cancelled->value)->where($bookingFilter)->count(),
+            'completed_classes' => SessionBooking::query()->where('status', SessionBookingStatus::Completed->value)->where($bookingFilter)->count(),
+            'pending_verification' => AttendanceIssue::query()->where('verification_status', AttendanceVerificationStatus::Pending->value)->where($issueFilter)->count(),
+            'student_attendance_reports' => AttendanceIssue::query()->where('reporter_role', 'student')->where($issueFilter)->count(),
+            'teacher_attendance_reports' => AttendanceIssue::query()->where('reporter_role', 'teacher')->where($issueFilter)->count(),
+            'verified_teacher_absence' => AttendanceIssue::query()->where('admin_decision', AttendanceDecision::TeacherAbsent->value)->where($issueFilter)->count(),
+            'verified_student_absence' => AttendanceIssue::query()->where('admin_decision', AttendanceDecision::StudentAbsent->value)->where($issueFilter)->count(),
+            'technical_issues' => AttendanceIssue::query()->where('admin_decision', AttendanceDecision::TechnicalIssue->value)->where($issueFilter)->count(),
+            'rebookings_given' => ClassAttendance::query()->where('rebooking_granted', true)->where($attendanceFilter)->count(),
         ];
     }
 
@@ -474,6 +505,16 @@ class AttendanceService
                 422,
             );
         }
+    }
+
+    private function withinAbsenceReportWindow(mixed $ends, mixed $now): bool
+    {
+        if ($ends === null || $now === null) {
+            return false;
+        }
+        $minutes = (int) config('excellent_educators.attendance.absence_report_minutes', 60);
+
+        return $now->gte($ends) && $now->lte($ends->copy()->addMinutes($minutes));
     }
 
     private function lockAttendance(SessionBooking $booking): ClassAttendance

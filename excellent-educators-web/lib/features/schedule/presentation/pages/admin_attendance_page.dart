@@ -9,15 +9,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class AdminAttendancePage extends ConsumerStatefulWidget {
-  const AdminAttendancePage({super.key});
+  const AdminAttendancePage({super.key, this.issueId});
+
+  final String? issueId;
 
   @override
   ConsumerState<AdminAttendancePage> createState() => _AdminAttendancePageState();
 }
 
 class _AdminAttendancePageState extends ConsumerState<AdminAttendancePage> {
-  String _status = 'pending';
+  late String _status;
   AttendanceIssueDto? _open;
+  String? _openedIssueId;
+
+  @override
+  void initState() {
+    super.initState();
+    _status = widget.issueId != null && widget.issueId!.isNotEmpty ? 'all' : 'pending';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +56,21 @@ class _AdminAttendancePageState extends ConsumerState<AdminAttendancePage> {
               value: issues,
               onRetry: () => ref.invalidate(adminAttendanceProvider(_status)),
               builder: (items) {
+                final issueId = widget.issueId;
+                if (issueId != null && issueId.isNotEmpty && _openedIssueId != issueId) {
+                  final match = items.where((item) => item.id == issueId);
+                  if (match.isNotEmpty) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted || _openedIssueId == issueId) {
+                        return;
+                      }
+                      setState(() {
+                        _open = match.first;
+                        _openedIssueId = issueId;
+                      });
+                    });
+                  }
+                }
                 if (items.isEmpty) {
                   return const EmptyState(
                     title: 'No class conflicts',

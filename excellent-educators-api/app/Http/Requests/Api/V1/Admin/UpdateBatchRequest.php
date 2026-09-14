@@ -26,7 +26,6 @@ class UpdateBatchRequest extends FormRequest
                     ->where(fn ($query) => $query->where('level_id', $this->route('batch')?->level_id))
                     ->ignore($this->route('batch')),
             ],
-            'career_compass_level_id' => ['nullable', 'ulid', 'exists:career_compass_levels,id'],
             'academic_year' => ['sometimes', 'integer', 'min:2000', 'max:2100'],
             'year' => ['sometimes', 'integer', 'min:2000', 'max:2100'],
             'month' => ['sometimes', 'integer', 'min:1', 'max:12'],

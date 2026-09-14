@@ -2,18 +2,16 @@
 
 namespace App\Actions\Identity;
 
-use App\Models\CareerCompassLevel;
 use Illuminate\Support\Facades\DB;
 
 class GenerateStudentCode
 {
-    public function execute(CareerCompassLevel $level, int $academicYear): string
+    public function execute(int $academicYear): string
     {
         $campaign = strtoupper((string) config('excellent_educators.student_id.campaign_code', 'APS'));
-        $ccPrefix = strtoupper($level->code);
         $yearSuffix = str_pad((string) ($academicYear % 100), 2, '0', STR_PAD_LEFT);
 
-        return DB::transaction(function () use ($campaign, $academicYear, $ccPrefix, $yearSuffix): string {
+        return DB::transaction(function () use ($campaign, $academicYear, $yearSuffix): string {
             $exists = DB::table('student_code_sequences')
                 ->where('campaign_code', $campaign)
                 ->where('academic_year', $academicYear)

@@ -78,9 +78,7 @@ class _FakeAcademicRepository extends Fake implements AcademicRepository {
   @override
   Future<PagedResult> adminBatches({
     String? search,
-    String? careerCompassLevelId,
     String? status,
-    bool withoutCommonTeacher = false,
     bool full = false,
     int page = 1,
     int perPage = 25,

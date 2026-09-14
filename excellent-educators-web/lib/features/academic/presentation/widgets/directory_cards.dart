@@ -25,6 +25,7 @@ class StudentCard extends StatelessWidget {
     super.key,
     required this.student,
     this.action,
+    this.trailing,
     this.onTap,
     this.highlightOverallRating = false,
     this.showMonthRatingStatus = false,
@@ -32,6 +33,7 @@ class StudentCard extends StatelessWidget {
 
   final StudentDto student;
   final Widget? action;
+  final Widget? trailing;
   final VoidCallback? onTap;
   final bool highlightOverallRating;
   final bool showMonthRatingStatus;
@@ -46,21 +48,30 @@ class StudentCard extends StatelessWidget {
     }
 
     final ratingBadge = highlightOverallRating ? _OverallRatingBadge(student: student) : null;
-    Widget? trailing;
-    if (assessmentBadge != null && ratingBadge != null) {
-      trailing = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          assessmentBadge,
-          const SizedBox(width: 8),
-          ratingBadge,
-        ],
-      );
-    } else {
-      trailing = assessmentBadge ?? ratingBadge;
-    }
+    final trailingBadges = <Widget>[
+      if (assessmentBadge != null) assessmentBadge,
+      if (ratingBadge != null) ratingBadge,
+      if (trailing != null) trailing!,
+    ];
+    final trailingWidget = trailingBadges.isEmpty
+        ? null
+        : (trailingBadges.length == 1
+            ? trailingBadges.first
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 0; i < trailingBadges.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    trailingBadges[i],
+                  ],
+                ],
+              ));
 
     final chips = <_InfoChip>[
+      if (student.status == 'inactive')
+        const _InfoChip('Inactive', tone: _ChipTone.neutral)
+      else if (student.status == 'active')
+        const _InfoChip('Active', tone: _ChipTone.success),
       if (showMonthRatingStatus)
         student.feedbackFilterMonthCompleted
             ? const _InfoChip('Rated', tone: _ChipTone.success)
@@ -73,9 +84,9 @@ class StudentCard extends StatelessWidget {
     return _DirectoryCard(
       initials: _initials(student.fullName),
       title: title,
-      subtitle: null,
+      subtitle: student.email.isNotEmpty ? student.email : null,
       chips: chips,
-      trailing: trailing,
+      trailing: trailingWidget,
       facts: [
         if (student.createdAt != null)
           _Fact('Registered', formatDisplayDateTime(student.createdAt)),
@@ -92,6 +103,10 @@ class StudentCard extends StatelessWidget {
           _Fact('Level', student.batch!.label),
         if (student.batch != null && !student.batch!.isEmpty && student.level != null && !student.level!.isEmpty)
           _Fact('Batch', student.batch!.label),
+        if (student.guardianName != null && student.guardianName!.isNotEmpty)
+          _Fact('Guardian', student.guardianName!),
+        if (student.masterTeacher != null && !student.masterTeacher!.isEmpty)
+          _Fact('Master teacher', student.masterTeacher!.label),
         if (student.feedbackTotalSessions > 0)
           _Fact('Monthly ratings', '${student.feedbackTotalSessions} on record'),
       ],
@@ -204,7 +219,9 @@ class _DirectoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final wide = MediaQuery.sizeOf(context).width >= 900;
+    final width = MediaQuery.sizeOf(context).width;
+    final wide = width >= 900;
+    final isMobile = width < 600;
 
     return Material(
       color: Colors.white,
@@ -216,21 +233,26 @@ class _DirectoryCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          padding: EdgeInsets.fromLTRB(
+            isMobile ? 10 : 12,
+            isMobile ? 8 : 10,
+            isMobile ? 10 : 12,
+            isMobile ? 8 : 10,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 3,
-                height: 44,
-                margin: const EdgeInsets.only(right: 10, top: 2),
+                height: isMobile ? 36 : 44,
+                margin: EdgeInsets.only(right: isMobile ? 8 : 10, top: 2),
                 decoration: BoxDecoration(
                   color: Brand.gold,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              _Avatar(initials: initials),
-              const SizedBox(width: 12),
+              _Avatar(initials: initials, isCompact: isMobile),
+              SizedBox(width: isMobile ? 8 : 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,14 +265,17 @@ class _DirectoryCard extends StatelessWidget {
                             children: [
                               Text(
                                 title,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Brand.navy,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 16,
+                                  fontSize: isMobile ? 14.5 : 16,
                                 ),
                               ),
                               if (subtitle != null)
-                                Text(subtitle!, style: const TextStyle(color: Brand.muted, fontSize: 13)),
+                                Text(
+                                  subtitle!,
+                                  style: TextStyle(color: Brand.muted, fontSize: isMobile ? 12 : 13),
+                                ),
                             ],
                           ),
                         ),
@@ -262,14 +287,14 @@ class _DirectoryCard extends StatelessWidget {
                       ],
                     ),
                     if (chips.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Wrap(spacing: 6, runSpacing: 6, children: chips),
+                      const SizedBox(height: 5),
+                      Wrap(spacing: 5, runSpacing: 4, children: chips),
                     ],
                     if (facts.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                      SizedBox(height: isMobile ? 6 : 8),
                       Wrap(
-                        spacing: 20,
-                        runSpacing: 4,
+                        spacing: isMobile ? 12 : 20,
+                        runSpacing: 3,
                         children: [for (final fact in facts) _FactView(fact)],
                       ),
                     ],
@@ -289,18 +314,23 @@ class _DirectoryCard extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.initials});
+  const _Avatar({required this.initials, this.isCompact = false});
 
   final String initials;
+  final bool isCompact;
 
   @override
   Widget build(BuildContext context) {
     return CircleAvatar(
-      radius: 18,
+      radius: isCompact ? 15 : 18,
       backgroundColor: Brand.navy,
       child: Text(
         initials,
-        style: const TextStyle(color: Brand.gold, fontWeight: FontWeight.w700, fontSize: 12),
+        style: TextStyle(
+          color: Brand.gold,
+          fontWeight: FontWeight.w700,
+          fontSize: isCompact ? 11 : 12,
+        ),
       ),
     );
   }

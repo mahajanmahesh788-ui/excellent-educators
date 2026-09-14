@@ -60,9 +60,6 @@ class AptitudeAssessmentResultResource extends JsonResource
                 'id' => $assessment->id,
                 'title' => $assessment->title,
             ],
-            'career_compass_level' => $assessment?->careerCompassLevel === null
-                ? null
-                : CareerCompassLevelResource::make($assessment->careerCompassLevel)->resolve(),
             'student' => $this->whenLoaded('student', fn () => [
                 'id' => $this->student->id,
                 'full_name' => $this->student->full_name,

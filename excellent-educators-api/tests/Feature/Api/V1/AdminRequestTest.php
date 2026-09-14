@@ -4,11 +4,9 @@ namespace Tests\Feature\Api\V1;
 
 use App\Enums\AdminRequestStatus;
 use App\Enums\RoleName;
-use App\Models\CareerCompassLevel;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
-use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
@@ -21,7 +19,7 @@ class AdminRequestTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class]);
+        $this->seed([RoleSeeder::class]);
     }
 
     public function test_student_submits_and_lists_requests(): void
@@ -46,7 +44,7 @@ class AdminRequestTest extends TestCase
 
     public function test_teacher_submits_request(): void
     {
-        $teacher = $this->makeTeacher(['common_teacher'], 'req-teacher@excellenteducators.test');
+        $teacher = $this->makeTeacher(['master_teacher'], 'req-teacher@excellenteducators.test');
         $token = $this->tokenFor($teacher->user);
 
         $this->withToken($token)->postJson('/api/v1/teacher/requests', [
@@ -122,7 +120,6 @@ class AdminRequestTest extends TestCase
     public function test_master_teacher_can_request_mentee_removal_and_admin_can_approve(): void
     {
         $admin = $this->makeAdmin();
-        $cc1 = CareerCompassLevel::query()->where('code', 'cc1')->firstOrFail();
         $master = $this->makeTeacher(['master_teacher'], 'req-remove-master@excellenteducators.test');
         $phone = (string) (9300000000 + random_int(1000, 9999));
 
@@ -131,7 +128,7 @@ class AdminRequestTest extends TestCase
             'email' => 'req-remove-student@excellenteducators.test',
             'password' => 'StudentPass1!',
             'phone' => $phone,
-            'career_compass_level_id' => $cc1->id,
+            'class_grade' => 5,
         ])->assertCreated()->json('data.id');
 
         $this->withToken($this->tokenFor($admin))->putJson("/api/v1/admin/students/{$studentId}/mentor", [
@@ -171,7 +168,6 @@ class AdminRequestTest extends TestCase
     private function makeStudent(string $email, ?User $admin = null): User
     {
         $admin ??= $this->makeAdmin();
-        $cc1 = CareerCompassLevel::query()->where('code', 'cc1')->firstOrFail();
         $phone = (string) (9100000000 + random_int(1000, 9999));
         $token = $this->tokenFor($admin);
         $studentId = $this->withHeaders(['Authorization' => 'Bearer '.$token])->postJson('/api/v1/admin/students', [
@@ -179,7 +175,7 @@ class AdminRequestTest extends TestCase
             'email' => $email,
             'password' => 'StudentPass1!',
             'phone' => $phone,
-            'career_compass_level_id' => $cc1->id,
+            'class_grade' => 5,
         ])->assertCreated()->json('data.id');
 
         return StudentProfile::query()->findOrFail($studentId)->user;

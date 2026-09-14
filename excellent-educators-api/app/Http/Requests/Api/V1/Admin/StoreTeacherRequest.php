@@ -49,7 +49,7 @@ class StoreTeacherRequest extends FormRequest
             'whatsapp_number' => ['nullable', 'string', 'min:10', 'max:15'],
             'address' => ['nullable', 'string', 'max:1000'],
             'roles' => ['sometimes', 'array', 'min:1'],
-            'roles.*' => ['in:common_teacher,master_teacher'],
+            'roles.*' => ['in:master_teacher'],
         ];
     }
 

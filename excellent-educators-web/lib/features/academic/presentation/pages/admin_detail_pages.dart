@@ -10,125 +10,184 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:excellent_educators_web/features/academic/presentation/widgets/master_teacher_progress_panel.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_ui.dart';
+import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
+import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
 import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/teacher_availability_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AdminStudentDetailPage extends ConsumerStatefulWidget {
+class AdminStudentDetailPage extends ConsumerWidget {
   const AdminStudentDetailPage({super.key, required this.studentId});
 
   final String studentId;
 
   @override
-  ConsumerState<AdminStudentDetailPage> createState() => _AdminStudentDetailPageState();
-}
-
-class _AdminStudentDetailPageState extends ConsumerState<AdminStudentDetailPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _name = TextEditingController();
-  final _phone = TextEditingController();
-  final _whatsapp = TextEditingController();
-  final _address = TextEditingController();
-  final _guardianName = TextEditingController();
-  final _guardianPhone = TextEditingController();
-  String? _status;
-  int? _classGrade;
-  String? _boundStudentId;
-  bool _saving = false;
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _phone.dispose();
-    _whatsapp.dispose();
-    _address.dispose();
-    _guardianName.dispose();
-    _guardianPhone.dispose();
-    super.dispose();
-  }
-
-  void _bind(StudentDto student) {
-    if (_boundStudentId == student.id) {
-      return;
-    }
-    _boundStudentId = student.id;
-    _name.text = student.fullName;
-    _phone.text = student.phone;
-    _whatsapp.text = student.whatsappNumber ?? '';
-    _address.text = student.address ?? '';
-    _guardianName.text = student.guardianName ?? '';
-    _guardianPhone.text = student.guardianPhone ?? '';
-    _status = student.status;
-    _classGrade = student.classGrade;
-  }
-
-  void _scheduleBind(StudentDto student) {
-    if (_boundStudentId == student.id) {
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _boundStudentId == student.id) {
-        return;
-      }
-      setState(() => _bind(student));
-    });
-  }
-
-  Future<void> _save(StudentDto student) async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    setState(() => _saving = true);
-    try {
-      await ref.read(academicRepositoryProvider).updateStudent(widget.studentId, {
-        'name': _name.text.trim(),
-        'phone': _phone.text.trim(),
-        'whatsapp_number': _whatsapp.text.trim().isEmpty ? null : _whatsapp.text.trim(),
-        'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
-        'guardian_name': _guardianName.text.trim().isEmpty ? null : _guardianName.text.trim(),
-        'guardian_phone': _guardianPhone.text.trim().isEmpty ? null : _guardianPhone.text.trim(),
-        'status': _status,
-        if (_classGrade != null) 'class_grade': _classGrade,
-      });
-      ref.invalidate(adminStudentProvider(widget.studentId));
-      ref.invalidate(adminStudentsProvider);
-      ref.invalidate(adminDashboardProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student updated.')));
-      }
-    } catch (error) {
-      if (mounted) {
-        showFailure(context, error);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final studentValue = ref.watch(adminStudentProvider(widget.studentId));
+  Widget build(BuildContext context, WidgetRef ref) {
+    final studentValue = ref.watch(adminStudentProvider(studentId));
+    final resultsValue = ref.watch(adminStudentResultsProvider(studentId));
+    final wide = MediaQuery.sizeOf(context).width >= 900;
 
     return AppScaffold(
-      title: 'Student',
+      title: 'Student profile',
       backTo: RoutePaths.adminStudents,
       body: AsyncBody(
         value: studentValue,
-        onRetry: () => ref.invalidate(adminStudentProvider(widget.studentId)),
+        onRetry: () => ref.invalidate(adminStudentProvider(studentId)),
         builder: (student) {
-          _scheduleBind(student);
-          final compass = student.careerCompassLevel;
-          final classOptions = compass == null
-              ? <int>[]
-              : [for (var g = compass.classFrom; g <= compass.classTo; g++) g];
-
           return ListView(
+            padding: const EdgeInsets.only(bottom: 40),
             children: [
-              StudentCard(student: student),
+              StudentCard(
+                student: student,
+                highlightOverallRating: true,
+                showMonthRatingStatus: true,
+                action: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.tonalIcon(
+                      onPressed: () => context.go(RoutePaths.adminStudentJournalFor(student.id)),
+                      icon: const Icon(Icons.menu_book_outlined, size: 18),
+                      label: const Text('Learning journal'),
+                    ),
+                    if (student.hasSubmittedAptitudeAssessment)
+                      FilledButton.tonalIcon(
+                        onPressed: () => context.go(RoutePaths.adminStudentResultsFor(student.id)),
+                        icon: const Icon(Icons.insights, size: 18),
+                        label: const Text('Aptitude results'),
+                      ),
+                  ],
+                ),
+                trailing: IconButton(
+                  tooltip: 'Edit student',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => context.go(RoutePaths.adminStudentEditFor(student.id)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: wide ? 4 : 2,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: wide ? 2.6 : 2.0,
+                children: [
+                  StatTile(
+                    label: 'Status',
+                    value: student.status == 'active' ? 'Active' : 'Inactive',
+                  ),
+                  StatTile(
+                    label: 'Class & Level',
+                    value: student.classGrade > 0
+                        ? 'Class ${student.classGrade}${student.level != null && !student.level!.isEmpty ? ' · ${student.level!.label}' : ''}'
+                        : (student.level != null && !student.level!.isEmpty ? student.level!.label : 'Not assigned'),
+                  ),
+                  StatTile(
+                    label: 'Aptitude test',
+                    value: student.hasSubmittedAptitudeAssessment ? 'Submitted' : 'Pending',
+                  ),
+                  StatTile(
+                    label: 'Overall rating',
+                    value: student.hasOverallRating
+                        ? '${student.feedbackOverallAverage!.toStringAsFixed(1)} ★'
+                        : 'Not rated',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              DetailSection(
+                title: 'Student information',
+                children: [
+                  DetailRow(label: 'Student ID', value: student.studentCode),
+                  DetailRow(label: 'Email', value: student.email),
+                  DetailRow(label: 'Phone', value: student.phone.isNotEmpty ? student.phone : '—'),
+                  if (student.whatsappNumber != null && student.whatsappNumber!.isNotEmpty)
+                    DetailRow(label: 'WhatsApp', value: student.whatsappNumber!),
+                  if (student.address != null && student.address!.isNotEmpty)
+                    DetailRow(label: 'Address', value: student.address!),
+                  if (student.guardianName != null && student.guardianName!.isNotEmpty)
+                    DetailRow(
+                      label: 'Guardian',
+                      value: student.guardianPhone != null && student.guardianPhone!.isNotEmpty
+                          ? '${student.guardianName!} · ${student.guardianPhone!}'
+                          : student.guardianName!,
+                    ),
+                  if (student.createdAt != null)
+                    DetailRow(label: 'Registered', value: formatDisplayDateTime(student.createdAt)),
+                  if (student.level != null && !student.level!.isEmpty)
+                    DetailRow(label: 'Level', value: student.level!.label),
+                  if (student.batch != null && !student.batch!.isEmpty)
+                    DetailRow(label: 'Batch', value: student.batch!.label),
+                  DetailRow(
+                    label: 'Master teacher',
+                    value: student.masterTeacher != null && !student.masterTeacher!.isEmpty
+                        ? student.masterTeacher!.label
+                        : 'Not assigned',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              DetailSection(
+                title: 'Aptitude assessment',
+                children: [
+                  if (student.hasSubmittedAptitudeAssessment) ...[
+                    DetailRow(label: 'Status', value: 'Submitted'),
+                    if (student.aptitudeAssessmentTitle != null && student.aptitudeAssessmentTitle!.isNotEmpty)
+                      DetailRow(label: 'Assessment', value: student.aptitudeAssessmentTitle!),
+                    if (student.aptitudeAssessmentSubmittedAt != null)
+                      DetailRow(
+                        label: 'Submitted on',
+                        value: formatDisplayDateTime(student.aptitudeAssessmentSubmittedAt),
+                      ),
+                    const SizedBox(height: 10),
+                    AsyncBody(
+                      value: resultsValue,
+                      onRetry: () => ref.invalidate(adminStudentResultsProvider(student.id)),
+                      builder: (results) {
+                        if (results.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final result in results) ...[
+                              CompactAssessmentCard(result: result),
+                              const SizedBox(height: 8),
+                            ],
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () => context.go(RoutePaths.adminStudentResultsFor(student.id)),
+                          icon: const Icon(Icons.insights, size: 18),
+                          label: const Text('View detailed scores & dimensions'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => context.go(RoutePaths.adminStudentJournalFor(student.id)),
+                          icon: const Icon(Icons.menu_book_outlined, size: 18),
+                          label: const Text('Open learning journal'),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    const DetailRow(label: 'Status', value: 'Not submitted yet'),
+                    const SizedBox(height: 8),
+                    Text(
+                      'The student will see the assessment on their dashboard once it is active.',
+                      style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
+                    ),
+                  ],
+                ],
+              ),
               const SizedBox(height: 12),
               _StudentAdminWorkflow(
                 student: student,
@@ -140,162 +199,14 @@ class _AdminStudentDetailPageState extends ConsumerState<AdminStudentDetailPage>
                     : null,
               ),
               const SizedBox(height: 12),
-              DetailSection(
-                title: 'Aptitude assessment',
-                children: [
-                  if (student.hasSubmittedAptitudeAssessment) ...[
-                    DetailRow(
-                      label: 'Status',
-                      value: 'Submitted',
-                    ),
-                    if (student.aptitudeAssessmentTitle != null && student.aptitudeAssessmentTitle!.isNotEmpty)
-                      DetailRow(label: 'Assessment', value: student.aptitudeAssessmentTitle!),
-                    if (student.aptitudeAssessmentSubmittedAt != null)
-                      DetailRow(
-                        label: 'Submitted on',
-                        value: formatDisplayDateTime(student.aptitudeAssessmentSubmittedAt),
-                      ),
-                    const SizedBox(height: 12),
-                    FilledButton.icon(
-                      onPressed: () => context.go(RoutePaths.adminStudentJournalFor(student.id)),
-                      icon: const Icon(Icons.menu_book_outlined),
-                      label: const Text('Learning journal'),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton.icon(
-                      onPressed: () => context.go(RoutePaths.adminStudentResultsFor(student.id)),
-                      icon: const Icon(Icons.insights),
-                      label: const Text('View aptitude results'),
-                    ),
-                  ] else ...[
-                    const DetailRow(label: 'Status', value: 'Not submitted yet'),
-                    const SizedBox(height: 8),
-                    Text(
-                      'The student will see the assessment on their dashboard once it is active for their Career Compass level.',
-                      style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 12),
               AdminStudentFeedbackSection(student: student),
               const SizedBox(height: 12),
               _PromoteStudentCard(studentId: student.id, currentLevelId: student.level?.id),
-              const SizedBox(height: 12),
-              DetailSection(
-                title: 'Profile details',
-                children: [
-                  DetailRow(label: 'Student ID', value: student.studentCode),
-                  DetailRow(label: 'Email', value: student.email),
-                  if (student.phone.isNotEmpty) DetailRow(label: 'Phone', value: student.phone),
-                  if (student.whatsappNumber != null && student.whatsappNumber!.isNotEmpty)
-                    DetailRow(label: 'WhatsApp', value: student.whatsappNumber!),
-                  if (student.createdAt != null)
-                    DetailRow(label: 'Registered', value: formatDisplayDateTime(student.createdAt)),
-                  if (compass != null)
-                    DetailRow(
-                      label: 'Career Compass',
-                      value: '${compass.name} · Classes ${compass.classFrom}–${compass.classTo}',
-                    ),
-                  if (student.batch != null && !student.batch!.isEmpty)
-                    DetailRow(label: 'Batch', value: student.batch!.label),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DetailSection(
-                title: 'Edit student',
-                children: [
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextFormField(
-                          controller: _name,
-                          decoration: const InputDecoration(labelText: 'Full name'),
-                          validator: _required,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _phone,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(labelText: 'Phone', prefixText: '+91  '),
-                          validator: validateRequiredPhone,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _whatsapp,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
-                            labelText: 'WhatsApp number (optional)',
-                            prefixText: '+91  ',
-                          ),
-                          validator: validateOptionalPhone,
-                        ),
-                        const SizedBox(height: 12),
-                        if (classOptions.isNotEmpty)
-                          DropdownButtonFormField<int>(
-                            key: ValueKey(_classGrade),
-                            initialValue: _classGrade,
-                            decoration: const InputDecoration(labelText: 'Class'),
-                            items: [
-                              for (final grade in classOptions)
-                                DropdownMenuItem(value: grade, child: Text('Class $grade')),
-                            ],
-                            onChanged: (value) => setState(() => _classGrade = value),
-                          ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          key: ValueKey(_status),
-                          initialValue: _status,
-                          decoration: const InputDecoration(labelText: 'Status'),
-                          items: const [
-                            DropdownMenuItem(value: 'active', child: Text('Active')),
-                            DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-                          ],
-                          onChanged: (value) => setState(() => _status = value),
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _address,
-                          maxLines: 2,
-                          decoration: const InputDecoration(labelText: 'Address', alignLabelWithHint: true),
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _guardianName,
-                          decoration: const InputDecoration(labelText: 'Guardian name'),
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _guardianPhone,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(labelText: 'Guardian phone'),
-                        ),
-                        const SizedBox(height: 16),
-                        FilledButton(
-                          onPressed: _saving ? null : () => _save(student),
-                          child: _saving
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Text('Save changes'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ],
           );
         },
       ),
     );
-  }
-
-  String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'This field is required.';
-    }
-    return null;
   }
 }
 
@@ -475,6 +386,11 @@ class AdminTeacherDetailPage extends ConsumerWidget {
             children: [
               TeacherCard(
                 teacher: teacher,
+                action: FilledButton.tonalIcon(
+                  onPressed: () => context.go(RoutePaths.adminTeacherHistoryFor(teacherId)),
+                  icon: const Icon(Icons.history),
+                  label: const Text('History'),
+                ),
                 trailing: IconButton(
                   tooltip: 'Edit teacher',
                   icon: const Icon(Icons.edit_outlined),
@@ -483,11 +399,84 @@ class AdminTeacherDetailPage extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
               TeacherAvailabilitySummary(teacherId: teacherId),
+              const SizedBox(height: 12),
+              _AdminTeacherPromotedTile(teacherId: teacherId),
               if (teacher.isMasterTeacher) ...[
                 const SizedBox(height: 12),
                 _AdminTeacherProgressSection(teacherId: teacherId),
               ],
             ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _AdminTeacherPromotedTile extends ConsumerWidget {
+  const _AdminTeacherPromotedTile({required this.teacherId});
+
+  final String teacherId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final promoted = ref.watch(adminTeacherPromotedProvider(teacherId));
+    final count = promoted.valueOrNull?.length ?? 0;
+
+    return StatTile(
+      label: 'Promoted students',
+      value: promoted.isLoading ? '…' : '$count',
+      icon: Icons.trending_up,
+      accentColor: Brand.goldDark,
+      subtitle: 'levelled up with this teacher',
+      onTap: () => context.go(RoutePaths.adminTeacherPromotedFor(teacherId)),
+    );
+  }
+}
+
+class AdminTeacherPromotedPage extends ConsumerWidget {
+  const AdminTeacherPromotedPage({super.key, required this.teacherId});
+
+  final String teacherId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final students = ref.watch(adminTeacherPromotedProvider(teacherId));
+
+    return AppScaffold(
+      title: 'Promoted students',
+      backTo: RoutePaths.adminTeacher(teacherId),
+      body: AsyncBody(
+        value: students,
+        onRetry: () => ref.invalidate(adminTeacherPromotedProvider(teacherId)),
+        builder: (items) {
+          if (items.isEmpty) {
+            return const EmptyHint(
+              'No promoted students yet',
+              subtitle: 'Students this teacher mentored who later moved to a new level will appear here.',
+            );
+          }
+          return ListView.separated(
+            itemCount: items.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final student = items[index];
+              return ListTile(
+                tileColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: Color(0xFFE6DCCB)),
+                ),
+                title: Text(student.fullName),
+                subtitle: Text(
+                  [
+                    student.studentCode,
+                    if (student.level != null && !student.level!.isEmpty) student.level!.label,
+                  ].join(' · '),
+                ),
+                onTap: () => context.go(RoutePaths.adminStudent(student.id)),
+              );
+            },
           );
         },
       ),

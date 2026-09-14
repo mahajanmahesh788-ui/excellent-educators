@@ -1,7 +1,6 @@
 import 'package:excellent_educators_web/app/di/providers.dart';
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
-import 'package:excellent_educators_web/core/network/api_client.dart';
 import 'package:excellent_educators_web/features/academic/data/academic_repository.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_batches_page.dart';

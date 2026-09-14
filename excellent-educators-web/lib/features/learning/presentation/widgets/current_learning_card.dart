@@ -15,23 +15,47 @@ class CurrentLearningCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final levelName = dashboard.currentLevel?.name ?? 'Your level';
     final week = dashboard.currentWeek;
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     return AcademySurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const AcademyLabel('Your learning journey'),
-          const SizedBox(height: 10),
-          Text(levelName, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Academy.ink)),
-          const SizedBox(height: 4),
+          SizedBox(height: isMobile ? 6 : 10),
+          Text(
+            levelName,
+            style: TextStyle(
+              fontSize: isMobile ? 18 : 26,
+              fontWeight: FontWeight.w800,
+              color: Academy.ink,
+            ),
+          ),
+          const SizedBox(height: 2),
           Text(
             dashboard.assignmentPending ? 'This week · Week $week' : 'Week $week completed',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Brand.navy),
+            style: TextStyle(
+              fontSize: isMobile ? 14 : 18,
+              fontWeight: FontWeight.w700,
+              color: Brand.navy,
+            ),
           ),
-          const SizedBox(height: 12),
-          Text(dashboard.ctaLabel, style: const TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text('Progress: ${dashboard.completedWeeks} of ${dashboard.totalWeeks} weeks', style: const TextStyle(color: Academy.muted)),
-          const SizedBox(height: 16),
+          SizedBox(height: isMobile ? 6 : 12),
+          Text(
+            dashboard.ctaLabel,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: isMobile ? 13 : 14,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Progress: ${dashboard.completedWeeks} of ${dashboard.totalWeeks} weeks',
+            style: TextStyle(
+              color: Academy.muted,
+              fontSize: isMobile ? 12 : 13.5,
+            ),
+          ),
+          SizedBox(height: isMobile ? 10 : 16),
           Wrap(
             spacing: 10,
             runSpacing: 10,

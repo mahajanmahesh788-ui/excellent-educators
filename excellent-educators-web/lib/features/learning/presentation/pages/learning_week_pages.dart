@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
@@ -449,6 +450,7 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                     question: week.questions[i],
                     selectedOptionId: displayAnswers[week.questions[i].id],
                     isReadOnly: !week.canSubmit,
+                    showResult: !week.canSubmit && (week.completed || week.attemptsUsed > 0),
                     onOptionSelected: week.canSubmit
                         ? (optId) {
                             setState(() {
@@ -688,6 +690,7 @@ class _CompactQuestionCard extends StatelessWidget {
     required this.question,
     required this.selectedOptionId,
     this.isReadOnly = false,
+    this.showResult = false,
     this.onOptionSelected,
   });
 
@@ -695,6 +698,7 @@ class _CompactQuestionCard extends StatelessWidget {
   final LearningQuestionDto question;
   final String? selectedOptionId;
   final bool isReadOnly;
+  final bool showResult;
   final ValueChanged<String>? onOptionSelected;
 
   static const _letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
@@ -702,17 +706,40 @@ class _CompactQuestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAnswered = selectedOptionId != null;
+    final selectedOption = question.options.where((o) => o.id == selectedOptionId).firstOrNull;
+    final isStudentCorrect = isAnswered && selectedOption?.isCorrect == true;
+    final isStudentWrong = isAnswered &&
+        (selectedOption?.isCorrect == false ||
+            (selectedOption?.isCorrect == null && question.options.any((o) => o.isCorrect == true)));
+
+    Color borderColor;
+    double borderWidth;
+    if (showResult && isAnswered) {
+      if (isStudentCorrect) {
+        borderColor = const Color(0xFF81C784);
+        borderWidth = 1.5;
+      } else if (isStudentWrong) {
+        borderColor = const Color(0xFFEF9A9A);
+        borderWidth = 1.5;
+      } else {
+        borderColor = Academy.line;
+        borderWidth = 1.0;
+      }
+    } else if (isAnswered) {
+      borderColor = const Color(0xFFA5D6A7);
+      borderWidth = 1.4;
+    } else {
+      borderColor = Academy.line;
+      borderWidth = 1.0;
+    }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isAnswered ? const Color(0xFFA5D6A7) : Academy.line,
-          width: isAnswered ? 1.4 : 1.0,
-        ),
+        border: Border.all(color: borderColor, width: borderWidth),
         boxShadow: [
           BoxShadow(
             color: Brand.navy.withValues(alpha: 0.02),
@@ -732,20 +759,28 @@ class _CompactQuestionCard extends StatelessWidget {
                 width: 26,
                 height: 26,
                 decoration: BoxDecoration(
-                  color: isAnswered ? const Color(0xFF2E7D32) : Brand.navy,
+                  color: showResult && isAnswered
+                      ? (isStudentCorrect ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F))
+                      : (isAnswered ? const Color(0xFF2E7D32) : Brand.navy),
                   borderRadius: BorderRadius.circular(7),
                 ),
                 alignment: Alignment.center,
-                child: isAnswered
-                    ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
-                    : Text(
-                        '${index + 1}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                child: showResult && isAnswered
+                    ? Icon(
+                        isStudentCorrect ? Icons.check_rounded : Icons.close_rounded,
+                        size: 15,
+                        color: Colors.white,
+                      )
+                    : (isAnswered
+                        ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
+                        : Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          )),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -759,7 +794,56 @@ class _CompactQuestionCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (isAnswered) ...[
+              if (showResult && isAnswered) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                  decoration: BoxDecoration(
+                    color: isStudentCorrect ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isStudentCorrect ? const Color(0xFFA5D6A7) : const Color(0xFFFFCDD2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isStudentCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                        size: 13,
+                        color: isStudentCorrect ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isStudentCorrect ? 'Correct' : 'Incorrect',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: isStudentCorrect ? const Color(0xFF1B5E20) : const Color(0xFFC62828),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else if (showResult && !isAnswered) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Academy.line),
+                  ),
+                  child: const Text(
+                    'Not Answered',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Academy.muted,
+                    ),
+                  ),
+                ),
+              ] else if (isAnswered) ...[
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -780,7 +864,7 @@ class _CompactQuestionCard extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // Options (2 columns when wide, 1 column when narrow)
           LayoutBuilder(
@@ -802,6 +886,7 @@ class _CompactQuestionCard extends StatelessWidget {
                           option: question.options[optIndex],
                           selected: selectedOptionId == question.options[optIndex].id,
                           isReadOnly: isReadOnly,
+                          showResult: showResult,
                           onTap: onOptionSelected != null
                               ? () => onOptionSelected!(question.options[optIndex].id)
                               : null,
@@ -820,6 +905,7 @@ class _CompactQuestionCard extends StatelessWidget {
                       option: question.options[optIndex],
                       selected: selectedOptionId == question.options[optIndex].id,
                       isReadOnly: isReadOnly,
+                      showResult: showResult,
                       onTap: onOptionSelected != null
                           ? () => onOptionSelected!(question.options[optIndex].id)
                           : null,
@@ -841,6 +927,7 @@ class _CompactOptionTile extends StatelessWidget {
     required this.option,
     required this.selected,
     this.isReadOnly = false,
+    this.showResult = false,
     this.onTap,
   });
 
@@ -848,10 +935,135 @@ class _CompactOptionTile extends StatelessWidget {
   final LearningOptionDto option;
   final bool selected;
   final bool isReadOnly;
+  final bool showResult;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final isCorrectOption = option.isCorrect == true;
+
+    Color tileBg;
+    Color borderColor;
+    double borderWidth;
+    Color letterBg;
+    Color letterTextColor;
+    Color optionTextColor;
+    FontWeight optionFontWeight;
+    Widget trailingWidget;
+
+    if (showResult) {
+      if (selected && isCorrectOption) {
+        // User picked this answer and it is CORRECT: Green border, green background, checkmark
+        tileBg = const Color(0xFFE8F5E9);
+        borderColor = const Color(0xFF2E7D32);
+        borderWidth = 1.8;
+        letterBg = const Color(0xFF2E7D32);
+        letterTextColor = Colors.white;
+        optionTextColor = const Color(0xFF1B5E20);
+        optionFontWeight = FontWeight.w700;
+        trailingWidget = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFA5D6A7),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_rounded, color: Color(0xFF1B5E20), size: 14),
+              SizedBox(width: 3),
+              Text(
+                'Correct answer',
+                style: TextStyle(color: Color(0xFF1B5E20), fontSize: 10.5, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+        );
+      } else if (selected && !isCorrectOption) {
+        // User picked this answer and it is WRONG: Red border, red background, cross
+        tileBg = const Color(0xFFFFEBEE);
+        borderColor = const Color(0xFFD32F2F);
+        borderWidth = 1.8;
+        letterBg = const Color(0xFFD32F2F);
+        letterTextColor = Colors.white;
+        optionTextColor = const Color(0xFFB71C1C);
+        optionFontWeight = FontWeight.w700;
+        trailingWidget = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFCDD2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.close_rounded, color: Color(0xFFD32F2F), size: 14),
+              SizedBox(width: 3),
+              Text(
+                'Wrong answer',
+                style: TextStyle(color: Color(0xFFC62828), fontSize: 10.5, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+        );
+      } else if (!selected && isCorrectOption) {
+        // This is the correct answer, not picked by user: Green border so user/staff can see what was correct
+        tileBg = const Color(0xFFF1F8E9);
+        borderColor = const Color(0xFF4CAF50);
+        borderWidth = 1.5;
+        letterBg = const Color(0xFF4CAF50);
+        letterTextColor = Colors.white;
+        optionTextColor = const Color(0xFF2E7D32);
+        optionFontWeight = FontWeight.w600;
+        trailingWidget = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFC8E6C9),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_rounded, color: Color(0xFF1B5E20), size: 14),
+              SizedBox(width: 3),
+              Text(
+                'Correct answer',
+                style: TextStyle(color: Color(0xFF1B5E20), fontSize: 10.5, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+        );
+      } else {
+        // Unselected other options
+        tileBg = const Color(0xFFFAF9F6);
+        borderColor = Academy.line;
+        borderWidth = 1.0;
+        letterBg = const Color(0xFFEAE5DC);
+        letterTextColor = Academy.ink;
+        optionTextColor = Academy.ink;
+        optionFontWeight = FontWeight.w500;
+        trailingWidget = const Icon(
+          Icons.radio_button_unchecked_rounded,
+          color: Color(0xFFCBC5B8),
+          size: 18,
+        );
+      }
+    } else {
+      // Normal Quiz Mode
+      tileBg = selected ? Brand.gold.withValues(alpha: 0.14) : const Color(0xFFFAF9F6);
+      borderColor = selected ? Brand.gold : Academy.line;
+      borderWidth = selected ? 1.8 : 1.0;
+      letterBg = selected ? Brand.navy : const Color(0xFFEAE5DC);
+      letterTextColor = selected ? Colors.white : Academy.ink;
+      optionTextColor = selected ? Brand.navy : Academy.ink;
+      optionFontWeight = selected ? FontWeight.w700 : FontWeight.w500;
+      trailingWidget = Icon(
+        selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+        color: selected ? Brand.navy : const Color(0xFFCBC5B8),
+        size: 18,
+      );
+    }
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -861,12 +1073,9 @@ class _CompactOptionTile extends StatelessWidget {
           duration: const Duration(milliseconds: 140),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
-            color: selected ? Brand.gold.withValues(alpha: 0.14) : const Color(0xFFFAF9F6),
+            color: tileBg,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? Brand.gold : Academy.line,
-              width: selected ? 1.8 : 1.0,
-            ),
+            border: Border.all(color: borderColor, width: borderWidth),
           ),
           child: Row(
             children: [
@@ -874,14 +1083,14 @@ class _CompactOptionTile extends StatelessWidget {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: selected ? Brand.navy : const Color(0xFFEAE5DC),
+                  color: letterBg,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   letter,
                   style: TextStyle(
-                    color: selected ? Colors.white : Academy.ink,
+                    color: letterTextColor,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                   ),
@@ -893,18 +1102,14 @@ class _CompactOptionTile extends StatelessWidget {
                   option.optionText,
                   style: TextStyle(
                     fontSize: 13.5,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    color: selected ? Brand.navy : Academy.ink,
+                    fontWeight: optionFontWeight,
+                    color: optionTextColor,
                     height: 1.25,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
-                selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                color: selected ? Brand.navy : const Color(0xFFCBC5B8),
-                size: 18,
-              ),
+              trailingWidget,
             ],
           ),
         ),
@@ -944,62 +1149,198 @@ class StaffLearningWeekPage extends ConsumerWidget {
             ref.invalidate(adminLearningWeekProvider((studentId: studentId, journeyId: journeyId, week: week)));
           }
         },
-        builder: (weekData) => ListView(
-          children: [
-            Text(weekData.studentName ?? '', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-            Text('${weekData.level.name} · Week ${weekData.weekNumber}'),
-            const SizedBox(height: 8),
-            Text('Study date: ${weekData.studyDate ?? '—'}'),
-            Text('Attempts ${weekData.attemptsUsed}/${weekData.attemptsMax}'),
-            const SizedBox(height: 16),
-            if (weekData.hasVideo && weekData.videoUrl != null)
-              FilledButton.icon(
-                onPressed: () => launchUrl(Uri.parse(weekData.videoUrl!), webOnlyWindowName: '_blank'),
-                icon: const Icon(Icons.play_circle_outline),
-                label: const Text('Open video'),
+        builder: (weekData) {
+          // Calculate overall score / result
+          int correct;
+          int total;
+          int percentage;
+          if (weekData.score != null) {
+            correct = weekData.score!.correct;
+            total = weekData.score!.total;
+            percentage = weekData.score!.percentage;
+          } else if (weekData.attempts.isNotEmpty) {
+            final latest = weekData.attempts.last;
+            correct = 0;
+            for (final q in weekData.questions) {
+              final optId = latest.optionIdFor(q.id);
+              final opt = q.options.where((o) => o.id == optId).firstOrNull;
+              if (opt?.isCorrect == true) correct++;
+            }
+            total = weekData.questions.length;
+            percentage = total > 0 ? ((correct / total) * 100).round() : 0;
+          } else {
+            correct = 0;
+            total = weekData.questions.length;
+            percentage = 0;
+          }
+          final hasAttempts = weekData.attempts.isNotEmpty;
+          final isPassing = percentage >= 70;
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
+            children: [
+              // Executive Header Card
+              AcademySurface(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                weekData.studentName ?? 'Student',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Academy.ink,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: [
+                                  _InfoBadge(
+                                    icon: Icons.layers_outlined,
+                                    label: '${weekData.level.name} · Week ${weekData.weekNumber}',
+                                  ),
+                                  if (weekData.studyDate != null)
+                                    _InfoBadge(
+                                      icon: Icons.calendar_today_outlined,
+                                      label: 'Study date: ${formatDisplayDate(weekData.studyDate)}',
+                                    ),
+                                  _InfoBadge(
+                                    icon: Icons.history_rounded,
+                                    label: 'Attempts ${weekData.attemptsUsed}/${weekData.attemptsMax}',
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Overall Result Badge if attempts have been submitted
+                        if (hasAttempts) ...[
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isPassing ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isPassing ? const Color(0xFF81C784) : const Color(0xFFFFB74D),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isPassing ? Icons.verified_rounded : Icons.info_outline_rounded,
+                                  size: 24,
+                                  color: isPassing ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+                                ),
+                                const SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Result: $correct / $total ($percentage%)',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 14.5,
+                                        color: isPassing ? const Color(0xFF1B5E20) : const Color(0xFFB71C1C),
+                                      ),
+                                    ),
+                                    Text(
+                                      isPassing ? 'Passing Score' : 'Needs Improvement',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: isPassing ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (weekData.hasVideo && weekData.videoUrl != null) ...[
+                      const SizedBox(height: 14),
+                      const Divider(height: 1, color: Academy.line),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Brand.navy,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: () => launchUrl(Uri.parse(weekData.videoUrl!), webOnlyWindowName: '_blank'),
+                            icon: const Icon(Icons.play_circle_fill_rounded, color: Brand.gold, size: 18),
+                            label: const Text('Open Lesson Video', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            const SizedBox(height: 16),
-            for (final attempt in weekData.attempts) _AttemptReview(week: weekData, attempt: attempt, staff: true),
-          ],
-        ),
+              const SizedBox(height: 20),
+              if (weekData.attempts.isEmpty)
+                const AcademyEmpty(
+                  icon: Icons.quiz_outlined,
+                  title: 'No Attempts Submitted',
+                  body: 'The student has not submitted any attempts for this week yet.',
+                )
+              else
+                for (final attempt in weekData.attempts)
+                  _AttemptReview(week: weekData, attempt: attempt, staff: true),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-class _AssignmentForm extends StatelessWidget {
-  const _AssignmentForm({required this.week, required this.answers, required this.onChanged});
+class _InfoBadge extends StatelessWidget {
+  const _InfoBadge({required this.icon, required this.label});
 
-  final LearningWeekDto week;
-  final Map<String, String> answers;
-  final VoidCallback onChanged;
+  final IconData icon;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return AcademySurface(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F1EA),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Academy.line),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const AcademyLabel('Assignment'),
-          const SizedBox(height: 12),
-          for (final question in week.questions) ...[
-            Text(question.questionText, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 8),
-            for (final option in question.options)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(option.optionText),
-                leading: Icon(
-                  answers[question.id] == option.id ? Icons.radio_button_checked : Icons.radio_button_off,
-                  color: answers[question.id] == option.id ? Brand.navy : Academy.muted,
-                ),
-                onTap: () {
-                  answers[question.id] = option.id;
-                  onChanged();
-                },
-              ),
-            const SizedBox(height: 12),
-          ],
+          Icon(icon, size: 13, color: Brand.navy),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Academy.ink,
+            ),
+          ),
         ],
       ),
     );
@@ -1015,32 +1356,97 @@ class _AttemptReview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Calculate score for this attempt
+    var correctCount = 0;
+    for (final q in week.questions) {
+      final optId = attempt.optionIdFor(q.id);
+      final opt = q.options.where((o) => o.id == optId).firstOrNull;
+      if (opt?.isCorrect == true) correctCount++;
+    }
+    final totalCount = week.questions.length;
+    final percent = totalCount > 0 ? ((correctCount / totalCount) * 100).round() : 0;
+    final isPassing = percent >= 70;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 24),
       child: AcademySurface(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Attempt ${attempt.attemptNumber}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 12),
-            for (final question in week.questions)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  '${question.questionText}\n${_optionText(question, attempt.optionIdFor(question.id))}',
-                  style: const TextStyle(height: 1.4),
+            // Attempt Header with Title & Result Badge
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Attempt ${attempt.attemptNumber}',
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Academy.ink),
+                      ),
+                      if (attempt.submittedAt != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Submitted on ${formatDisplayDateTime(attempt.submittedAt)}',
+                          style: const TextStyle(fontSize: 12, color: Academy.muted),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
+                // Attempt Result Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isPassing ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isPassing ? const Color(0xFFA5D6A7) : const Color(0xFFFFCDD2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isPassing ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                        size: 15,
+                        color: isPassing ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Result: $correctCount / $totalCount ($percent%)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: isPassing ? const Color(0xFF1B5E20) : const Color(0xFFB71C1C),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (attempt.videoUrl != null && attempt.videoUrl!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => launchUrl(Uri.parse(attempt.videoUrl!), webOnlyWindowName: '_blank'),
+                icon: const Icon(Icons.videocam_outlined, size: 16),
+                label: const Text('View Student Submission Video', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+              ),
+            ],
+            const SizedBox(height: 16),
+            // Full Question & Answer UI using the exact same components!
+            for (var i = 0; i < week.questions.length; i++)
+              _CompactQuestionCard(
+                index: i,
+                question: week.questions[i],
+                selectedOptionId: attempt.optionIdFor(week.questions[i].id),
+                isReadOnly: true,
+                showResult: true,
               ),
           ],
         ),
       ),
     );
-  }
-
-  String _optionText(LearningQuestionDto question, String? optionId) {
-    final match = question.options.where((option) => option.id == optionId).firstOrNull;
-    if (match == null) return 'No answer';
-    final extra = staff && match.isCorrect == true ? ' · correct' : '';
-    return match.optionText + extra;
   }
 }

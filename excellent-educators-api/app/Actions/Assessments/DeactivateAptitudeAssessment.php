@@ -14,6 +14,6 @@ class DeactivateAptitudeAssessment
         $assessment->updated_by = $actor->id;
         $assessment->save();
 
-        return $assessment->fresh(['careerCompassLevel', 'questions.options.dimensionCodes']) ?? $assessment;
+        return $assessment->fresh(['questions.options.dimensionCodes']) ?? $assessment;
     }
 }

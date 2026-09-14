@@ -7,14 +7,12 @@ use App\Enums\RoleName;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
 use App\Models\AttendanceIssue;
-use App\Models\CareerCompassLevel;
 use App\Models\Dimension;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use App\Support\AppClock;
-use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\DimensionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,7 +26,7 @@ class MasterTeacherDashboardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class, DimensionSeeder::class]);
+        $this->seed([RoleSeeder::class, DimensionSeeder::class]);
     }
 
     public function test_master_teacher_dashboard_returns_rating_progress(): void
@@ -137,7 +135,6 @@ class MasterTeacherDashboardTest extends TestCase
     private function assignedPair(): array
     {
         $admin = $this->makeAdmin();
-        $cc1 = CareerCompassLevel::query()->where('code', 'cc1')->firstOrFail();
         $master = $this->makeTeacher(['master_teacher'], 'mt-dash-master@excellenteducators.test');
         $phone = (string) (9100000000 + random_int(1000, 9999));
 
@@ -146,7 +143,7 @@ class MasterTeacherDashboardTest extends TestCase
             'email' => 'mt-dash-student@excellenteducators.test',
             'password' => 'StudentPass1!',
             'phone' => $phone,
-            'career_compass_level_id' => $cc1->id,
+            'class_grade' => 5,
         ])->assertCreated()->json('data.id');
 
         $this->withToken($this->tokenFor($admin))->putJson("/api/v1/admin/students/{$studentId}/mentor", [

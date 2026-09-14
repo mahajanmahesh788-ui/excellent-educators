@@ -289,6 +289,13 @@ class SessionBookingDto {
   bool get isCancelled => status == 'cancelled';
   bool get isCompleted => status == 'completed';
   bool get isScheduled => status == 'scheduled';
+  bool get wasHeld {
+    if (isCompleted || attendance?.classCompleted == true) {
+      return true;
+    }
+    final joined = (attendance?.studentJoinCount ?? 0) > 0;
+    return joined && hasEndedAt(DateTime.now());
+  }
 
   DateTime? get startsAt {
     final iso = DateTime.tryParse(startsAtIso ?? '');
@@ -564,6 +571,7 @@ class BookingEligibilityDto {
     required this.canBookIntroduction,
     required this.canBookMasterClass,
     this.introductionLastChance = false,
+    this.masterClassRebookingAvailable = false,
     this.levelStartedOn,
   });
 
@@ -573,6 +581,7 @@ class BookingEligibilityDto {
       canBookIntroduction: json['can_book_introduction'] as bool? ?? false,
       canBookMasterClass: json['can_book_master_class'] as bool? ?? false,
       introductionLastChance: json['introduction_last_chance'] as bool? ?? false,
+      masterClassRebookingAvailable: json['master_class_rebooking_available'] as bool? ?? false,
       levelStartedOn: json['level_started_on'] as String?,
     );
   }
@@ -581,6 +590,7 @@ class BookingEligibilityDto {
   final bool canBookIntroduction;
   final bool canBookMasterClass;
   final bool introductionLastChance;
+  final bool masterClassRebookingAvailable;
   final String? levelStartedOn;
 }
 

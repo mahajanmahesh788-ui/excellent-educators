@@ -1,8 +1,11 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_batches_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_dashboard_page.dart';
+import 'package:excellent_educators_web/features/academic/presentation/pages/admin_standouts_pages.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_detail_pages.dart';
+import 'package:excellent_educators_web/features/academic/presentation/pages/admin_teacher_history_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_students_page.dart';
+import 'package:excellent_educators_web/features/academic/presentation/pages/admin_student_edit_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_teachers_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/master_teacher_dashboard_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/role_pages.dart';
@@ -83,15 +86,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         if (location.startsWith('/admin') && !user.isAdmin) {
           return home;
         }
-        if (location.startsWith('/teacher') && !user.isCommonTeacher) {
-          if (!user.isMasterTeacher) {
+        if (location.startsWith(RoutePaths.teacherBatches)) {
+          return RoutePaths.teacherDaySchedule;
+        }
+        if (location.startsWith('/teacher')) {
+          if (!user.isMasterTeacher && !user.isCommonTeacher) {
             return home;
           }
-          final masterTeacherRoutes = location.startsWith(RoutePaths.teacherProfile) ||
+          final teacherRoutes = location.startsWith(RoutePaths.teacherProfile) ||
               location.startsWith(RoutePaths.teacherRequests) ||
               location.startsWith(RoutePaths.teacherNotifications) ||
               location.startsWith(RoutePaths.teacherSchedule);
-          if (!masterTeacherRoutes) {
+          if (!teacherRoutes) {
             return home;
           }
         }
@@ -164,6 +170,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AdminDashboardPage(),
       ),
       GoRoute(
+        path: RoutePaths.adminBestStudents,
+        builder: (context, state) => const AdminBestStudentsPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminBestTeachers,
+        builder: (context, state) => const AdminBestTeachersPage(),
+      ),
+      GoRoute(
         path: RoutePaths.adminStudents,
         builder: (context, state) => const AdminStudentsPage(),
       ),
@@ -174,6 +188,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.adminStudentDetail,
         builder: (context, state) => AdminStudentDetailPage(studentId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: RoutePaths.adminStudentEdit,
+        builder: (context, state) => AdminEditStudentPage(studentId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminStudentJournal,
@@ -222,6 +240,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.adminTeacherAvailability,
         builder: (context, state) => TeacherAvailabilityEditPage(teacherId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: RoutePaths.adminTeacherHistory,
+        builder: (context, state) => AdminTeacherHistoryPage(teacherId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: RoutePaths.adminTeacherPromoted,
+        builder: (context, state) => AdminTeacherPromotedPage(teacherId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminTeacherDetail,
@@ -273,7 +299,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.adminAttendance,
-        builder: (context, state) => const AdminAttendancePage(),
+        builder: (context, state) => AdminAttendancePage(
+          issueId: state.uri.queryParameters['issue'],
+        ),
       ),
       GoRoute(
         path: RoutePaths.adminWeeklyLearning,

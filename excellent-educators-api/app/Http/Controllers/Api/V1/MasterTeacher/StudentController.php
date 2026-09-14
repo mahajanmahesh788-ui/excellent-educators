@@ -30,7 +30,6 @@ class StudentController extends Controller
             ->whereIn('id', $studentIds)
             ->with([
                 'user',
-                'careerCompassLevel',
                 'academicLevel.masterTeachers.user',
                 'activeEnrollment.batch.level.masterTeachers.user',
                 'activeEnrollment.batch.activeTeacherAssignment.teacher',
@@ -143,7 +142,6 @@ class StudentController extends Controller
 
         $student->load([
             'user',
-            'careerCompassLevel',
             'academicLevel.masterTeachers.user',
             'activeEnrollment.batch.level.masterTeachers.user',
             'activeEnrollment.batch.activeTeacherAssignment.teacher',

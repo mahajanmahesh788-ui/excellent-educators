@@ -24,9 +24,11 @@ class StudentJourneySnapshot {
     required this.introductionCompleted,
     required this.canBookIntroduction,
     required this.canBookMasterClass,
+    this.joinableSession,
   });
 
   final SessionBookingDto? nextSession;
+  final SessionBookingDto? joinableSession;
   final JourneyNode introduction;
   final JourneyNode masterClass;
   final JourneyNode nextMonth;
@@ -36,6 +38,11 @@ class StudentJourneySnapshot {
   final bool canBookMasterClass;
 
   String get heroMessage {
+    if (joinableSession != null) {
+      return joinableSession!.type == 'master_class'
+          ? 'Your Master Class is live — join now so you don’t miss it.'
+          : 'Your Introduction Call is live — join now so you don’t miss it.';
+    }
     if (nextSession != null) {
       return 'Your next session is already on the calendar.';
     }
@@ -49,6 +56,9 @@ class StudentJourneySnapshot {
   }
 
   String? get primaryType {
+    if (joinableSession != null || nextSession != null) {
+      return null;
+    }
     if (canBookIntroduction) return 'introduction_call';
     if (canBookMasterClass) return 'master_class';
     return null;
@@ -69,21 +79,35 @@ String bookingActionLabel(String? type) {
 StudentJourneySnapshot buildStudentJourney({
   required BookingEligibilityDto eligibility,
   required List<SessionBookingDto> bookings,
+  DateTime? now,
 }) {
-  final now = DateTime.now();
+  final clock = now ?? DateTime.now();
   SessionBookingDto? next;
+  SessionBookingDto? joinable;
   for (final booking in bookings.where((item) => item.isScheduled)) {
+    if (booking.hasEndedAt(clock)) {
+      continue;
+    }
     final start = booking.startsAt;
-    if (start == null || start.isBefore(now)) {
+    if (start == null) {
       continue;
     }
     final current = next?.startsAt;
     if (current == null || start.isBefore(current)) {
       next = booking;
     }
+    final canJoin = booking.attendance?.canJoin == true || booking.isOngoingAt(clock);
+    if (canJoin) {
+      final liveStart = joinable?.startsAt;
+      if (liveStart == null || start.isBefore(liveStart)) {
+        joinable = booking;
+      }
+    }
   }
 
-  final introScheduled = bookings.any((item) => item.type != 'master_class' && item.isScheduled);
+  final introScheduled = bookings.any(
+    (item) => item.type != 'master_class' && item.isScheduled && !item.hasEndedAt(clock),
+  );
   final JourneyNode introduction;
   if (eligibility.introductionCompleted) {
     introduction = const JourneyNode(title: 'Introduction', detail: 'Completed', phase: JourneyPhase.completed);
@@ -111,20 +135,25 @@ StudentJourneySnapshot buildStudentJourney({
       return false;
     }
     final date = DateTime.tryParse(item.date);
-    return date != null && date.year == now.year && date.month == now.month;
+    return date != null && date.year == clock.year && date.month == clock.month;
   }).toList();
-  final masterScheduled = masterThisMonth.any((item) => item.isScheduled);
-  final masterCompleted = masterThisMonth.any((item) => item.isCompleted);
+  final masterScheduled = masterThisMonth.any((item) => item.isScheduled && !item.hasEndedAt(clock));
+  final masterCompleted = masterThisMonth.any((item) {
+    if (item.isCompleted || item.attendance?.classCompleted == true) {
+      return true;
+    }
+    return item.hasEndedAt(clock);
+  });
 
   final JourneyNode master;
   if (!eligibility.introductionCompleted && !introScheduled) {
     master = const JourneyNode(title: 'Master Class', detail: 'Upcoming', phase: JourneyPhase.upcoming);
-  } else if (masterCompleted) {
-    master = const JourneyNode(title: 'Master Class', detail: 'Completed', phase: JourneyPhase.completed);
   } else if (masterScheduled) {
     master = const JourneyNode(title: 'Master Class', detail: 'Scheduled', phase: JourneyPhase.current);
-  } else if (eligibility.canBookMasterClass) {
+  } else if (eligibility.canBookMasterClass && (!masterCompleted || eligibility.masterClassRebookingAvailable)) {
     master = const JourneyNode(title: 'Master Class', detail: 'Ready to book', phase: JourneyPhase.current);
+  } else if (masterCompleted) {
+    master = const JourneyNode(title: 'Master Class', detail: 'Completed', phase: JourneyPhase.completed);
   } else {
     master = const JourneyNode(title: 'Master Class', detail: 'Upcoming', phase: JourneyPhase.upcoming);
   }
@@ -139,13 +168,16 @@ StudentJourneySnapshot buildStudentJourney({
 
   return StudentJourneySnapshot(
     nextSession: next,
+    joinableSession: joinable,
     introduction: introduction,
     masterClass: master,
     nextMonth: nextMonth,
     masterThisMonth: masterThisMonth.length,
     introductionCompleted: eligibility.introductionCompleted,
-    canBookIntroduction: eligibility.canBookIntroduction,
-    canBookMasterClass: eligibility.canBookMasterClass,
+    canBookIntroduction: eligibility.canBookIntroduction && !introScheduled,
+    canBookMasterClass: eligibility.canBookMasterClass &&
+        !masterScheduled &&
+        (!masterCompleted || eligibility.masterClassRebookingAvailable),
   );
 }
 

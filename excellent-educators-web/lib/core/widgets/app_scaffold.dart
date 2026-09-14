@@ -78,7 +78,7 @@ class AppScaffold extends ConsumerWidget {
     final selected = destinations.indexWhere((item) => location.startsWith(item.path));
     final wide = MediaQuery.sizeOf(context).width >= Breakpoints.mobile;
 
-    final portal = user?.isCommonTeacher == true || user?.isMasterTeacher == true;
+    final portal = user?.isMasterTeacher == true || user?.isCommonTeacher == true;
     Widget content = Padding(
       padding: EdgeInsets.fromLTRB(wide ? 16 : 12, 12, wide ? 16 : 12, 12),
       child: body,
@@ -204,13 +204,11 @@ class AppScaffold extends ConsumerWidget {
         const _NavItem('Settings', Icons.settings_outlined, RoutePaths.adminSettings),
         const _NavItem('Requests', Icons.support_agent_outlined, RoutePaths.adminRequests),
       ],
-      if (user.isCommonTeacher)
-        const _NavItem('My batches', Icons.groups_outlined, RoutePaths.teacherBatches),
       if (user.isMasterTeacher)
         const _NavItem('Dashboard', Icons.dashboard_outlined, RoutePaths.masterTeacherDashboard),
       if (user.isMasterTeacher)
         const _NavItem('My students', Icons.psychology_outlined, RoutePaths.masterTeacherStudents),
-      if (user.isCommonTeacher || user.isMasterTeacher) ...[
+      if (user.isMasterTeacher || user.isCommonTeacher) ...[
         const _NavItem('Today schedule', Icons.today_outlined, RoutePaths.teacherDaySchedule),
         const _NavItem('Take leave', Icons.event_busy_outlined, RoutePaths.teacherSchedule),
         const _NavItem('Request admin', Icons.support_agent_outlined, RoutePaths.teacherRequests),

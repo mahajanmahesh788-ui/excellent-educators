@@ -13,7 +13,8 @@ abstract final class Academy {
   static EdgeInsets pageInsets(double width) {
     if (width >= 1280) return const EdgeInsets.fromLTRB(40, 28, 40, 56);
     if (width >= 900) return const EdgeInsets.fromLTRB(28, 24, 28, 48);
-    return const EdgeInsets.fromLTRB(16, 20, 16, 40);
+    if (width >= 600) return const EdgeInsets.fromLTRB(16, 16, 16, 32);
+    return const EdgeInsets.fromLTRB(12, 12, 12, 20);
   }
 }
 
@@ -40,12 +41,12 @@ class AcademySurface extends StatefulWidget {
   const AcademySurface({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(24),
+    this.padding,
     this.onTap,
   });
 
   final Widget child;
-  final EdgeInsets padding;
+  final EdgeInsets? padding;
   final VoidCallback? onTap;
 
   @override
@@ -57,13 +58,18 @@ class _AcademySurfaceState extends State<AcademySurface> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isMobile = width < 600;
+    final effectivePadding = widget.padding ??
+        (isMobile ? const EdgeInsets.all(12) : const EdgeInsets.all(22));
+
     final card = AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       width: double.infinity,
-      padding: widget.padding,
+      padding: effectivePadding,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(isMobile ? 14 : 18),
         border: Border.all(color: _hover ? const Color(0xFFD8C9A3) : Academy.line),
         boxShadow: [
           BoxShadow(
@@ -83,6 +89,7 @@ class _AcademySurfaceState extends State<AcademySurface> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedScale(
@@ -103,6 +110,7 @@ class AcademyButton extends StatefulWidget {
     this.icon,
     this.outlined = false,
     this.busy = false,
+    this.color,
   });
 
   final String label;
@@ -110,6 +118,7 @@ class AcademyButton extends StatefulWidget {
   final IconData? icon;
   final bool outlined;
   final bool busy;
+  final Color? color;
 
   @override
   State<AcademyButton> createState() => _AcademyButtonState();
@@ -121,6 +130,8 @@ class _AcademyButtonState extends State<AcademyButton> {
   @override
   Widget build(BuildContext context) {
     final disabled = widget.onPressed == null || widget.busy;
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
@@ -130,13 +141,20 @@ class _AcademyButtonState extends State<AcademyButton> {
         child: FilledButton(
           onPressed: disabled ? null : widget.onPressed,
           style: FilledButton.styleFrom(
-            backgroundColor: widget.outlined ? Colors.white : Brand.navy,
+            backgroundColor: widget.outlined ? Colors.white : (widget.color ?? Brand.navy),
             foregroundColor: widget.outlined ? Brand.navy : Colors.white,
             disabledBackgroundColor: const Color(0xFFD9D3C8),
-            minimumSize: const Size(0, 46),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            minimumSize: Size(0, isMobile ? 38 : 46),
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 12 : 18,
+              vertical: isMobile ? 8 : 12,
+            ),
             side: BorderSide(color: widget.outlined ? Academy.line : Colors.transparent),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isMobile ? 10 : 12)),
+            textStyle: TextStyle(
+              fontSize: isMobile ? 13 : 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           child: widget.busy
               ? const SizedBox(

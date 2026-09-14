@@ -7,7 +7,6 @@ abstract final class ApiEndpoints {
   static const resetPassword = '/api/v1/auth/reset-password';
   static const loginPageContent = '/api/v1/auth/login-page';
 
-  static const careerCompassLevels = '/api/v1/admin/career-compass-levels';
   static const adminDashboard = '/api/v1/admin/dashboard';
   static const adminStudents = '/api/v1/admin/students';
   static String adminStudent(String id) => '/api/v1/admin/students/$id';
@@ -15,13 +14,14 @@ abstract final class ApiEndpoints {
   static const adminTeachers = '/api/v1/admin/teachers';
   static String adminTeacher(String id) => '/api/v1/admin/teachers/$id';
   static String adminTeacherDashboard(String id) => '/api/v1/admin/teachers/$id/dashboard';
+  static String adminTeacherHistory(String id) => '/api/v1/admin/teachers/$id/history';
+  static String adminTeacherPromotedStudents(String id) => '/api/v1/admin/teachers/$id/promoted-students';
   static const adminBatches = '/api/v1/admin/batches';
   static String adminBatch(String id) => '/api/v1/admin/batches/$id';
   static String adminBatchStatus(String id) => '/api/v1/admin/batches/$id/status';
   static String adminBatchStudents(String id) => '/api/v1/admin/batches/$id/students';
   static String adminBatchStudent(String batchId, String studentId) =>
       '/api/v1/admin/batches/$batchId/students/$studentId';
-  static String adminBatchTeacher(String id) => '/api/v1/admin/batches/$id/teacher';
 
   static const adminLevels = '/api/v1/admin/levels';
   static String adminLevel(String id) => '/api/v1/admin/levels/$id';

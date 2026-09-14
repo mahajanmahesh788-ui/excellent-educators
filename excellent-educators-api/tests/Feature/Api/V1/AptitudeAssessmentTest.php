@@ -4,10 +4,8 @@ namespace Tests\Feature\Api\V1;
 
 use App\Enums\RoleName;
 use App\Models\AptitudeAssessment;
-use App\Models\CareerCompassLevel;
 use App\Models\StudentProfile;
 use App\Models\User;
-use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
@@ -21,30 +19,26 @@ class AptitudeAssessmentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class]);
+        $this->seed([RoleSeeder::class]);
     }
 
-    public function test_admin_can_create_assessment_for_career_compass_level(): void
+    public function test_admin_can_create_assessment(): void
     {
         $admin = $this->makeAdmin();
-        $cc1 = $this->cc1();
 
         $response = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/assessments', [
-            'title' => 'CC1 Aptitude',
+            'title' => 'Aptitude Assessment 1',
             'description' => 'Find your strengths',
-            'career_compass_level_id' => $cc1->id,
             'questions' => [$this->questionPayload()],
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('data.title', 'CC1 Aptitude')
-            ->assertJsonPath('data.career_compass_level.code', 'cc1')
+            ->assertJsonPath('data.title', 'Aptitude Assessment 1')
             ->assertJsonPath('data.questions.0.options.0.dimension_codes', ['CR'])
             ->assertJsonPath('data.status', 'draft');
 
         $this->assertDatabaseHas('aptitude_assessments', [
-            'title' => 'CC1 Aptitude',
-            'career_compass_level_id' => $cc1->id,
+            'title' => 'Aptitude Assessment 1',
         ]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'assessment.created']);
     }
@@ -55,7 +49,6 @@ class AptitudeAssessmentTest extends TestCase
 
         $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/assessments', [
             'title' => 'Bad codes',
-            'career_compass_level_id' => $this->cc1()->id,
             'questions' => [[
                 'question_text' => 'Which activity do you enjoy most?',
                 'options' => [
@@ -72,7 +65,6 @@ class AptitudeAssessmentTest extends TestCase
 
         $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/assessments', [
             'title' => 'All dimensions',
-            'career_compass_level_id' => $this->cc1()->id,
             'questions' => [[
                 'question_text' => 'Pick one',
                 'options' => [
@@ -98,7 +90,6 @@ class AptitudeAssessmentTest extends TestCase
 
         $id = $this->withToken($token)->postJson('/api/v1/admin/assessments', [
             'title' => 'Empty',
-            'career_compass_level_id' => $this->cc1()->id,
         ])->assertCreated()->json('data.id');
 
         $this->withToken($token)->postJson("/api/v1/admin/assessments/{$id}/activate")
@@ -167,17 +158,6 @@ class AptitudeAssessmentTest extends TestCase
             ->assertJsonPath('error.code', 'ASSESSMENT_ALREADY_SUBMITTED');
     }
 
-    public function test_wrong_assessment_level_is_rejected(): void
-    {
-        $admin = $this->makeAdmin();
-        $assessmentId = $this->createActiveAssessment($admin);
-        $student = $this->makeStudent('cc2@excellenteducators.test', 'cc2');
-
-        $this->submitAs($student, $assessmentId)
-            ->assertStatus(422)
-            ->assertJsonPath('error.code', 'ASSESSMENT_LEVEL_MISMATCH');
-    }
-
     public function test_option_from_another_question_is_rejected(): void
     {
         $admin = $this->makeAdmin();
@@ -243,7 +223,7 @@ class AptitudeAssessmentTest extends TestCase
         $this->withToken($this->tokenFor($admin))->getJson("/api/v1/admin/students/{$studentProfile->id}")
             ->assertOk()
             ->assertJsonPath('data.aptitude_assessment.status', 'submitted')
-            ->assertJsonPath('data.aptitude_assessment.assessment_title', 'CC1 Compass');
+            ->assertJsonPath('data.aptitude_assessment.assessment_title', 'Aptitude Test');
 
         $this->withToken($this->tokenFor($admin))->getJson("/api/v1/admin/students/{$studentProfile->id}/results")
             ->assertOk()
@@ -265,8 +245,7 @@ class AptitudeAssessmentTest extends TestCase
 
         $token = $this->tokenFor($admin);
         $id = $this->withToken($token)->postJson('/api/v1/admin/assessments', [
-            'title' => 'CC1 Compass',
-            'career_compass_level_id' => $this->cc1()->id,
+            'title' => 'Aptitude Test',
             'questions' => $questions,
         ])->assertCreated()->json('data.id');
 
@@ -315,25 +294,19 @@ class AptitudeAssessmentTest extends TestCase
         return $user;
     }
 
-    private function makeStudent(string $email, string $level = 'cc1'): User
+    private function makeStudent(string $email): User
     {
         $admin = User::query()->where('email', 'ops-aptitude@excellenteducators.test')->first() ?? $this->makeAdmin();
-        $cc = CareerCompassLevel::query()->where('code', $level)->firstOrFail();
 
         $id = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/students', [
             'name' => 'Student '.$email,
             'email' => $email,
             'password' => 'StudentPass1!',
             'phone' => '9000000000',
-            'career_compass_level_id' => $cc->id,
+            'class_grade' => 5,
         ])->assertCreated()->json('data.id');
 
         return StudentProfile::query()->findOrFail($id)->user;
-    }
-
-    private function cc1(): CareerCompassLevel
-    {
-        return CareerCompassLevel::query()->where('code', 'cc1')->firstOrFail();
     }
 
     private function tokenFor(User $user): string

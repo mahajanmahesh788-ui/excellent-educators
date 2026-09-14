@@ -1,3 +1,4 @@
+import 'package:excellent_educators_web/core/time/app_clock.dart';
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
@@ -13,14 +14,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AdminStudentFeedbackSection extends ConsumerWidget {
+class AdminStudentFeedbackSection extends ConsumerStatefulWidget {
   const AdminStudentFeedbackSection({super.key, required this.student});
 
   final StudentDto student;
 
-  void _invalidate(WidgetRef ref) {
-    ref.invalidate(adminStudentFeedbackSummaryProvider(student.id));
-    ref.invalidate(adminStudentFeedbackProvider(student.id));
+  @override
+  ConsumerState<AdminStudentFeedbackSection> createState() => _AdminStudentFeedbackSectionState();
+}
+
+class _AdminStudentFeedbackSectionState extends ConsumerState<AdminStudentFeedbackSection> {
+  String? _selectedMonthKey;
+
+  void _invalidate() {
+    ref.invalidate(adminStudentFeedbackSummaryProvider(widget.student.id));
+    ref.invalidate(adminStudentFeedbackProvider(widget.student.id));
   }
 
   MonthlyFeedbackDto? _currentMonthRating(List<MonthlyFeedbackDto> items) {
@@ -33,7 +41,7 @@ class AdminStudentFeedbackSection extends ConsumerWidget {
     return null;
   }
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, String feedbackId) async {
+  Future<void> _confirmDelete(String feedbackId) async {
     final confirmed = await showAppConfirmDialog(
       context,
       title: 'Delete rating?',
@@ -47,18 +55,18 @@ class AdminStudentFeedbackSection extends ConsumerWidget {
     }
 
     try {
-      await ref.read(feedbackRepositoryProvider).adminDeleteFeedback(student.id, feedbackId);
-      _invalidate(ref);
+      await ref.read(feedbackRepositoryProvider).adminDeleteFeedback(widget.student.id, feedbackId);
+      _invalidate();
     } catch (error) {
-      if (context.mounted) {
+      if (mounted) {
         showFailure(context, error);
       }
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (!student.hasMasterTeacher) {
+  Widget build(BuildContext context) {
+    if (!widget.student.hasMasterTeacher) {
       return DetailSection(
         title: 'Master Teacher ratings',
         children: [
@@ -70,8 +78,8 @@ class AdminStudentFeedbackSection extends ConsumerWidget {
       );
     }
 
-    final summary = ref.watch(adminStudentFeedbackSummaryProvider(student.id));
-    final feedback = ref.watch(adminStudentFeedbackProvider(student.id));
+    final summary = ref.watch(adminStudentFeedbackSummaryProvider(widget.student.id));
+    final feedback = ref.watch(adminStudentFeedbackProvider(widget.student.id));
 
     return DetailSection(
       title: 'Master Teacher ratings',
@@ -79,8 +87,9 @@ class AdminStudentFeedbackSection extends ConsumerWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            if (student.feedbackCurrentMonthCompleted)
+            if (widget.student.feedbackCurrentMonthCompleted)
               const _StatusTag(
                 label: 'Monthly rating done',
                 background: Color(0xFFE8F5E9),
@@ -88,13 +97,13 @@ class AdminStudentFeedbackSection extends ConsumerWidget {
               )
             else
               const _StatusTag(
-                label: 'No monthly rating',
+                label: 'No monthly rating this month',
                 background: Color(0xFFFFF8E1),
                 color: Color(0xFFF57F17),
               ),
-            if (student.feedbackTotalSessions > 0)
+            if (widget.student.feedbackTotalSessions > 0)
               _StatusTag(
-                label: '${student.feedbackTotalSessions} monthly rating(s) on record',
+                label: '${widget.student.feedbackTotalSessions} monthly rating(s) on record',
                 background: const Color(0xFFE8EAF6),
                 color: const Color(0xFF3949AB),
               ),
@@ -103,7 +112,7 @@ class AdminStudentFeedbackSection extends ConsumerWidget {
         const SizedBox(height: 12),
         AsyncBody(
           value: feedback,
-          onRetry: () => _invalidate(ref),
+          onRetry: _invalidate,
           builder: (items) {
             final currentMonth = _currentMonthRating(items);
             return Wrap(
@@ -112,18 +121,18 @@ class AdminStudentFeedbackSection extends ConsumerWidget {
               children: [
                 if (currentMonth == null)
                   FilledButton.icon(
-                    onPressed: () => context.go(RoutePaths.adminFeedbackNewFor(student.id)),
+                    onPressed: () => context.go(RoutePaths.adminFeedbackNewFor(widget.student.id)),
                     icon: const Icon(Icons.add),
                     label: const Text('Add monthly rating'),
                   )
                 else ...[
                   FilledButton.tonalIcon(
-                    onPressed: () => context.go(RoutePaths.adminFeedbackEditFor(student.id, currentMonth.id)),
+                    onPressed: () => context.go(RoutePaths.adminFeedbackEditFor(widget.student.id, currentMonth.id)),
                     icon: const Icon(Icons.edit),
                     label: const Text('Edit this month'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => _confirmDelete(context, ref, currentMonth.id),
+                    onPressed: () => _confirmDelete(currentMonth.id),
                     icon: const Icon(Icons.delete_outline),
                     label: const Text('Delete this month'),
                   ),
@@ -135,11 +144,11 @@ class AdminStudentFeedbackSection extends ConsumerWidget {
         const SizedBox(height: 16),
         AsyncBody(
           value: summary,
-          onRetry: () => _invalidate(ref),
+          onRetry: _invalidate,
           builder: (summaryData) {
             if (summaryData.totalSessions == 0) {
               return Text(
-                'No monthly ratings submitted yet for ${student.fullName}.',
+                'No monthly ratings submitted yet for ${widget.student.fullName}.',
                 style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
               );
             }
@@ -163,40 +172,87 @@ class AdminStudentFeedbackSection extends ConsumerWidget {
         const SizedBox(height: 16),
         AsyncBody(
           value: feedback,
-          onRetry: () => _invalidate(ref),
+          onRetry: _invalidate,
           builder: (items) {
             if (items.isEmpty) {
               return const SizedBox.shrink();
             }
 
+            final monthEntries = <String, String>{};
+            for (final item in items) {
+              final key = '${item.year}-${item.month.toString().padLeft(2, '0')}';
+              monthEntries.putIfAbsent(key, () => AppClock.monthLabel(item.year, item.month));
+            }
+
+            final filteredItems = (_selectedMonthKey == null || _selectedMonthKey == 'all')
+                ? items
+                : items.where((item) {
+                    final key = '${item.year}-${item.month.toString().padLeft(2, '0')}';
+                    return key == _selectedMonthKey;
+                  }).toList();
+
             return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        'Monthly rating history',
-                        style: Theme.of(context).textTheme.titleSmall,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Monthly rating history',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Showing ${filteredItems.length} of ${items.length} rating${items.length == 1 ? '' : 's'} · Admin can edit or delete',
+                            style: const TextStyle(color: Brand.muted, fontSize: 12),
+                          ),
+                        ],
                       ),
                     ),
-                    Text(
-                      '${items.length} month${items.length == 1 ? '' : 's'}',
-                      style: const TextStyle(color: Brand.muted, fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
+                    if (monthEntries.length > 1) ...[
+                      Container(
+                        height: 36,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE6DCCB)),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: monthEntries.containsKey(_selectedMonthKey) ? _selectedMonthKey : 'all',
+                            icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Brand.navy),
+                            style: const TextStyle(color: Brand.navy, fontSize: 13, fontWeight: FontWeight.w600),
+                            items: [
+                              const DropdownMenuItem(value: 'all', child: Text('All months')),
+                              for (final entry in monthEntries.entries)
+                                DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+                            ],
+                            onChanged: (value) => setState(() => _selectedMonthKey = value),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Admin can edit or delete any rating at any time',
-                  style: TextStyle(color: Brand.muted, fontSize: 12),
-                ),
                 const SizedBox(height: 12),
-                MonthlyRatingHistoryList(
-                  items: items,
-                  onEdit: (feedbackId) => context.go(RoutePaths.adminFeedbackEditFor(student.id, feedbackId)),
-                  onDelete: (feedbackId) => _confirmDelete(context, ref, feedbackId),
-                ),
+                if (filteredItems.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      'No monthly ratings for this month.',
+                      style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
+                    ),
+                  )
+                else
+                  MonthlyRatingHistoryList(
+                    items: filteredItems,
+                    onEdit: (feedbackId) => context.go(RoutePaths.adminFeedbackEditFor(widget.student.id, feedbackId)),
+                    onDelete: (feedbackId) => _confirmDelete(feedbackId),
+                  ),
               ],
             );
           },

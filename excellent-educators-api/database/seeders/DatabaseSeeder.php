@@ -14,7 +14,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             AdminSeeder::class,
-            CareerCompassLevelSeeder::class,
             DimensionSeeder::class,
             LoginPageContentSeeder::class,
             LevelSeeder::class,

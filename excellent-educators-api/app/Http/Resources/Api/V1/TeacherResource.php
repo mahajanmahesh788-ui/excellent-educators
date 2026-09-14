@@ -37,16 +37,6 @@ class TeacherResource extends JsonResource
             'assigned_levels_count' => $this->academic_levels_count ?? $academicLevels->count(),
             'active_batch_count' => $this->whenCounted('activeBatchAssignments'),
             'active_mentee_count' => $this->whenCounted('activeMasterTeacherAssignments'),
-            'career_compass_levels' => $this->whenLoaded(
-                'activeBatchAssignments',
-                fn () => $this->activeBatchAssignments
-                    ->map(fn ($assignment) => $assignment->batch?->careerCompassLevel)
-                    ->filter()
-                    ->unique('id')
-                    ->map(fn ($level) => CareerCompassLevelResource::make($level)->resolve())
-                    ->values()
-                    ->all(),
-            ),
         ];
     }
 }

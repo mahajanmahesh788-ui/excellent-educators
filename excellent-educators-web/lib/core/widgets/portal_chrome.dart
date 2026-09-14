@@ -1,4 +1,5 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/app/theme/breakpoints.dart';
 import 'package:flutter/material.dart';
 
 class AnimatedPortalBackdrop extends StatefulWidget {
@@ -79,15 +80,19 @@ class _PortalHeroState extends State<PortalHero> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = Breakpoints.isMobile(context);
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
         final t = _controller.value;
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
+          padding: isMobile
+              ? const EdgeInsets.fromLTRB(14, 14, 14, 14)
+              : const EdgeInsets.fromLTRB(22, 20, 22, 20),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(isMobile ? 14 : 18),
             gradient: LinearGradient(
               begin: Alignment(-1 + (t * 0.4), -1),
               end: Alignment(1, 0.8 - (t * 0.3)),
@@ -100,8 +105,8 @@ class _PortalHeroState extends State<PortalHero> with SingleTickerProviderStateM
             boxShadow: [
               BoxShadow(
                 color: Brand.navy.withValues(alpha: 0.22),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
+                blurRadius: isMobile ? 14 : 22,
+                offset: Offset(0, isMobile ? 5 : 10),
               ),
             ],
           ),
@@ -112,30 +117,34 @@ class _PortalHeroState extends State<PortalHero> with SingleTickerProviderStateM
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 42,
+            width: isMobile ? 32 : 42,
             height: 3,
             decoration: BoxDecoration(
               color: Brand.gold,
               borderRadius: BorderRadius.circular(99),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: isMobile ? 8 : 12),
           Text(
             widget.title,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 22,
+              fontSize: isMobile ? 18 : 22,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.2,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             widget.subtitle,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 13.5, height: 1.4),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.78),
+              fontSize: isMobile ? 12 : 13.5,
+              height: 1.35,
+            ),
           ),
           if (widget.actions.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: isMobile ? 10 : 16),
             Wrap(spacing: 8, runSpacing: 8, children: widget.actions),
           ],
         ],
@@ -145,25 +154,32 @@ class _PortalHeroState extends State<PortalHero> with SingleTickerProviderStateM
 }
 
 class PortalCard extends StatelessWidget {
-  const PortalCard({super.key, required this.child, this.padding = const EdgeInsets.all(18)});
+  const PortalCard({
+    super.key,
+    required this.child,
+    this.padding,
+  });
 
   final Widget child;
-  final EdgeInsets padding;
+  final EdgeInsets? padding;
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = Breakpoints.isMobile(context);
+    final resolvedPadding = padding ?? (isMobile ? const EdgeInsets.all(12) : const EdgeInsets.all(18));
+
     return Container(
       width: double.infinity,
-      padding: padding,
+      padding: resolvedPadding,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
         border: Border.all(color: const Color(0xFFE4EAF1)),
         boxShadow: [
           BoxShadow(
             color: Brand.navy.withValues(alpha: 0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            blurRadius: isMobile ? 10 : 18,
+            offset: Offset(0, isMobile ? 3 : 8),
           ),
         ],
       ),
@@ -190,6 +206,7 @@ class PortalButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = Breakpoints.isMobile(context);
     final disabled = busy || onPressed == null;
     final child = busy
         ? const SizedBox(
@@ -201,8 +218,8 @@ class PortalButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16),
-                const SizedBox(width: 8),
+                Icon(icon, size: isMobile ? 14 : 16),
+                const SizedBox(width: 6),
               ],
               Text(label),
             ],
@@ -214,9 +231,9 @@ class PortalButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           foregroundColor: Brand.navy,
           side: const BorderSide(color: Color(0xFFC9D4E3)),
-          minimumSize: const Size(0, 40),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          minimumSize: Size(0, isMobile ? 36 : 40),
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 14, vertical: isMobile ? 7 : 10),
+          textStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: isMobile ? 12 : 13),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: child,
@@ -245,9 +262,9 @@ class PortalButton extends StatelessWidget {
           onTap: disabled ? null : onPressed,
           borderRadius: BorderRadius.circular(8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: isMobile ? 7 : 10),
             child: DefaultTextStyle(
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: isMobile ? 12 : 13),
               child: IconTheme(
                 data: const IconThemeData(color: Colors.white, size: 16),
                 child: child,

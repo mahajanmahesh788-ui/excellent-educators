@@ -28,10 +28,6 @@ class MonthlyFeedbackPolicy
             return $this->hasBookingWith($user, $student);
         }
 
-        if ($user->hasRole(RoleName::CommonTeacher)) {
-            return $this->commonTeacherAssigned($user, $student) || $this->hasBookingWith($user, $student);
-        }
-
         return false;
     }
 
@@ -90,22 +86,6 @@ class MonthlyFeedbackPolicy
         }
 
         return $feedback->isDeletable();
-    }
-
-    private function commonTeacherAssigned(User $user, StudentProfile $student): bool
-    {
-        $teacher = $user->teacherProfile;
-        if ($teacher === null) {
-            return false;
-        }
-
-        $student->loadMissing('activeEnrollment');
-        $batchId = $student->activeEnrollment?->batch_id;
-        if ($batchId === null) {
-            return false;
-        }
-
-        return $teacher->activeBatchAssignments()->where('batch_id', $batchId)->exists();
     }
 
     private function hasBookingWith(User $user, StudentProfile $student): bool

@@ -117,6 +117,35 @@ class ClassAttendanceTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_teacher_did_not_join_report_closes_one_hour_after_class_ends(): void
+    {
+        [$student, $teacher] = $this->makeStudentWithTeacher();
+        $booking = $this->book($student, $teacher, '10:00');
+        $token = $this->tokenFor($student->user);
+
+        Carbon::setTestNow(Carbon::parse('2026-09-16 10:31:00', 'Asia/Kolkata'));
+        $this->withToken($token)->getJson('/api/v1/student/bookings')
+            ->assertOk()
+            ->assertJsonPath('data.0.attendance.can_report_teacher_did_not_join', true);
+
+        Carbon::setTestNow(Carbon::parse('2026-09-16 11:30:00', 'Asia/Kolkata'));
+        $this->withToken($token)->getJson('/api/v1/student/bookings')
+            ->assertOk()
+            ->assertJsonPath('data.0.attendance.can_report_teacher_did_not_join', true);
+
+        Carbon::setTestNow(Carbon::parse('2026-09-16 11:31:00', 'Asia/Kolkata'));
+        $this->withToken($token)->getJson('/api/v1/student/bookings')
+            ->assertOk()
+            ->assertJsonPath('data.0.attendance.can_report_teacher_did_not_join', false);
+
+        $this->withToken($token)->postJson(
+            '/api/v1/student/bookings/'.$booking->id.'/attendance-reports',
+            ['message' => 'Teacher did not join the Meet.'],
+        )
+            ->assertUnprocessable()
+            ->assertJsonPath('error.code', 'ATTENDANCE_REPORT_TOO_LATE');
+    }
+
     public function test_admin_can_verify_teacher_absent_and_student_gets_one_rebooking(): void
     {
         [$student, $teacher] = $this->makeStudentWithTeacher();
@@ -384,6 +413,43 @@ class ClassAttendanceTest extends TestCase
         $this->withToken($this->tokenFor($student->user))
             ->postJson('/api/v1/teacher/schedule/bookings/'.$first->id.'/whatsapp')
             ->assertForbidden();
+    }
+
+    public function test_held_master_class_this_month_cannot_be_booked_again(): void
+    {
+        [$student, $teacher] = $this->makeStudentWithTeacher();
+        $intro = $this->book($student, $teacher, '10:00');
+        Carbon::setTestNow(Carbon::parse('2026-09-16 09:58:00', 'Asia/Kolkata'));
+        $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings/'.$intro->id.'/join')->assertOk();
+        Carbon::setTestNow(Carbon::parse('2026-09-16 10:31:00', 'Asia/Kolkata'));
+        $intro->update(['status' => SessionBookingStatus::Completed->value]);
+
+        $masterId = $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
+            'teacher_id' => $teacher->id,
+            'type' => 'master_class',
+            'date' => '2026-09-16',
+            'start' => '11:00',
+        ])->assertCreated()->json('data.id');
+
+        Carbon::setTestNow(Carbon::parse('2026-09-16 10:58:00', 'Asia/Kolkata'));
+        $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings/'.$masterId.'/join')->assertOk();
+        Carbon::setTestNow(Carbon::parse('2026-09-16 11:31:00', 'Asia/Kolkata'));
+
+        $this->withToken($this->tokenFor($student->user))->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.can_book_master_class', false);
+
+        $this->assertSame(
+            SessionBookingStatus::Completed,
+            SessionBooking::query()->findOrFail($masterId)->status,
+        );
+
+        $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
+            'teacher_id' => $teacher->id,
+            'type' => 'master_class',
+            'date' => '2026-09-20',
+            'start' => '11:00',
+        ])->assertUnprocessable()->assertJsonPath('error.code', 'MASTER_CLASS_MONTHLY_LIMIT');
     }
 
     /**

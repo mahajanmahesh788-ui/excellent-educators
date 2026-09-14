@@ -134,16 +134,13 @@ class CreateSessionBooking
         }
 
         if (! $this->eligibility->canBookMasterClass($student)) {
-            if ($this->attendance->unusedRebookingFor($student->id, SessionBookingType::MasterClass) !== null) {
-                return true;
-            }
             throw new ApiException(
                 ErrorCode::MASTER_CLASS_MONTHLY_LIMIT,
-                'Master Class can be booked twice in a month if the first session is missed. Both chances are used, or a session is already booked.',
+                'Master Class is limited to one session per month. Book again next month, or after an extra chance is granted.',
                 422,
             );
         }
 
-        return false;
+        return $this->attendance->unusedRebookingFor($student->id, SessionBookingType::MasterClass) !== null;
     }
 }
