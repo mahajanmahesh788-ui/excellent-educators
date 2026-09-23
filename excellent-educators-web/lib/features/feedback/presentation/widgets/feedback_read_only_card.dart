@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/features/feedback/data/dto/feedback_dtos.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/feedback_rating_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class FeedbackReadOnlyCard extends StatelessWidget {
   const FeedbackReadOnlyCard({
@@ -30,12 +31,14 @@ class FeedbackReadOnlyCard extends StatelessWidget {
                   ),
                 ),
                 if (feedback.editable && onEdit != null)
-                  TextButton(onPressed: onEdit, child: const Text('Edit')),
+                  TextButton(onPressed: onEdit, child: const Text(AppStrings.edit)),
               ],
             ),
             if (feedback.masterTeacherName != null)
               Text('Master Teacher: ${feedback.masterTeacherName}', style: const TextStyle(color: Brand.muted)),
             const SizedBox(height: 12),
+            if (feedback.positivePoints != null && feedback.positivePoints!.isNotEmpty)
+              Text('Positive points: ${feedback.positivePoints}'),
             for (final item in feedback.items) ...[
               Text(item.targetName, style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),

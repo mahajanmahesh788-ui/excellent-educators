@@ -11,6 +11,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/d
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminBatchesPage extends ConsumerStatefulWidget {
   const AdminBatchesPage({super.key});
@@ -27,18 +28,18 @@ class _AdminBatchesPageState extends ConsumerState<AdminBatchesPage> {
     final levelsValue = ref.watch(adminLevelsProvider);
 
     return AppScaffold(
-      title: 'Levels',
+      title: AppStrings.levels,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go(RoutePaths.adminBatchNew),
         icon: const Icon(Icons.add),
-        label: const Text('Add level'),
+        label: const Text(AppStrings.addLevel),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DirectoryToolbar(
             key: const ValueKey('admin-levels-toolbar'),
-            searchHint: 'Search level name',
+            searchHint: AppStrings.searchLevelName,
             searchQuery: _search,
             onSearchChanged: (value) {
               setState(() => _search = value);
@@ -60,17 +61,17 @@ class _AdminBatchesPageState extends ConsumerState<AdminBatchesPage> {
 
                 if (filtered.isEmpty && _search.isEmpty) {
                   return const EmptyHint(
-                    'No levels yet',
+                    AppStrings.noLevelsYet,
                     icon: EmptyIcons.batches,
-                    subtitle: 'Add levels to organize students and batches.',
+                    subtitle: AppStrings.addLevelsToOrganizeStudentsAndBatches,
                   );
                 }
 
                 if (filtered.isEmpty) {
                   return const EmptyHint(
-                    'No levels match your search',
+                    AppStrings.noLevelsMatchYourSearch,
                     icon: EmptyIcons.search,
-                    subtitle: 'Try a different search query.',
+                    subtitle: AppStrings.tryADifferentSearchQuery,
                   );
                 }
 
@@ -82,7 +83,7 @@ class _AdminBatchesPageState extends ConsumerState<AdminBatchesPage> {
                     if (index == 0) {
                       return DirectoryHeader(
                         countLabel: filtered.length == 1
-                            ? '1 level'
+                            ? AppStrings.n1Level
                             : '${filtered.length} levels',
                       );
                     }
@@ -113,12 +114,14 @@ class _AdminCreateBatchPageState extends ConsumerState<AdminCreateBatchPage> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _year = TextEditingController(text: DateTime.now().year.toString());
+  final _masterClasses = TextEditingController(text: '1');
   bool _saving = false;
 
   @override
   void dispose() {
     _name.dispose();
     _year.dispose();
+    _masterClasses.dispose();
     super.dispose();
   }
 
@@ -131,6 +134,7 @@ class _AdminCreateBatchPageState extends ConsumerState<AdminCreateBatchPage> {
       final level = await ref.read(academicRepositoryProvider).createLevel({
         'name': _name.text.trim(),
         'academic_year': int.parse(_year.text.trim()),
+        'master_classes_per_month': int.tryParse(_masterClasses.text.trim()) ?? 1,
       });
       ref.invalidate(adminLevelsProvider);
       ref.invalidate(adminDashboardProvider);
@@ -151,7 +155,7 @@ class _AdminCreateBatchPageState extends ConsumerState<AdminCreateBatchPage> {
   @override
   Widget build(BuildContext context) {
     return AppFormPage(
-      title: 'Add level',
+      title: AppStrings.addLevel,
       backTo: RoutePaths.adminBatches,
       child: Form(
         key: _formKey,
@@ -161,22 +165,38 @@ class _AdminCreateBatchPageState extends ConsumerState<AdminCreateBatchPage> {
             TextFormField(
               controller: _name,
               decoration: const InputDecoration(
-                labelText: 'Level name',
-                hintText: 'e.g. Level 2, Class 6',
+                labelText: AppStrings.levelName,
+                hintText: AppStrings.eGLevel2Class6,
               ),
               validator: (value) =>
-                  value == null || value.trim().isEmpty ? 'Enter a level name.' : null,
+                  value == null || value.trim().isEmpty ? AppStrings.enterALevelName : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _year,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Academic year',
-                hintText: 'e.g. 2026',
+                labelText: AppStrings.academicYear,
+                hintText: AppStrings.eG2026,
               ),
               validator: (value) =>
-                  int.tryParse(value ?? '') == null ? 'Enter a valid year.' : null,
+                  int.tryParse(value ?? '') == null ? AppStrings.enterAValidYear : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _masterClasses,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: AppStrings.masterClassesPerMonth,
+                helperText: AppStrings.everyStudentInThisLevelGetsThisManyEachMonth,
+              ),
+              validator: (value) {
+                final parsed = int.tryParse(value ?? '');
+                if (parsed == null || parsed < 1 || parsed > 10) {
+                  return AppStrings.enterANumberFrom1To10;
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 24),
             FilledButton(
@@ -187,7 +207,7 @@ class _AdminCreateBatchPageState extends ConsumerState<AdminCreateBatchPage> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Create level'),
+                  : const Text(AppStrings.createLevel),
             ),
           ],
         ),
@@ -211,7 +231,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
     final levelValue = ref.watch(adminLevelProvider(widget.batchId));
 
     return AppScaffold(
-      title: 'Level Details',
+      title: AppStrings.levelDetails,
       backTo: RoutePaths.adminBatches,
       body: AsyncBody(
         value: levelValue,
@@ -261,7 +281,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                           OutlinedButton.icon(
                             onPressed: () => _editLevelDialog(context, level),
                             icon: const Icon(Icons.edit_outlined, size: 16),
-                            label: const Text('Edit Level'),
+                            label: const Text(AppStrings.editLevel),
                           ),
                         ],
                       ),
@@ -277,17 +297,17 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                             runSpacing: 10,
                             children: [
                               _MetricPill(
-                                label: 'Total Students',
+                                label: AppStrings.totalStudents,
                                 value: '${level.studentsCount}',
                                 color: Brand.navy,
                               ),
                               _MetricPill(
-                                label: 'Batches (Sections)',
+                                label: AppStrings.batchesSections,
                                 value: '${level.batches.length}',
                                 color: Brand.gold,
                               ),
                               _MetricPill(
-                                label: 'Master Teachers',
+                                label: AppStrings.masterTeachers,
                                 value: '${level.masterTeachers.length}',
                                 color: const Color(0xFF5BB98C),
                               ),
@@ -304,7 +324,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                                 ),
                                 onPressed: () => context.go(RoutePaths.adminLevelLearning(level.id)),
                                 icon: const Icon(Icons.menu_book_outlined, size: 18),
-                                label: const Text('Learning Journey'),
+                                label: const Text(AppStrings.learningJourney2),
                               ),
                               FilledButton.tonalIcon(
                                 style: FilledButton.styleFrom(
@@ -313,7 +333,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                                 ),
                                 onPressed: () => _assignMasterTeacher(context, level),
                                 icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
-                                label: const Text('Add Master Teacher'),
+                                label: const Text(AppStrings.addMasterTeacher),
                               ),
                               FilledButton.icon(
                                 style: FilledButton.styleFrom(
@@ -322,7 +342,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                                 ),
                                 onPressed: () => _addBatchDialog(context, level),
                                 icon: const Icon(Icons.add, size: 18),
-                                label: const Text('Add Batch'),
+                                label: const Text(AppStrings.addBatch),
                               ),
                             ],
                           ),
@@ -333,17 +353,20 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.end,
+                spacing: 8,
+                runSpacing: 4,
                 children: [
                   Text(
-                    'Batches (Sections)',
+                    AppStrings.batchesSections,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                   ),
                   Text(
-                    'Max 50 students / batch',
+                    AppStrings.max50StudentsBatch,
                     style: TextStyle(
                       color: Colors.grey.shade600,
                       fontSize: 13,
@@ -355,9 +378,9 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
               const SizedBox(height: 10),
               if (level.batches.isEmpty)
                 const EmptyHint(
-                  'No batches in this level yet',
+                  AppStrings.noBatchesInThisLevelYet,
                   icon: EmptyIcons.batches,
-                  subtitle: 'Tap Add Batch to create a new section.',
+                  subtitle: AppStrings.tapAddBatchToCreateANewSection,
                   fillHeight: false,
                 )
               else
@@ -401,7 +424,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
         role: 'master_teacher',
         excludeLevelId: level.id,
         excludeTeacherIds: level.masterTeachers.map((t) => t.id).toSet(),
-        emptyMessage: 'No Master Teachers available to assign. All Master Teachers are already assigned or none exist.',
+        emptyMessage: AppStrings.noMasterTeachersAvailableToAssignAllMasterTeachersAre,
       );
       if (selected == null) {
         return;
@@ -425,7 +448,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppModalDialog(
-        title: 'Remove Master Teacher',
+        title: AppStrings.removeMasterTeacher,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -436,7 +459,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
             ),
             const SizedBox(height: 20),
             AppDialogActions(
-              confirmLabel: 'Remove',
+              confirmLabel: AppStrings.remove,
               destructive: true,
               onConfirm: () => Navigator.of(ctx).pop(true),
               onCancel: () => Navigator.of(ctx).pop(false),
@@ -465,6 +488,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
 
   Future<void> _editLevelDialog(BuildContext context, AcademicLevelDto level) async {
     final nameCtrl = TextEditingController(text: level.name);
+    final masterCtrl = TextEditingController(text: '${level.masterClassesPerMonth}');
     final formKey = GlobalKey<FormState>();
     bool saving = false;
 
@@ -472,7 +496,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AppModalDialog(
-          title: 'Edit Level',
+          title: AppStrings.editLevel,
           child: Form(
             key: formKey,
             child: Column(
@@ -481,12 +505,27 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
               children: [
                 TextFormField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Level name'),
-                  validator: (val) => val == null || val.trim().isEmpty ? 'Enter name' : null,
+                  decoration: const InputDecoration(labelText: AppStrings.levelName),
+                  validator: (val) => val == null || val.trim().isEmpty ? AppStrings.enterName : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: masterCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: AppStrings.masterClassesPerMonth,
+                  ),
+                  validator: (val) {
+                    final parsed = int.tryParse(val ?? '');
+                    if (parsed == null || parsed < 1 || parsed > 10) {
+                      return AppStrings.enter1To10;
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 20),
                 AppDialogActions(
-                  confirmLabel: 'Save',
+                  confirmLabel: AppStrings.save,
                   isConfirming: saving,
                   onConfirm: () async {
                     if (!formKey.currentState!.validate()) return;
@@ -494,6 +533,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                     try {
                       await ref.read(academicRepositoryProvider).updateLevel(level.id, {
                         'name': nameCtrl.text.trim(),
+                        'master_classes_per_month': int.parse(masterCtrl.text.trim()),
                       });
                       ref.invalidate(adminLevelProvider(level.id));
                       ref.invalidate(adminLevelsProvider);
@@ -523,7 +563,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDialogState) => AppModalDialog(
-        title: 'Add Batch to Level',
+        title: AppStrings.addBatchToLevel,
         child: Form(
           key: formKey,
           child: Column(
@@ -533,14 +573,14 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
               TextFormField(
                 controller: nameCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Batch name',
-                  hintText: 'e.g. Batch 2, Section A',
+                  labelText: AppStrings.batchName,
+                  hintText: AppStrings.eGBatch2SectionA,
                 ),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Enter name' : null,
+                validator: (val) => val == null || val.trim().isEmpty ? AppStrings.enterName : null,
               ),
               const SizedBox(height: 20),
               AppDialogActions(
-                confirmLabel: 'Create Batch',
+                confirmLabel: AppStrings.createBatch,
                 isConfirming: saving,
                 onConfirm: () async {
                   if (!formKey.currentState!.validate()) return;
@@ -652,7 +692,7 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDialogState) => AppModalDialog(
-        title: 'Edit Batch',
+        title: AppStrings.editBatch,
         child: Form(
           key: formKey,
           child: Column(
@@ -661,12 +701,12 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
             children: [
               TextFormField(
                 controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Batch name'),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Enter name' : null,
+                decoration: const InputDecoration(labelText: AppStrings.batchName),
+                validator: (val) => val == null || val.trim().isEmpty ? AppStrings.enterName : null,
               ),
               const SizedBox(height: 20),
               AppDialogActions(
-                confirmLabel: 'Save',
+                confirmLabel: AppStrings.save,
                 isConfirming: saving,
                 onConfirm: () async {
                   if (!formKey.currentState!.validate()) return;
@@ -701,7 +741,7 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
         repo: repo,
         title: 'Enroll student in ${widget.batch.name}',
         withoutBatch: true,
-        emptyMessage: 'No unassigned students found.',
+        emptyMessage: AppStrings.noUnassignedStudentsFound,
       );
       if (selected == null) return;
 
@@ -744,119 +784,110 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Container(
+            child: Builder(
+              builder: (context) {
+                final compact = MediaQuery.sizeOf(context).width < 600;
+                final stripe = Container(
                   width: 4,
                   height: 38,
                   decoration: BoxDecoration(
                     color: isActive ? Brand.gold : Colors.grey,
                     borderRadius: BorderRadius.circular(2),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          Text(
-                            batch.name,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: isActive ? Brand.navy : Colors.grey.shade700,
-                            ),
-                          ),
-                          if (batch.monthName.isNotEmpty || batch.year != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.blueGrey.shade50,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '${batch.year ?? batch.academicYear}${batch.monthName.isNotEmpty ? ' · ${batch.monthName}' : ''}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.blueGrey.shade700,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? Colors.green.shade50
-                                  : Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              isActive ? 'Active' : 'Inactive',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: isActive ? Colors.green.shade700 : Colors.orange.shade800,
-                              ),
-                            ),
-                          ),
-                        ],
+                );
+                final title = Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      batch.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: isActive ? Brand.navy : Colors.grey.shade700,
                       ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Text(
-                            '${batch.activeStudentCount}/50 students',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Brand.navy,
-                            ),
+                    ),
+                    if (batch.monthName.isNotEmpty || batch.year != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blueGrey.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${batch.year ?? batch.academicYear}${batch.monthName.isNotEmpty ? ' · ${batch.monthName}' : ''}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.blueGrey.shade700,
+                            fontWeight: FontWeight.w500,
                           ),
-                          const SizedBox(width: 10),
-                          Container(
-                            width: 100,
-                            height: 6,
+                        ),
+                      ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isActive ? Colors.green.shade50 : Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        isActive ? AppStrings.active : AppStrings.inactive,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: isActive ? Colors.green.shade700 : Colors.orange.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+                final occupancy = Row(
+                  children: [
+                    Text(
+                      '${batch.activeStudentCount}/50 students',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Brand.navy,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: (batch.activeStudentCount / 50.0).clamp(0.0, 1.0),
+                          child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
+                              color: batch.activeStudentCount >= 50 ? Colors.red : Brand.gold,
                               borderRadius: BorderRadius.circular(3),
                             ),
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: (batch.activeStudentCount / 50.0).clamp(0.0, 1.0),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: batch.activeStudentCount >= 50
-                                      ? Colors.red
-                                      : Brand.gold,
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                              ),
-                            ),
                           ),
-                          if (batch.activeStudentCount >= 50) ...[
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Full (Limit 50)',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.red,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ],
+                        ),
+                      ),
+                    ),
+                    if (batch.activeStudentCount >= 50) ...[
+                      const SizedBox(width: 6),
+                      const Flexible(
+                        child: Text(
+                          AppStrings.fullLimit50,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.red,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
-                  ),
-                ),
-                // Active / Inactive toggle button
-                OutlinedButton.icon(
+                  ],
+                );
+                final toggle = OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: isActive ? Colors.orange.shade800 : Colors.green.shade700,
                     side: BorderSide(
@@ -864,6 +895,8 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     minimumSize: const Size(0, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
                   ),
                   onPressed: _toggling ? null : _toggleStatus,
                   icon: _toggling
@@ -877,24 +910,70 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
                           size: 16,
                         ),
                   label: Text(
-                    isActive ? 'Deactivate' : 'Activate',
+                    isActive ? AppStrings.deactivate : AppStrings.activate,
                     style: const TextStyle(fontSize: 12),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: 'Edit batch name / year / month',
-                  onPressed: _editBatchDialog,
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                ),
-                IconButton(
-                  tooltip: _expanded ? 'Hide students' : 'View students',
-                  onPressed: () => setState(() => _expanded = !_expanded),
-                  icon: Icon(
-                    _expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                  ),
-                ),
-              ],
+                );
+                final iconActions = Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: AppStrings.editBatchNameYearMonth,
+                      visualDensity: VisualDensity.compact,
+                      onPressed: _editBatchDialog,
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                    ),
+                    IconButton(
+                      tooltip: _expanded ? AppStrings.hideStudents : AppStrings.viewStudents,
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => setState(() => _expanded = !_expanded),
+                      icon: Icon(
+                        _expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      ),
+                    ),
+                  ],
+                );
+
+                if (compact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          stripe,
+                          const SizedBox(width: 12),
+                          Expanded(child: title),
+                          iconActions,
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      occupancy,
+                      const SizedBox(height: 8),
+                      Align(alignment: Alignment.centerLeft, child: toggle),
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    stripe,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          title,
+                          const SizedBox(height: 6),
+                          occupancy,
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    toggle,
+                    iconActions,
+                  ],
+                );
+              },
             ),
           ),
           if (_expanded) ...[
@@ -939,7 +1018,7 @@ class _BatchStudentList extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Enrolled Students',
+                AppStrings.enrolledStudents,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
@@ -953,7 +1032,7 @@ class _BatchStudentList extends ConsumerWidget {
                 ),
                 onPressed: onEnrollStudent,
                 icon: const Icon(Icons.person_add, size: 15),
-                label: const Text('Add student to batch', style: TextStyle(fontSize: 12)),
+                label: const Text(AppStrings.addStudentToBatch, style: TextStyle(fontSize: 12)),
               ),
             ],
           ),
@@ -966,7 +1045,7 @@ class _BatchStudentList extends ConsumerWidget {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text(
-                    'No students currently in this batch.',
+                    AppStrings.noStudentsCurrentlyInThisBatch,
                     style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 );
@@ -1019,7 +1098,7 @@ class _BatchStudentList extends ConsumerWidget {
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Remove from batch',
+                            tooltip: AppStrings.removeFromBatch,
                             icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 18),
                             onPressed: () => onUnenrollStudent(student),
                           ),
@@ -1099,7 +1178,7 @@ class _LevelMasterTeacherCard extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: 'Remove from Level',
+              tooltip: AppStrings.removeFromLevel,
               icon: const Icon(Icons.person_remove_outlined, color: Colors.red, size: 20),
               onPressed: onUnassign,
             ),

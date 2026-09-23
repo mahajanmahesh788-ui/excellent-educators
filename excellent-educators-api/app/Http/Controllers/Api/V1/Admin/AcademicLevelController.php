@@ -36,6 +36,7 @@ class AcademicLevelController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:academic_levels,name'],
             'academic_year' => ['required', 'integer', 'min:2000', 'max:2100'],
+            'master_classes_per_month' => ['sometimes', 'integer', 'min:1', 'max:10'],
         ], [
             'name.unique' => 'The level name has already been taken.',
         ]);
@@ -43,6 +44,7 @@ class AcademicLevelController extends Controller
         $level = AcademicLevel::query()->create([
             'name' => $validated['name'],
             'academic_year' => $validated['academic_year'],
+            'master_classes_per_month' => (int) ($validated['master_classes_per_month'] ?? 1),
             'status' => 'active',
         ]);
 
@@ -87,6 +89,7 @@ class AcademicLevelController extends Controller
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255', Rule::unique('academic_levels', 'name')->ignore($level->id)],
             'academic_year' => ['sometimes', 'integer', 'min:2000', 'max:2100'],
+            'master_classes_per_month' => ['sometimes', 'integer', 'min:1', 'max:10'],
             'status' => ['sometimes', Rule::in(['active', 'inactive'])],
         ], [
             'name.unique' => 'The level name has already been taken.',

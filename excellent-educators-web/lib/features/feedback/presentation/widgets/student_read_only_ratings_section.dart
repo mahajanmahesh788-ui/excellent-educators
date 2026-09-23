@@ -8,6 +8,7 @@ import 'package:excellent_educators_web/features/feedback/presentation/widgets/f
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/monthly_rating_history.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 enum StudentRatingsAudience {
   commonTeacher,
@@ -36,10 +37,10 @@ class StudentRatingsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (student != null && !student!.hasMasterTeacher) {
       return DetailSection(
-        title: 'Master Teacher ratings',
+        title: AppStrings.masterTeacherRatings,
         children: [
           Text(
-            'No Master Teacher assigned yet. Monthly ratings will appear here once assigned.',
+            AppStrings.noMasterTeacherAssignedYetMonthlyRatingsWillAppearHere,
             style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
           ),
         ],
@@ -64,7 +65,7 @@ class StudentRatingsSection extends ConsumerWidget {
     }
 
     return DetailSection(
-      title: 'Master Teacher ratings',
+      title: AppStrings.masterTeacherRatings,
       children: [
         if (audience == StudentRatingsAudience.masterTeacher) ...[
           AsyncBody(
@@ -80,7 +81,7 @@ class StudentRatingsSection extends ConsumerWidget {
           builder: (summaryData) {
             if (summaryData.totalSessions == 0) {
               return Text(
-                'No monthly ratings submitted yet.',
+                AppStrings.noMonthlyRatingsSubmittedYet,
                 style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
               );
             }
@@ -91,13 +92,13 @@ class StudentRatingsSection extends ConsumerWidget {
                 FeedbackOverallCard(summary: summaryData),
                 if (summaryData.byMonth.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  Text('Month-wise trend', style: Theme.of(context).textTheme.titleSmall),
+                  Text(AppStrings.monthWiseTrend, style: Theme.of(context).textTheme.titleSmall),
                   const SizedBox(height: 8),
                   FeedbackMonthlyTrendChart(months: summaryData.byMonth),
                 ],
                 if (summaryData.byDimension.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  Text('Overall by skill / dimension', style: Theme.of(context).textTheme.titleSmall),
+                  Text(AppStrings.overallBySkillDimension, style: Theme.of(context).textTheme.titleSmall),
                   const SizedBox(height: 8),
                   FeedbackDimensionOverview(dimensions: summaryData.byDimension),
                 ],
@@ -121,7 +122,7 @@ class StudentRatingsSection extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Monthly rating history',
+                        AppStrings.monthlyRatingHistory,
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                     ),
@@ -133,7 +134,7 @@ class StudentRatingsSection extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Newest first · tap a month to see full details',
+                  AppStrings.newestFirstTapAMonthToSeeFullDetails,
                   style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 12),
                 ),
                 const SizedBox(height: 12),
@@ -141,6 +142,7 @@ class StudentRatingsSection extends ConsumerWidget {
                   items: items,
                   onEdit: audience == StudentRatingsAudience.masterTeacher ? onEditRating : null,
                   onDelete: audience == StudentRatingsAudience.masterTeacher ? onDeleteRating : null,
+                  showStaffNotes: true,
                 ),
               ],
             );
@@ -150,56 +152,27 @@ class StudentRatingsSection extends ConsumerWidget {
     );
   }
 
-  MonthlyFeedbackDto? _currentMonthRating(List<MonthlyFeedbackDto> items) {
-    final now = DateTime.now();
-    for (final item in items) {
-      if (item.year == now.year && item.month == now.month) {
-        return item;
-      }
-    }
-    return null;
-  }
-
   Widget _masterTeacherRatingActions(List<MonthlyFeedbackDto> items) {
-    final currentMonth = _currentMonthRating(items);
-    if (currentMonth == null && onAddRating != null) {
-      return FilledButton.icon(
-        onPressed: onAddRating,
-        icon: const Icon(Icons.add),
-        label: const Text('Add monthly rating'),
-      );
-    }
-    if (currentMonth == null) {
-      return Text(
-        'Add monthly rating after this student completes a Master Class.',
-        style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
-      );
-    }
-    if (currentMonth != null && currentMonth.editable && onEditRating != null) {
-      return Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          FilledButton.tonalIcon(
-            onPressed: () => onEditRating!(currentMonth.id),
-            icon: const Icon(Icons.edit),
-            label: const Text('Edit this month\'s rating'),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        if (onAddRating != null)
+          FilledButton.icon(
+            onPressed: onAddRating,
+            icon: const Icon(Icons.add),
+            label: const Text(AppStrings.addMonthlyRating),
           ),
-          if (currentMonth.deletable && onDeleteRating != null)
-            OutlinedButton.icon(
-              onPressed: () => onDeleteRating!(currentMonth.id),
-              icon: const Icon(Icons.delete_outline),
-              label: const Text('Delete'),
-            ),
-        ],
-      );
-    }
-    if (currentMonth != null) {
-      return Text(
-        'Monthly rating submitted for ${currentMonth.monthLabel}.',
-        style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
-      );
-    }
-    return const SizedBox.shrink();
+        if (items.any((item) => item.editable) && onEditRating != null)
+          FilledButton.tonalIcon(
+            onPressed: () {
+              final editable = items.firstWhere((item) => item.editable);
+              onEditRating!(editable.id);
+            },
+            icon: const Icon(Icons.edit),
+            label: const Text(AppStrings.editThisMonthSRating),
+          ),
+      ],
+    );
   }
 }

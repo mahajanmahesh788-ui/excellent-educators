@@ -4,7 +4,6 @@ namespace Tests\Feature\Api\V1;
 
 use App\Enums\RoleName;
 use App\Models\AcademicLevel;
-use App\Models\TeacherProfile;
 use App\Models\User;
 use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\RoleSeeder;
@@ -19,34 +18,6 @@ class AcademicLevelTeachersTest extends TestCase
     {
         parent::setUp();
         $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class]);
-    }
-
-    private function makeAdmin(): User
-    {
-        $admin = User::factory()->create([
-            'email' => 'admin_teacher_test@excellenteducators.test',
-        ]);
-        $admin->assignRole(RoleName::OperationalAdmin->value);
-
-        return $admin;
-    }
-
-    private function makeMasterTeacher(string $name, string $email): TeacherProfile
-    {
-        $user = User::factory()->create(['name' => $name, 'email' => $email]);
-        $user->assignRole(RoleName::MasterTeacher->value);
-
-        return TeacherProfile::query()->create([
-            'user_id' => $user->id,
-            'full_name' => $name,
-            'phone' => '9876543210',
-            'status' => 'active',
-        ]);
-    }
-
-    private function tokenFor(User $user): string
-    {
-        return $user->createToken('test-token')->plainTextToken;
     }
 
     public function test_admin_can_assign_multiple_master_teachers_to_a_level(): void
@@ -115,6 +86,7 @@ class AcademicLevelTeachersTest extends TestCase
             'password' => $studentPass,
             'phone' => '9988776655',
             'class_grade' => 6,
+            'gender' => 'male',
         ])->assertCreated();
 
         $newStudentUser = User::query()->where('email', 'newstudentlevel@excellenteducators.test')->firstOrFail();
@@ -171,6 +143,7 @@ class AcademicLevelTeachersTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9812345678',
             'class_grade' => 6,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         $this->app['auth']->forgetGuards();

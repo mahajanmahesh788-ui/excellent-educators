@@ -1,3 +1,5 @@
+import 'package:excellent_educators_web/core/utils/session_labels.dart';
+
 class AvailabilityRangeDto {
   const AvailabilityRangeDto({required this.start, required this.end, this.id});
 
@@ -271,7 +273,7 @@ class SessionBookingDto {
   final String? endsAtIso;
   final BookingAttendanceDto? attendance;
 
-  String get typeLabel => type == 'master_class' ? 'Master Class' : 'Introduction Call';
+  String get typeLabel => sessionTypeLabel(type);
 
   String get teacherSlotLine {
     final name = studentName ?? 'Student';
@@ -316,7 +318,7 @@ class SessionBookingDto {
   }
 
   bool hasEndedAt(DateTime now) {
-    final end = endsAt;
+    final end = endsAt ?? startsAt?.add(const Duration(minutes: 30));
     return end != null && !end.isAfter(now);
   }
 
@@ -325,7 +327,7 @@ class SessionBookingDto {
       return false;
     }
     final start = startsAt;
-    final end = endsAt;
+    final end = endsAt ?? start?.add(const Duration(minutes: 30));
     if (start == null || end == null) {
       return false;
     }
@@ -494,7 +496,7 @@ class AttendanceIssueDto {
   String get issueLabel =>
       issueType == 'student_did_not_join' ? "Student didn't join" : "Teacher didn't join";
 
-  String get classLabel => bookingType == 'master_class' ? 'Master Class' : 'Introduction Call';
+  String get classLabel => sessionTypeLabel(bookingType ?? '');
 
   String get attemptLabel => attemptNumber == null ? '—' : '$attemptNumber';
 
@@ -572,6 +574,9 @@ class BookingEligibilityDto {
     required this.canBookMasterClass,
     this.introductionLastChance = false,
     this.masterClassRebookingAvailable = false,
+    this.masterClassRemaining = 0,
+    this.masterClassAttemptsMax = 1,
+    this.masterClassAttemptsUsed = 0,
     this.levelStartedOn,
   });
 
@@ -582,6 +587,9 @@ class BookingEligibilityDto {
       canBookMasterClass: json['can_book_master_class'] as bool? ?? false,
       introductionLastChance: json['introduction_last_chance'] as bool? ?? false,
       masterClassRebookingAvailable: json['master_class_rebooking_available'] as bool? ?? false,
+      masterClassRemaining: (json['master_class_remaining'] as num?)?.toInt() ?? 0,
+      masterClassAttemptsMax: (json['master_class_attempts_max'] as num?)?.toInt() ?? 1,
+      masterClassAttemptsUsed: (json['master_class_attempts_used'] as num?)?.toInt() ?? 0,
       levelStartedOn: json['level_started_on'] as String?,
     );
   }
@@ -591,6 +599,9 @@ class BookingEligibilityDto {
   final bool canBookMasterClass;
   final bool introductionLastChance;
   final bool masterClassRebookingAvailable;
+  final int masterClassRemaining;
+  final int masterClassAttemptsMax;
+  final int masterClassAttemptsUsed;
   final String? levelStartedOn;
 }
 

@@ -1,5 +1,7 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
-import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/app/theme/app_colors.dart';
+import 'package:excellent_educators_web/app/theme/breakpoints.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/features/auth/data/dto/login_page_dtos.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/login_page_providers.dart';
@@ -7,8 +9,6 @@ import 'package:excellent_educators_web/features/auth/presentation/widgets/auth_
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import 'package:excellent_educators_web/app/theme/breakpoints.dart';
 
 class LoginFormCard extends ConsumerStatefulWidget {
   const LoginFormCard({super.key});
@@ -43,12 +43,23 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
-    final theme = Theme.of(context);
     final isMobile = Breakpoints.isMobile(context);
     final content = ref.watch(loginPageContentProvider).maybeWhen(
           data: (value) => value,
           orElse: () => LoginPageContentDto.defaults,
         );
+
+    final formTitle = content.formTitle.isNotEmpty
+        ? (content.formTitle == 'Welcome back'
+            ? 'Welcome back 👋'
+            : content.formTitle)
+        : 'Welcome back 👋';
+
+    final formSubtitle = content.formSubtitle.isNotEmpty
+        ? (content.formSubtitle.startsWith('Sign in to track')
+            ? 'Continue your learning journey.'
+            : content.formSubtitle)
+        : 'Continue your learning journey.';
 
     return AuthFormCard(
       child: Form(
@@ -57,118 +68,224 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Title
             Text(
-              content.formTitle,
-              style: isMobile
-                  ? const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Brand.ink,
-                    )
-                  : theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: Brand.ink,
-                    ),
+              formTitle,
+              style: TextStyle(
+                fontSize: isMobile ? 22 : 28,
+                fontWeight: FontWeight.w900,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.4,
+              ),
             ),
             const SizedBox(height: 4),
+
+            // Subtitle
             Text(
-              content.formSubtitle,
-              style: isMobile
-                  ? const TextStyle(
-                      fontSize: 12.5,
-                      color: Brand.muted,
-                      height: 1.35,
-                    )
-                  : theme.textTheme.bodyMedium?.copyWith(
-                      color: Brand.muted,
-                      height: 1.45,
-                    ),
+              formSubtitle,
+              style: TextStyle(
+                fontSize: isMobile ? 13 : 14.5,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
             ),
-            SizedBox(height: isMobile ? 16 : 28),
+            SizedBox(height: isMobile ? 18 : 26),
+
+            // Email field
+            Text(
+              AppStrings.email,
+              style: TextStyle(
+                fontSize: isMobile ? 12.5 : 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary.withValues(alpha: 0.85),
+              ),
+            ),
+            const SizedBox(height: 5),
             TextFormField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
               autofillHints: const [AutofillHints.email],
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.mail_outline),
+              style: TextStyle(
+                fontSize: isMobile ? 14 : 14.5,
+                color: AppColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: 'student@example.com',
+                hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13.5),
+                prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20, color: AppColors.textSecondary),
+                filled: true,
+                fillColor: AppColors.canvas,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: isMobile ? 12 : 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
+                ),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Enter your email.';
+                  return AppStrings.enterYourEmail;
                 }
                 if (!value.contains('@')) {
-                  return 'Enter a valid email.';
+                  return AppStrings.enterAValidEmail;
                 }
                 return null;
               },
             ),
-            SizedBox(height: isMobile ? 10 : 16),
+            SizedBox(height: isMobile ? 12 : 16),
+
+            // Password field
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  AppStrings.password,
+                  style: TextStyle(
+                    fontSize: isMobile ? 12.5 : 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary.withValues(alpha: 0.85),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => context.go(RoutePaths.forgotPassword),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    AppStrings.forgotPassword,
+                    style: TextStyle(
+                      fontSize: isMobile ? 12 : 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryMid,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
             TextFormField(
               controller: _password,
               obscureText: _obscure,
               autofillHints: const [AutofillHints.password],
+              style: TextStyle(
+                fontSize: isMobile ? 14 : 14.5,
+                color: AppColors.textPrimary,
+              ),
               decoration: InputDecoration(
-                labelText: 'Password',
-                prefixIcon: const Icon(Icons.lock_outline),
+                hintText: '••••••••',
+                hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: AppColors.textSecondary),
+                filled: true,
+                fillColor: AppColors.canvas,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: isMobile ? 12 : 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
+                ),
                 suffixIcon: IconButton(
                   onPressed: () => setState(() => _obscure = !_obscure),
-                  icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(
+                    _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Enter your password.';
+                  return AppStrings.enterYourPassword;
                 }
                 return null;
               },
               onFieldSubmitted: (_) => _submit(),
             ),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => context.go(RoutePaths.forgotPassword),
-                style: isMobile
-                    ? TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      )
-                    : null,
-                child: const Text('Forgot password?'),
-              ),
-            ),
+
+            // Error display
             if (auth.error != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.error.withValues(alpha: 0.08),
+                  color: AppColors.dangerLight,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: theme.colorScheme.error.withValues(alpha: 0.25)),
+                  border: Border.all(color: AppColors.dangerBorder),
                 ),
-                child: Text(
-                  auth.error!,
-                  style: TextStyle(color: theme.colorScheme.error, fontSize: isMobile ? 12 : 13),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded, size: 18, color: AppColors.danger),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        auth.error!,
+                        style: const TextStyle(
+                          color: AppColors.danger,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-            SizedBox(height: isMobile ? 12 : 20),
-            FilledButton(
-              onPressed: auth.isLoading ? null : _submit,
-              style: isMobile
-                  ? FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(42),
-                    )
-                  : null,
-              child: auth.isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Sign in'),
+
+            SizedBox(height: isMobile ? 16 : 22),
+
+            // [ Sign In ] Primary Button
+            SizedBox(
+              height: isMobile ? 46 : 50,
+              child: ElevatedButton(
+                onPressed: auth.isLoading ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shadowColor: AppColors.primary.withValues(alpha: 0.35),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: auth.isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        AppStrings.signIn,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+              ),
             ),
           ],
         ),

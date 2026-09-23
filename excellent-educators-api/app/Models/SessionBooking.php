@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SessionBooking extends Model
 {
@@ -48,6 +49,11 @@ class SessionBooking extends Model
     public function attendanceIssues(): HasMany
     {
         return $this->hasMany(AttendanceIssue::class, 'booking_id');
+    }
+
+    public function monthlyFeedback(): HasOne
+    {
+        return $this->hasOne(MonthlyFeedback::class, 'session_booking_id');
     }
 
     public function scopeActive(Builder $query): Builder

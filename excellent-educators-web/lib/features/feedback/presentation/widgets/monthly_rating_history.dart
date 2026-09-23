@@ -1,7 +1,9 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/features/feedback/data/dto/feedback_dtos.dart';
+import 'package:excellent_educators_web/features/feedback/presentation/widgets/dimension_factor_profile.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class MonthlyRatingHistoryList extends StatelessWidget {
   const MonthlyRatingHistoryList({
@@ -10,12 +12,14 @@ class MonthlyRatingHistoryList extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.expandedFeedbackId,
+    this.showStaffNotes = false,
   });
 
   final List<MonthlyFeedbackDto> items;
   final void Function(String feedbackId)? onEdit;
   final void Function(String feedbackId)? onDelete;
   final String? expandedFeedbackId;
+  final bool showStaffNotes;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +43,7 @@ class MonthlyRatingHistoryList extends StatelessWidget {
           _MonthlyRatingHistoryTile(
             feedback: sorted[i],
             initiallyExpanded: sorted[i].id == expandedFeedbackId,
+            showStaffNotes: showStaffNotes,
             onEdit: sorted[i].editable && onEdit != null ? () => onEdit!(sorted[i].id) : null,
             onDelete: sorted[i].deletable && onDelete != null ? () => onDelete!(sorted[i].id) : null,
           ),
@@ -57,12 +62,14 @@ class _MonthlyRatingHistoryTile extends StatefulWidget {
   const _MonthlyRatingHistoryTile({
     required this.feedback,
     this.initiallyExpanded = false,
+    this.showStaffNotes = false,
     this.onEdit,
     this.onDelete,
   });
 
   final MonthlyFeedbackDto feedback;
   final bool initiallyExpanded;
+  final bool showStaffNotes;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
@@ -167,28 +174,27 @@ class _MonthlyRatingHistoryTileState extends State<_MonthlyRatingHistoryTile> {
                 children: [
                   if (feedback.masterTeacherName != null)
                     _DetailLine(
-                      label: 'Master Teacher',
+                      label: AppStrings.masterTeacher,
                       value: feedback.masterTeacherName!,
                     ),
-                  for (final item in feedback.items) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      item.targetName,
-                      style: const TextStyle(
-                        color: Brand.navy,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
+                  const SizedBox(height: 12),
+                  DimensionFactorProfile(
+                    items: [
+                      for (final item in feedback.items) DimensionRatingValue.fromItem(item),
+                    ],
+                    readOnly: true,
+                  ),
+                  if (feedback.positivePoints != null && feedback.positivePoints!.trim().isNotEmpty)
+                    _DetailLine(label: AppStrings.positive, value: feedback.positivePoints!.trim()),
+                  if (feedback.areasForImprovement != null && feedback.areasForImprovement!.trim().isNotEmpty)
+                    _DetailLine(label: AppStrings.improve, value: feedback.areasForImprovement!.trim()),
+                  if (widget.showStaffNotes &&
+                      feedback.discussedInClass != null &&
+                      feedback.discussedInClass!.trim().isNotEmpty)
+                    _DetailLine(
+                      label: AppStrings.discussedInThisMasterClass,
+                      value: feedback.discussedInClass!.trim(),
                     ),
-                    const SizedBox(height: 6),
-                    _RatingMeter(rating: item.rating),
-                    if (item.positivePoints != null && item.positivePoints!.trim().isNotEmpty)
-                      _DetailLine(label: 'Positive', value: item.positivePoints!.trim()),
-                    if (item.areasForImprovement != null && item.areasForImprovement!.trim().isNotEmpty)
-                      _DetailLine(label: 'Improve', value: item.areasForImprovement!.trim()),
-                    if (item.recommendedNextAction != null && item.recommendedNextAction!.trim().isNotEmpty)
-                      _DetailLine(label: 'Next step', value: item.recommendedNextAction!.trim()),
-                  ],
                   if (widget.onEdit != null || widget.onDelete != null) ...[
                     const SizedBox(height: 12),
                     Wrap(
@@ -198,13 +204,13 @@ class _MonthlyRatingHistoryTileState extends State<_MonthlyRatingHistoryTile> {
                           TextButton.icon(
                             onPressed: widget.onEdit,
                             icon: const Icon(Icons.edit_outlined, size: 18),
-                            label: const Text('Edit rating'),
+                            label: const Text(AppStrings.editRating),
                           ),
                         if (widget.onDelete != null)
                           TextButton.icon(
                             onPressed: widget.onDelete,
                             icon: const Icon(Icons.delete_outline, size: 18),
-                            label: const Text('Delete rating'),
+                            label: const Text(AppStrings.deleteRating),
                             style: TextButton.styleFrom(foregroundColor: const Color(0xFFB42318)),
                           ),
                       ],
@@ -269,44 +275,6 @@ class _RatingChip extends StatelessWidget {
         '$label · $rating',
         style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 11),
       ),
-    );
-  }
-}
-
-class _RatingMeter extends StatelessWidget {
-  const _RatingMeter({required this.rating});
-
-  final int rating;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _ratingColor(rating.toDouble());
-    final fraction = (rating / 10).clamp(0.05, 1.0);
-    return Row(
-      children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: SizedBox(
-              height: 8,
-              child: Stack(
-                children: [
-                  Container(color: const Color(0xFFEDE4D4)),
-                  FractionallySizedBox(
-                    widthFactor: fraction,
-                    child: Container(color: color),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '$rating/10',
-          style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12),
-        ),
-      ],
     );
   }
 }

@@ -7,6 +7,7 @@ use App\Actions\Scheduling\CreateTeacherLeave;
 use App\Actions\Scheduling\RescheduleSessionBooking;
 use App\Actions\Scheduling\UpsertTeacherBreaks;
 use App\Enums\SessionBookingStatus;
+use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Scheduling\StoreBookingRequest;
 use App\Http\Requests\Api\V1\Scheduling\StoreLeaveRequest;
@@ -20,10 +21,12 @@ use App\Models\TeacherAvailabilityOverride;
 use App\Models\TeacherLeave;
 use App\Models\TeacherProfile;
 use App\Scheduling\AvailabilityCalculator;
+use App\Scheduling\MasterClassBalance;
 use App\Scheduling\TeacherAvailability;
 use App\Support\ApiResponse;
 use App\Support\AppClock;
 use App\Support\ErrorCode;
+use App\Support\StudentActivity;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -186,7 +189,20 @@ class ScheduleController extends Controller
 
     public function destroyBooking(SessionBooking $booking): JsonResponse
     {
+        $wasScheduled = $booking->status === SessionBookingStatus::Scheduled;
         $booking->update(['status' => SessionBookingStatus::Cancelled->value]);
+        $booking->load('student');
+        if ($wasScheduled && ($booking->type?->value ?? $booking->type) === 'master_class' && $booking->student) {
+            app(MasterClassBalance::class)->restore($booking->student);
+            $remaining = app(MasterClassBalance::class)->remaining($booking->student);
+            StudentActivity::record(
+                $booking->student,
+                'master_class_cancelled',
+                "Master Class booking was cancelled. Remaining this month: {$remaining}",
+                related: $booking,
+                meta: ['remaining' => $remaining],
+            );
+        }
 
         return ApiResponse::success('Booking cancelled.');
     }
@@ -205,7 +221,7 @@ class ScheduleController extends Controller
     {
         $id = $request->string('teacher_id')->toString();
         if ($id === '') {
-            throw new \App\Exceptions\ApiException(ErrorCode::VALIDATION_ERROR, 'teacher_id is required.', 422);
+            throw new ApiException(ErrorCode::VALIDATION_ERROR, 'teacher_id is required.', 422);
         }
 
         return TeacherProfile::query()->findOrFail($id);

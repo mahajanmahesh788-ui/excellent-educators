@@ -5,6 +5,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/d
 import 'package:excellent_educators_web/features/feedback/data/dto/feedback_dtos.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/feedback_charts.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class MasterTeacherProgressPanel extends StatelessWidget {
   const MasterTeacherProgressPanel({
@@ -15,7 +16,7 @@ class MasterTeacherProgressPanel extends StatelessWidget {
     this.onEditStudentRating,
     this.onNotRatedTap,
     this.onAssessmentPendingTap,
-    this.pendingStudentsTitle = 'Students awaiting rating',
+    this.pendingStudentsTitle = AppStrings.studentsAwaitingRating,
     this.showPendingStudents = true,
   });
 
@@ -30,75 +31,84 @@ class MasterTeacherProgressPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     final counts = data.counts;
     final monthLabel = AppClock.monthLabel(data.currentMonth.year, data.currentMonth.month);
     final trendMonths = _trendMonths(data.byMonth);
-    final wide = MediaQuery.sizeOf(context).width >= 900;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         MasterTeacherProgressHero(counts: counts, monthLabel: monthLabel),
-        const SizedBox(height: 20),
-        const Text(
-          'This month',
-          style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 18),
+        SizedBox(height: isMobile ? 12 : 20),
+        Text(
+          AppStrings.thisMonth2,
+          style: TextStyle(
+            color: Brand.navy,
+            fontWeight: FontWeight.w700,
+            fontSize: isMobile ? 15 : 18,
+          ),
         ),
-        const SizedBox(height: 10),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: wide ? 4 : 2,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: wide ? 2.2 : 1.8,
+        SizedBox(height: isMobile ? 6 : 10),
+        StatGrid(
           children: [
-            StatTile(label: 'Assigned students', value: '${counts.assignedStudents}'),
-            StatTile(label: 'Rated this month', value: '${counts.ratedThisMonth}'),
-            StatTile(label: 'Not rated yet', value: '${counts.notRatedThisMonth}'),
-            StatTile(label: 'Completion', value: '${counts.completionPercent}%'),
+            StatTile(label: AppStrings.assignedStudents, value: '${counts.assignedStudents}'),
+            StatTile(label: AppStrings.ratedThisMonth, value: '${counts.ratedThisMonth}'),
+            StatTile(label: AppStrings.notRatedYet, value: '${counts.notRatedThisMonth}'),
+            StatTile(label: AppStrings.completion, value: '${counts.completionPercent}%'),
           ],
         ),
-        const SizedBox(height: 20),
-        const Text(
-          'Needs attention',
-          style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 18),
+        SizedBox(height: isMobile ? 12 : 20),
+        Text(
+          AppStrings.needsAttention,
+          style: TextStyle(
+            color: Brand.navy,
+            fontWeight: FontWeight.w700,
+            fontSize: isMobile ? 15 : 18,
+          ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: isMobile ? 6 : 8),
         AttentionCard(
-          label: 'Meetings held, not rated yet',
+          label: AppStrings.meetingsHeldNotRatedYet,
           count: counts.notRatedThisMonth,
           onTap: onNotRatedTap ?? () {},
         ),
         if (counts.studentsAssessmentPending > 0) ...[
           const SizedBox(height: 6),
           AttentionCard(
-            label: 'Students — assessment pending',
+            label: AppStrings.studentsAssessmentPending,
             count: counts.studentsAssessmentPending,
             onTap: onAssessmentPendingTap ?? () {},
           ),
         ],
         if (showPendingStudents && data.pendingStudents.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: isMobile ? 12 : 20),
           Text(
             pendingStudentsTitle,
-            style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 18),
+            style: TextStyle(
+              color: Brand.navy,
+              fontWeight: FontWeight.w700,
+              fontSize: isMobile ? 15 : 18,
+            ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: isMobile ? 6 : 8),
           ...data.pendingStudents.map((student) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: Material(
                 color: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
                   side: const BorderSide(color: Color(0xFFE6DCCB)),
                 ),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
                   onTap: onPendingStudentTap == null ? null : () => onPendingStudentTap!(student),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 12 : 14,
+                      vertical: isMobile ? 8 : 12,
+                    ),
                     child: Row(
                       children: [
                         Expanded(
@@ -124,7 +134,7 @@ class MasterTeacherProgressPanel extends StatelessWidget {
                               foregroundColor: const Color(0xFFB45309),
                             ),
                             onPressed: () => onEditStudentRating!(student),
-                            child: const Text('Edit rating'),
+                            child: const Text(AppStrings.editRating),
                           )
                         else if (student.canRate && onRateStudent != null)
                           FilledButton.tonal(
@@ -134,7 +144,7 @@ class MasterTeacherProgressPanel extends StatelessWidget {
                               foregroundColor: const Color(0xFFB45309),
                             ),
                             onPressed: () => onRateStudent!(student),
-                            child: const Text('Rate'),
+                            child: const Text(AppStrings.rate),
                           )
                         else if (onPendingStudentTap != null)
                           const Icon(Icons.chevron_right_rounded, color: Brand.muted),
@@ -148,7 +158,7 @@ class MasterTeacherProgressPanel extends StatelessWidget {
         ],
         const SizedBox(height: 20),
         const Text(
-          'Rating activity',
+          AppStrings.ratingActivity,
           style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 18),
         ),
         const SizedBox(height: 8),
@@ -209,7 +219,7 @@ class MasterTeacherProgressHero extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Overall average',
+                    AppStrings.overallAverage,
                     style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                   const SizedBox(height: 4),
@@ -241,7 +251,7 @@ class MasterTeacherProgressHero extends StatelessWidget {
                     '${counts.totalRatings}',
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22),
                   ),
-                  const Text('total ratings', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const Text(AppStrings.totalRatings, style: TextStyle(color: Colors.white70, fontSize: 12)),
                 ],
               ),
             ],

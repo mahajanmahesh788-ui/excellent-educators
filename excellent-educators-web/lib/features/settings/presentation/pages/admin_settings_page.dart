@@ -8,6 +8,7 @@ import 'package:excellent_educators_web/features/settings/presentation/providers
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminSettingsPage extends ConsumerStatefulWidget {
   const AdminSettingsPage({super.key});
@@ -54,7 +55,7 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
       await ref.read(settingsRepositoryProvider).save(values);
       ref.invalidate(adminSettingsProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.settingsSaved)));
       }
     } catch (error) {
       if (mounted) {
@@ -72,7 +73,7 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
     final settings = ref.watch(adminSettingsProvider);
 
     return AppScaffold(
-      title: 'Settings',
+      title: AppStrings.settings,
       body: DefaultTabController(
         length: 3,
         child: Column(
@@ -85,9 +86,9 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
               unselectedLabelColor: Brand.muted,
               indicatorColor: Brand.gold,
               tabs: [
-                Tab(text: 'Organisation'),
-                Tab(text: 'Content'),
-                Tab(text: 'Meet'),
+                Tab(text: AppStrings.organisation),
+                Tab(text: AppStrings.content),
+                Tab(text: AppStrings.meet),
               ],
             ),
             const SizedBox(height: 12),
@@ -147,12 +148,12 @@ class _OrganisationSettingsForm extends StatelessWidget {
       child: ListView(
         children: [
           const Text(
-            'Organisation settings',
+            AppStrings.organisationSettings,
             style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 18),
           ),
           const SizedBox(height: 4),
           const Text(
-            'These apply across Excellent Educators. More options can be added here later.',
+            AppStrings.theseApplyAcrossExcellentEducatorsMoreOptionsCanBeAdded,
             style: TextStyle(color: Brand.muted, height: 1.4),
           ),
           const SizedBox(height: 20),
@@ -176,12 +177,12 @@ class _OrganisationSettingsForm extends StatelessWidget {
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Required';
+                    return AppStrings.required;
                   }
                   if (item.type == 'integer') {
                     final parsed = int.tryParse(value.trim());
                     if (parsed == null) {
-                      return 'Enter a whole number';
+                      return AppStrings.enterAWholeNumber;
                     }
                     if (item.min != null && parsed < item.min!) {
                       return 'Minimum is ${item.min}';
@@ -200,7 +201,7 @@ class _OrganisationSettingsForm extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: FilledButton(
               onPressed: saving ? null : onSave,
-              child: Text(saving ? 'Saving…' : 'Save settings'),
+              child: Text(saving ? AppStrings.saving : AppStrings.saveSettings),
             ),
           ),
         ],

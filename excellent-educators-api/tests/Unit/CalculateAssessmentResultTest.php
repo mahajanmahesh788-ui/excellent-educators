@@ -52,6 +52,22 @@ class CalculateAssessmentResultTest extends TestCase
         $this->assertSame(0, $scores['TW']);
     }
 
+    public function test_from_selected_codes_builds_named_dimension_payload(): void
+    {
+        $calculator = new CalculateAssessmentResult;
+        $scores = $calculator->fromSelectedCodes([
+            [DimensionCode::Personality, DimensionCode::Interests],
+            [DimensionCode::Leadership, DimensionCode::Communication],
+        ]);
+        $dimensions = $calculator->toDimensions($scores);
+
+        $this->assertSame('Personality', $dimensions[0]['name']);
+        $this->assertSame(1, $dimensions[0]['score']);
+        $this->assertSame('Teamwork', $dimensions[8]['name']);
+        $this->assertSame(0, $dimensions[8]['score']);
+        $this->assertCount(10, $dimensions);
+    }
+
     /**
      * @param  list<DimensionCode>  $codes
      */

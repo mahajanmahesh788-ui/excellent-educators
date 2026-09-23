@@ -17,9 +17,12 @@ use App\Models\MonthlyFeedback;
 use App\Models\SessionBooking;
 use App\Models\TeacherDailyMeeting;
 use App\Models\User;
+use App\Scheduling\BookingEligibility;
+use App\Scheduling\MasterClassBalance;
 use App\Support\AppClock;
 use App\Support\ErrorCode;
 use App\Support\PhoneNumber;
+use App\Support\StudentActivity;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
@@ -41,11 +44,25 @@ class AttendanceService
             ]);
 
             if ($actor === JoinActorType::Student) {
+                $firstJoin = $attendance->student_first_join_at === null;
                 $attendance->update([
                     'student_first_join_at' => $attendance->student_first_join_at ?? $now,
                     'student_last_join_at' => $now,
                     'student_join_count' => $attendance->student_join_count + 1,
                 ]);
+                if ($firstJoin && $booking->student) {
+                    $type = SessionBookingType::fromMixed($booking->type);
+                    $label = $type?->label() ?? 'Introduction Call';
+                    $time = AppClock::formatTime($booking->starts_at);
+                    StudentActivity::record(
+                        $booking->student,
+                        $type === SessionBookingType::MasterClass
+                            ? 'master_class_attended'
+                            : 'introduction_attended',
+                        "Student attended {$label}".($time !== '' ? " at {$time}" : ''),
+                        related: $booking,
+                    );
+                }
             } else {
                 $attendance->update([
                     'teacher_first_join_at' => $attendance->teacher_first_join_at ?? $now,
@@ -192,6 +209,7 @@ class AttendanceService
         }
 
         return DB::transaction(function () use ($issue, $admin, $decision, $notes): AttendanceIssue {
+            $issue->loadMissing('booking.student');
             $issue->update([
                 'verification_status' => AttendanceVerificationStatus::Resolved->value,
                 'admin_decision' => $decision->value,
@@ -214,6 +232,20 @@ class AttendanceService
                         'rebooking_granted_at' => AppClock::now(),
                     ]);
                 }
+                $booking = $issue->booking;
+                if ($booking !== null && ($booking->type?->value ?? $booking->type) === SessionBookingType::MasterClass->value && $booking->student) {
+                    $balance = app(MasterClassBalance::class);
+                    $balance->restore($booking->student);
+                    $remaining = $balance->remaining($booking->student);
+                    StudentActivity::record(
+                        $booking->student,
+                        'master_class_credit_restored',
+                        "Admin restored a Master Class. Remaining this month: {$remaining}",
+                        actor: $admin,
+                        related: $booking,
+                        meta: ['remaining' => $remaining, 'decision' => $decision->value],
+                    );
+                }
             }
 
             if (in_array($decision, [AttendanceDecision::BothAttended, AttendanceDecision::StudentAttended], true)) {
@@ -226,14 +258,14 @@ class AttendanceService
 
     public function consumeRebooking(string $studentId, SessionBooking $replacement): void
     {
-        $type = $replacement->type instanceof \App\Enums\SessionBookingType
+        $type = $replacement->type instanceof SessionBookingType
             ? $replacement->type
-            : \App\Enums\SessionBookingType::from((string) $replacement->type);
+            : SessionBookingType::from((string) $replacement->type);
         $credit = $this->unusedRebookingFor($studentId, $type);
         $credit?->update(['replacement_booking_id' => $replacement->id]);
     }
 
-    public function unusedRebookingFor(string $studentId, ?\App\Enums\SessionBookingType $type = null): ?ClassAttendance
+    public function unusedRebookingFor(string $studentId, ?SessionBookingType $type = null): ?ClassAttendance
     {
         return ClassAttendance::query()
             ->where('student_id', $studentId)
@@ -289,10 +321,7 @@ class AttendanceService
         $existingRating = null;
         if ($isMasterClass && $booking->student_id && $booking->teacher_id && $booking->date) {
             $existingRating = MonthlyFeedback::query()
-                ->where('student_id', $booking->student_id)
-                ->where('master_teacher_id', $booking->teacher_id)
-                ->where('year', $booking->date->year)
-                ->where('month', $booking->date->month)
+                ->where('session_booking_id', $booking->id)
                 ->first();
         }
         $ratingEligible = $viewer === 'teacher'
@@ -418,7 +447,7 @@ class AttendanceService
             ->first() : null;
         $sibling = AttendanceIssue::query()->where('booking_id', $issue->booking_id)->orderBy('created_at')->get();
         $type = $booking?->type?->value ?? $booking?->type;
-        $eligibility = $booking ? app(\App\Scheduling\BookingEligibility::class) : null;
+        $eligibility = $booking ? app(BookingEligibility::class) : null;
         $student = $booking?->student;
         $levelName = $student?->academicLevel?->name
             ?? $student?->activeEnrollment?->batch?->level?->name;
@@ -558,11 +587,20 @@ class AttendanceService
     private function isLastChance(SessionBooking $booking): bool
     {
         $type = $booking->type?->value ?? $booking->type;
-        $attempt = app(\App\Scheduling\BookingEligibility::class)->attemptNumber($booking) ?? 1;
+        $attempt = app(BookingEligibility::class)->attemptNumber($booking) ?? 1;
         if ($type === SessionBookingType::IntroductionCall->value) {
             return $attempt >= 2;
         }
         if ($type === SessionBookingType::MasterClass->value) {
+            $student = $booking->student ?? $booking->student()->first();
+            if ($student === null) {
+                return false;
+            }
+            $balance = app(MasterClassBalance::class)->snapshot($student);
+            if ((int) $balance['allotment'] > 1 || (int) $balance['remaining'] > 0) {
+                return false;
+            }
+
             return $attempt >= 2;
         }
 

@@ -4,6 +4,7 @@ import 'package:excellent_educators_web/features/feedback/presentation/widgets/f
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/monthly_rating_history.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class StudentFeedbackMonthView extends StatefulWidget {
   const StudentFeedbackMonthView({
@@ -16,7 +17,8 @@ class StudentFeedbackMonthView extends StatefulWidget {
   final List<MonthlyFeedbackDto> items;
 
   @override
-  State<StudentFeedbackMonthView> createState() => _StudentFeedbackMonthViewState();
+  State<StudentFeedbackMonthView> createState() =>
+      _StudentFeedbackMonthViewState();
 }
 
 class _StudentFeedbackMonthViewState extends State<StudentFeedbackMonthView> {
@@ -57,6 +59,16 @@ class _StudentFeedbackMonthViewState extends State<StudentFeedbackMonthView> {
       return const SizedBox.shrink();
     }
 
+    final monthItems = widget.items
+        .where((item) => _monthKey(item) == _selectedKey)
+        .toList();
+    final monthSummary = widget.summary.byMonth.where(
+      (row) => '${row.year}-${row.month}' == _selectedKey,
+    );
+    final monthlyAverage = monthSummary.isEmpty
+        ? null
+        : monthSummary.first.averageRating;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -64,17 +76,32 @@ class _StudentFeedbackMonthViewState extends State<StudentFeedbackMonthView> {
         const SizedBox(height: 20),
         StudentSectionCard(
           icon: Icons.calendar_month_rounded,
-          title: 'Select month',
+          title: AppStrings.selectMonth,
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final item in widget.items)
+              for (final key in widget.items.map(_monthKey).toSet())
                 ChoiceChip(
-                  label: Text(item.monthLabel),
-                  selected: _monthKey(item) == _selectedKey,
-                  onSelected: (_) => setState(() => _selectedKey = _monthKey(item)),
-                  selectedColor: Brand.gold.withValues(alpha: 0.35),
+                  label: Text(
+                    widget.items
+                        .firstWhere((item) => _monthKey(item) == key)
+                        .monthLabel,
+                  ),
+                  selected: key == _selectedKey,
+                  onSelected: (_) => setState(() => _selectedKey = key),
+                  selectedColor: StudentColors.forestTint,
+                  labelStyle: TextStyle(
+                    color: key == _selectedKey
+                        ? StudentColors.forest
+                        : Brand.navy,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  side: BorderSide(
+                    color: key == _selectedKey
+                        ? StudentColors.forestBorder
+                        : StudentColors.border,
+                  ),
                 ),
             ],
           ),
@@ -82,17 +109,33 @@ class _StudentFeedbackMonthViewState extends State<StudentFeedbackMonthView> {
         const SizedBox(height: 16),
         StudentSectionCard(
           icon: Icons.rate_review_rounded,
-          title: selected.monthLabel,
-          child: MonthlyRatingHistoryList(
-            items: [selected],
-            expandedFeedbackId: selected.id,
+          title: monthItems.isEmpty
+              ? selected.monthLabel
+              : monthItems.first.monthLabel,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (monthlyAverage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'Monthly overall · ${monthlyAverage.toStringAsFixed(1)} / 10',
+                    style: const TextStyle(
+                      color: Brand.navy,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              MonthlyRatingHistoryList(items: monthItems),
+            ],
           ),
         ),
         if (widget.summary.byMonth.length > 1) ...[
           const SizedBox(height: 16),
           StudentSectionCard(
             icon: Icons.show_chart_rounded,
-            title: 'Month-wise trend',
+            title: AppStrings.monthWiseTrend,
             child: FeedbackMonthlyTrendChart(months: widget.summary.byMonth),
           ),
         ],

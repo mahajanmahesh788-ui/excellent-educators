@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PermissionName;
 use App\Enums\RoleName;
 use App\Enums\UserStatus;
 use Database\Factories\UserFactory;
@@ -55,6 +56,29 @@ class User extends Authenticatable
         return $this->hasAnyRole([
             RoleName::SuperAdmin->value,
             RoleName::OperationalAdmin->value,
+            RoleName::SubAdmin->value,
         ]);
+    }
+
+    public function isFullAdmin(): bool
+    {
+        return $this->hasAnyRole([
+            RoleName::SuperAdmin->value,
+            RoleName::OperationalAdmin->value,
+        ]);
+    }
+
+    public function canAdmin(PermissionName $permission): bool
+    {
+        if ($this->isFullAdmin()) {
+            return true;
+        }
+
+        return $this->can($permission->value);
+    }
+
+    public function adminProfile(): HasOne
+    {
+        return $this->hasOne(AdminProfile::class);
     }
 }

@@ -24,7 +24,9 @@ class BuildFeedbackSummary
 
         $items = $sessions->flatMap(fn (MonthlyFeedback $session) => $session->items);
 
-        $overallAverage = $items->isEmpty() ? null : round($items->avg('rating'), 1);
+        $overallAverage = $sessions->isEmpty()
+            ? null
+            : round($sessions->avg(fn (MonthlyFeedback $session) => $session->sessionAverage() ?? 0), 1);
         $totalSessions = $sessions->count();
 
         return [
@@ -45,12 +47,14 @@ class BuildFeedbackSummary
             ->groupBy(fn (MonthlyFeedback $session) => sprintf('%04d-%02d', $session->year, $session->month))
             ->map(function (Collection $group, string $key) {
                 [$year, $month] = array_map('intval', explode('-', $key));
-                $ratings = $group->flatMap(fn (MonthlyFeedback $session) => $session->items->pluck('rating'));
+                $sessionAverages = $group
+                    ->map(fn (MonthlyFeedback $session) => $session->sessionAverage())
+                    ->filter();
 
                 return [
                     'year' => $year,
                     'month' => $month,
-                    'average_rating' => $ratings->isEmpty() ? null : round($ratings->avg(), 1),
+                    'average_rating' => $sessionAverages->isEmpty() ? null : round($sessionAverages->avg(), 1),
                     'session_count' => $group->count(),
                 ];
             })

@@ -2,6 +2,7 @@
 
 namespace App\Learning;
 
+use App\Actions\Assessments\CalculateAssessmentResult;
 use App\Actions\Learning\StartStudentLevelJourney;
 use App\Exceptions\ApiException;
 use App\Models\StudentLevelJourney;
@@ -10,12 +11,14 @@ use App\Models\WeeklyAssignmentAttempt;
 use App\Models\WeeklyLearning;
 use App\Support\AppClock;
 use App\Support\ErrorCode;
+use App\Support\StudentActivity;
 use Illuminate\Support\Collection;
 
 class LearningJournalService
 {
     public function __construct(
         private readonly StartStudentLevelJourney $startStudentLevelJourney,
+        private readonly CalculateAssessmentResult $calculateAssessmentResult,
     ) {}
 
     /**
@@ -39,7 +42,7 @@ class LearningJournalService
 
         $currentWeek = $journey->weekNumberAt(AppClock::now());
         $unit = WeeklyLearning::query()
-            ->with('questions.options')
+            ->with('questions.options.dimensionCodes')
             ->where('level_id', $journey->level_id)
             ->where('week_number', $currentWeek)
             ->first();
@@ -101,7 +104,7 @@ class LearningJournalService
         foreach ($journeys as $journey) {
             $maxWeek = $journey->weekNumberAt(AppClock::now());
             $units = WeeklyLearning::query()
-                ->with('questions.options')
+                ->with('questions.options.dimensionCodes')
                 ->where('level_id', $journey->level_id)
                 ->where('week_number', '<=', $maxWeek)
                 ->orderBy('week_number')
@@ -170,7 +173,7 @@ class LearningJournalService
         }
 
         $unit = WeeklyLearning::query()
-            ->with('questions.options')
+            ->with('questions.options.dimensionCodes')
             ->where('level_id', $journey->level_id)
             ->where('week_number', $weekNumber)
             ->first();
@@ -206,7 +209,7 @@ class LearningJournalService
         }
 
         $unit = WeeklyLearning::query()
-            ->with('questions.options')
+            ->with('questions.options.dimensionCodes')
             ->where('level_id', $journey->level_id)
             ->where('week_number', $weekNumber)
             ->first();
@@ -230,7 +233,7 @@ class LearningJournalService
 
         $this->assertAnswers($unit, $answers);
 
-        return WeeklyAssignmentAttempt::query()->create([
+        $attempt = WeeklyAssignmentAttempt::query()->create([
             'student_id' => $student->id,
             'student_level_journey_id' => $journey->id,
             'weekly_learning_id' => $unit->id,
@@ -240,6 +243,14 @@ class LearningJournalService
             'video_url' => $unit->video_url,
             'submitted_at' => AppClock::now(),
         ]);
+        StudentActivity::record(
+            $student,
+            'assignment_submitted',
+            'Student completed Week '.$weekNumber.' question answers (attempt '.($existingCount + 1).')',
+            related: $attempt,
+        );
+
+        return $attempt;
     }
 
     private function currentJourney(StudentProfile $student): ?StudentLevelJourney
@@ -272,38 +283,6 @@ class LearningJournalService
         $curriculum = $level !== null ? CurriculumCalendar::forWeek($weekNumber, $level) : null;
         $studyDate = $journey->started_at?->copy()->addWeeks($weekNumber - 1);
 
-        $latestAttempt = $attempts->last();
-        $score = null;
-        if ($latestAttempt !== null && $unit !== null && $unit->relationLoaded('questions')) {
-            $totalQuestions = $unit->questions->count();
-            if ($totalQuestions > 0) {
-                $correctOptionIds = [];
-                foreach ($unit->questions as $question) {
-                    $correctOpt = $question->options->firstWhere('is_correct', true);
-                    if ($correctOpt !== null) {
-                        $correctOptionIds[$question->id] = $correctOpt->id;
-                    }
-                }
-                $correctCount = 0;
-                $answers = is_array($latestAttempt->answers) ? $latestAttempt->answers : [];
-                foreach ($answers as $ans) {
-                    $qId = $ans['question_id'] ?? null;
-                    $optId = $ans['option_id'] ?? null;
-                    if ($qId && isset($correctOptionIds[$qId]) && $correctOptionIds[$qId] === $optId) {
-                        $correctCount++;
-                    }
-                }
-                $percentage = (int) round(($correctCount / $totalQuestions) * 100);
-                $score = [
-                    'correct' => $correctCount,
-                    'total' => $totalQuestions,
-                    'percentage' => $percentage,
-                    'display' => "{$correctCount}/{$totalQuestions}",
-                    'attempt_number' => $latestAttempt->attempt_number,
-                ];
-            }
-        }
-
         $payload = [
             'journey_id' => $journey->id,
             'level' => [
@@ -317,7 +296,10 @@ class LearningJournalService
             'can_submit' => $unlocked && $journey->isCurrent() && $unit !== null && $attemptCount < 2,
             'video_url' => $videoUrl,
             'has_video' => is_string($videoUrl) && $videoUrl !== '',
-            'score' => $score,
+            'score' => null,
+            'result' => $staffView && ! $compact && $unit !== null && $attempts->isNotEmpty()
+                ? $this->attemptResult($unit, $attempts->last(), $weekNumber, $journey->level?->name)
+                : null,
         ];
 
         if ($staffView) {
@@ -344,7 +326,10 @@ class LearningJournalService
                     'id' => $option->id,
                     'option_text' => $option->option_text,
                     'display_order' => $option->display_order,
-                    'is_correct' => $this->whenStaff($staffView, $option->is_correct),
+                    'dimension_codes' => $this->whenStaff($staffView, $option->dimensionCodes
+                        ->map(fn ($dimension) => $dimension->dimension_code->value)
+                        ->values()
+                        ->all()),
                 ])->values()->all(),
             ];
         })->values()->all();
@@ -354,9 +339,49 @@ class LearningJournalService
             'submitted_at' => $attempt->submitted_at?->toIso8601String(),
             'answers' => $attempt->answers,
             'video_url' => $attempt->video_url,
+            'result' => $staffView && $unit !== null
+                ? $this->attemptResult($unit, $attempt, $weekNumber, $journey->level?->name)
+                : null,
         ])->values()->all();
 
         return $payload;
+    }
+
+    /**
+     * @return array{id: string, assessment: array{title: string}, submitted_at: ?string, dimensions: list<array{name: string, score: int}>}
+     */
+    private function attemptResult(
+        WeeklyLearning $unit,
+        WeeklyAssignmentAttempt $attempt,
+        int $weekNumber,
+        ?string $levelName,
+    ): array {
+        $options = $unit->questions->flatMap(fn ($question) => $question->options)->keyBy('id');
+        $codeLists = [];
+
+        foreach ($attempt->answers ?? [] as $answer) {
+            $option = $options->get((string) ($answer['option_id'] ?? ''));
+            if ($option === null) {
+                continue;
+            }
+
+            $codeLists[] = $option->dimensionCodes
+                ->map(fn ($row) => $row->dimension_code)
+                ->all();
+        }
+
+        $title = trim(($levelName ?? '').' · Week '.$weekNumber, ' ·');
+
+        return [
+            'id' => $attempt->id,
+            'assessment' => [
+                'title' => $title,
+            ],
+            'submitted_at' => $attempt->submitted_at?->toIso8601String(),
+            'dimensions' => $this->calculateAssessmentResult->toDimensions(
+                $this->calculateAssessmentResult->fromSelectedCodes($codeLists),
+            ),
+        ];
     }
 
     private function whenStaff(bool $staffView, mixed $value): mixed

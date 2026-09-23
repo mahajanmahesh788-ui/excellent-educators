@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Actions\Learning\SyncWeeklyOptionDimensionCodes;
 use App\Http\Controllers\Api\V1\Concerns\AuthorizesLearningJournal;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Learning\UpsertWeeklyLearningRequest;
@@ -20,7 +21,7 @@ class WeeklyLearningController extends Controller
         $this->assertCanManageWeeklyLearning(request());
 
         $units = WeeklyLearning::query()
-            ->with('questions.options')
+            ->with('questions.options.dimensionCodes')
             ->where('level_id', $level->id)
             ->orderBy('week_number')
             ->get();
@@ -28,12 +29,15 @@ class WeeklyLearningController extends Controller
         return ApiResponse::success('Weekly learning fetched successfully.', $units->map(fn ($unit) => $this->serialize($unit))->all());
     }
 
-    public function upsert(UpsertWeeklyLearningRequest $request, AcademicLevel $level): JsonResponse
-    {
+    public function upsert(
+        UpsertWeeklyLearningRequest $request,
+        AcademicLevel $level,
+        SyncWeeklyOptionDimensionCodes $syncDimensionCodes,
+    ): JsonResponse {
         $this->assertCanManageWeeklyLearning($request);
         $data = $request->validated();
 
-        $unit = DB::transaction(function () use ($level, $data): WeeklyLearning {
+        $unit = DB::transaction(function () use ($level, $data, $syncDimensionCodes): WeeklyLearning {
             $unit = WeeklyLearning::query()->updateOrCreate(
                 [
                     'level_id' => $level->id,
@@ -52,15 +56,15 @@ class WeeklyLearningController extends Controller
                     'display_order' => $index + 1,
                 ]);
                 foreach ($questionData['options'] as $optionIndex => $optionData) {
-                    $question->options()->create([
+                    $option = $question->options()->create([
                         'option_text' => $optionData['option_text'],
                         'display_order' => $optionIndex + 1,
-                        'is_correct' => (bool) $optionData['is_correct'],
                     ]);
+                    $syncDimensionCodes->execute($option, $optionData['dimension_codes']);
                 }
             }
 
-            return $unit->fresh(['questions.options']);
+            return $unit->fresh(['questions.options.dimensionCodes']);
         });
 
         return ApiResponse::success('Weekly learning saved successfully.', $this->serialize($unit));
@@ -84,7 +88,14 @@ class WeeklyLearningController extends Controller
                     'id' => $option->id,
                     'option_text' => $option->option_text,
                     'display_order' => $option->display_order,
-                    'is_correct' => $option->is_correct,
+                    'dimension_codes' => $option->dimensionCodes
+                        ->map(fn ($dimension) => $dimension->dimension_code->value)
+                        ->values()
+                        ->all(),
+                    'dimension_names' => $option->dimensionCodes
+                        ->map(fn ($dimension) => $dimension->dimension_code->label())
+                        ->values()
+                        ->all(),
                 ])->values()->all(),
             ])->values()->all(),
         ];

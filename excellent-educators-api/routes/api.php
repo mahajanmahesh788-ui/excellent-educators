@@ -1,40 +1,40 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Admin\AttendanceController as AdminAttendanceController;
-use App\Http\Controllers\Api\V1\Admin\GoogleMeetController as AdminGoogleMeetController;
 use App\Http\Controllers\Api\V1\Admin\AcademicLevelController;
-use App\Http\Controllers\Api\V1\Admin\ScheduleController as AdminScheduleController;
-use App\Http\Controllers\Api\V1\Admin\StudentLearningController as AdminStudentLearningController;
-use App\Http\Controllers\Api\V1\Admin\WeeklyLearningController as AdminWeeklyLearningController;
-use App\Http\Controllers\Api\V1\Student\BookingController as StudentBookingController;
-use App\Http\Controllers\Api\V1\Teacher\ScheduleController as TeacherScheduleController;
 use App\Http\Controllers\Api\V1\Admin\AdminRequestController as AdminAdminRequestController;
 use App\Http\Controllers\Api\V1\Admin\AptitudeAssessmentController as AdminAptitudeAssessmentController;
+use App\Http\Controllers\Api\V1\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Api\V1\Admin\BatchController as AdminBatchController;
-use App\Http\Controllers\Api\V1\Admin\DailyMeetingController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\DevelopmentController as AdminDevelopmentController;
+use App\Http\Controllers\Api\V1\Admin\GoogleMeetController as AdminGoogleMeetController;
 use App\Http\Controllers\Api\V1\Admin\LoginPageContentController as AdminLoginPageContentController;
+use App\Http\Controllers\Api\V1\Admin\ScheduleController as AdminScheduleController;
 use App\Http\Controllers\Api\V1\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Api\V1\Admin\StudentController as AdminStudentController;
+use App\Http\Controllers\Api\V1\Admin\StudentLearningController as AdminStudentLearningController;
 use App\Http\Controllers\Api\V1\Admin\StudentMentorController;
+use App\Http\Controllers\Api\V1\Admin\SubAdminController;
 use App\Http\Controllers\Api\V1\Admin\TeacherController as AdminTeacherController;
+use App\Http\Controllers\Api\V1\Admin\WeeklyLearningController as AdminWeeklyLearningController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\LoginPageController;
 use App\Http\Controllers\Api\V1\MasterTeacher\DashboardController as MasterTeacherDashboardController;
 use App\Http\Controllers\Api\V1\MasterTeacher\FeedbackController as MasterTeacherFeedbackController;
 use App\Http\Controllers\Api\V1\MasterTeacher\StudentController as MasterTeacherStudentController;
 use App\Http\Controllers\Api\V1\MasterTeacher\StudentLearningController as MasterTeacherStudentLearningController;
-use App\Http\Controllers\Api\V1\Student\LearningJournalController as StudentLearningJournalController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\Student\AdminRequestController as StudentAdminRequestController;
 use App\Http\Controllers\Api\V1\Student\AssessmentController as StudentAssessmentController;
+use App\Http\Controllers\Api\V1\Student\BookingController as StudentBookingController;
+use App\Http\Controllers\Api\V1\Student\LearningJournalController as StudentLearningJournalController;
 use App\Http\Controllers\Api\V1\Student\ProfileController;
 use App\Http\Controllers\Api\V1\Teacher\AdminRequestController as TeacherAdminRequestController;
 use App\Http\Controllers\Api\V1\Teacher\ProfileController as TeacherProfileController;
+use App\Http\Controllers\Api\V1\Teacher\ScheduleController as TeacherScheduleController;
 use App\Http\Controllers\Api\V1\Teacher\StudentController as TeacherStudentController;
-use App\Http\Controllers\Api\V1\Teacher\StudentLearningController as TeacherStudentLearningController;
 use App\Http\Controllers\Api\V1\Teacher\StudentFeedbackController as TeacherStudentFeedbackController;
+use App\Http\Controllers\Api\V1\Teacher\StudentLearningController as TeacherStudentLearningController;
 use App\Http\Controllers\Api\V1\Teacher\StudentResultController as TeacherStudentResultController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,13 +58,23 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead']);
 });
 
-Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function (): void {
+Route::middleware(['auth:sanctum', 'admin', 'admin.permission', 'subadmin.activity'])->prefix('admin')->group(function (): void {
     Route::get('dashboard', [DashboardController::class, 'show']);
+
+    Route::get('sub-admins/permissions', [SubAdminController::class, 'catalog']);
+    Route::get('sub-admins', [SubAdminController::class, 'index']);
+    Route::post('sub-admins', [SubAdminController::class, 'store']);
+    Route::get('sub-admins/{subAdmin}', [SubAdminController::class, 'show']);
+    Route::get('sub-admins/{subAdmin}/history', [SubAdminController::class, 'history']);
+    Route::put('sub-admins/{subAdmin}', [SubAdminController::class, 'update']);
+    Route::delete('sub-admins/{subAdmin}', [SubAdminController::class, 'destroy']);
 
     Route::get('students', [AdminStudentController::class, 'index']);
     Route::post('students', [AdminStudentController::class, 'store']);
     Route::get('students/{student}', [AdminStudentController::class, 'show']);
     Route::put('students/{student}', [AdminStudentController::class, 'update']);
+    Route::delete('students/{student}', [AdminStudentController::class, 'destroy']);
+    Route::get('students/{student}/history', [AdminStudentController::class, 'history']);
     Route::put('students/{student}/mentor', [StudentMentorController::class, 'update']);
     Route::delete('students/{student}/mentor', [StudentMentorController::class, 'destroy']);
     Route::get('students/{student}/learning-journal', [AdminStudentLearningController::class, 'journal']);
@@ -78,6 +88,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('teachers/{teacher}/history', [AdminTeacherController::class, 'history']);
     Route::get('teachers/{teacher}/promoted-students', [AdminTeacherController::class, 'promotedStudents']);
     Route::put('teachers/{teacher}', [AdminTeacherController::class, 'update']);
+    Route::delete('teachers/{teacher}', [AdminTeacherController::class, 'destroy']);
 
     Route::get('batches', [AdminBatchController::class, 'index']);
     Route::post('batches', [AdminBatchController::class, 'store']);
@@ -160,6 +171,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
 Route::middleware(['auth:sanctum', 'role:common_teacher|master_teacher'])->group(function (): void {
     Route::get('teacher/profile', [TeacherProfileController::class, 'show']);
+    Route::put('teacher/profile', [TeacherProfileController::class, 'update']);
     Route::get('teacher/requests', [TeacherAdminRequestController::class, 'index']);
     Route::post('teacher/requests', [TeacherAdminRequestController::class, 'store']);
     Route::get('teacher/schedule/day', [TeacherScheduleController::class, 'day']);
@@ -212,6 +224,7 @@ Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->group(fu
     Route::post('requests', [StudentAdminRequestController::class, 'store']);
     Route::get('bookings/eligibility', [StudentBookingController::class, 'eligibility']);
     Route::get('bookings/teachers', [StudentBookingController::class, 'teachers']);
+    Route::get('bookings/teachers/{teacher}', [StudentBookingController::class, 'showTeacher']);
     Route::get('bookings/availability', [StudentBookingController::class, 'availability']);
     Route::get('bookings', [StudentBookingController::class, 'index']);
     Route::post('bookings', [StudentBookingController::class, 'store']);

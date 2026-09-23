@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/core/network/api_client.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminListFilter {
   const AdminListFilter({
@@ -21,14 +22,14 @@ class AdminListFilter {
   final int page;
 
   String? get attentionLabel => switch (attentionKey) {
-        'without_batch' => 'Not in a batch',
-        'without_master_teacher' => 'Without Master Teacher',
-        'assessment_pending' => 'Assessment pending',
-        'without_rating_this_month' => 'No monthly rating',
-        'full' => 'Full batches',
-        'top_rated' => 'Top rated',
-        'longest' => 'Longest with us',
-        'promoted' => 'Levelled up',
+        'without_batch' => AppStrings.notInABatch,
+        'without_master_teacher' => AppStrings.withoutMasterTeacher,
+        'assessment_pending' => AppStrings.assessmentPending,
+        'without_rating_this_month' => AppStrings.noMonthlyRating,
+        'full' => AppStrings.fullBatches,
+        'top_rated' => AppStrings.topRated,
+        'longest' => AppStrings.longestWithUs,
+        'promoted' => AppStrings.levelledUp,
         _ => null,
       };
 
@@ -175,6 +176,10 @@ final adminStudentProvider = FutureProvider.autoDispose.family<StudentDto, Strin
   return ref.watch(academicRepositoryProvider).adminStudent(id);
 });
 
+final adminStudentHistoryProvider = FutureProvider.autoDispose.family<List<StudentActivityDto>, String>((ref, id) {
+  return ref.watch(academicRepositoryProvider).studentHistory(id);
+});
+
 final adminTeacherProvider = FutureProvider.autoDispose.family<TeacherDto, String>((ref, id) {
   return ref.watch(academicRepositoryProvider).adminTeacher(id);
 });
@@ -189,4 +194,26 @@ final adminTeacherHistoryProvider = FutureProvider.autoDispose.family<TeacherHis
 
 final adminTeacherPromotedProvider = FutureProvider.autoDispose.family<List<StudentDto>, String>((ref, id) {
   return ref.watch(academicRepositoryProvider).adminTeacherPromotedStudents(id);
+});
+
+final adminSubAdminsFilterProvider = StateProvider<AdminListFilter>((ref) => const AdminListFilter());
+
+final adminSubAdminsProvider = FutureProvider.autoDispose.family<PagedResult, AdminListFilter>((ref, filter) {
+  return ref.read(academicRepositoryProvider).adminSubAdmins(
+        search: filter.search,
+        status: filter.status,
+        page: filter.page,
+      );
+});
+
+final adminSubAdminProvider = FutureProvider.autoDispose.family<SubAdminDto, String>((ref, id) {
+  return ref.watch(academicRepositoryProvider).adminSubAdmin(id);
+});
+
+final subAdminPermissionCatalogProvider = FutureProvider.autoDispose<List<PermissionCatalogGroupDto>>((ref) {
+  return ref.watch(academicRepositoryProvider).subAdminPermissionCatalog();
+});
+
+final adminSubAdminHistoryProvider = FutureProvider.autoDispose.family<List<StudentActivityDto>, String>((ref, id) {
+  return ref.watch(academicRepositoryProvider).subAdminHistory(id);
 });

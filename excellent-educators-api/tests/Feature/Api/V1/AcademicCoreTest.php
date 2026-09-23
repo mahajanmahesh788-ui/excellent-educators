@@ -31,6 +31,7 @@ class AcademicCoreTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9876543210',
             'class_grade' => 5,
+            'gender' => 'male',
             'academic_year' => 2026,
         ]);
 
@@ -38,13 +39,15 @@ class AcademicCoreTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.student_code', '26-0001')
             ->assertJsonPath('data.phone', '9876543210')
-            ->assertJsonPath('data.class_grade', 5);
+            ->assertJsonPath('data.class_grade', 5)
+            ->assertJsonPath('data.gender', 'male');
 
         $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/students', [
             'name' => 'No Phone',
             'email' => 'nophone@excellenteducators.test',
             'password' => 'StudentPass1!',
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertUnprocessable();
 
         $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/students', [
@@ -53,6 +56,7 @@ class AcademicCoreTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9876543211',
             'class_grade' => 5,
+            'gender' => 'male',
             'academic_year' => 2026,
             'student_code' => '26-9999',
         ])->assertUnprocessable();
@@ -69,6 +73,7 @@ class AcademicCoreTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9876543210',
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertCreated();
 
         $this->withToken($token)->postJson('/api/v1/admin/students', [
@@ -77,6 +82,7 @@ class AcademicCoreTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9876543211',
             'class_grade' => 5,
+            'gender' => 'male',
         ])
             ->assertUnprocessable()
             ->assertJsonPath('error.code', 'VALIDATION_ERROR')
@@ -88,6 +94,7 @@ class AcademicCoreTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '+91 9876543210',
             'class_grade' => 5,
+            'gender' => 'male',
         ])
             ->assertUnprocessable()
             ->assertJsonPath('error.code', 'VALIDATION_ERROR')
@@ -95,6 +102,7 @@ class AcademicCoreTest extends TestCase
 
         $this->withToken($token)->postJson('/api/v1/admin/teachers', [
             'name' => 'Teacher One',
+            'gender' => 'female',
             'email' => 'unique@excellenteducators.test',
             'password' => 'TeacherPass1!',
             'roles' => ['master_teacher'],
@@ -111,6 +119,7 @@ class AcademicCoreTest extends TestCase
 
         $response = $this->withToken($token)->postJson('/api/v1/admin/teachers', [
             'name' => 'Meera Nair',
+            'gender' => 'female',
             'email' => 'meera@excellenteducators.test',
             'password' => 'TeacherPass1!',
             'phone' => '9876500001',
@@ -121,6 +130,7 @@ class AcademicCoreTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.full_name', 'Meera Nair')
             ->assertJsonPath('data.address', '42 Residency Road, Bangalore')
+            ->assertJsonPath('data.gender', 'female')
             ->assertJsonPath('data.roles.0', 'master_teacher');
     }
 
@@ -144,6 +154,7 @@ class AcademicCoreTest extends TestCase
                 'password' => 'StudentPass1!',
                 'phone' => '900000000'.($i + 1),
                 'class_grade' => 5,
+                'gender' => 'male',
                 'academic_year' => 2026,
             ])->json('data.id');
         }
@@ -193,6 +204,7 @@ class AcademicCoreTest extends TestCase
             'email' => 'nope@excellenteducators.test',
             'password' => 'StudentPass1!',
             'class_grade' => 7,
+            'gender' => 'male',
         ])->assertForbidden();
     }
 
@@ -218,6 +230,7 @@ class AcademicCoreTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9876543210',
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertCreated();
 
         $this->withToken($this->tokenFor($admin))->getJson('/api/v1/admin/dashboard')
@@ -250,6 +263,7 @@ class AcademicCoreTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9123456789',
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         $assignedId = $this->withToken($token)->postJson('/api/v1/admin/students', [
@@ -258,6 +272,7 @@ class AcademicCoreTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9988776655',
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         $unassignedProfile = StudentProfile::query()->findOrFail($unassignedId);
@@ -289,6 +304,21 @@ class AcademicCoreTest extends TestCase
             ->assertJsonPath('data.0.id', $batchId);
     }
 
+    public function test_student_search_puts_the_closest_name_first(): void
+    {
+        $admin = $this->makeAdmin();
+        $this->makeStudentViaAdmin($admin, 'Student30');
+        $this->makeStudentViaAdmin($admin, 'Student3');
+        $this->makeStudentViaAdmin($admin, 'Student 3 Extra');
+
+        $names = $this->withToken($this->tokenFor($admin))
+            ->getJson('/api/v1/admin/students?search=student3')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame('Student3', $names[0]['full_name']);
+    }
+
     public function test_admin_creates_student_with_class_grade_and_address(): void
     {
         $admin = $this->makeAdmin();
@@ -299,6 +329,7 @@ class AcademicCoreTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9123456780',
             'class_grade' => 5,
+            'gender' => 'male',
             'address' => 'Flat 402, Green Meadows, Mumbai',
             'academic_year' => 2026,
         ]);
@@ -315,6 +346,7 @@ class AcademicCoreTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9123456781',
             'class_grade' => 10,
+            'gender' => 'male',
             'academic_year' => 2026,
         ]);
 
@@ -346,14 +378,6 @@ class AcademicCoreTest extends TestCase
             ->assertJsonPath('error.details.name.0', 'The level name has already been taken.');
     }
 
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'ops@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
-    }
-
     /**
      * @param  list<string>  $roles
      */
@@ -370,10 +394,5 @@ class AcademicCoreTest extends TestCase
         $profile->setRelation('user', $user);
 
         return $profile;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        return $user->createToken('test')->plainTextToken;
     }
 }

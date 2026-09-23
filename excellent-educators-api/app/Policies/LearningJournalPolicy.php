@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\PermissionName;
 use App\Enums\RoleName;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
@@ -11,7 +12,7 @@ class LearningJournalPolicy
 {
     public function view(User $user, StudentProfile $student): bool
     {
-        if ($user->isAdmin()) {
+        if ($user->canAdmin(PermissionName::StudentsView)) {
             return true;
         }
 
@@ -33,17 +34,17 @@ class LearningJournalPolicy
 
     public function manageContent(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->canAdmin(PermissionName::LevelsManage);
     }
 
     public function promote(User $user): bool
     {
-        return $user->isAdmin() || $user->hasRole(RoleName::MasterTeacher);
+        return $user->canAdmin(PermissionName::StudentsPromote) || $user->hasRole(RoleName::MasterTeacher);
     }
 
     public function promoteStudent(User $user, StudentProfile $student): bool
     {
-        if ($user->isAdmin()) {
+        if ($user->canAdmin(PermissionName::StudentsPromote)) {
             return true;
         }
 

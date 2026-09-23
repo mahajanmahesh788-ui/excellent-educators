@@ -13,7 +13,10 @@ class MonthlyFeedbackPolicy
 {
     public function viewAnyForStudent(User $user, StudentProfile $student): bool
     {
-        if ($user->isAdmin() && $user->can(PermissionName::FeedbackView->value)) {
+        if ($user->isAdmin() && (
+            $user->canAdmin(PermissionName::StudentsView)
+            || $user->canAdmin(PermissionName::StudentsRating)
+        )) {
             return true;
         }
 
@@ -25,6 +28,7 @@ class MonthlyFeedbackPolicy
             if ($user->teacherProfile?->canAccessStudent($student) ?? false) {
                 return true;
             }
+
             return $this->hasBookingWith($user, $student);
         }
 
@@ -33,20 +37,29 @@ class MonthlyFeedbackPolicy
 
     public function create(User $user, StudentProfile $student): bool
     {
-        if ($user->isAdmin() && $user->can(PermissionName::FeedbackManage->value)) {
-            return $student->activeMasterTeacherAssignment !== null;
+        if ($user->isAdmin() && $user->canAdmin(PermissionName::StudentsRating)) {
+            return true;
         }
 
         if (! $user->hasRole(RoleName::MasterTeacher)) {
             return false;
         }
 
-        return $user->teacherProfile?->canAccessStudent($student) ?? false;
+        $teacher = $user->teacherProfile;
+        if ($teacher === null) {
+            return false;
+        }
+
+        if ($teacher->canAccessStudent($student)) {
+            return true;
+        }
+
+        return $this->hasBookingWith($user, $student);
     }
 
     public function update(User $user, MonthlyFeedback $feedback): bool
     {
-        if ($user->isAdmin() && $user->can(PermissionName::FeedbackManage->value)) {
+        if ($user->isAdmin() && $user->canAdmin(PermissionName::StudentsRating)) {
             return true;
         }
 
@@ -56,10 +69,6 @@ class MonthlyFeedbackPolicy
 
         $teacher = $user->teacherProfile;
         if ($teacher === null || $feedback->master_teacher_id !== $teacher->id) {
-            return false;
-        }
-
-        if (! $teacher->activeMasterTeacherAssignments()->where('student_id', $feedback->student_id)->exists()) {
             return false;
         }
 
@@ -68,7 +77,7 @@ class MonthlyFeedbackPolicy
 
     public function delete(User $user, MonthlyFeedback $feedback): bool
     {
-        if ($user->isAdmin() && $user->can(PermissionName::FeedbackManage->value)) {
+        if ($user->isAdmin() && $user->canAdmin(PermissionName::StudentsRating)) {
             return true;
         }
 
@@ -78,10 +87,6 @@ class MonthlyFeedbackPolicy
 
         $teacher = $user->teacherProfile;
         if ($teacher === null || $feedback->master_teacher_id !== $teacher->id) {
-            return false;
-        }
-
-        if (! $teacher->activeMasterTeacherAssignments()->where('student_id', $feedback->student_id)->exists()) {
             return false;
         }
 

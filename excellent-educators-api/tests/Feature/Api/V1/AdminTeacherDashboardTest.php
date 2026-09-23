@@ -8,13 +8,13 @@ use App\Enums\SessionBookingType;
 use App\Models\Dimension;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
+use App\Models\TeacherLeave;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use App\Support\AppClock;
 use Database\Seeders\DimensionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class AdminTeacherDashboardTest extends TestCase
@@ -38,15 +38,8 @@ class AdminTeacherDashboardTest extends TestCase
         $this->withToken($this->tokenFor($master->user))->postJson(
             "/api/v1/master-teacher/students/{$student->id}/feedback",
             [
+                ...$this->dimensionRatingPayload(7),
                 'session_date' => now()->toDateString(),
-                'items' => [[
-                    'target_type' => 'dimension',
-                    'target_id' => $dimension->id,
-                    'rating' => 7,
-                    'positive_points' => 'Good work',
-                    'areas_for_improvement' => 'Focus',
-                    'recommended_next_action' => 'Practice',
-                ]],
             ],
         )->assertCreated();
 
@@ -74,7 +67,7 @@ class AdminTeacherDashboardTest extends TestCase
         [$student, $master] = $this->assignedMasterTeacher($admin);
         $this->pastMeeting($student, $master, SessionBookingType::IntroductionCall);
         $this->pastMeeting($student, $master, SessionBookingType::MasterClass);
-        \App\Models\TeacherLeave::query()->create([
+        TeacherLeave::query()->create([
             'teacher_id' => $master->id,
             'date' => AppClock::todayString(),
             'start_time' => '06:00',
@@ -109,6 +102,7 @@ class AdminTeacherDashboardTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => $phone,
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         $this->withToken($this->tokenFor($admin))->putJson("/api/v1/admin/students/{$studentId}/mentor", [
@@ -116,14 +110,6 @@ class AdminTeacherDashboardTest extends TestCase
         ])->assertOk();
 
         return [StudentProfile::query()->findOrFail($studentId), $master];
-    }
-
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'admin-dash-admin@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
     }
 
     /**
@@ -161,13 +147,5 @@ class AdminTeacherDashboardTest extends TestCase
             'ends_at' => $ends,
             'status' => SessionBookingStatus::Completed->value,
         ]);
-    }
-
-    private function tokenFor(User $user): string
-    {
-        $this->app['auth']->forgetGuards();
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return $user->fresh()->createToken('test')->plainTextToken;
     }
 }

@@ -7,6 +7,7 @@ import 'package:excellent_educators_web/features/schedule/presentation/providers
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminGoogleMeetPage extends ConsumerWidget {
   const AdminGoogleMeetPage({super.key});
@@ -14,7 +15,7 @@ class AdminGoogleMeetPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return const AppScaffold(
-      title: 'Google Meet',
+      title: AppStrings.googleMeet,
       body: AdminGoogleMeetConnectPanel(),
     );
   }
@@ -35,12 +36,12 @@ class _AdminGoogleMeetConnectPanelState extends ConsumerState<AdminGoogleMeetCon
     try {
       final url = await ref.read(scheduleRepositoryProvider).adminGoogleMeetAuthorizeUrl();
       if (url.isEmpty) {
-        throw Exception('Google did not return an authorization URL.');
+        throw Exception(AppStrings.googleDidNotReturnAnAuthorizationUrl);
       }
-      await launchUrl(Uri.parse(url), webOnlyWindowName: '_blank');
+      await launchUrl(Uri.parse(url), webOnlyWindowName: AppStrings.blank);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Finish Google consent, then tap Refresh status.')),
+        const SnackBar(content: Text(AppStrings.finishGoogleConsentThenTapRefreshStatus)),
       );
     } catch (error) {
       if (!mounted) return;
@@ -63,8 +64,8 @@ class _AdminGoogleMeetConnectPanelState extends ConsumerState<AdminGoogleMeetCon
         return ListView(
           children: [
             const PortalHero(
-              title: 'Connect Google Meet',
-              subtitle: 'An admin authorizes Google once. After that, each teacher and date shares one Meet link.',
+              title: AppStrings.connectGoogleMeet,
+              subtitle: AppStrings.anAdminAuthorizesGoogleOnceAfterThatEachTeacherAnd,
             ),
             const SizedBox(height: 16),
             PortalCard(
@@ -72,7 +73,7 @@ class _AdminGoogleMeetConnectPanelState extends ConsumerState<AdminGoogleMeetCon
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    data.connected ? 'Connected' : 'Not connected',
+                    data.connected ? AppStrings.connected : AppStrings.notConnected,
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 18,
@@ -82,8 +83,8 @@ class _AdminGoogleMeetConnectPanelState extends ConsumerState<AdminGoogleMeetCon
                   const SizedBox(height: 8),
                   Text(
                     data.connected
-                        ? 'Bookings can create Google Meet rooms automatically.'
-                        : 'Click Connect Google, sign in with the school Google account, then come back and tap Refresh status.',
+                        ? AppStrings.bookingsCanCreateGoogleMeetRoomsAutomatically
+                        : AppStrings.clickConnectGoogleSignInWithTheSchoolGoogleAccount,
                     style: const TextStyle(height: 1.5, color: Color(0xFF475569)),
                   ),
                   if ((data.googleEmail ?? '').isNotEmpty) ...[
@@ -96,12 +97,12 @@ class _AdminGoogleMeetConnectPanelState extends ConsumerState<AdminGoogleMeetCon
                     runSpacing: 10,
                     children: [
                       PortalButton(
-                        label: data.connected ? 'Reconnect Google' : 'Connect Google',
+                        label: data.connected ? AppStrings.reconnectGoogle : AppStrings.connectGoogle,
                         busy: _connecting,
                         onPressed: _connecting ? null : _connect,
                       ),
                       PortalButton(
-                        label: 'Refresh status',
+                        label: AppStrings.refreshStatus,
                         outlined: true,
                         onPressed: () => ref.invalidate(adminGoogleMeetProvider),
                       ),

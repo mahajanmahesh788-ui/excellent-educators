@@ -17,6 +17,7 @@ use App\Models\AptitudeAssessment;
 use App\Models\AptitudeAssessmentResult;
 use App\Models\Dimension;
 use App\Models\MonthlyFeedback;
+use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Support\ApiResponse;
 use App\Support\ErrorCode;
@@ -29,7 +30,6 @@ class DevelopmentController extends Controller
         $this->authorize('viewAny', AptitudeAssessment::class);
 
         $dimensions = Dimension::query()
-            ->with(['modules.skills'])
             ->orderBy('display_order')
             ->get();
 
@@ -90,11 +90,14 @@ class DevelopmentController extends Controller
     ): JsonResponse {
         $this->authorize('create', [MonthlyFeedback::class, $student]);
 
-        $student->loadMissing('activeMasterTeacherAssignment.teacher');
-        $masterTeacher = $student->activeMasterTeacherAssignment?->teacher;
+        $bookingId = $request->validated('booking_id');
+        $booking = $bookingId
+            ? SessionBooking::query()->with('teacher')->find($bookingId)
+            : null;
+        $masterTeacher = $booking?->teacher ?? $student->activeMasterTeacherAssignment?->teacher;
         if ($masterTeacher === null) {
             return ApiResponse::error(
-                'Assign a Master Teacher before submitting a rating.',
+                'Choose a completed Master Class to rate.',
                 ErrorCode::VALIDATION_ERROR,
                 null,
                 422,

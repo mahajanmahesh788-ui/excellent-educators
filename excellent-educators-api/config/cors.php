@@ -11,7 +11,7 @@ if ($frontend !== '' && ! in_array($frontend, $origins, true) && ! in_array('*',
 }
 
 return [
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'auth/google/*'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'auth/google/*', 'media/*'],
 
     'allowed_methods' => ['*'],
 

@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class FeedbackRatingBar extends StatelessWidget {
   const FeedbackRatingBar({
@@ -27,7 +28,7 @@ class FeedbackRatingBar extends StatelessWidget {
           children: [
             const Expanded(
               child: Text(
-                'Rating',
+                AppStrings.rating,
                 style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w600),
               ),
             ),
@@ -44,7 +45,7 @@ class FeedbackRatingBar extends StatelessWidget {
             value: progress,
             minHeight: 10,
             backgroundColor: const Color(0xFFE8ECF4),
-            color: const Color(0xFF3949AB),
+            color: const Color(0xFF175D46),
           ),
         ),
         if (!readOnly && onChanged != null) ...[
@@ -55,7 +56,7 @@ class FeedbackRatingBar extends StatelessWidget {
             max: maxRating.toDouble(),
             divisions: maxRating - 1,
             label: '$clamped',
-            activeColor: const Color(0xFF3949AB),
+            activeColor: const Color(0xFF175D46),
             onChanged: (value) => onChanged!(value.round()),
           ),
           const Row(

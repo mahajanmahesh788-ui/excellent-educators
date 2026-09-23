@@ -23,14 +23,13 @@ class RoleSeeder extends Seeder
             Role::findOrCreate($role->value, 'web');
         }
 
-        $adminPermissions = [
-            PermissionName::AssessmentsManage->value,
-            PermissionName::AssessmentsView->value,
-            PermissionName::FeedbackManage->value,
-            PermissionName::FeedbackView->value,
-        ];
+        $adminPermissions = array_map(
+            fn (PermissionName $permission) => $permission->value,
+            PermissionName::cases(),
+        );
 
         Role::findByName(RoleName::SuperAdmin->value, 'web')->syncPermissions($adminPermissions);
         Role::findByName(RoleName::OperationalAdmin->value, 'web')->syncPermissions($adminPermissions);
+        Role::findByName(RoleName::SubAdmin->value, 'web')->syncPermissions([]);
     }
 }

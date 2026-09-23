@@ -63,10 +63,7 @@ class StudentController extends Controller
                     return;
                 }
 
-                $query->whereIn('id', $dueIds)
-                    ->whereDoesntHave('monthlyFeedbacks', fn ($feedback) => $feedback
-                        ->where('year', $year)
-                        ->where('month', $month));
+                $query->whereIn('id', $dueIds);
             })
             ->orderBy('full_name')
             ->get();
@@ -79,14 +76,14 @@ class StudentController extends Controller
             ->pluck('overall_average', 'student_id');
 
         $feedbackByStudent = $dueIds->isEmpty()
-            ? collect()
-            : MonthlyFeedback::query()
-                ->where('master_teacher_id', $teacher->id)
-                ->whereIn('student_id', $dueIds)
-                ->where('year', $year)
-                ->where('month', $month)
-                ->get(['id', 'student_id'])
-                ->keyBy('student_id');
+        ? collect()
+        : MonthlyFeedback::query()
+            ->where('master_teacher_id', $teacher->id)
+            ->whereIn('student_id', $dueIds)
+            ->where('year', $year)
+            ->where('month', $month)
+            ->get(['id', 'student_id'])
+            ->groupBy('student_id');
 
         $students->each(function (StudentProfile $student) use ($averages, $year, $month, $dueIds, $feedbackByStudent): void {
             $student->feedback_filter_year = $year;
@@ -102,8 +99,9 @@ class StudentController extends Controller
             ]);
             $student->feedback_overall_average = $averages[$student->id] ?? null;
             $due = $dueIds->contains($student->id);
-            $feedbackId = $feedbackByStudent->get($student->id)?->id;
-            $student->can_rate_this_month = $due && $feedbackId === null;
+            $ownRatings = $feedbackByStudent->get($student->id);
+            $feedbackId = $ownRatings?->first()?->id;
+            $student->can_rate_this_month = $due;
             $student->can_edit_rating_this_month = $due && $feedbackId !== null;
             $student->monthly_feedback_id = $feedbackId;
         });
@@ -164,9 +162,10 @@ class StudentController extends Controller
             ->where('master_teacher_id', $teacher->id)
             ->where('year', $year)
             ->where('month', $month)
+            ->orderByDesc('session_date')
             ->first();
-        $student->can_rate_this_month = $due && $feedback === null;
-        $student->can_edit_rating_this_month = $due && $feedback !== null;
+        $student->can_rate_this_month = $due;
+        $student->can_edit_rating_this_month = $feedback !== null;
         $student->monthly_feedback_id = $feedback?->id;
 
         return ApiResponse::success('Student fetched successfully.', StudentResource::make($student)->resolve());

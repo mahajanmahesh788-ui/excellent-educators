@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
+use App\Enums\Gender;
+use App\Support\MentorProfileRules;
 use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,6 +27,12 @@ class UpdateTeacherRequest extends FormRequest
             $merge['whatsapp_number'] = PhoneNumber::normalize($this->input('whatsapp_number'));
         }
 
+        foreach (['photo_url', 'professional_title', 'bio', 'experience_summary'] as $field) {
+            if ($this->exists($field) && is_string($this->input($field)) && trim((string) $this->input($field)) === '') {
+                $merge[$field] = null;
+            }
+        }
+
         if ($merge !== []) {
             $this->merge($merge);
         }
@@ -37,6 +45,7 @@ class UpdateTeacherRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
+            'gender' => ['sometimes', 'nullable', Rule::enum(Gender::class)],
             'employee_code' => [
                 'nullable',
                 'string',
@@ -50,6 +59,7 @@ class UpdateTeacherRequest extends FormRequest
             'work_type' => ['sometimes', 'in:full_time,part_time'],
             'roles' => ['sometimes', 'array', 'min:1'],
             'roles.*' => ['in:master_teacher'],
+            ...MentorProfileRules::fields(),
         ];
     }
 }

@@ -1,32 +1,39 @@
+import 'package:excellent_educators_web/app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
+export 'app_colors.dart';
+export 'student_colors.dart';
+
+/// Compatibility layer mapping legacy Brand tokens to [AppColors].
+/// To customize theme colors for the whole application, edit [AppColors]
+/// in `lib/app/theme/app_colors.dart`.
 abstract final class Brand {
-  static const navy = Color(0xFF0E2744);
-  static const navyDeep = Color(0xFF091C32);
-  static const gold = Color(0xFFC6A15B);
-  static const goldDark = Color(0xFF9C7A36);
-  static const cream = Color(0xFFF7F1E6);
-  static const creamDark = Color(0xFFE8DCC8);
-  static const ink = Color(0xFF1C2430);
-  static const muted = Color(0xFF5C6570);
+  static const navy = AppColors.primary;
+  static const navyDeep = AppColors.primaryDark;
+  static const gold = AppColors.accent;
+  static const goldDark = AppColors.accentDark;
+  static const cream = AppColors.canvas;
+  static const creamDark = AppColors.canvasSoft;
+  static const ink = AppColors.textPrimary;
+  static const muted = AppColors.textSecondary;
 }
 
 abstract final class AppTheme {
   static ThemeData light() {
     const scheme = ColorScheme(
       brightness: Brightness.light,
-      primary: Brand.navy,
+      primary: AppColors.primary,
       onPrimary: Colors.white,
-      secondary: Brand.gold,
-      onSecondary: Brand.navyDeep,
-      tertiary: Brand.goldDark,
+      secondary: AppColors.accent,
+      onSecondary: AppColors.primaryDark,
+      tertiary: AppColors.accentDark,
       onTertiary: Colors.white,
-      error: Color(0xFFB42318),
+      error: AppColors.danger,
       onError: Colors.white,
-      surface: Colors.white,
-      onSurface: Brand.ink,
-      onSurfaceVariant: Brand.muted,
-      outline: Color(0xFFD7CDBB),
+      surface: AppColors.surface,
+      onSurface: AppColors.textPrimary,
+      onSurfaceVariant: AppColors.textSecondary,
+      outline: AppColors.border,
     );
 
     return ThemeData(
@@ -39,7 +46,11 @@ abstract final class AppTheme {
         elevation: 0,
         centerTitle: false,
         toolbarHeight: 48,
-        titleTextStyle: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       navigationRailTheme: const NavigationRailThemeData(
         backgroundColor: Brand.navyDeep,
@@ -47,8 +58,15 @@ abstract final class AppTheme {
         indicatorColor: Colors.transparent,
         selectedIconTheme: IconThemeData(color: Brand.gold, size: 22),
         unselectedIconTheme: IconThemeData(color: Color(0xB3FFFFFF), size: 22),
-        selectedLabelTextStyle: TextStyle(color: Brand.gold, fontWeight: FontWeight.w600, fontSize: 12),
-        unselectedLabelTextStyle: TextStyle(color: Color(0xB3FFFFFF), fontSize: 12),
+        selectedLabelTextStyle: TextStyle(
+          color: Brand.gold,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+        unselectedLabelTextStyle: TextStyle(
+          color: Color(0xB3FFFFFF),
+          fontSize: 12,
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -73,7 +91,11 @@ abstract final class AppTheme {
           foregroundColor: Colors.white,
           minimumSize: const Size(88, 40),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, letterSpacing: 0.1),
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+            letterSpacing: 0.1,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
@@ -100,17 +122,54 @@ abstract final class AppTheme {
       dialogTheme: const DialogThemeData(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
         titleTextStyle: TextStyle(
           color: Brand.navy,
           fontSize: 20,
           fontWeight: FontWeight.w700,
         ),
-        contentTextStyle: TextStyle(
-          color: Brand.muted,
-          fontSize: 14,
-        ),
+        contentTextStyle: TextStyle(color: Brand.muted, fontSize: 14),
         actionsPadding: EdgeInsets.fromLTRB(20, 0, 20, 16),
+      ),
+    );
+  }
+
+  static ThemeData compact(ThemeData base) {
+    return base.copyWith(
+      visualDensity: VisualDensity.compact,
+      appBarTheme: base.appBarTheme.copyWith(
+        toolbarHeight: 44,
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      inputDecorationTheme: base.inputDecorationTheme.copyWith(
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: (base.filledButtonTheme.style ?? const ButtonStyle()).merge(
+          FilledButton.styleFrom(
+            minimumSize: const Size(72, 40),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          ),
+        ),
+      ),
+      dialogTheme: base.dialogTheme.copyWith(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        titleTextStyle: const TextStyle(
+          color: Brand.navy,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       ),
     );
   }

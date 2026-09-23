@@ -71,5 +71,6 @@ void main() {
     expect(find.text('Class 5 (5th Class)'), findsWidgets);
     expect(find.text('Class 6 (6th Class)'), findsWidgets);
     expect(find.text('Class 12 (12th Class)'), findsWidgets);
+    expect(find.text('Gender'), findsOneWidget);
   });
 }

@@ -4,9 +4,10 @@ import 'package:excellent_educators_web/features/auth/data/auth_remote_datasourc
 import 'package:excellent_educators_web/features/auth/data/auth_repository_impl.dart';
 import 'package:excellent_educators_web/features/auth/domain/repositories/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 final tokenStoreProvider = Provider<TokenStore>((ref) {
-  throw UnimplementedError('tokenStoreProvider must be overridden in bootstrap');
+  throw UnimplementedError(AppStrings.tokenstoreproviderMustBeOverriddenInBootstrap);
 });
 
 final apiClientProvider = Provider<ApiClient>((ref) {

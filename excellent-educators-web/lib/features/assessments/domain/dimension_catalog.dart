@@ -1,3 +1,4 @@
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 class DimensionDefinition {
   const DimensionDefinition({required this.code, required this.name});
 
@@ -7,19 +8,19 @@ class DimensionDefinition {
 
 abstract final class DimensionCatalog {
   static const values = <DimensionDefinition>[
-    DimensionDefinition(code: 'P', name: 'Personality'),
-    DimensionDefinition(code: 'I', name: 'Interests'),
-    DimensionDefinition(code: 'CF', name: 'Confidence'),
-    DimensionDefinition(code: 'L', name: 'Leadership'),
-    DimensionDefinition(code: 'CM', name: 'Communication'),
-    DimensionDefinition(code: 'DM', name: 'Decision-making'),
-    DimensionDefinition(code: 'CR', name: 'Creativity'),
-    DimensionDefinition(code: 'CU', name: 'Curiosity'),
-    DimensionDefinition(code: 'TW', name: 'Teamwork'),
-    DimensionDefinition(code: 'FA', name: 'Future Aspirations'),
+    DimensionDefinition(code: 'P', name: AppStrings.personality),
+    DimensionDefinition(code: 'I', name: AppStrings.interests),
+    DimensionDefinition(code: AppStrings.cf, name: AppStrings.confidence),
+    DimensionDefinition(code: 'L', name: AppStrings.leadership),
+    DimensionDefinition(code: AppStrings.cm, name: AppStrings.communication),
+    DimensionDefinition(code: AppStrings.dm, name: 'Decision-making'),
+    DimensionDefinition(code: AppStrings.cr, name: AppStrings.creativity),
+    DimensionDefinition(code: AppStrings.cu, name: AppStrings.curiosity),
+    DimensionDefinition(code: AppStrings.tw, name: AppStrings.teamwork),
+    DimensionDefinition(code: AppStrings.fa, name: AppStrings.futureAspirations),
   ];
 
-  static const codes = ['P', 'I', 'CF', 'L', 'CM', 'DM', 'CR', 'CU', 'TW', 'FA'];
+  static const codes = ['P', 'I', AppStrings.cf, 'L', AppStrings.cm, AppStrings.dm, AppStrings.cr, AppStrings.cu, AppStrings.tw, AppStrings.fa];
 
   static String nameFor(String code) {
     for (final item in values) {

@@ -3,9 +3,14 @@ import 'dart:math' as math;
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/features/assessments/data/dto/assessment_dtos.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class DimensionRadarChart extends StatelessWidget {
-  const DimensionRadarChart({super.key, required this.dimensions, this.size = 260});
+  const DimensionRadarChart({
+    super.key,
+    required this.dimensions,
+    this.size = 260,
+  });
 
   final List<DimensionScoreDto> dimensions;
   final double size;
@@ -15,7 +20,9 @@ class DimensionRadarChart extends StatelessWidget {
     if (dimensions.isEmpty) {
       return const SizedBox(
         height: 200,
-        child: Center(child: Text('Complete your assessment to see your profile chart.')),
+        child: Center(
+          child: Text(AppStrings.completeYourAssessmentToSeeYourProfileChart),
+        ),
       );
     }
 
@@ -24,9 +31,7 @@ class DimensionRadarChart extends StatelessWidget {
         SizedBox(
           width: size,
           height: size,
-          child: CustomPaint(
-            painter: _RadarPainter(dimensions: dimensions),
-          ),
+          child: CustomPaint(painter: _RadarPainter(dimensions: dimensions)),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -36,7 +41,8 @@ class DimensionRadarChart extends StatelessWidget {
           children: [
             for (var i = 0; i < dimensions.length; i++)
               _LegendDot(
-                color: _RadarPainter.chartColors[i % _RadarPainter.chartColors.length],
+                color: _RadarPainter
+                    .chartColors[i % _RadarPainter.chartColors.length],
                 label: dimensions[i].name,
               ),
           ],
@@ -54,7 +60,7 @@ class DimensionBarChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (dimensions.isEmpty) {
-      return const Text('No dimension scores yet.');
+      return const Text(AppStrings.noDimensionScoresYet);
     }
 
     final maxScore = dimensions.map((d) => d.score).fold<int>(1, math.max);
@@ -68,7 +74,8 @@ class DimensionBarChart extends StatelessWidget {
               label: dimensions[i].name,
               score: dimensions[i].score,
               maxScore: maxScore,
-              color: _RadarPainter.chartColors[i % _RadarPainter.chartColors.length],
+              color: _RadarPainter
+                  .chartColors[i % _RadarPainter.chartColors.length],
             ),
           ),
       ],
@@ -100,12 +107,20 @@ class _BarRow extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w600, fontSize: 13),
+                style: const TextStyle(
+                  color: Brand.navy,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
               ),
             ),
             Text(
               '$score',
-              style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 14),
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+              ),
             ),
           ],
         ),
@@ -121,7 +136,9 @@ class _BarRow extends StatelessWidget {
                   widthFactor: fraction.clamp(0.05, 1.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [color.withValues(alpha: 0.7), color]),
+                      gradient: LinearGradient(
+                        colors: [color.withValues(alpha: 0.7), color],
+                      ),
                     ),
                   ),
                 ),
@@ -145,7 +162,11 @@ class _LegendDot extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 4),
         Text(label, style: const TextStyle(fontSize: 10, color: Brand.muted)),
       ],
@@ -159,16 +180,16 @@ class _RadarPainter extends CustomPainter {
   final List<DimensionScoreDto> dimensions;
 
   static const chartColors = [
-    Color(0xFFC6A15B),
-    Color(0xFF4E8BC9),
-    Color(0xFF5BB98C),
-    Color(0xFFE07A5F),
-    Color(0xFF9B5DE5),
-    Color(0xFF00BBF9),
-    Color(0xFFF15BB5),
-    Color(0xFFFEE440),
-    Color(0xFF00F5D4),
-    Color(0xFFFB5607),
+    StudentColors.goldBrand,
+    StudentColors.slate,
+    StudentColors.forestMid,
+    Color(0xFFB66B54),
+    Color(0xFF6B6788),
+    Color(0xFF4C8791),
+    Color(0xFF9A6878),
+    Color(0xFFB59743),
+    Color(0xFF4F8878),
+    Color(0xFFB7683D),
   ];
 
   @override
@@ -240,10 +261,18 @@ class _RadarPainter extends CustomPainter {
       final value = dimensions[i].score / maxScore;
       final angle = _angle(i, count);
       final point = _polar(center, radius * value, angle);
-      canvas.drawCircle(point, 4, Paint()..color = chartColors[i % chartColors.length]);
+      canvas.drawCircle(
+        point,
+        4,
+        Paint()..color = chartColors[i % chartColors.length],
+      );
     }
 
-    final textStyle = TextStyle(color: Brand.navy.withValues(alpha: 0.85), fontSize: 9, fontWeight: FontWeight.w600);
+    final textStyle = TextStyle(
+      color: Brand.navy.withValues(alpha: 0.85),
+      fontSize: 9,
+      fontWeight: FontWeight.w600,
+    );
     for (var i = 0; i < count; i++) {
       final angle = _angle(i, count);
       final labelPoint = _polar(center, radius + 16, angle);
@@ -252,16 +281,24 @@ class _RadarPainter extends CustomPainter {
         text: TextSpan(text: label, style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout();
-      painter.paint(canvas, labelPoint - Offset(painter.width / 2, painter.height / 2));
+      painter.paint(
+        canvas,
+        labelPoint - Offset(painter.width / 2, painter.height / 2),
+      );
     }
   }
 
-  double _angle(int index, int count) => (math.pi * 2 * index / count) - math.pi / 2;
+  double _angle(int index, int count) =>
+      (math.pi * 2 * index / count) - math.pi / 2;
 
   Offset _polar(Offset center, double radius, double angle) {
-    return Offset(center.dx + radius * math.cos(angle), center.dy + radius * math.sin(angle));
+    return Offset(
+      center.dx + radius * math.cos(angle),
+      center.dy + radius * math.sin(angle),
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _RadarPainter oldDelegate) => oldDelegate.dimensions != dimensions;
+  bool shouldRepaint(covariant _RadarPainter oldDelegate) =>
+      oldDelegate.dimensions != dimensions;
 }

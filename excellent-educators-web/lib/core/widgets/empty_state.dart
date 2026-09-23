@@ -1,4 +1,5 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/app/theme/breakpoints.dart';
 import 'package:flutter/material.dart';
 
 /// Centered empty-state panel with icon, title, optional subtitle and action.
@@ -21,14 +22,18 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = Breakpoints.isMobile(context);
     final content = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 28,
+        vertical: isMobile ? 16 : 32,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 88,
-            height: 88,
+            width: isMobile ? 64 : 88,
+            height: isMobile ? 64 : 88,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
@@ -41,9 +46,9 @@ class EmptyState extends StatelessWidget {
               ),
               border: Border.all(color: Brand.gold.withValues(alpha: 0.35)),
             ),
-            child: Icon(icon, size: 40, color: Brand.navy.withValues(alpha: 0.72)),
+            child: Icon(icon, size: isMobile ? 30 : 40, color: Brand.navy.withValues(alpha: 0.72)),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: isMobile ? 12 : 20),
           Text(
             title,
             textAlign: TextAlign.center,

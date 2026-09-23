@@ -33,6 +33,7 @@ class NotificationTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9000000001',
             'class_grade' => 5,
+            'gender' => 'male',
             'academic_year' => 2026,
         ])->json('data.id');
 
@@ -97,14 +98,6 @@ class NotificationTest extends TestCase
             ->assertJsonPath('data.unread_count', 0);
     }
 
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'ops@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
-    }
-
     /**
      * @param  list<string>  $roles
      */
@@ -121,10 +114,5 @@ class NotificationTest extends TestCase
         $profile->setRelation('user', $user);
 
         return $profile;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        return $user->createToken('test')->plainTextToken;
     }
 }

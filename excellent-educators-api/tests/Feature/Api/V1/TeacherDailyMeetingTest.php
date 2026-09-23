@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\RoleName;
 use App\Enums\SessionBookingStatus;
+use App\Enums\NotificationType;
 use App\Exceptions\ApiException;
 use App\Meetings\CreatedGoogleMeet;
 use App\Meetings\FakeGoogleMeetGateway;
@@ -14,7 +14,7 @@ use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherDailyMeeting;
 use App\Models\TeacherProfile;
-use App\Models\User;
+use App\Models\UserNotification;
 use App\Support\ErrorCode;
 use Database\Seeders\LevelSeeder;
 use Database\Seeders\RoleSeeder;
@@ -153,6 +153,8 @@ class TeacherDailyMeetingTest extends TestCase
             }
         });
         [$student, $teacher] = $this->makeStudentWithTeacher();
+        $admin = $this->makeAdmin();
+
         $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
             'teacher_id' => $teacher->id,
             'type' => 'introduction_call',
@@ -164,6 +166,45 @@ class TeacherDailyMeetingTest extends TestCase
             ->assertJsonPath('message', 'Unable to create the meeting right now. Please try again.');
 
         $this->assertSame(0, SessionBooking::query()->count());
+
+        $notification = UserNotification::query()
+            ->where('user_id', $admin->id)
+            ->where('type', NotificationType::StudentBookingFailed)
+            ->first();
+
+        $this->assertNotNull($notification);
+        $this->assertStringContainsString('Meet', $notification->title);
+        $this->assertSame(ErrorCode::MEETING_CREATE_FAILED, $notification->data['error_code'] ?? null);
+        $this->assertSame($student->id, $notification->data['student_id'] ?? null);
+    }
+
+    public function test_slot_conflict_does_not_notify_admins(): void
+    {
+        [$student, $teacher] = $this->makeStudentWithTeacher();
+        $admin = $this->makeAdmin();
+
+        $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
+            'teacher_id' => $teacher->id,
+            'type' => 'introduction_call',
+            'date' => '2026-09-16',
+            'start' => '10:00',
+        ])->assertCreated();
+
+        $other = $this->makeSecondStudent();
+        $this->withToken($this->tokenFor($other->user))->postJson('/api/v1/student/bookings', [
+            'teacher_id' => $teacher->id,
+            'type' => 'introduction_call',
+            'date' => '2026-09-16',
+            'start' => '10:00',
+        ])->assertStatus(409);
+
+        $this->assertSame(
+            0,
+            UserNotification::query()
+                ->where('user_id', $admin->id)
+                ->where('type', NotificationType::StudentBookingFailed)
+                ->count(),
+        );
     }
 
     public function test_reschedule_same_date_keeps_same_meet(): void
@@ -276,27 +317,6 @@ class TeacherDailyMeetingTest extends TestCase
         $this->assertSame($created['meeting_url'], $adminUrl);
     }
 
-    /**
-     * @return array{0: StudentProfile, 1: TeacherProfile}
-     */
-    private function makeStudentWithTeacher(): array
-    {
-        $admin = $this->makeAdmin();
-        $teacher = $this->makeMasterTeacher();
-        AcademicLevel::query()->where('name', 'Level 1')->firstOrFail()
-            ->masterTeachers()->syncWithoutDetaching([$teacher->id]);
-
-        $id = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/students', [
-            'name' => 'Meet Student',
-            'email' => 'meet-student-'.uniqid().'@excellenteducators.test',
-            'password' => 'StudentPass1!',
-            'phone' => '98'.random_int(10000000, 99999999),
-            'class_grade' => 6,
-        ])->assertCreated()->json('data.id');
-
-        return [StudentProfile::query()->with('user')->findOrFail($id), $teacher];
-    }
-
     private function makeSecondStudent(): StudentProfile
     {
         $admin = $this->makeAdmin();
@@ -306,6 +326,7 @@ class TeacherDailyMeetingTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '97'.random_int(10000000, 99999999),
             'class_grade' => 6,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         return StudentProfile::query()->with('user')->findOrFail($id);
@@ -335,34 +356,5 @@ class TeacherDailyMeetingTest extends TestCase
     private function latestBookingId(StudentProfile $student): string
     {
         return SessionBooking::query()->where('student_id', $student->id)->latest()->firstOrFail()->id;
-    }
-
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'ops-meet-'.uniqid().'@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
-    }
-
-    private function makeMasterTeacher(): TeacherProfile
-    {
-        $user = User::factory()->create(['email' => 'mt-meet-'.uniqid().'@excellenteducators.test']);
-        $user->assignRole(RoleName::MasterTeacher->value);
-        $profile = TeacherProfile::query()->create([
-            'user_id' => $user->id,
-            'full_name' => $user->name,
-            'status' => 'active',
-        ]);
-        $profile->setRelation('user', $user);
-
-        return $profile;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        $this->app['auth']->forgetGuards();
-
-        return $user->createToken('test')->plainTextToken;
     }
 }

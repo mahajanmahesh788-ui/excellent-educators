@@ -30,7 +30,6 @@ class FeedbackController extends Controller
     public function catalog(): JsonResponse
     {
         $dimensions = Dimension::query()
-            ->with(['modules.skills'])
             ->orderBy('display_order')
             ->get();
 
@@ -85,9 +84,9 @@ class FeedbackController extends Controller
             config('app.timezone'),
         )->startOfDay();
         $dueIds = app(StudentsDueForRating::class)->idsFor($teacher, $sessionDate->year, $sessionDate->month);
-        if (! $dueIds->contains($student->id)) {
+        if (! $dueIds->contains($student->id) && ! $request->filled('booking_id')) {
             return ApiResponse::error(
-                'Add a monthly rating only after this student completes a Master Class.',
+                'Add a rating only after this student completes a Master Class with you.',
                 ErrorCode::FEEDBACK_NOT_DUE,
                 null,
                 409,

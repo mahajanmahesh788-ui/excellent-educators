@@ -7,6 +7,7 @@ import 'package:excellent_educators_web/features/schedule/presentation/providers
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminAttendancePage extends ConsumerStatefulWidget {
   const AdminAttendancePage({super.key, this.issueId});
@@ -33,21 +34,21 @@ class _AdminAttendancePageState extends ConsumerState<AdminAttendancePage> {
     final issues = ref.watch(adminAttendanceProvider(_status));
 
     return AppScaffold(
-      title: 'Class conflicts',
+      title: AppStrings.classConflicts,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            'Student and teacher reports when someone did not join a scheduled class.',
+            AppStrings.studentAndTeacherReportsWhenSomeoneDidNotJoinA,
             style: TextStyle(color: Brand.muted, fontSize: 13),
           ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             children: [
-              ChoiceChip(label: const Text('Pending'), selected: _status == 'pending', onSelected: (_) => setState(() => _status = 'pending')),
-              ChoiceChip(label: const Text('Resolved'), selected: _status == 'resolved', onSelected: (_) => setState(() => _status = 'resolved')),
-              ChoiceChip(label: const Text('All'), selected: _status == 'all', onSelected: (_) => setState(() => _status = 'all')),
+              ChoiceChip(label: const Text(AppStrings.pending), selected: _status == 'pending', onSelected: (_) => setState(() => _status = 'pending')),
+              ChoiceChip(label: const Text(AppStrings.resolved), selected: _status == 'resolved', onSelected: (_) => setState(() => _status = 'resolved')),
+              ChoiceChip(label: const Text(AppStrings.all), selected: _status == 'all', onSelected: (_) => setState(() => _status = 'all')),
             ],
           ),
           const SizedBox(height: 12),
@@ -73,31 +74,28 @@ class _AdminAttendancePageState extends ConsumerState<AdminAttendancePage> {
                 }
                 if (items.isEmpty) {
                   return const EmptyState(
-                    title: 'No class conflicts',
-                    subtitle: 'New student and teacher join reports will appear here.',
+                    title: AppStrings.noClassConflicts,
+                    subtitle: AppStrings.newStudentAndTeacherJoinReportsWillAppearHere,
                   );
                 }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: SingleChildScrollView(
-                        child: DataTable(
+                final table = SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SingleChildScrollView(
+                    child: DataTable(
                           showCheckboxColumn: false,
                           columns: const [
-                            DataColumn(label: Text('Student')),
-                            DataColumn(label: Text('Teacher')),
-                            DataColumn(label: Text('Level')),
-                            DataColumn(label: Text('Class')),
-                            DataColumn(label: Text('Attempt')),
-                            DataColumn(label: Text('Week')),
-                            DataColumn(label: Text('Date')),
-                            DataColumn(label: Text('Time')),
-                            DataColumn(label: Text('Issue')),
-                            DataColumn(label: Text('Student Join')),
-                            DataColumn(label: Text('Teacher Join')),
-                            DataColumn(label: Text('Status')),
+                            DataColumn(label: Text(AppStrings.student)),
+                            DataColumn(label: Text(AppStrings.teacher)),
+                            DataColumn(label: Text(AppStrings.level)),
+                            DataColumn(label: Text(AppStrings.classLabel)),
+                            DataColumn(label: Text(AppStrings.attempt)),
+                            DataColumn(label: Text(AppStrings.week2)),
+                            DataColumn(label: Text(AppStrings.date2)),
+                            DataColumn(label: Text(AppStrings.time)),
+                            DataColumn(label: Text(AppStrings.issue)),
+                            DataColumn(label: Text(AppStrings.studentJoin)),
+                            DataColumn(label: Text(AppStrings.teacherJoin)),
+                            DataColumn(label: Text(AppStrings.status2)),
                           ],
                           rows: [
                             for (final item in items)
@@ -124,28 +122,42 @@ class _AdminAttendancePageState extends ConsumerState<AdminAttendancePage> {
                                   DataCell(Text(item.date ?? '—')),
                                   DataCell(Text(item.start ?? '—')),
                                   DataCell(Text(item.issueLabel)),
-                                  DataCell(Text(item.studentJoinCount > 0 ? '${item.studentJoinCount} click(s)' : 'No record')),
-                                  DataCell(Text(item.teacherDayJoinAt != null ? 'Same-day Meet click' : 'No individual click recorded')),
+                                  DataCell(Text(item.studentJoinCount > 0 ? '${item.studentJoinCount} click(s)' : AppStrings.noRecord)),
+                                  DataCell(Text(item.teacherDayJoinAt != null ? AppStrings.sameDayMeetClick : AppStrings.noIndividualClickRecorded)),
                                   DataCell(Text(item.status)),
                                 ],
                               ),
                           ],
-                        ),
-                      ),
                     ),
-                    if (_open != null) ...[
+                  ),
+                );
+                final detail = _open == null
+                    ? null
+                    : _DetailPane(
+                        issue: _open!,
+                        onResolved: () {
+                          setState(() => _open = null);
+                          ref.invalidate(adminAttendanceProvider(_status));
+                          ref.invalidate(adminPendingConflictsCountProvider);
+                        },
+                      );
+                if (MediaQuery.sizeOf(context).width < 900) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: table),
+                      if (detail != null)
+                        SizedBox(height: 300, child: detail),
+                    ],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 3, child: table),
+                    if (detail != null) ...[
                       const SizedBox(width: 16),
-                      SizedBox(
-                        width: 360,
-                        child: _DetailPane(
-                          issue: _open!,
-                          onResolved: () {
-                            setState(() => _open = null);
-                            ref.invalidate(adminAttendanceProvider(_status));
-                            ref.invalidate(adminPendingConflictsCountProvider);
-                          },
-                        ),
-                      ),
+                      SizedBox(width: 360, child: detail),
                     ],
                   ],
                 );
@@ -229,12 +241,12 @@ class _DetailPaneState extends ConsumerState<_DetailPane> {
                 if (issue.studentId != null && issue.studentId!.isNotEmpty)
                   TextButton(
                     onPressed: () => context.go(RoutePaths.adminStudent(issue.studentId!)),
-                    child: Text(issue.studentName ?? 'Student'),
+                    child: Text(issue.studentName ?? AppStrings.student),
                   ),
                 if (issue.teacherId != null && issue.teacherId!.isNotEmpty)
                   TextButton(
                     onPressed: () => context.go(RoutePaths.adminTeacher(issue.teacherId!)),
-                    child: Text(issue.teacherName ?? 'Teacher'),
+                    child: Text(issue.teacherName ?? AppStrings.teacher),
                   ),
               ],
             ),
@@ -244,37 +256,37 @@ class _DetailPaneState extends ConsumerState<_DetailPane> {
             const SizedBox(height: 12),
             Text(issue.message ?? '', style: const TextStyle(height: 1.4)),
             const SizedBox(height: 12),
-            Text('Student Join: ${issue.studentJoinCount > 0 ? issue.studentFirstJoinAt ?? 'Yes' : 'No record'}'),
-            Text('Teacher Join: ${issue.teacherDayJoinAt ?? 'No individual click recorded'}'),
-            Text('A missing teacher click does not mean the teacher was absent. Back-to-back classes share one Meet.'),
+            Text('Student Join: ${issue.studentJoinCount > 0 ? issue.studentFirstJoinAt ?? AppStrings.yes : AppStrings.noRecord}'),
+            Text('Teacher Join: ${issue.teacherDayJoinAt ?? AppStrings.noIndividualClickRecorded}'),
+            Text(AppStrings.aMissingTeacherClickDoesNotMeanTheTeacherWas),
             if (issue.meetingUrl != null) Text('Meet: ${issue.meetingUrl}'),
             const SizedBox(height: 12),
             if (issue.status == 'pending') ...[
               FilledButton(
                 onPressed: _saving ? null : () => _resolve('resolved'),
-                child: Text(_saving ? 'Saving…' : 'Mark as resolved'),
+                child: Text(_saving ? AppStrings.saving : AppStrings.markAsResolved),
               ),
               const SizedBox(height: 8),
               FilledButton.tonal(
                 onPressed: _saving ? null : () => _resolve('extra_chance'),
-                child: const Text('Give one more chance'),
+                child: const Text(AppStrings.giveOneMoreChance),
               ),
               const SizedBox(height: 8),
               Text(
-                'Give one more chance lets the student book again after both chances were used.',
+                AppStrings.giveOneMoreChanceLetsTheStudentBookAgainAfter,
                 style: TextStyle(color: Brand.muted.withValues(alpha: 0.95), fontSize: 12, height: 1.35),
               ),
             ] else ...[
               Text(
                 issue.adminDecision == 'extra_chance'
-                    ? 'One more chance given.'
-                    : 'Marked as resolved.',
+                    ? AppStrings.oneMoreChanceGiven
+                    : AppStrings.markedAsResolved,
                 style: const TextStyle(fontWeight: FontWeight.w700, color: Brand.navy),
               ),
               if (issue.rebookingGranted)
                 const Padding(
                   padding: EdgeInsets.only(top: 6),
-                  child: Text('The student can book another slot.'),
+                  child: Text(AppStrings.theStudentCanBookAnotherSlot),
                 ),
             ],
           ],

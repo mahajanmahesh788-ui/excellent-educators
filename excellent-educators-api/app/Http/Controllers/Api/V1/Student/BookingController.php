@@ -52,6 +52,25 @@ class BookingController extends Controller
         );
     }
 
+    public function showTeacher(Request $request, TeacherProfile $teacher): JsonResponse
+    {
+        $student = $this->studentFrom($request)->loadMissing([
+            'academicLevel.masterTeachers.user',
+            'activeEnrollment.batch.level.masterTeachers.user',
+        ]);
+        if (! $this->eligibility->teacherIsEligible($student, $teacher)) {
+            return ApiResponse::error('This teacher is not assigned to your level.', ErrorCode::TEACHER_NOT_ELIGIBLE, null, 422);
+        }
+
+        $teacher->load(['user.roles', 'academicLevels'])
+            ->loadCount(['activeBatchAssignments', 'activeMasterTeacherAssignments']);
+
+        return ApiResponse::success(
+            'Mentor profile fetched successfully.',
+            TeacherResource::make($teacher)->resolve(),
+        );
+    }
+
     public function availability(Request $request): JsonResponse
     {
         $request->validate([

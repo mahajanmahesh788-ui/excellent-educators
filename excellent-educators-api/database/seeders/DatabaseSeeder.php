@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder
             DimensionSeeder::class,
             LoginPageContentSeeder::class,
             LevelSeeder::class,
+            DemoTeacherSeeder::class,
+            DemoWeeklyLearningSeeder::class,
         ]);
     }
 }

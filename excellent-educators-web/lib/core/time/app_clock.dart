@@ -1,3 +1,4 @@
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 /// App-wide calendar helpers using Asia/Kolkata (IST).
 class AppClock {
   AppClock._();
@@ -20,8 +21,8 @@ class AppClock {
 
   static String monthLabel(int year, int month) {
     const names = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      AppStrings.january, AppStrings.february, AppStrings.march, AppStrings.april, AppStrings.may2, AppStrings.june,
+      AppStrings.july, AppStrings.august, AppStrings.september, AppStrings.october, AppStrings.november, AppStrings.december,
     ];
     return '${names[month - 1]} $year';
   }

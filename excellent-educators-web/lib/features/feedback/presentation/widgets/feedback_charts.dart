@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/features/feedback/data/dto/feedback_dtos.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class FeedbackOverallCard extends StatelessWidget {
   const FeedbackOverallCard({super.key, required this.summary});
@@ -17,7 +18,7 @@ class FeedbackOverallCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0E2744), Color(0xFF1A3A5C)],
+          colors: [Color(0xFF12251F), Color(0xFF175D46)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -27,7 +28,7 @@ class FeedbackOverallCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Overall rating',
+            AppStrings.overallRating,
             style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
@@ -55,7 +56,7 @@ class FeedbackOverallCard extends StatelessWidget {
                     '${summary.totalSessions}',
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22),
                   ),
-                  const Text('monthly ratings', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const Text(AppStrings.monthlyRatings2, style: TextStyle(color: Colors.white70, fontSize: 12)),
                 ],
               ),
             ],
@@ -84,7 +85,7 @@ class FeedbackMonthlyVolumeChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (months.isEmpty) {
-      return const Text('Submit monthly ratings to see how many students you rated each month.');
+      return const Text(AppStrings.submitMonthlyRatingsToSeeHowManyStudentsYouRated);
     }
 
     final sorted = [...months]
@@ -115,7 +116,7 @@ class FeedbackMonthlyVolumeChart extends StatelessWidget {
                 Icon(Icons.bar_chart_rounded, size: 16, color: Brand.goldDark),
                 SizedBox(width: 6),
                 Text(
-                  'Students rated per month',
+                  AppStrings.studentsRatedPerMonth,
                   style: TextStyle(color: Brand.muted, fontSize: 11, fontWeight: FontWeight.w600),
                 ),
               ],
@@ -206,7 +207,7 @@ class FeedbackMonthlyVolumeChart extends StatelessWidget {
                             gradient: const LinearGradient(
                               begin: Alignment.bottomCenter,
                               end: Alignment.topCenter,
-                              colors: [Color(0xFF3949AB), Brand.goldDark],
+                              colors: [Color(0xFF175D46), Brand.goldDark],
                             ),
                           ),
                         ],
@@ -230,7 +231,7 @@ class FeedbackMonthlyTrendChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (months.isEmpty) {
-      return const Text('Complete a few monthly ratings to see the trend graph.');
+      return const Text(AppStrings.completeAFewMonthlyRatingsToSeeTheTrendGraph);
     }
 
     final sorted = [...months]
@@ -251,7 +252,7 @@ class FeedbackMonthlyTrendChart extends StatelessWidget {
     }
 
     if (spots.isEmpty) {
-      return const Text('No rating averages available yet.');
+      return const Text(AppStrings.noRatingAveragesAvailableYet);
     }
 
     return DecoratedBox(
@@ -270,12 +271,12 @@ class FeedbackMonthlyTrendChart extends StatelessWidget {
                 Icon(Icons.show_chart_rounded, size: 16, color: Brand.goldDark),
                 SizedBox(width: 6),
                 Text(
-                  'Average rating over time',
+                  AppStrings.averageRatingOverTime,
                   style: TextStyle(color: Brand.muted, fontSize: 11, fontWeight: FontWeight.w600),
                 ),
                 Spacer(),
                 Text(
-                  'Scale: 0–10',
+                  AppStrings.scale010,
                   style: TextStyle(color: Brand.muted, fontSize: 11),
                 ),
               ],
@@ -369,7 +370,7 @@ class FeedbackMonthlyTrendChart extends StatelessWidget {
                       spots: spots,
                       isCurved: sorted.length > 2,
                       curveSmoothness: 0.2,
-                      color: const Color(0xFF3949AB),
+                      color: const Color(0xFF175D46),
                       barWidth: 3,
                       isStrokeCapRound: true,
                       dotData: FlDotData(
@@ -387,8 +388,8 @@ class FeedbackMonthlyTrendChart extends StatelessWidget {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            const Color(0xFF3949AB).withValues(alpha: 0.18),
-                            const Color(0xFF3949AB).withValues(alpha: 0.02),
+                            const Color(0xFF175D46).withValues(alpha: 0.18),
+                            const Color(0xFF175D46).withValues(alpha: 0.02),
                           ],
                         ),
                       ),
@@ -412,7 +413,7 @@ class FeedbackDimensionOverview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (dimensions.isEmpty) {
-      return const Text('Skill ratings will appear here after your Master Teacher submits feedback.');
+      return const Text(AppStrings.skillRatingsWillAppearHereAfterYourMasterTeacherSubmits);
     }
 
     return Column(
@@ -484,7 +485,7 @@ const _chartColors = [
   Color(0xFFC6A15B),
   Color(0xFF4E8BC9),
   Color(0xFF5BB98C),
-  Color(0xFF3949AB),
-  Color(0xFF9B5DE5),
+  Color(0xFF175D46),
+  Color(0xFF4E7187),
   Color(0xFFE07A5F),
 ];

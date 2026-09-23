@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 /// Standard modal dialog wrapper with a clean header (title + close button)
 /// and consistent spacing/styling matching the app design language.
@@ -19,10 +20,11 @@ class AppModalDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 600;
     return Dialog(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(horizontal: compact ? 14 : 20, vertical: compact ? 16 : 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
@@ -45,7 +47,7 @@ class AppModalDialog extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Close',
+                    tooltip: AppStrings.close,
                     onPressed: onClose ?? () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close, color: Brand.muted, size: 20),
                     style: IconButton.styleFrom(
@@ -69,7 +71,7 @@ class AppModalDialog extends StatelessWidget {
 class AppDialogActions extends StatelessWidget {
   const AppDialogActions({
     super.key,
-    this.cancelLabel = 'Cancel',
+    this.cancelLabel = AppStrings.cancel,
     this.onCancel,
     required this.confirmLabel,
     required this.onConfirm,

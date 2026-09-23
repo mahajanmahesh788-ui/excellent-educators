@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\RoleName;
 use App\Models\AcademicLevel;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
@@ -32,6 +31,7 @@ class TeacherAvailabilityTest extends TestCase
         $admin = $this->makeAdmin();
         $id = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/teachers', [
             'name' => 'Avail Teacher',
+            'gender' => 'female',
             'email' => 'avail-'.uniqid().'@excellenteducators.test',
             'password' => 'TeacherPass1!',
             'roles' => ['master_teacher'],
@@ -220,6 +220,7 @@ class TeacherAvailabilityTest extends TestCase
     {
         $id = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/teachers', [
             'name' => 'Avail Teacher Two',
+            'gender' => 'female',
             'email' => 'avail-2-'.uniqid().'@excellenteducators.test',
             'password' => 'TeacherPass1!',
             'roles' => ['master_teacher'],
@@ -231,7 +232,7 @@ class TeacherAvailabilityTest extends TestCase
     /**
      * @return array{0: StudentProfile, 1: TeacherProfile}
      */
-    private function makeStudentWithTeacher(): array
+    protected function makeStudentWithTeacher(): array
     {
         $admin = $this->makeAdmin();
         $teacher = $this->createTeacherViaAdmin($admin);
@@ -243,6 +244,7 @@ class TeacherAvailabilityTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '98'.random_int(10000000, 99999999),
             'class_grade' => 6,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         return [StudentProfile::query()->with('user')->findOrFail($id), $teacher];
@@ -257,6 +259,7 @@ class TeacherAvailabilityTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '97'.random_int(10000000, 99999999),
             'class_grade' => 6,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         return StudentProfile::query()->with('user')->findOrFail($id);
@@ -272,20 +275,5 @@ class TeacherAvailabilityTest extends TestCase
         ])->assertCreated()->json('data.id');
 
         return SessionBooking::query()->findOrFail($id);
-    }
-
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'ops-avail-'.uniqid().'@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        $this->app['auth']->forgetGuards();
-
-        return $user->createToken('test')->plainTextToken;
     }
 }

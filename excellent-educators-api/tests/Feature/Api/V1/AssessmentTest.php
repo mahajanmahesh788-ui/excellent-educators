@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\RoleName;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
@@ -42,6 +41,7 @@ class AssessmentTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9876543211',
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         $master = $this->makeTeacher(['master_teacher'], 'master@excellenteducators.test');
@@ -53,14 +53,6 @@ class AssessmentTest extends TestCase
         $this->withToken($token)->deleteJson("/api/v1/admin/students/{$studentId}/mentor")
             ->assertOk()
             ->assertJsonPath('data.master_teacher', null);
-    }
-
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'ops-assess@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
     }
 
     /**
@@ -79,10 +71,5 @@ class AssessmentTest extends TestCase
         $profile->setRelation('user', $user);
 
         return $profile;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        return $user->createToken('test')->plainTextToken;
     }
 }

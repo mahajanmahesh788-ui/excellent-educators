@@ -2,10 +2,8 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\RoleName;
 use App\Models\AcademicLevel;
 use App\Models\StudentProfile;
-use App\Models\TeacherProfile;
 use App\Models\User;
 use App\Models\WeeklyAssignmentAttempt;
 use Database\Seeders\CareerCompassLevelSeeder;
@@ -29,8 +27,11 @@ class LearningJournalTest extends TestCase
     {
         [$admin, $student] = $this->makeStudent();
         $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
-        $this->seedWeek($admin, $level1, 1, 'https://video.test/l1w1');
+        $week = $this->seedWeek($admin, $level1, 1, 'https://video.test/l1w1');
         $this->seedWeek($admin, $level1, 27, 'https://video.test/l1w27');
+
+        $this->assertSame(['TW'], $week['questions'][0]['options'][0]['dimension_codes']);
+        $this->assertSame(['P', 'I'], $week['questions'][0]['options'][1]['dimension_codes']);
 
         $dashboard = $this->withToken($this->tokenFor($student->user))
             ->getJson('/api/v1/student/learning/dashboard')
@@ -83,9 +84,7 @@ class LearningJournalTest extends TestCase
         $this->assertSame(1, $journal['levels'][0]['weeks'][0]['week_number']);
         $this->assertSame('completed', $journal['levels'][0]['weeks'][0]['assignment_status']);
         $this->assertSame('https://video.test/l1w1', $journal['levels'][0]['weeks'][0]['video_url']);
-        $this->assertSame(1, $journal['levels'][0]['weeks'][0]['score']['correct']);
-        $this->assertSame(2, $journal['levels'][0]['weeks'][0]['score']['total']);
-        $this->assertSame(50, $journal['levels'][0]['weeks'][0]['score']['percentage']);
+        $this->assertNull($journal['levels'][0]['weeks'][0]['score']);
         $this->assertSame(1, $journal['levels'][1]['weeks'][0]['week_number']);
         $this->assertSame('pending', $journal['levels'][1]['weeks'][0]['assignment_status']);
         $this->assertNull($journal['levels'][1]['weeks'][0]['score']);
@@ -134,6 +133,59 @@ class LearningJournalTest extends TestCase
         $this->assertSame(2, $week['attempts_used']);
         $this->assertArrayNotHasKey('rating', $week);
         $this->assertArrayNotHasKey('month', $week);
+        $this->assertNull($week['result']);
+        $this->assertNull($week['attempts'][0]['result']);
+        $this->assertNull($week['attempts'][1]['result']);
+    }
+
+    public function test_week_assignment_result_matches_assessment_dimension_scores(): void
+    {
+        [$admin, $student] = $this->makeStudent();
+        $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+        $unit = $this->seedWeek($admin, $level1, 1, 'https://video.test/l1w1');
+        $this->submitAttempt($student, 1, $unit, 1)->assertCreated();
+
+        $journal = $this->withToken($this->tokenFor($admin))
+            ->getJson("/api/v1/admin/students/{$student->id}/learning-journal")
+            ->assertOk()
+            ->json('data.levels.0');
+
+        $this->assertNull($journal['weeks'][0]['result']);
+
+        $studentWeek = $this->withToken($this->tokenFor($student->user))
+            ->getJson("/api/v1/student/learning/journal/{$journal['journey_id']}/1")
+            ->assertOk()
+            ->json('data');
+        $this->assertNull($studentWeek['result']);
+        $this->assertNull($studentWeek['attempts'][0]['result']);
+
+        $week = $this->withToken($this->tokenFor($admin))
+            ->getJson("/api/v1/admin/students/{$student->id}/learning-journal/{$journal['journey_id']}/1")
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame('Level 1 · Week 1', $week['result']['assessment']['title']);
+        $this->assertWeekDimensionResult($week['result'], [
+            'P' => 1,
+            'I' => 1,
+            'L' => 1,
+            'CM' => 1,
+        ]);
+        $this->assertSame(
+            array_column($week['result']['dimensions'], 'name'),
+            [
+                'Personality',
+                'Interests',
+                'Confidence',
+                'Leadership',
+                'Communication',
+                'Decision-making',
+                'Creativity',
+                'Curiosity',
+                'Teamwork',
+                'Future Aspirations',
+            ],
+        );
     }
 
     public function test_historical_video_survives_content_update(): void
@@ -176,7 +228,8 @@ class LearningJournalTest extends TestCase
         [$admin, $student] = $this->makeStudent();
         $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
         $this->seedWeek($admin, $level1, 1, 'https://video.test/l1w1');
-        $teacher = $this->makeMasterTeacher($level1);
+        $teacher = $this->makeMasterTeacher();
+        $level1->masterTeachers()->attach($teacher->id);
 
         $journal = $this->withToken($this->tokenFor($teacher->user))
             ->getJson("/api/v1/master-teacher/students/{$student->id}/learning-journal")
@@ -200,6 +253,7 @@ class LearningJournalTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '98'.random_int(10000000, 99999999),
             'class_grade' => 6,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         return [$admin, StudentProfile::query()->with('user')->findOrFail($id)];
@@ -214,15 +268,15 @@ class LearningJournalTest extends TestCase
                 [
                     'question_text' => 'Question 1',
                     'options' => [
-                        ['option_text' => 'A', 'is_correct' => true],
-                        ['option_text' => 'B', 'is_correct' => false],
+                        ['option_text' => 'A', 'dimension_codes' => ['TW']],
+                        ['option_text' => 'B', 'dimension_codes' => ['P', 'I']],
                     ],
                 ],
                 [
                     'question_text' => 'Question 2',
                     'options' => [
-                        ['option_text' => 'C', 'is_correct' => false],
-                        ['option_text' => 'D', 'is_correct' => true],
+                        ['option_text' => 'C', 'dimension_codes' => ['CF']],
+                        ['option_text' => 'D', 'dimension_codes' => ['L', 'CM']],
                     ],
                 ],
             ],
@@ -252,33 +306,50 @@ class LearningJournalTest extends TestCase
             ]);
     }
 
-    private function makeAdmin(): User
+    /**
+     * @param  array<string, mixed>|null  $result
+     * @param  array<string, int>  $expectedNonZero
+     */
+    private function assertWeekDimensionResult(?array $result, array $expectedNonZero): void
     {
-        $user = User::factory()->create(['email' => 'ops-learn-'.uniqid().'@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
+        $this->assertIsArray($result);
+        $this->assertCount(10, $result['dimensions']);
 
-        return $user;
-    }
+        $expected = [
+            'Personality' => 0,
+            'Interests' => 0,
+            'Confidence' => 0,
+            'Leadership' => 0,
+            'Communication' => 0,
+            'Decision-making' => 0,
+            'Creativity' => 0,
+            'Curiosity' => 0,
+            'Teamwork' => 0,
+            'Future Aspirations' => 0,
+        ];
 
-    private function makeMasterTeacher(AcademicLevel $level): TeacherProfile
-    {
-        $user = User::factory()->create(['email' => 'mt-learn-'.uniqid().'@excellenteducators.test']);
-        $user->assignRole(RoleName::MasterTeacher->value);
-        $profile = TeacherProfile::query()->create([
-            'user_id' => $user->id,
-            'full_name' => $user->name,
-            'status' => 'active',
-        ]);
-        $level->masterTeachers()->attach($profile->id);
-        $profile->setRelation('user', $user);
+        $labels = [
+            'P' => 'Personality',
+            'I' => 'Interests',
+            'CF' => 'Confidence',
+            'L' => 'Leadership',
+            'CM' => 'Communication',
+            'DM' => 'Decision-making',
+            'CR' => 'Creativity',
+            'CU' => 'Curiosity',
+            'TW' => 'Teamwork',
+            'FA' => 'Future Aspirations',
+        ];
 
-        return $profile;
-    }
+        foreach ($expectedNonZero as $code => $score) {
+            $expected[$labels[$code]] = $score;
+        }
 
-    private function tokenFor(User $user): string
-    {
-        $this->app['auth']->forgetGuards();
+        $actual = [];
+        foreach ($result['dimensions'] as $dimension) {
+            $actual[$dimension['name']] = $dimension['score'];
+        }
 
-        return $user->createToken('test')->plainTextToken;
+        $this->assertSame($expected, $actual);
     }
 }

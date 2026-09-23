@@ -8,6 +8,7 @@ import 'package:excellent_educators_web/features/schedule/presentation/providers
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class TeacherAvailabilitySummary extends ConsumerWidget {
   const TeacherAvailabilitySummary({super.key, required this.teacherId});
@@ -33,14 +34,14 @@ class TeacherAvailabilitySummary extends ConsumerWidget {
             Expanded(
               child: value.when(
                 skipLoadingOnReload: true,
-                loading: () => const Text('Time slots', style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 14)),
+                loading: () => const Text(AppStrings.timeSlots, style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 14)),
                 error: (error, _) => Text(error.toString(), style: const TextStyle(color: Colors.red, fontSize: 13)),
                 data: (data) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Time slots',
+                        AppStrings.timeSlots,
                         style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 14),
                       ),
                       const SizedBox(height: 2),
@@ -54,7 +55,7 @@ class TeacherAvailabilitySummary extends ConsumerWidget {
               ),
             ),
             IconButton(
-              tooltip: 'Edit time slots',
+              tooltip: AppStrings.editTimeSlots,
               icon: const Icon(Icons.edit_outlined, size: 20),
               onPressed: () => context.go(RoutePaths.adminTeacherAvailabilityFor(teacherId)),
             ),
@@ -67,7 +68,7 @@ class TeacherAvailabilitySummary extends ConsumerWidget {
   String _compactLabel(TeacherAvailabilityDto data) {
     final working = data.weekly.where((day) => !day.off && day.ranges.isNotEmpty).toList();
     if (working.isEmpty) {
-      return 'Not available';
+      return AppStrings.notAvailable;
     }
     String rangesOf(AvailabilityDayDto day) =>
         day.ranges.map((range) => '${formatHm(range.start)} – ${formatHm(range.end)}').join(', ');
@@ -92,7 +93,7 @@ class TeacherAvailabilityEditPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: 'Time slots',
+      title: AppStrings.timeSlots,
       backTo: RoutePaths.adminTeacher(teacherId),
       body: TeacherAvailabilityEditor(teacherId: teacherId),
     );
@@ -142,7 +143,7 @@ class _TeacherAvailabilityEditorState extends ConsumerState<TeacherAvailabilityE
       ref.invalidate(adminTeacherAvailabilityProvider(widget.teacherId));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Time slots saved.')),
+          const SnackBar(content: Text(AppStrings.timeSlotsSaved)),
         );
         context.go(RoutePaths.adminTeacher(widget.teacherId));
       }
@@ -205,10 +206,10 @@ class _TeacherAvailabilityEditorState extends ConsumerState<TeacherAvailabilityE
     return ListView(
       children: [
         DetailSection(
-          title: 'Weekly time slots',
+          title: AppStrings.weeklyTimeSlots,
           children: [
         const Text(
-          'Set the hours this teacher can be booked. Students only see available 30-minute slots inside these ranges.',
+          AppStrings.setTheHoursThisTeacherCanBeBookedStudentsOnly,
           style: TextStyle(color: Brand.muted, height: 1.4),
         ),
         const SizedBox(height: 16),
@@ -229,10 +230,10 @@ class _TeacherAvailabilityEditorState extends ConsumerState<TeacherAvailabilityE
               children: [
                 DropdownButtonFormField<String>(
                   value: _workType,
-                  decoration: const InputDecoration(labelText: 'Work type'),
+                  decoration: const InputDecoration(labelText: AppStrings.workType),
                   items: const [
-                    DropdownMenuItem(value: 'full_time', child: Text('Full time')),
-                    DropdownMenuItem(value: 'part_time', child: Text('Part time')),
+                    DropdownMenuItem(value: 'full_time', child: Text(AppStrings.fullTime)),
+                    DropdownMenuItem(value: 'part_time', child: Text(AppStrings.partTime)),
                   ],
                   onChanged: (value) {
                     if (value != null) {
@@ -257,7 +258,7 @@ class _TeacherAvailabilityEditorState extends ConsumerState<TeacherAvailabilityE
                   alignment: Alignment.centerLeft,
                   child: FilledButton(
                     onPressed: _saving ? null : _save,
-                    child: Text(_saving ? 'Saving…' : 'Save time slots'),
+                    child: Text(_saving ? AppStrings.saving : AppStrings.saveTimeSlots),
                   ),
                 ),
               ],
@@ -306,7 +307,7 @@ class _DayCard extends StatelessWidget {
                     style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700),
                   ),
                 ),
-                Text(day.off ? 'Off' : 'Available', style: const TextStyle(color: Brand.muted, fontSize: 12)),
+                Text(day.off ? AppStrings.off : AppStrings.available, style: const TextStyle(color: Brand.muted, fontSize: 12)),
                 Switch(value: !day.off, onChanged: (on) => onOffChanged(!on)),
               ],
             ),
@@ -317,7 +318,7 @@ class _DayCard extends StatelessWidget {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: times.contains(day.ranges[i].start) ? day.ranges[i].start : times.first,
-                        decoration: const InputDecoration(labelText: 'From'),
+                        decoration: const InputDecoration(labelText: AppStrings.from),
                         items: [
                           for (final time in times)
                             DropdownMenuItem(value: time, child: Text(formatHm(time))),
@@ -331,7 +332,7 @@ class _DayCard extends StatelessWidget {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: times.contains(day.ranges[i].end) ? day.ranges[i].end : times.last,
-                        decoration: const InputDecoration(labelText: 'To'),
+                        decoration: const InputDecoration(labelText: AppStrings.to),
                         items: [
                           for (final time in times)
                             DropdownMenuItem(value: time, child: Text(formatHm(time))),
@@ -342,7 +343,7 @@ class _DayCard extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Remove range',
+                      tooltip: AppStrings.removeRange,
                       onPressed: () => onRemoveRange(i),
                       icon: const Icon(Icons.delete_outline),
                     ),
@@ -355,7 +356,7 @@ class _DayCard extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: onAddRange,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add time range'),
+                  label: const Text(AppStrings.addTimeRange),
                 ),
               ),
             ],

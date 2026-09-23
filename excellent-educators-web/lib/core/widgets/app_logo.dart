@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AppLogo extends StatelessWidget {
   const AppLogo({
     super.key,
     this.height = 120,
-    this.semanticLabel = 'Excellent Educators',
+    this.semanticLabel = AppStrings.excellentEducators,
   });
 
   static const assetPath = 'assets/images/app_logo.png';

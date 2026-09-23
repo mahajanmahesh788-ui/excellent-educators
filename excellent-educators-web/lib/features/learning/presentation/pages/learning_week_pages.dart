@@ -3,6 +3,7 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
+import 'package:excellent_educators_web/features/assessments/presentation/widgets/assessment_result_view.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
 import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class StudentLearningWeekPage extends ConsumerStatefulWidget {
   const StudentLearningWeekPage({
@@ -23,10 +25,12 @@ class StudentLearningWeekPage extends ConsumerStatefulWidget {
   final int week;
 
   @override
-  ConsumerState<StudentLearningWeekPage> createState() => _StudentLearningWeekPageState();
+  ConsumerState<StudentLearningWeekPage> createState() =>
+      _StudentLearningWeekPageState();
 }
 
-class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPage> {
+class _StudentLearningWeekPageState
+    extends ConsumerState<StudentLearningWeekPage> {
   final _answers = <String, String>{};
   final _questionKeys = <int, GlobalKey>{};
   var _submitting = false;
@@ -47,7 +51,10 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
   @override
   Widget build(BuildContext context) {
     final weekValue = ref.watch(
-      studentLearningWeekProvider((journeyId: widget.journeyId, week: widget.week)),
+      studentLearningWeekProvider((
+        journeyId: widget.journeyId,
+        week: widget.week,
+      )),
     );
 
     return StudentScaffold(
@@ -64,7 +71,10 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
         ),
         error: (_, _) => AcademyError(
           onRetry: () => ref.invalidate(
-            studentLearningWeekProvider((journeyId: widget.journeyId, week: widget.week)),
+            studentLearningWeekProvider((
+              journeyId: widget.journeyId,
+              week: widget.week,
+            )),
           ),
         ),
         data: (week) {
@@ -109,11 +119,19 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.arrow_back_rounded, size: 18, color: Academy.muted),
+                          Icon(
+                            Icons.arrow_back_rounded,
+                            size: 18,
+                            color: Academy.muted,
+                          ),
                           SizedBox(width: 4),
                           Text(
-                            'Back to Journey',
-                            style: TextStyle(color: Academy.muted, fontWeight: FontWeight.w700, fontSize: 13),
+                            AppStrings.backToJourney,
+                            style: TextStyle(
+                              color: Academy.muted,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
@@ -121,11 +139,16 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Brand.gold.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Brand.gold.withValues(alpha: 0.4)),
+                      border: Border.all(
+                        color: Brand.gold.withValues(alpha: 0.4),
+                      ),
                     ),
                     child: Text(
                       week.level.name.toUpperCase(),
@@ -161,11 +184,16 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                         const SizedBox(height: 4),
                         Text(
                           week.completed
-                              ? 'Assignment completed! Your selected answers are shown below.'
+                              ? AppStrings
+                                    .assignmentCompletedYourSelectedAnswersAreShownBelow
                               : !week.canSubmit
-                                  ? 'Submissions closed · Your selected answers are shown below.'
-                                  : 'Attempt ${week.attemptsUsed + 1} of ${week.attemptsMax} · All questions on this screen.',
-                          style: const TextStyle(fontSize: 14, color: Academy.muted),
+                              ? AppStrings
+                                    .submissionsClosedYourSelectedAnswersAreShownBelow
+                              : 'Attempt ${week.attemptsUsed + 1} of ${week.attemptsMax} · All questions on this screen.',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Academy.muted,
+                          ),
                         ),
                       ],
                     ),
@@ -197,7 +225,11 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                           color: Brand.gold.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.play_circle_fill_rounded, color: Brand.gold, size: 26),
+                        child: const Icon(
+                          Icons.play_circle_fill_rounded,
+                          color: Brand.gold,
+                          size: 26,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       const Expanded(
@@ -205,13 +237,20 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Weekly Video Lesson',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15),
+                              AppStrings.weeklyVideoLesson,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                              ),
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Recommended to watch before submitting',
-                              style: TextStyle(color: Colors.white70, fontSize: 12),
+                              AppStrings.recommendedToWatchBeforeSubmitting,
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -220,11 +259,17 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                         style: FilledButton.styleFrom(
                           backgroundColor: Brand.gold,
                           foregroundColor: Brand.navy,
-                          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
                         ),
-                        onPressed: () => launchUrl(Uri.parse(week.videoUrl!), webOnlyWindowName: '_blank'),
+                        onPressed: () => launchUrl(
+                          Uri.parse(week.videoUrl!),
+                          webOnlyWindowName: AppStrings.blank,
+                        ),
                         icon: const Icon(Icons.open_in_new_rounded, size: 15),
-                        label: const Text('Watch Video'),
+                        label: const Text(AppStrings.watchVideo),
                       ),
                     ],
                   ),
@@ -236,7 +281,10 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
               if (!week.canSubmit && week.completed) ...[
                 Container(
                   margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(14),
@@ -244,14 +292,18 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.verified_rounded, color: Color(0xFF2E7D32), size: 28),
+                      Icon(
+                        Icons.verified_rounded,
+                        color: Color(0xFF2E7D32),
+                        size: 28,
+                      ),
                       SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Assignment Completed',
+                              AppStrings.assignmentCompleted,
                               style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 15,
@@ -260,8 +312,11 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Your selected answers are displayed below.',
-                              style: TextStyle(color: Color(0xFF2E7D32), fontSize: 13),
+                              AppStrings.yourSelectedAnswersAreDisplayedBelow,
+                              style: TextStyle(
+                                color: Color(0xFF2E7D32),
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
@@ -269,10 +324,14 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                     ],
                   ),
                 ),
-              ] else if (!week.canSubmit && week.attemptsUsed >= week.attemptsMax) ...[
+              ] else if (!week.canSubmit &&
+                  week.attemptsUsed >= week.attemptsMax) ...[
                 Container(
                   margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFF3E0),
                     borderRadius: BorderRadius.circular(14),
@@ -280,14 +339,18 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, color: Color(0xFFE65100), size: 28),
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: Color(0xFFE65100),
+                        size: 28,
+                      ),
                       SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Maximum Attempts Reached',
+                              AppStrings.maximumAttemptsReached,
                               style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 15,
@@ -296,8 +359,12 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Submissions are closed. Your selected answers are displayed below.',
-                              style: TextStyle(color: Color(0xFFE65100), fontSize: 13),
+                              AppStrings
+                                  .submissionsAreClosedYourSelectedAnswersAreDisplayedBelow,
+                              style: TextStyle(
+                                color: Color(0xFFE65100),
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
@@ -311,7 +378,10 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
               if (week.questions.isNotEmpty) ...[
                 // Top Progress indicator bar
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -329,10 +399,14 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.assignment_outlined, size: 18, color: Brand.navy),
+                          const Icon(
+                            Icons.assignment_outlined,
+                            size: 18,
+                            color: Brand.navy,
+                          ),
                           const SizedBox(width: 8),
                           const Text(
-                            'Questions',
+                            AppStrings.questions,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
@@ -341,7 +415,10 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                           ),
                           const Spacer(),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: answeredCount == totalQuestions
                                   ? const Color(0xFFE8F5E9)
@@ -357,7 +434,11 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 if (answeredCount == totalQuestions) ...[
-                                  const Icon(Icons.check_circle_rounded, size: 13, color: Color(0xFF2E7D32)),
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    size: 13,
+                                    color: Color(0xFF2E7D32),
+                                  ),
                                   const SizedBox(width: 4),
                                 ],
                                 Text(
@@ -379,11 +460,15 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                       ClipRRect(
                         borderRadius: BorderRadius.circular(999),
                         child: LinearProgressIndicator(
-                          value: totalQuestions > 0 ? (answeredCount / totalQuestions) : 0.0,
+                          value: totalQuestions > 0
+                              ? (answeredCount / totalQuestions)
+                              : 0.0,
                           minHeight: 6,
                           backgroundColor: const Color(0xFFEFE9DC),
                           valueColor: AlwaysStoppedAnimation(
-                            answeredCount == totalQuestions ? const Color(0xFF2E7D32) : Brand.gold,
+                            answeredCount == totalQuestions
+                                ? const Color(0xFF2E7D32)
+                                : Brand.gold,
                           ),
                         ),
                       ),
@@ -399,14 +484,23 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                                   onTap: () => _scrollToQuestion(i),
                                   borderRadius: BorderRadius.circular(8),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: displayAnswers.containsKey(week.questions[i].id)
+                                      color:
+                                          displayAnswers.containsKey(
+                                            week.questions[i].id,
+                                          )
                                           ? const Color(0xFFE8F5E9)
                                           : const Color(0xFFF4F1EA),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: displayAnswers.containsKey(week.questions[i].id)
+                                        color:
+                                            displayAnswers.containsKey(
+                                              week.questions[i].id,
+                                            )
                                             ? const Color(0xFF81C784)
                                             : Academy.line,
                                       ),
@@ -414,14 +508,23 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        if (displayAnswers.containsKey(week.questions[i].id)) ...[
-                                          const Icon(Icons.check_rounded, size: 12, color: Color(0xFF2E7D32)),
+                                        if (displayAnswers.containsKey(
+                                          week.questions[i].id,
+                                        )) ...[
+                                          const Icon(
+                                            Icons.check_rounded,
+                                            size: 12,
+                                            color: Color(0xFF2E7D32),
+                                          ),
                                           const SizedBox(width: 3),
                                         ],
                                         Text(
                                           'Q${i + 1}',
                                           style: TextStyle(
-                                            color: displayAnswers.containsKey(week.questions[i].id)
+                                            color:
+                                                displayAnswers.containsKey(
+                                                  week.questions[i].id,
+                                                )
                                                 ? const Color(0xFF1B5E20)
                                                 : Academy.muted,
                                             fontWeight: FontWeight.w800,
@@ -450,7 +553,9 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                     question: week.questions[i],
                     selectedOptionId: displayAnswers[week.questions[i].id],
                     isReadOnly: !week.canSubmit,
-                    showResult: !week.canSubmit && (week.completed || week.attemptsUsed > 0),
+                    showResult:
+                        !week.canSubmit &&
+                        (week.completed || week.attemptsUsed > 0),
                     onOptionSelected: week.canSubmit
                         ? (optId) {
                             setState(() {
@@ -465,7 +570,10 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                 if (_error != null) ...[
                   Container(
                     margin: const EdgeInsets.only(bottom: 14),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFEBEE),
                       borderRadius: BorderRadius.circular(12),
@@ -473,12 +581,20 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded, color: Colors.red, size: 20),
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: Colors.red,
+                          size: 20,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             _error!,
-                            style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w700, fontSize: 13),
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ],
@@ -521,9 +637,14 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                               const SizedBox(height: 2),
                               Text(
                                 answeredCount == totalQuestions
-                                    ? 'You are ready to submit your assignment.'
-                                    : 'Select answers for the remaining questions above.',
-                                style: const TextStyle(fontSize: 13, color: Academy.muted),
+                                    ? AppStrings
+                                          .youAreReadyToSubmitYourAssignment
+                                    : AppStrings
+                                          .selectAnswersForTheRemainingQuestionsAbove,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Academy.muted,
+                                ),
                               ),
                             ],
                           ),
@@ -532,13 +653,24 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                         FilledButton.icon(
                           style: FilledButton.styleFrom(
                             backgroundColor: Brand.navy,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 15,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           onPressed: _submitting ? null : () => _submit(week),
-                          icon: const Icon(Icons.check_circle_outline_rounded, size: 18, color: Brand.gold),
+                          icon: const Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 18,
+                            color: Brand.gold,
+                          ),
                           label: Text(
-                            _submitting ? 'Submitting…' : 'Submit Assignment',
+                            _submitting
+                                ? AppStrings.submitting
+                                : AppStrings.submitAssignment,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 15,
@@ -554,7 +686,7 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                   Center(
                     child: AcademyButton(
                       icon: Icons.arrow_back_rounded,
-                      label: 'Back to Journey',
+                      label: AppStrings.backToJourney,
                       onPressed: () => context.go(RoutePaths.studentJournal),
                     ),
                   ),
@@ -568,12 +700,15 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
   }
 
   Future<void> _submit(LearningWeekDto week) async {
-    final unansweredIndex = week.questions.indexWhere((q) => !_answers.containsKey(q.id));
+    final unansweredIndex = week.questions.indexWhere(
+      (q) => !_answers.containsKey(q.id),
+    );
     if (unansweredIndex != -1) {
       _scrollToQuestion(unansweredIndex);
       final remaining = week.questions.length - _answers.length;
       setState(() {
-        _error = 'Please answer all questions before submitting ($remaining remaining).';
+        _error =
+            'Please answer all questions before submitting ($remaining remaining).';
       });
       return;
     }
@@ -583,16 +718,26 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
       _error = null;
     });
     try {
-      await ref.read(learningRepositoryProvider).submitWeek(
+      await ref
+          .read(learningRepositoryProvider)
+          .submitWeek(
             journeyId: widget.journeyId,
             week: widget.week,
             answers: [
               for (final question in week.questions)
-                {'question_id': question.id, 'option_id': _answers[question.id]},
+                {
+                  'question_id': question.id,
+                  'option_id': _answers[question.id],
+                },
             ],
           );
       _answers.clear();
-      ref.invalidate(studentLearningWeekProvider((journeyId: widget.journeyId, week: widget.week)));
+      ref.invalidate(
+        studentLearningWeekProvider((
+          journeyId: widget.journeyId,
+          week: widget.week,
+        )),
+      );
       ref.invalidate(studentLearningJournalProvider);
       ref.invalidate(studentLearningDashboardProvider);
 
@@ -603,7 +748,9 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
           backgroundColor: Colors.white,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
@@ -618,7 +765,10 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                     decoration: BoxDecoration(
                       color: const Color(0xFFE8F5E9),
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF81C784), width: 2),
+                      border: Border.all(
+                        color: const Color(0xFF81C784),
+                        width: 2,
+                      ),
                     ),
                     child: const Icon(
                       Icons.check_rounded,
@@ -628,7 +778,7 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'Submitted Successfully!',
+                    AppStrings.submittedSuccessfully,
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -653,14 +803,16 @@ class _StudentLearningWeekPageState extends ConsumerState<StudentLearningWeekPag
                       style: FilledButton.styleFrom(
                         backgroundColor: Brand.navy,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: () {
                         Navigator.of(dialogContext).pop();
                         context.go(RoutePaths.studentJournal);
                       },
                       child: const Text(
-                        'OK',
+                        AppStrings.ok,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -706,26 +858,10 @@ class _CompactQuestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAnswered = selectedOptionId != null;
-    final selectedOption = question.options.where((o) => o.id == selectedOptionId).firstOrNull;
-    final isStudentCorrect = isAnswered && selectedOption?.isCorrect == true;
-    final isStudentWrong = isAnswered &&
-        (selectedOption?.isCorrect == false ||
-            (selectedOption?.isCorrect == null && question.options.any((o) => o.isCorrect == true)));
 
     Color borderColor;
     double borderWidth;
-    if (showResult && isAnswered) {
-      if (isStudentCorrect) {
-        borderColor = const Color(0xFF81C784);
-        borderWidth = 1.5;
-      } else if (isStudentWrong) {
-        borderColor = const Color(0xFFEF9A9A);
-        borderWidth = 1.5;
-      } else {
-        borderColor = Academy.line;
-        borderWidth = 1.0;
-      }
-    } else if (isAnswered) {
+    if (isAnswered) {
       borderColor = const Color(0xFFA5D6A7);
       borderWidth = 1.4;
     } else {
@@ -759,28 +895,24 @@ class _CompactQuestionCard extends StatelessWidget {
                 width: 26,
                 height: 26,
                 decoration: BoxDecoration(
-                  color: showResult && isAnswered
-                      ? (isStudentCorrect ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F))
-                      : (isAnswered ? const Color(0xFF2E7D32) : Brand.navy),
+                  color: isAnswered ? const Color(0xFF2E7D32) : Brand.navy,
                   borderRadius: BorderRadius.circular(7),
                 ),
                 alignment: Alignment.center,
-                child: showResult && isAnswered
-                    ? Icon(
-                        isStudentCorrect ? Icons.check_rounded : Icons.close_rounded,
+                child: isAnswered
+                    ? const Icon(
+                        Icons.check_rounded,
                         size: 15,
                         color: Colors.white,
                       )
-                    : (isAnswered
-                        ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
-                        : Text(
-                            '${index + 1}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          )),
+                    : Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -797,29 +929,30 @@ class _CompactQuestionCard extends StatelessWidget {
               if (showResult && isAnswered) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
-                  decoration: BoxDecoration(
-                    color: isStudentCorrect ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isStudentCorrect ? const Color(0xFFA5D6A7) : const Color(0xFFFFCDD2),
-                    ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 3.5,
                   ),
-                  child: Row(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFA5D6A7)),
+                  ),
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isStudentCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                        Icons.check_circle_rounded,
                         size: 13,
-                        color: isStudentCorrect ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F),
+                        color: Color(0xFF2E7D32),
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Text(
-                        isStudentCorrect ? 'Correct' : 'Incorrect',
+                        AppStrings.answered,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
-                          color: isStudentCorrect ? const Color(0xFF1B5E20) : const Color(0xFFC62828),
+                          color: Color(0xFF1B5E20),
                         ),
                       ),
                     ],
@@ -828,14 +961,17 @@ class _CompactQuestionCard extends StatelessWidget {
               ] else if (showResult && !isAnswered) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: Academy.line),
                   ),
                   child: const Text(
-                    'Not Answered',
+                    AppStrings.notAnswered,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -846,14 +982,17 @@ class _CompactQuestionCard extends StatelessWidget {
               ] else if (isAnswered) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: const Color(0xFFA5D6A7)),
                   ),
                   child: Text(
-                    isReadOnly ? 'Selected' : 'Answered',
+                    isReadOnly ? AppStrings.selected : AppStrings.answered,
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -878,17 +1017,26 @@ class _CompactQuestionCard extends StatelessWidget {
                   spacing: gap,
                   runSpacing: gap,
                   children: [
-                    for (var optIndex = 0; optIndex < question.options.length; optIndex++)
+                    for (
+                      var optIndex = 0;
+                      optIndex < question.options.length;
+                      optIndex++
+                    )
                       SizedBox(
                         width: cardWidth,
                         child: _CompactOptionTile(
-                          letter: optIndex < _letters.length ? _letters[optIndex] : '${optIndex + 1}',
+                          letter: optIndex < _letters.length
+                              ? _letters[optIndex]
+                              : '${optIndex + 1}',
                           option: question.options[optIndex],
-                          selected: selectedOptionId == question.options[optIndex].id,
+                          selected:
+                              selectedOptionId == question.options[optIndex].id,
                           isReadOnly: isReadOnly,
                           showResult: showResult,
                           onTap: onOptionSelected != null
-                              ? () => onOptionSelected!(question.options[optIndex].id)
+                              ? () => onOptionSelected!(
+                                  question.options[optIndex].id,
+                                )
                               : null,
                         ),
                       ),
@@ -898,16 +1046,24 @@ class _CompactQuestionCard extends StatelessWidget {
 
               return Column(
                 children: [
-                  for (var optIndex = 0; optIndex < question.options.length; optIndex++) ...[
+                  for (
+                    var optIndex = 0;
+                    optIndex < question.options.length;
+                    optIndex++
+                  ) ...[
                     if (optIndex > 0) const SizedBox(height: gap),
                     _CompactOptionTile(
-                      letter: optIndex < _letters.length ? _letters[optIndex] : '${optIndex + 1}',
+                      letter: optIndex < _letters.length
+                          ? _letters[optIndex]
+                          : '${optIndex + 1}',
                       option: question.options[optIndex],
-                      selected: selectedOptionId == question.options[optIndex].id,
+                      selected:
+                          selectedOptionId == question.options[optIndex].id,
                       isReadOnly: isReadOnly,
                       showResult: showResult,
                       onTap: onOptionSelected != null
-                          ? () => onOptionSelected!(question.options[optIndex].id)
+                          ? () =>
+                                onOptionSelected!(question.options[optIndex].id)
                           : null,
                     ),
                   ],
@@ -940,129 +1096,22 @@ class _CompactOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCorrectOption = option.isCorrect == true;
-
-    Color tileBg;
-    Color borderColor;
-    double borderWidth;
-    Color letterBg;
-    Color letterTextColor;
-    Color optionTextColor;
-    FontWeight optionFontWeight;
-    Widget trailingWidget;
-
-    if (showResult) {
-      if (selected && isCorrectOption) {
-        // User picked this answer and it is CORRECT: Green border, green background, checkmark
-        tileBg = const Color(0xFFE8F5E9);
-        borderColor = const Color(0xFF2E7D32);
-        borderWidth = 1.8;
-        letterBg = const Color(0xFF2E7D32);
-        letterTextColor = Colors.white;
-        optionTextColor = const Color(0xFF1B5E20);
-        optionFontWeight = FontWeight.w700;
-        trailingWidget = Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-          decoration: BoxDecoration(
-            color: const Color(0xFFA5D6A7),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.check_rounded, color: Color(0xFF1B5E20), size: 14),
-              SizedBox(width: 3),
-              Text(
-                'Correct answer',
-                style: TextStyle(color: Color(0xFF1B5E20), fontSize: 10.5, fontWeight: FontWeight.w800),
-              ),
-            ],
-          ),
-        );
-      } else if (selected && !isCorrectOption) {
-        // User picked this answer and it is WRONG: Red border, red background, cross
-        tileBg = const Color(0xFFFFEBEE);
-        borderColor = const Color(0xFFD32F2F);
-        borderWidth = 1.8;
-        letterBg = const Color(0xFFD32F2F);
-        letterTextColor = Colors.white;
-        optionTextColor = const Color(0xFFB71C1C);
-        optionFontWeight = FontWeight.w700;
-        trailingWidget = Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFCDD2),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.close_rounded, color: Color(0xFFD32F2F), size: 14),
-              SizedBox(width: 3),
-              Text(
-                'Wrong answer',
-                style: TextStyle(color: Color(0xFFC62828), fontSize: 10.5, fontWeight: FontWeight.w800),
-              ),
-            ],
-          ),
-        );
-      } else if (!selected && isCorrectOption) {
-        // This is the correct answer, not picked by user: Green border so user/staff can see what was correct
-        tileBg = const Color(0xFFF1F8E9);
-        borderColor = const Color(0xFF4CAF50);
-        borderWidth = 1.5;
-        letterBg = const Color(0xFF4CAF50);
-        letterTextColor = Colors.white;
-        optionTextColor = const Color(0xFF2E7D32);
-        optionFontWeight = FontWeight.w600;
-        trailingWidget = Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-          decoration: BoxDecoration(
-            color: const Color(0xFFC8E6C9),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.check_rounded, color: Color(0xFF1B5E20), size: 14),
-              SizedBox(width: 3),
-              Text(
-                'Correct answer',
-                style: TextStyle(color: Color(0xFF1B5E20), fontSize: 10.5, fontWeight: FontWeight.w800),
-              ),
-            ],
-          ),
-        );
-      } else {
-        // Unselected other options
-        tileBg = const Color(0xFFFAF9F6);
-        borderColor = Academy.line;
-        borderWidth = 1.0;
-        letterBg = const Color(0xFFEAE5DC);
-        letterTextColor = Academy.ink;
-        optionTextColor = Academy.ink;
-        optionFontWeight = FontWeight.w500;
-        trailingWidget = const Icon(
-          Icons.radio_button_unchecked_rounded,
-          color: Color(0xFFCBC5B8),
-          size: 18,
-        );
-      }
-    } else {
-      // Normal Quiz Mode
-      tileBg = selected ? Brand.gold.withValues(alpha: 0.14) : const Color(0xFFFAF9F6);
-      borderColor = selected ? Brand.gold : Academy.line;
-      borderWidth = selected ? 1.8 : 1.0;
-      letterBg = selected ? Brand.navy : const Color(0xFFEAE5DC);
-      letterTextColor = selected ? Colors.white : Academy.ink;
-      optionTextColor = selected ? Brand.navy : Academy.ink;
-      optionFontWeight = selected ? FontWeight.w700 : FontWeight.w500;
-      trailingWidget = Icon(
-        selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-        color: selected ? Brand.navy : const Color(0xFFCBC5B8),
-        size: 18,
-      );
-    }
+    final tileBg = selected
+        ? Brand.gold.withValues(alpha: 0.14)
+        : const Color(0xFFFAF9F6);
+    final borderColor = selected ? Brand.gold : Academy.line;
+    final borderWidth = selected ? 1.8 : 1.0;
+    final letterBg = selected ? Brand.navy : const Color(0xFFEAE5DC);
+    final letterTextColor = selected ? Colors.white : Academy.ink;
+    final optionTextColor = selected ? Brand.navy : Academy.ink;
+    final optionFontWeight = selected ? FontWeight.w700 : FontWeight.w500;
+    final trailingWidget = Icon(
+      selected
+          ? Icons.check_circle_rounded
+          : Icons.radio_button_unchecked_rounded,
+      color: selected ? Brand.navy : const Color(0xFFCBC5B8),
+      size: 18,
+    );
 
     return Material(
       color: Colors.transparent,
@@ -1124,57 +1173,89 @@ class StaffLearningWeekPage extends ConsumerWidget {
     required this.studentId,
     required this.journeyId,
     required this.week,
-    required this.masterTeacher,
+    this.audience = StaffLearningAudience.admin,
   });
 
   final String studentId;
   final String journeyId;
   final int week;
-  final bool masterTeacher;
+  final StaffLearningAudience audience;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final value = masterTeacher
-        ? ref.watch(masterTeacherLearningWeekProvider((studentId: studentId, journeyId: journeyId, week: week)))
-        : ref.watch(adminLearningWeekProvider((studentId: studentId, journeyId: journeyId, week: week)));
+    final value = switch (audience) {
+      StaffLearningAudience.masterTeacher => ref.watch(
+        masterTeacherLearningWeekProvider((
+          studentId: studentId,
+          journeyId: journeyId,
+          week: week,
+        )),
+      ),
+      StaffLearningAudience.teacher => ref.watch(
+        teacherLearningWeekProvider((
+          studentId: studentId,
+          journeyId: journeyId,
+          week: week,
+        )),
+      ),
+      StaffLearningAudience.admin => ref.watch(
+        adminLearningWeekProvider((
+          studentId: studentId,
+          journeyId: journeyId,
+          week: week,
+        )),
+      ),
+    };
     return AppScaffold(
       title: 'Week $week',
-      backTo: masterTeacher ? RoutePaths.masterTeacherStudentJournalFor(studentId) : RoutePaths.adminStudentJournalFor(studentId),
+      backTo: switch (audience) {
+        StaffLearningAudience.masterTeacher =>
+          RoutePaths.masterTeacherStudentJournalFor(studentId),
+        StaffLearningAudience.teacher =>
+          RoutePaths.teacherScheduleStudentFor(studentId),
+        StaffLearningAudience.admin =>
+          RoutePaths.adminStudentJournalFor(studentId),
+      },
       body: AsyncBody(
         value: value,
         onRetry: () {
-          if (masterTeacher) {
-            ref.invalidate(masterTeacherLearningWeekProvider((studentId: studentId, journeyId: journeyId, week: week)));
-          } else {
-            ref.invalidate(adminLearningWeekProvider((studentId: studentId, journeyId: journeyId, week: week)));
+          switch (audience) {
+            case StaffLearningAudience.masterTeacher:
+              ref.invalidate(
+                masterTeacherLearningWeekProvider((
+                  studentId: studentId,
+                  journeyId: journeyId,
+                  week: week,
+                )),
+              );
+            case StaffLearningAudience.teacher:
+              ref.invalidate(
+                teacherLearningWeekProvider((
+                  studentId: studentId,
+                  journeyId: journeyId,
+                  week: week,
+                )),
+              );
+            case StaffLearningAudience.admin:
+              ref.invalidate(
+                adminLearningWeekProvider((
+                  studentId: studentId,
+                  journeyId: journeyId,
+                  week: week,
+                )),
+              );
           }
         },
         builder: (weekData) {
-          // Calculate overall score / result
-          int correct;
-          int total;
-          int percentage;
-          if (weekData.score != null) {
-            correct = weekData.score!.correct;
-            total = weekData.score!.total;
-            percentage = weekData.score!.percentage;
-          } else if (weekData.attempts.isNotEmpty) {
-            final latest = weekData.attempts.last;
-            correct = 0;
-            for (final q in weekData.questions) {
-              final optId = latest.optionIdFor(q.id);
-              final opt = q.options.where((o) => o.id == optId).firstOrNull;
-              if (opt?.isCorrect == true) correct++;
-            }
-            total = weekData.questions.length;
-            percentage = total > 0 ? ((correct / total) * 100).round() : 0;
-          } else {
-            correct = 0;
-            total = weekData.questions.length;
-            percentage = 0;
-          }
           final hasAttempts = weekData.attempts.isNotEmpty;
-          final isPassing = percentage >= 70;
+          final total = weekData.questions.length;
+          final answered = weekData.attempts.isEmpty
+              ? 0
+              : weekData.questions
+                    .where(
+                      (q) => weekData.attempts.last.optionIdFor(q.id) != null,
+                    )
+                    .length;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
@@ -1192,7 +1273,7 @@ class StaffLearningWeekPage extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                weekData.studentName ?? 'Student',
+                                weekData.studentName ?? AppStrings.student,
                                 style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w800,
@@ -1207,16 +1288,19 @@ class StaffLearningWeekPage extends ConsumerWidget {
                                 children: [
                                   _InfoBadge(
                                     icon: Icons.layers_outlined,
-                                    label: '${weekData.level.name} · Week ${weekData.weekNumber}',
+                                    label:
+                                        '${weekData.level.name} · Week ${weekData.weekNumber}',
                                   ),
                                   if (weekData.studyDate != null)
                                     _InfoBadge(
                                       icon: Icons.calendar_today_outlined,
-                                      label: 'Study date: ${formatDisplayDate(weekData.studyDate)}',
+                                      label:
+                                          'Study date: ${formatDisplayDate(weekData.studyDate)}',
                                     ),
                                   _InfoBadge(
                                     icon: Icons.history_rounded,
-                                    label: 'Attempts ${weekData.attemptsUsed}/${weekData.attemptsMax}',
+                                    label:
+                                        'Attempts ${weekData.attemptsUsed}/${weekData.attemptsMax}',
                                   ),
                                 ],
                               ),
@@ -1227,44 +1311,34 @@ class StaffLearningWeekPage extends ConsumerWidget {
                         if (hasAttempts) ...[
                           const SizedBox(width: 12),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
-                              color: isPassing ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+                              color: const Color(0xFFE8F5E9),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: isPassing ? const Color(0xFF81C784) : const Color(0xFFFFB74D),
+                                color: const Color(0xFF81C784),
                                 width: 1.5,
                               ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  isPassing ? Icons.verified_rounded : Icons.info_outline_rounded,
+                                const Icon(
+                                  Icons.verified_rounded,
                                   size: 24,
-                                  color: isPassing ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+                                  color: Color(0xFF2E7D32),
                                 ),
                                 const SizedBox(width: 10),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Result: $correct / $total ($percentage%)',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 14.5,
-                                        color: isPassing ? const Color(0xFF1B5E20) : const Color(0xFFB71C1C),
-                                      ),
-                                    ),
-                                    Text(
-                                      isPassing ? 'Passing Score' : 'Needs Improvement',
-                                      style: TextStyle(
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w600,
-                                        color: isPassing ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  'Answered $answered / $total',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 14.5,
+                                    color: Color(0xFF1B5E20),
+                                  ),
                                 ),
                               ],
                             ),
@@ -1282,12 +1356,30 @@ class StaffLearningWeekPage extends ConsumerWidget {
                             style: FilledButton.styleFrom(
                               backgroundColor: Brand.navy,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
-                            onPressed: () => launchUrl(Uri.parse(weekData.videoUrl!), webOnlyWindowName: '_blank'),
-                            icon: const Icon(Icons.play_circle_fill_rounded, color: Brand.gold, size: 18),
-                            label: const Text('Open Lesson Video', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                            onPressed: () => launchUrl(
+                              Uri.parse(weekData.videoUrl!),
+                              webOnlyWindowName: AppStrings.blank,
+                            ),
+                            icon: const Icon(
+                              Icons.play_circle_fill_rounded,
+                              color: Brand.gold,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              AppStrings.openLessonVideo,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -1299,8 +1391,9 @@ class StaffLearningWeekPage extends ConsumerWidget {
               if (weekData.attempts.isEmpty)
                 const AcademyEmpty(
                   icon: Icons.quiz_outlined,
-                  title: 'No Attempts Submitted',
-                  body: 'The student has not submitted any attempts for this week yet.',
+                  title: AppStrings.noAttemptsSubmitted,
+                  body: AppStrings
+                      .theStudentHasNotSubmittedAnyAttemptsForThisWeek,
                 )
               else
                 for (final attempt in weekData.attempts)
@@ -1312,6 +1405,8 @@ class StaffLearningWeekPage extends ConsumerWidget {
     );
   }
 }
+
+enum StaffLearningAudience { admin, masterTeacher, teacher }
 
 class _InfoBadge extends StatelessWidget {
   const _InfoBadge({required this.icon, required this.label});
@@ -1348,7 +1443,11 @@ class _InfoBadge extends StatelessWidget {
 }
 
 class _AttemptReview extends StatelessWidget {
-  const _AttemptReview({required this.week, required this.attempt, this.staff = false});
+  const _AttemptReview({
+    required this.week,
+    required this.attempt,
+    this.staff = false,
+  });
 
   final LearningWeekDto week;
   final LearningAttemptDto attempt;
@@ -1356,16 +1455,10 @@ class _AttemptReview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate score for this attempt
-    var correctCount = 0;
-    for (final q in week.questions) {
-      final optId = attempt.optionIdFor(q.id);
-      final opt = q.options.where((o) => o.id == optId).firstOrNull;
-      if (opt?.isCorrect == true) correctCount++;
-    }
     final totalCount = week.questions.length;
-    final percent = totalCount > 0 ? ((correctCount / totalCount) * 100).round() : 0;
-    final isPassing = percent >= 70;
+    final answeredCount = week.questions
+        .where((q) => attempt.optionIdFor(q.id) != null)
+        .length;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
@@ -1382,43 +1475,50 @@ class _AttemptReview extends StatelessWidget {
                     children: [
                       Text(
                         'Attempt ${attempt.attemptNumber}',
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Academy.ink),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          color: Academy.ink,
+                        ),
                       ),
                       if (attempt.submittedAt != null) ...[
                         const SizedBox(height: 2),
                         Text(
                           'Submitted on ${formatDisplayDateTime(attempt.submittedAt)}',
-                          style: const TextStyle(fontSize: 12, color: Academy.muted),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Academy.muted,
+                          ),
                         ),
                       ],
                     ],
                   ),
                 ),
-                // Attempt Result Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: isPassing ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
+                    color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isPassing ? const Color(0xFFA5D6A7) : const Color(0xFFFFCDD2),
-                    ),
+                    border: Border.all(color: const Color(0xFFA5D6A7)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        isPassing ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                      const Icon(
+                        Icons.check_circle_rounded,
                         size: 15,
-                        color: isPassing ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F),
+                        color: Color(0xFF2E7D32),
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Result: $correctCount / $totalCount ($percent%)',
-                        style: TextStyle(
+                        'Answered $answeredCount / $totalCount',
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
-                          color: isPassing ? const Color(0xFF1B5E20) : const Color(0xFFB71C1C),
+                          color: Color(0xFF1B5E20),
                         ),
                       ),
                     ],
@@ -1426,12 +1526,27 @@ class _AttemptReview extends StatelessWidget {
                 ),
               ],
             ),
+            if (attempt.result != null &&
+                attempt.result!.dimensions.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              AssessmentResultView(
+                result: attempt.result!,
+                compact: true,
+                showCharts: false,
+              ),
+            ],
             if (attempt.videoUrl != null && attempt.videoUrl!.isNotEmpty) ...[
               const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed: () => launchUrl(Uri.parse(attempt.videoUrl!), webOnlyWindowName: '_blank'),
+                onPressed: () => launchUrl(
+                  Uri.parse(attempt.videoUrl!),
+                  webOnlyWindowName: AppStrings.blank,
+                ),
                 icon: const Icon(Icons.videocam_outlined, size: 16),
-                label: const Text('View Student Submission Video', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                label: const Text(
+                  AppStrings.viewStudentSubmissionVideo,
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                ),
               ),
             ],
             const SizedBox(height: 16),

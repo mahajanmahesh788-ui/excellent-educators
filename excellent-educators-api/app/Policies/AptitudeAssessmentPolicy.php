@@ -10,7 +10,9 @@ class AptitudeAssessmentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin() && $user->can(PermissionName::AssessmentsView->value);
+        return $user->canAdmin(PermissionName::AssessmentsView)
+            || $user->canAdmin(PermissionName::StudentsView)
+            || $user->canAdmin(PermissionName::StudentsRating);
     }
 
     public function view(User $user, AptitudeAssessment $assessment): bool
@@ -20,7 +22,7 @@ class AptitudeAssessmentPolicy
 
     public function create(User $user): bool
     {
-        return $user->isAdmin() && $user->can(PermissionName::AssessmentsManage->value);
+        return $user->canAdmin(PermissionName::AssessmentsManage);
     }
 
     public function update(User $user, AptitudeAssessment $assessment): bool

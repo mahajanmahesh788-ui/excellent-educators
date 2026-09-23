@@ -1,33 +1,23 @@
 import 'package:excellent_educators_web/core/constants/api_endpoints.dart';
-import 'package:excellent_educators_web/core/errors/api_error_message.dart';
-import 'package:excellent_educators_web/core/errors/failure.dart';
 import 'package:excellent_educators_web/core/network/api_client.dart';
-import 'package:excellent_educators_web/core/network/api_exception.dart';
+import 'package:excellent_educators_web/core/network/maps_api_failures.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
 
-class ScheduleRepository {
+class ScheduleRepository with MapsApiFailures {
   ScheduleRepository(this._client);
 
   final ApiClient _client;
 
-  Future<T> _run<T>(Future<T> Function() action) async {
-    try {
-      return await action();
-    } on ApiException catch (error) {
-      throw Failure(formatApiErrorMessage(error), code: error.code);
-    }
-  }
-
   Future<ScheduleDayDto> teacherDay(String date) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.get(ApiEndpoints.teacherScheduleDay, query: {'date': date});
       return ScheduleDayDto.fromJson(json!);
     });
   }
 
   Future<List<ScheduleDayDto>> teacherWeek(String start) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.get(ApiEndpoints.teacherScheduleWeek, query: {'start': start});
       final days = json?['days'] as List<dynamic>? ?? const [];
       return days
@@ -38,7 +28,7 @@ class ScheduleRepository {
   }
 
   Future<List<ScheduleMonthDayDto>> teacherMonth(int year, int month) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.get(ApiEndpoints.teacherScheduleMonth, query: {
         'year': year.toString(),
         'month': month.toString(),
@@ -51,7 +41,7 @@ class ScheduleRepository {
   }
 
   Future<void> saveTeacherBreaks({String? breakfastStart, String? lunchStart}) {
-    return _run(() => _client.put(ApiEndpoints.teacherScheduleBreaks, data: {
+    return runApi(() => _client.put(ApiEndpoints.teacherScheduleBreaks, data: {
           'breakfast_start': breakfastStart,
           'lunch_start': lunchStart,
         }));
@@ -65,7 +55,7 @@ class ScheduleRepository {
     String? startTime,
     String? endTime,
   }) {
-    return _run(() => _client.post(ApiEndpoints.teacherScheduleLeaves, data: {
+    return runApi(() => _client.post(ApiEndpoints.teacherScheduleLeaves, data: {
           'date': date,
           'is_full_day': isFullDay,
           'reason': reason,
@@ -76,11 +66,11 @@ class ScheduleRepository {
   }
 
   Future<void> deleteTeacherLeave(String id) {
-    return _run(() => _client.delete(ApiEndpoints.teacherScheduleLeave(id)));
+    return runApi(() => _client.delete(ApiEndpoints.teacherScheduleLeave(id)));
   }
 
   Future<List<ScheduleLeaveDto>> teacherLeaves() {
-    return _run(() async {
+    return runApi(() async {
       final items = await _client.getList(ApiEndpoints.teacherScheduleLeaves);
       return items
           .whereType<Map>()
@@ -90,14 +80,14 @@ class ScheduleRepository {
   }
 
   Future<BookingEligibilityDto> studentEligibility() {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.get(ApiEndpoints.studentBookingEligibility);
       return BookingEligibilityDto.fromJson(json!);
     });
   }
 
   Future<List<TeacherDto>> studentTeachers() {
-    return _run(() async {
+    return runApi(() async {
       final items = await _client.getList(ApiEndpoints.studentBookingTeachers);
       return items
           .whereType<Map>()
@@ -107,7 +97,7 @@ class ScheduleRepository {
   }
 
   Future<ScheduleDayDto> studentAvailability({required String teacherId, required String date}) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.get(ApiEndpoints.studentBookingAvailability, query: {
         'teacher_id': teacherId,
         'date': date,
@@ -117,7 +107,7 @@ class ScheduleRepository {
   }
 
   Future<List<SessionBookingDto>> studentBookings() {
-    return _run(() async {
+    return runApi(() async {
       final items = await _client.getList(ApiEndpoints.studentBookings);
       return items
           .whereType<Map>()
@@ -132,7 +122,7 @@ class ScheduleRepository {
     required String date,
     required String start,
   }) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.post(ApiEndpoints.studentBookings, data: {
         'teacher_id': teacherId,
         'type': type,
@@ -149,7 +139,7 @@ class ScheduleRepository {
     required String date,
     required String start,
   }) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.put(ApiEndpoints.studentBooking(bookingId), data: {
         'teacher_id': teacherId,
         'date': date,
@@ -160,14 +150,14 @@ class ScheduleRepository {
   }
 
   Future<SessionBookingDto> studentJoinClass(String bookingId) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.post(ApiEndpoints.studentBookingJoin(bookingId));
       return SessionBookingDto.fromJson(json!);
     });
   }
 
   Future<SessionBookingDto> studentReportTeacher(String bookingId, String message) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.post(
         ApiEndpoints.studentBookingAttendanceReport(bookingId),
         data: {'message': message},
@@ -177,14 +167,14 @@ class ScheduleRepository {
   }
 
   Future<SessionBookingDto> teacherJoinClass(String bookingId) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.post(ApiEndpoints.teacherBookingJoin(bookingId));
       return SessionBookingDto.fromJson(json!);
     });
   }
 
   Future<SessionBookingDto> teacherReportStudent(String bookingId, String message) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.post(
         ApiEndpoints.teacherBookingAttendanceReport(bookingId),
         data: {'message': message},
@@ -194,14 +184,14 @@ class ScheduleRepository {
   }
 
   Future<TeacherWhatsAppDto> teacherWhatsAppStudent(String bookingId) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.post(ApiEndpoints.teacherBookingWhatsApp(bookingId));
       return TeacherWhatsAppDto.fromJson(json!);
     });
   }
 
   Future<List<AttendanceIssueDto>> adminAttendanceIssues({String? status}) {
-    return _run(() async {
+    return runApi(() async {
       final items = await _client.getList(
         ApiEndpoints.adminAttendance,
         query: {if (status != null) 'status': status},
@@ -218,7 +208,7 @@ class ScheduleRepository {
     required String decision,
     String? notes,
   }) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.post(ApiEndpoints.adminAttendanceResolve(id), data: {
         'decision': decision,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
@@ -228,7 +218,7 @@ class ScheduleRepository {
   }
 
   Future<List<TeacherDto>> adminTeachers() {
-    return _run(() async {
+    return runApi(() async {
       final items = await _client.getList(ApiEndpoints.adminScheduleTeachers);
       return items
           .whereType<Map>()
@@ -238,7 +228,7 @@ class ScheduleRepository {
   }
 
   Future<ScheduleDayDto> adminDay({required String teacherId, required String date}) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.get(ApiEndpoints.adminScheduleDay, query: {
         'teacher_id': teacherId,
         'date': date,
@@ -252,7 +242,7 @@ class ScheduleRepository {
     required int year,
     required int month,
   }) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.get(ApiEndpoints.adminScheduleMonth, query: {
         'teacher_id': teacherId,
         'year': year.toString(),
@@ -270,7 +260,7 @@ class ScheduleRepository {
     String? breakfastStart,
     String? lunchStart,
   }) {
-    return _run(() => _client.post(ApiEndpoints.adminTeacherBreaks(teacherId), data: {
+    return runApi(() => _client.post(ApiEndpoints.adminTeacherBreaks(teacherId), data: {
           'breakfast_start': breakfastStart,
           'lunch_start': lunchStart,
         }));
@@ -283,7 +273,7 @@ class ScheduleRepository {
     required String reason,
     List<String>? slotStarts,
   }) {
-    return _run(() => _client.post(ApiEndpoints.adminTeacherLeaves(teacherId), data: {
+    return runApi(() => _client.post(ApiEndpoints.adminTeacherLeaves(teacherId), data: {
           'date': date,
           'is_full_day': isFullDay,
           'reason': reason,
@@ -292,7 +282,7 @@ class ScheduleRepository {
   }
 
   Future<List<ScheduleLeaveDto>> adminLeaves({String? teacherId}) {
-    return _run(() async {
+    return runApi(() async {
       final items = await _client.getList(
         ApiEndpoints.adminScheduleLeaves,
         query: {if (teacherId != null) 'teacher_id': teacherId},
@@ -305,11 +295,11 @@ class ScheduleRepository {
   }
 
   Future<void> adminDeleteLeave(String id) {
-    return _run(() => _client.delete(ApiEndpoints.adminScheduleLeave(id)));
+    return runApi(() => _client.delete(ApiEndpoints.adminScheduleLeave(id)));
   }
 
   Future<List<SessionBookingDto>> adminBookings({String? teacherId}) {
-    return _run(() async {
+    return runApi(() async {
       final items = await _client.getList(
         ApiEndpoints.adminScheduleBookings,
         query: {if (teacherId != null) 'teacher_id': teacherId},
@@ -322,11 +312,11 @@ class ScheduleRepository {
   }
 
   Future<void> adminDeleteBooking(String id) {
-    return _run(() => _client.delete(ApiEndpoints.adminScheduleBooking(id)));
+    return runApi(() => _client.delete(ApiEndpoints.adminScheduleBooking(id)));
   }
 
   Future<TeacherAvailabilityDto> adminTeacherAvailability(String teacherId) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.get(ApiEndpoints.adminTeacherAvailability(teacherId));
       return TeacherAvailabilityDto.fromJson(json ?? const {});
     });
@@ -337,7 +327,7 @@ class ScheduleRepository {
     required String workType,
     required List<AvailabilityDayDto> weekly,
   }) {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.put(
         ApiEndpoints.adminTeacherAvailability(teacherId),
         data: {
@@ -350,14 +340,14 @@ class ScheduleRepository {
   }
 
   Future<GoogleMeetConnectionDto> adminGoogleMeet() {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.get(ApiEndpoints.adminGoogleMeet);
       return GoogleMeetConnectionDto.fromJson(json ?? const {});
     });
   }
 
   Future<String> adminGoogleMeetAuthorizeUrl() {
-    return _run(() async {
+    return runApi(() async {
       final json = await _client.post(ApiEndpoints.adminGoogleMeetAuthorize);
       return json?['authorization_url'] as String? ?? '';
     });

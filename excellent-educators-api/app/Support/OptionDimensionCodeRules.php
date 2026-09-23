@@ -14,7 +14,7 @@ abstract class OptionDimensionCodeRules
     {
         return [
             $field => ['required', 'array', 'min:1', 'max:3'],
-            "{$field}.*" => ['required', Rule::enum(DimensionCode::class), 'distinct'],
+            "{$field}.*" => ['required', Rule::enum(DimensionCode::class)],
         ];
     }
 }

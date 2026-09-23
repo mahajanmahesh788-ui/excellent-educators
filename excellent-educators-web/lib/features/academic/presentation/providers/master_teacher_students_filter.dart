@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/time/app_clock.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 enum MasterTeacherStudentsRatedFilter {
   all,
@@ -157,22 +158,22 @@ class MasterTeacherStudentsFilterBar extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.end,
             children: [
               _labeledDropdown(
-                label: 'Level',
+                label: AppStrings.level,
                 width: 200,
                 value: filter.levelId,
                 items: [
-                  const DropdownMenuItem(value: '', child: Text('All levels')),
+                  const DropdownMenuItem(value: '', child: Text(AppStrings.allLevels)),
                   for (final level in levels)
                     DropdownMenuItem(value: level.id, child: Text(level.name)),
                 ],
                 onChanged: (value) => onFilterChanged(filter.copyWith(levelId: value ?? '', batchId: '')),
               ),
               _labeledDropdown(
-                label: 'Batch',
+                label: AppStrings.batch,
                 width: 200,
                 value: filter.batchId,
                 items: [
-                  const DropdownMenuItem(value: '', child: Text('All batches')),
+                  const DropdownMenuItem(value: '', child: Text(AppStrings.allBatches)),
                   for (final batch in batchOptions)
                     DropdownMenuItem(value: batch.id, child: Text(batch.label)),
                 ],
@@ -185,7 +186,7 @@ class MasterTeacherStudentsFilterBar extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      'Month',
+                      AppStrings.month,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -229,21 +230,21 @@ class MasterTeacherStudentsFilterBar extends StatelessWidget {
             runSpacing: 8,
             children: [
               FilterChip(
-                label: const Text('All'),
+                label: const Text(AppStrings.all),
                 selected: filter.rated == MasterTeacherStudentsRatedFilter.all,
                 onSelected: (_) => onFilterChanged(
                   filter.copyWith(rated: MasterTeacherStudentsRatedFilter.all),
                 ),
               ),
               FilterChip(
-                label: const Text('Rated'),
+                label: const Text(AppStrings.rated),
                 selected: filter.rated == MasterTeacherStudentsRatedFilter.rated,
                 onSelected: (_) => onFilterChanged(
                   filter.copyWith(rated: MasterTeacherStudentsRatedFilter.rated),
                 ),
               ),
               FilterChip(
-                label: const Text('Not rated'),
+                label: const Text(AppStrings.notRated),
                 selected: filter.rated == MasterTeacherStudentsRatedFilter.notRated,
                 onSelected: (_) => onFilterChanged(
                   filter.copyWith(rated: MasterTeacherStudentsRatedFilter.notRated),

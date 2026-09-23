@@ -5,6 +5,7 @@ namespace App\Actions\Students;
 use App\Enums\ProfileStatus;
 use App\Exceptions\ApiException;
 use App\Models\StudentProfile;
+use App\Scheduling\MasterClassBalance;
 use App\Support\ErrorCode;
 
 class UpdateStudent
@@ -37,6 +38,7 @@ class UpdateStudent
 
         $student->fill([
             'full_name' => $input['name'] ?? $student->full_name,
+            'gender' => array_key_exists('gender', $input) ? $input['gender'] : $student->gender,
             'phone' => $input['phone'] ?? $student->phone,
             'whatsapp_number' => array_key_exists('whatsapp_number', $input) ? $input['whatsapp_number'] : $student->whatsapp_number,
             'address' => array_key_exists('address', $input) ? $input['address'] : $student->address,
@@ -45,6 +47,9 @@ class UpdateStudent
             'guardian_phone' => array_key_exists('guardian_phone', $input) ? $input['guardian_phone'] : $student->guardian_phone,
             'status' => $input['status'] ?? $student->status,
         ]);
+        if (array_key_exists('master_classes_per_month', $input)) {
+            $student->master_classes_per_month = $input['master_classes_per_month'];
+        }
         $student->save();
 
         if (isset($input['name'])) {
@@ -53,6 +58,10 @@ class UpdateStudent
 
         if (isset($input['status']) && $input['status'] === ProfileStatus::Inactive->value) {
             $student->user->update(['status' => 'inactive']);
+        }
+
+        if (array_key_exists('master_classes_per_month', $input)) {
+            app(MasterClassBalance::class)->syncAllotment($student->fresh());
         }
 
         return $student->refresh();

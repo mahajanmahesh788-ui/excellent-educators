@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
+use App\Enums\Gender;
+use App\Support\MentorProfileRules;
 use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,6 +28,12 @@ class StoreTeacherRequest extends FormRequest
             $merge['whatsapp_number'] = PhoneNumber::normalize($this->input('whatsapp_number'));
         }
 
+        foreach (['photo_url', 'professional_title', 'bio', 'experience_summary'] as $field) {
+            if ($this->exists($field) && is_string($this->input($field)) && trim((string) $this->input($field)) === '') {
+                $merge[$field] = null;
+            }
+        }
+
         if (! $this->has('roles')) {
             $merge['roles'] = ['master_teacher'];
         }
@@ -42,6 +50,7 @@ class StoreTeacherRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'gender' => ['required', Rule::enum(Gender::class)],
             'email' => ['required', 'email', Rule::unique('users', 'email')->whereNull('deleted_at')],
             'password' => ['required', Password::defaults()],
             'employee_code' => ['nullable', 'string', 'max:32', 'unique:teacher_profiles,employee_code'],
@@ -50,6 +59,7 @@ class StoreTeacherRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:1000'],
             'roles' => ['sometimes', 'array', 'min:1'],
             'roles.*' => ['in:master_teacher'],
+            ...MentorProfileRules::fields(),
         ];
     }
 

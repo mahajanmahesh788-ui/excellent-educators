@@ -9,6 +9,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/d
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class TeacherBatchAssessmentsPage extends ConsumerWidget {
   const TeacherBatchAssessmentsPage({super.key, required this.batchId});
@@ -20,12 +21,12 @@ class TeacherBatchAssessmentsPage extends ConsumerWidget {
     final assessments = ref.watch(teacherBatchAssessmentsProvider(batchId));
 
     return AppScaffold(
-      title: 'Assessments',
+      title: AppStrings.assessments,
       backTo: RoutePaths.teacherBatch(batchId),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go(RoutePaths.teacherAssessmentNewFor(batchId)),
         icon: const Icon(Icons.add),
-        label: const Text('New assessment'),
+        label: const Text(AppStrings.newAssessment),
       ),
       body: AsyncBody(
         value: assessments,
@@ -33,9 +34,9 @@ class TeacherBatchAssessmentsPage extends ConsumerWidget {
         builder: (items) {
           if (items.isEmpty) {
             return const EmptyHint(
-              'No assessments yet',
+              AppStrings.noAssessmentsYet,
               icon: EmptyIcons.assessments,
-              subtitle: 'Create one to record and score your batch.',
+              subtitle: AppStrings.createOneToRecordAndScoreYourBatch,
             );
           }
           return ListView.separated(
@@ -120,7 +121,7 @@ class _TeacherCreateAssessmentPageState extends ConsumerState<TeacherCreateAsses
   @override
   Widget build(BuildContext context) {
     return AppFormPage(
-      title: 'New assessment',
+      title: AppStrings.newAssessment,
       backTo: RoutePaths.teacherAssessmentsFor(widget.batchId),
       child: Form(
         key: _formKey,
@@ -129,24 +130,24 @@ class _TeacherCreateAssessmentPageState extends ConsumerState<TeacherCreateAsses
           children: [
             TextFormField(
               controller: _title,
-              decoration: const InputDecoration(labelText: 'Title'),
-              validator: _required,
+              decoration: const InputDecoration(labelText: AppStrings.title),
+              validator: (value) => validateRequired(value, message: AppStrings.required2),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _description,
-              decoration: const InputDecoration(labelText: 'Description (optional)'),
+              decoration: const InputDecoration(labelText: AppStrings.descriptionOptional),
               maxLines: 3,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _maxScore,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Max score'),
+              decoration: const InputDecoration(labelText: AppStrings.maxScore),
               validator: (value) {
                 final parsed = double.tryParse(value ?? '');
                 if (parsed == null || parsed <= 0) {
-                  return 'Enter a valid max score.';
+                  return AppStrings.enterAValidMaxScore;
                 }
                 return null;
               },
@@ -156,7 +157,7 @@ class _TeacherCreateAssessmentPageState extends ConsumerState<TeacherCreateAsses
               onPressed: _saving ? null : _submit,
               child: _saving
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Create and score'),
+                  : const Text(AppStrings.createAndScore),
             ),
           ],
         ),
@@ -164,12 +165,6 @@ class _TeacherCreateAssessmentPageState extends ConsumerState<TeacherCreateAsses
     );
   }
 
-  String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Required.';
-    }
-    return null;
-  }
 }
 
 class TeacherAssessmentDetailPage extends ConsumerStatefulWidget {
@@ -237,7 +232,7 @@ class _TeacherAssessmentDetailPageState extends ConsumerState<TeacherAssessmentD
       ref.invalidate(teacherAssessmentScoresProvider((batchId: widget.batchId, assessmentId: widget.assessmentId)));
       ref.invalidate(teacherBatchAssessmentsProvider(widget.batchId));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Scores saved.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.scoresSaved)));
       }
     } catch (error) {
       if (mounted) {
@@ -268,7 +263,7 @@ class _TeacherAssessmentDetailPageState extends ConsumerState<TeacherAssessmentD
     );
 
     return AppScaffold(
-      title: 'Score assessment',
+      title: AppStrings.scoreAssessment,
       backTo: RoutePaths.teacherAssessmentsFor(widget.batchId),
       body: AsyncBody(
         value: assessmentValue,
@@ -292,15 +287,15 @@ class _TeacherAssessmentDetailPageState extends ConsumerState<TeacherAssessmentD
                       DetailSection(
                         title: assessment.title,
                         children: [
-                          DetailRow(label: 'Max score', value: '${assessment.maxScore}'),
-                          DetailRow(label: 'Version', value: 'v${assessment.version}'),
-                          DetailRow(label: 'Status', value: assessment.status),
+                          DetailRow(label: AppStrings.maxScore, value: '${assessment.maxScore}'),
+                          DetailRow(label: AppStrings.version, value: 'v${assessment.version}'),
+                          DetailRow(label: AppStrings.status2, value: assessment.status),
                           if (assessment.description != null && assessment.description!.isNotEmpty)
-                            DetailRow(label: 'Notes', value: assessment.description!),
+                            DetailRow(label: AppStrings.notes, value: assessment.description!),
                         ],
                       ),
                       const SizedBox(height: 12),
-                      Text('Students', style: Theme.of(context).textTheme.titleMedium),
+                      Text(AppStrings.students, style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 8),
                       ...students.map((student) {
                         return Padding(
@@ -322,7 +317,7 @@ class _TeacherAssessmentDetailPageState extends ConsumerState<TeacherAssessmentD
                                   controller: _scoreControllers[student.id],
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                   decoration: InputDecoration(
-                                    labelText: 'Score',
+                                    labelText: AppStrings.score2,
                                     isDense: true,
                                     hintText: '0-${assessment.maxScore}',
                                   ),
@@ -337,7 +332,7 @@ class _TeacherAssessmentDetailPageState extends ConsumerState<TeacherAssessmentD
                         onPressed: _saving ? null : () => _save(assessment, students),
                         child: _saving
                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Text('Save scores'),
+                            : const Text(AppStrings.saveScores),
                       ),
                     ],
                   );

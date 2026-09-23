@@ -3,7 +3,9 @@
 use App\Exceptions\ApiException;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureAdminPermission;
 use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\RecordSubAdminActivity;
 use App\Support\ApiResponse;
 use App\Support\ErrorCode;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -38,6 +40,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'admin' => EnsureAdmin::class,
+            'admin.permission' => EnsureAdminPermission::class,
+            'subadmin.activity' => RecordSubAdminActivity::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

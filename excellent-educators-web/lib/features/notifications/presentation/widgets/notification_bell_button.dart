@@ -5,9 +5,12 @@ import 'package:excellent_educators_web/features/notifications/presentation/prov
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class NotificationBellButton extends ConsumerWidget {
-  const NotificationBellButton({super.key});
+  const NotificationBellButton({super.key, this.color});
+
+  final Color? color;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -16,15 +19,20 @@ class NotificationBellButton extends ConsumerWidget {
     final count = countAsync.maybeWhen(data: (value) => value, orElse: () => 0);
 
     return IconButton(
-      tooltip: 'Notifications',
+      tooltip: AppStrings.notifications,
       onPressed: () {
         dismissOverlayRoutes(context);
-        context.go(RoutePaths.notificationsFor(isStudent: user?.isStudent ?? false));
+        context.go(
+          RoutePaths.notificationsFor(
+            isStudent: user?.isStudent ?? false,
+            isAdmin: user?.isAdmin ?? false,
+          ),
+        );
       },
       icon: Badge(
         isLabelVisible: count > 0,
         label: Text(count > 99 ? '99+' : '$count'),
-        child: const Icon(Icons.notifications_outlined, color: Colors.white),
+        child: Icon(Icons.notifications_outlined, color: color ?? Colors.white),
       ),
     );
   }

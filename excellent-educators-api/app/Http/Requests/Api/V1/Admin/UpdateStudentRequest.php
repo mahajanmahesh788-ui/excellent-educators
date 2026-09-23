@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
+use App\Enums\Gender;
 use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -36,6 +37,7 @@ class UpdateStudentRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'class_grade' => ['sometimes', 'integer', 'min:5', 'max:12'],
+            'gender' => ['sometimes', 'nullable', Rule::enum(Gender::class)],
             'address' => ['nullable', 'string', 'max:1000'],
             'phone' => [
                 'sometimes',
@@ -48,6 +50,7 @@ class UpdateStudentRequest extends FormRequest
             'guardian_name' => ['nullable', 'string', 'max:255'],
             'guardian_phone' => ['nullable', 'string', 'max:32'],
             'status' => ['sometimes', 'in:active,inactive'],
+            'master_classes_per_month' => ['nullable', 'integer', 'min:1', 'max:10'],
             'student_code' => ['prohibited'],
         ];
     }

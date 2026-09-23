@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Gender;
 use App\Enums\ProfileStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class StudentProfile extends Model
 {
@@ -19,8 +22,10 @@ class StudentProfile extends Model
         'user_id',
         'student_code',
         'level_id',
+        'master_classes_per_month',
         'class_grade',
         'full_name',
+        'gender',
         'phone',
         'whatsapp_number',
         'address',
@@ -34,6 +39,8 @@ class StudentProfile extends Model
     {
         return [
             'class_grade' => 'integer',
+            'gender' => Gender::class,
+            'master_classes_per_month' => 'integer',
             'id_academic_year' => 'integer',
             'status' => ProfileStatus::class,
         ];
@@ -109,5 +116,27 @@ class StudentProfile extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', ProfileStatus::Active->value);
+    }
+
+    /**
+     * @param  Collection<int, self>|iterable<self>  $students
+     */
+    public static function attachOverallAverages(iterable $students): void
+    {
+        $profiles = Collection::make($students)->filter()->unique('id')->values();
+        if ($profiles->isEmpty()) {
+            return;
+        }
+
+        $averages = DB::table('monthly_feedback_items')
+            ->join('monthly_feedbacks', 'monthly_feedbacks.id', '=', 'monthly_feedback_items.monthly_feedback_id')
+            ->whereIn('monthly_feedbacks.student_id', $profiles->pluck('id'))
+            ->groupBy('monthly_feedbacks.student_id')
+            ->selectRaw('monthly_feedbacks.student_id, avg(monthly_feedback_items.rating) as avg_rating')
+            ->pluck('avg_rating', 'student_id');
+
+        foreach ($profiles as $student) {
+            $student->feedback_overall_average = $averages[$student->id] ?? null;
+        }
     }
 }

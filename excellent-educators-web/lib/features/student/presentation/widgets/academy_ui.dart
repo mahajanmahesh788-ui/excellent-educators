@@ -1,20 +1,22 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
+/// Layout helpers for student pages. Palette lives in [StudentColors].
 abstract final class Academy {
-  static const canvas = Color(0xFFF4F1EA);
-  static const ink = Color(0xFF122033);
-  static const muted = Color(0xFF5E6A78);
-  static const line = Color(0xFFE6DFD2);
-  static const goldSoft = Color(0xFFF3E6C8);
+  static const canvas = StudentColors.canvas;
+  static const ink = StudentColors.textPrimary;
+  static const muted = StudentColors.textSecondary;
+  static const line = StudentColors.border;
+  static const goldSoft = StudentColors.goldSoft;
 
   static const pagePadding = EdgeInsets.fromLTRB(24, 24, 24, 48);
 
   static EdgeInsets pageInsets(double width) {
-    if (width >= 1280) return const EdgeInsets.fromLTRB(40, 28, 40, 56);
-    if (width >= 900) return const EdgeInsets.fromLTRB(28, 24, 28, 48);
-    if (width >= 600) return const EdgeInsets.fromLTRB(16, 16, 16, 32);
-    return const EdgeInsets.fromLTRB(12, 12, 12, 20);
+    if (width >= 1280) return const EdgeInsets.fromLTRB(16, 18, 16, 40);
+    if (width >= 900) return const EdgeInsets.fromLTRB(14, 16, 14, 36);
+    if (width >= 600) return const EdgeInsets.fromLTRB(12, 12, 12, 28);
+    return const EdgeInsets.fromLTRB(8, 8, 8, 16);
   }
 }
 
@@ -60,8 +62,9 @@ class _AcademySurfaceState extends State<AcademySurface> {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width < 600;
-    final effectivePadding = widget.padding ??
-        (isMobile ? const EdgeInsets.all(12) : const EdgeInsets.all(22));
+    final effectivePadding =
+        widget.padding ??
+        (isMobile ? const EdgeInsets.all(12) : const EdgeInsets.all(18));
 
     final card = AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -69,8 +72,10 @@ class _AcademySurfaceState extends State<AcademySurface> {
       padding: effectivePadding,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(isMobile ? 14 : 18),
-        border: Border.all(color: _hover ? const Color(0xFFD8C9A3) : Academy.line),
+        borderRadius: BorderRadius.circular(isMobile ? 14 : 16),
+        border: Border.all(
+          color: _hover ? StudentColors.hoverMint : Academy.line,
+        ),
         boxShadow: [
           BoxShadow(
             color: Brand.navy.withValues(alpha: _hover ? 0.08 : 0.04),
@@ -141,16 +146,24 @@ class _AcademyButtonState extends State<AcademyButton> {
         child: FilledButton(
           onPressed: disabled ? null : widget.onPressed,
           style: FilledButton.styleFrom(
-            backgroundColor: widget.outlined ? Colors.white : (widget.color ?? Brand.navy),
-            foregroundColor: widget.outlined ? Brand.navy : Colors.white,
-            disabledBackgroundColor: const Color(0xFFD9D3C8),
+            backgroundColor: widget.outlined
+                ? Colors.white
+                : (widget.color ?? StudentColors.forest),
+            foregroundColor: widget.outlined
+                ? StudentColors.forest
+                : Colors.white,
+            disabledBackgroundColor: StudentColors.disabled,
             minimumSize: Size(0, isMobile ? 38 : 46),
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 12 : 18,
               vertical: isMobile ? 8 : 12,
             ),
-            side: BorderSide(color: widget.outlined ? Academy.line : Colors.transparent),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isMobile ? 10 : 12)),
+            side: BorderSide(
+              color: widget.outlined ? Academy.line : Colors.transparent,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(isMobile ? 10 : 12),
+            ),
             textStyle: TextStyle(
               fontSize: isMobile ? 13 : 14,
               fontWeight: FontWeight.w600,
@@ -160,7 +173,10 @@ class _AcademyButtonState extends State<AcademyButton> {
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : Row(
                   mainAxisSize: MainAxisSize.min,
@@ -169,7 +185,12 @@ class _AcademyButtonState extends State<AcademyButton> {
                       Icon(widget.icon, size: 18),
                       const SizedBox(width: 8),
                     ],
-                    Flexible(child: Text(widget.label, overflow: TextOverflow.ellipsis)),
+                    Flexible(
+                      child: Text(
+                        widget.label,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
         ),
@@ -196,9 +217,12 @@ class AcademyAvatar extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF163A5C), Color(0xFF0E2744)],
+          colors: [StudentColors.forestMid, StudentColors.textPrimary],
         ),
-        border: Border.all(color: Brand.gold.withValues(alpha: 0.55), width: 1.5),
+        border: Border.all(
+          color: Brand.gold.withValues(alpha: 0.55),
+          width: 1.5,
+        ),
       ),
       child: Text(
         letter,
@@ -233,9 +257,21 @@ class AcademyEmpty extends StatelessWidget {
         children: [
           Icon(icon, size: 36, color: Brand.goldDark),
           const SizedBox(height: 16),
-          Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Academy.ink)),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Academy.ink,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(body, textAlign: TextAlign.center, style: const TextStyle(color: Academy.muted, height: 1.5)),
+          Text(
+            body,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Academy.muted, height: 1.5),
+          ),
           if (action != null) ...[const SizedBox(height: 20), action!],
         ],
       ),
@@ -244,7 +280,11 @@ class AcademyEmpty extends StatelessWidget {
 }
 
 class AcademyError extends StatelessWidget {
-  const AcademyError({super.key, required this.onRetry, this.message = 'Something went wrong while loading this page.'});
+  const AcademyError({
+    super.key,
+    required this.onRetry,
+    this.message = AppStrings.somethingWentWrongWhileLoadingThisPage,
+  });
 
   final VoidCallback onRetry;
   final String message;
@@ -253,9 +293,9 @@ class AcademyError extends StatelessWidget {
   Widget build(BuildContext context) {
     return AcademyEmpty(
       icon: Icons.cloud_off_outlined,
-      title: 'We could not load this just now',
+      title: AppStrings.weCouldNotLoadThisJustNow,
       body: message,
-      action: AcademyButton(label: 'Try again', onPressed: onRetry),
+      action: AcademyButton(label: AppStrings.tryAgain, onPressed: onRetry),
     );
   }
 }
@@ -271,7 +311,7 @@ class AcademySkeleton extends StatelessWidget {
       height: height,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFEDE7DB),
+        color: StudentColors.skeleton,
         borderRadius: BorderRadius.circular(18),
       ),
     );

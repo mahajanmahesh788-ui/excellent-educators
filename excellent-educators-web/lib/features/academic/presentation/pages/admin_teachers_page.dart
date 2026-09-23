@@ -7,9 +7,13 @@ import 'package:excellent_educators_web/features/academic/presentation/providers
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_ui.dart';
+import 'package:excellent_educators_web/features/academic/presentation/widgets/mentor_profile_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
+import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminTeachersPage extends ConsumerWidget {
   const AdminTeachersPage({super.key});
@@ -21,38 +25,41 @@ class AdminTeachersPage extends ConsumerWidget {
     final repo = ref.watch(academicRepositoryProvider);
     final page = teachers.asData?.value;
 
+    final user = ref.watch(authControllerProvider).user;
+    final canCreate = user?.canAdmin(AdminPermission.teachersCreate) ?? false;
+
     return AppScaffold(
-      title: 'Teachers',
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go(RoutePaths.adminTeacherNew),
-        icon: const Icon(Icons.add),
-        label: const Text('Add teacher'),
-      ),
+      title: AppStrings.teachers,
+      floatingActionButton: canCreate
+          ? FloatingActionButton.extended(
+              onPressed: () => context.go(RoutePaths.adminTeacherNew),
+              icon: const Icon(Icons.add),
+              label: const Text(AppStrings.addTeacher),
+            )
+          : null,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DirectoryToolbar(
             key: const ValueKey('admin-teachers-toolbar'),
-            searchHint: 'Search name, phone, address, or email',
+            searchHint: AppStrings.searchNamePhoneAddressOrEmail,
             searchQuery: filter.search,
             onSearchChanged: (value) {
-              ref.read(adminTeachersFilterProvider.notifier).state =
-                  filter.copyWith(search: value, page: 1);
+              ref.read(adminTeachersFilterProvider.notifier).state = filter
+                  .copyWith(search: value, page: 1);
             },
             total: page?.total,
             page: page?.page ?? filter.page,
             perPage: page?.perPage,
             onPageChanged: (nextPage) {
-              ref.read(adminTeachersFilterProvider.notifier).state = filter.copyWith(page: nextPage);
+              ref.read(adminTeachersFilterProvider.notifier).state = filter
+                  .copyWith(page: nextPage);
             },
             statusItems: statusFilterItems,
             selectedStatus: filter.status,
             onStatusChanged: (value) {
-              ref.read(adminTeachersFilterProvider.notifier).state = filter.copyWith(
-                    status: value,
-                    page: 1,
-                    clearStatus: value == null,
-                  );
+              ref.read(adminTeachersFilterProvider.notifier).state = filter
+                  .copyWith(status: value, page: 1, clearStatus: value == null);
             },
           ),
           Expanded(
@@ -62,19 +69,21 @@ class AdminTeachersPage extends ConsumerWidget {
               builder: (page) {
                 final items = repo.parseTeachers(page);
 
-                if (items.isEmpty && filter.search.isEmpty && filter.status == null) {
+                if (items.isEmpty &&
+                    filter.search.isEmpty &&
+                    filter.status == null) {
                   return const EmptyHint(
-                    'No teachers yet',
+                    AppStrings.noTeachersYet,
                     icon: EmptyIcons.teachers,
-                    subtitle: 'Add Master Teachers to mentor students.',
+                    subtitle: AppStrings.addMasterTeachersToMentorStudents,
                   );
                 }
 
                 if (items.isEmpty) {
                   return const EmptyHint(
-                    'No teachers match your filters',
+                    AppStrings.noTeachersMatchYourFilters,
                     icon: EmptyIcons.search,
-                    subtitle: 'Try a different search term or filter.',
+                    subtitle: AppStrings.tryADifferentSearchTermOrFilter,
                   );
                 }
 
@@ -85,13 +94,16 @@ class AdminTeachersPage extends ConsumerWidget {
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       return DirectoryHeader(
-                        countLabel: page.total == 1 ? '1 teacher' : '${page.total} teachers',
+                        countLabel: page.total == 1
+                            ? AppStrings.n1Teacher
+                            : '${page.total} teachers',
                       );
                     }
                     final teacher = items[index - 1];
                     return TeacherCard(
                       teacher: teacher,
-                      onTap: () => context.go(RoutePaths.adminTeacher(teacher.id)),
+                      onTap: () =>
+                          context.go(RoutePaths.adminTeacher(teacher.id)),
                     );
                   },
                 );
@@ -108,10 +120,12 @@ class AdminCreateTeacherPage extends ConsumerStatefulWidget {
   const AdminCreateTeacherPage({super.key});
 
   @override
-  ConsumerState<AdminCreateTeacherPage> createState() => _AdminCreateTeacherPageState();
+  ConsumerState<AdminCreateTeacherPage> createState() =>
+      _AdminCreateTeacherPageState();
 }
 
-class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage> {
+class _AdminCreateTeacherPageState
+    extends ConsumerState<AdminCreateTeacherPage> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
@@ -119,6 +133,8 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
   final _phone = TextEditingController();
   final _whatsapp = TextEditingController();
   final _address = TextEditingController();
+  late final MentorProfileDraft _mentor = MentorProfileDraft();
+  String? _gender;
   bool _saving = false;
   bool _obscurePassword = true;
 
@@ -130,6 +146,7 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
     _phone.dispose();
     _whatsapp.dispose();
     _address.dispose();
+    _mentor.dispose();
     super.dispose();
   }
 
@@ -141,12 +158,16 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
     try {
       await ref.read(academicRepositoryProvider).createTeacher({
         'name': _name.text.trim(),
+        'gender': _gender,
         'email': _email.text.trim(),
         'password': _password.text,
         'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-        'whatsapp_number': _whatsapp.text.trim().isEmpty ? null : _whatsapp.text.trim(),
+        'whatsapp_number': _whatsapp.text.trim().isEmpty
+            ? null
+            : _whatsapp.text.trim(),
         'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
         'roles': ['master_teacher'],
+        ..._mentor.toPayload(),
       });
       ref.invalidate(adminTeachersProvider);
       ref.invalidate(adminDashboardProvider);
@@ -167,7 +188,7 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
   @override
   Widget build(BuildContext context) {
     return AppFormPage(
-      title: 'Add teacher',
+      title: AppStrings.addTeacher,
       backTo: RoutePaths.adminTeachers,
       child: Form(
         key: _formKey,
@@ -177,35 +198,45 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
             TextFormField(
               controller: _name,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Full name'),
-              validator: _required,
+              decoration: const InputDecoration(labelText: AppStrings.fullName),
+              validator: validateRequired,
+            ),
+            const SizedBox(height: 12),
+            GenderDropdown(
+              value: _gender,
+              onChanged: (value) => setState(() => _gender = value),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email'),
-              validator: _required,
+              decoration: const InputDecoration(labelText: AppStrings.email),
+              validator: validateRequired,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _password,
               obscureText: _obscurePassword,
               decoration: InputDecoration(
-                labelText: 'Temporary password',
+                labelText: AppStrings.temporaryPassword,
                 suffixIcon: IconButton(
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                  icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
                 ),
               ),
-              validator: _required,
+              validator: validateRequired,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _phone,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
-                labelText: 'Phone number',
+                labelText: AppStrings.phoneNumber,
                 prefixText: '+91  ',
               ),
               validator: validateOptionalPhone,
@@ -215,7 +246,7 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
               controller: _whatsapp,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
-                labelText: 'WhatsApp number (optional)',
+                labelText: AppStrings.whatsappNumberOptional,
                 prefixText: '+91  ',
               ),
               validator: validateOptionalPhone,
@@ -226,10 +257,15 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
               maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
-                labelText: 'Address',
-                hintText: 'Enter teacher address',
+                labelText: AppStrings.address,
+                hintText: AppStrings.enterTeacherAddress,
                 alignLabelWithHint: true,
               ),
+            ),
+            const SizedBox(height: 28),
+            MentorProfileEditor(
+              draft: _mentor,
+              onChanged: () => setState(() {}),
             ),
             const SizedBox(height: 24),
             FilledButton(
@@ -240,19 +276,12 @@ class _AdminCreateTeacherPageState extends ConsumerState<AdminCreateTeacherPage>
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Create teacher'),
+                  : const Text(AppStrings.createTeacher),
             ),
           ],
         ),
       ),
     );
-  }
-
-  String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'This field is required.';
-    }
-    return null;
   }
 }
 
@@ -262,7 +291,8 @@ class AdminEditTeacherPage extends ConsumerStatefulWidget {
   final String teacherId;
 
   @override
-  ConsumerState<AdminEditTeacherPage> createState() => _AdminEditTeacherPageState();
+  ConsumerState<AdminEditTeacherPage> createState() =>
+      _AdminEditTeacherPageState();
 }
 
 class _AdminEditTeacherPageState extends ConsumerState<AdminEditTeacherPage> {
@@ -271,7 +301,9 @@ class _AdminEditTeacherPageState extends ConsumerState<AdminEditTeacherPage> {
   final _phone = TextEditingController();
   final _whatsapp = TextEditingController();
   final _address = TextEditingController();
+  MentorProfileDraft? _mentor;
   String? _status;
+  String? _gender;
   String? _boundTeacherId;
   bool _saving = false;
 
@@ -281,6 +313,7 @@ class _AdminEditTeacherPageState extends ConsumerState<AdminEditTeacherPage> {
     _phone.dispose();
     _whatsapp.dispose();
     _address.dispose();
+    _mentor?.dispose();
     super.dispose();
   }
 
@@ -294,22 +327,32 @@ class _AdminEditTeacherPageState extends ConsumerState<AdminEditTeacherPage> {
     _whatsapp.text = teacher.whatsappNumber ?? '';
     _address.text = teacher.address ?? '';
     _status = teacher.status;
+    _gender = teacher.gender;
+    _mentor?.dispose();
+    _mentor = MentorProfileDraft.fromTeacher(teacher);
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate() || _mentor == null) {
       return;
     }
     setState(() => _saving = true);
     try {
-      await ref.read(academicRepositoryProvider).updateTeacher(widget.teacherId, {
-        'name': _name.text.trim(),
-        'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-        'whatsapp_number': _whatsapp.text.trim().isEmpty ? null : _whatsapp.text.trim(),
-        'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
-        'status': _status,
-        'roles': ['master_teacher'],
-      });
+      await ref.read(academicRepositoryProvider).updateTeacher(
+        widget.teacherId,
+        {
+          'name': _name.text.trim(),
+          'gender': _gender,
+          'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+          'whatsapp_number': _whatsapp.text.trim().isEmpty
+              ? null
+              : _whatsapp.text.trim(),
+          'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
+          'status': _status,
+          'roles': ['master_teacher'],
+          ..._mentor!.toPayload(),
+        },
+      );
       ref.invalidate(adminTeacherProvider(widget.teacherId));
       ref.invalidate(adminTeachersProvider);
       ref.invalidate(adminDashboardProvider);
@@ -332,13 +375,13 @@ class _AdminEditTeacherPageState extends ConsumerState<AdminEditTeacherPage> {
     final teacherValue = ref.watch(adminTeacherProvider(widget.teacherId));
 
     return AppFormPage(
-      title: 'Edit teacher',
+      title: AppStrings.editTeacher,
       backTo: RoutePaths.adminTeacher(widget.teacherId),
       child: AsyncBody(
         value: teacherValue,
         onRetry: () => ref.invalidate(adminTeacherProvider(widget.teacherId)),
         builder: (teacher) {
-          if (_boundTeacherId != teacher.id) {
+          if (_boundTeacherId != teacher.id || _mentor == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) setState(() => _bind(teacher));
             });
@@ -346,73 +389,92 @@ class _AdminEditTeacherPageState extends ConsumerState<AdminEditTeacherPage> {
           }
           return SingleChildScrollView(
             child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  controller: _name,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(labelText: 'Full name'),
-                  validator: _required,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _address,
-                  maxLines: 2,
-                  decoration: const InputDecoration(labelText: 'Address'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _phone,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone number',
-                    prefixText: '+91  ',
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: _name,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: AppStrings.fullName,
+                    ),
+                    validator: validateRequired,
                   ),
-                  validator: validateOptionalPhone,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _whatsapp,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'WhatsApp number (optional)',
-                    prefixText: '+91  ',
+                  const SizedBox(height: 12),
+                  GenderDropdown(
+                    value: _gender,
+                    onChanged: (value) => setState(() => _gender = value),
                   ),
-                  validator: validateOptionalPhone,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  key: ValueKey(_status),
-                  value: _status,
-                  decoration: const InputDecoration(labelText: 'Status'),
-                  items: const [
-                    DropdownMenuItem(value: 'active', child: Text('Active')),
-                    DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-                  ],
-                  onChanged: (value) => setState(() => _status = value),
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: _saving
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Save changes'),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _address,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: AppStrings.address,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: AppStrings.phoneNumber,
+                      prefixText: '+91  ',
+                    ),
+                    validator: validateOptionalPhone,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _whatsapp,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: AppStrings.whatsappNumberOptional,
+                      prefixText: '+91  ',
+                    ),
+                    validator: validateOptionalPhone,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey(_status),
+                    value: _status,
+                    decoration: const InputDecoration(
+                      labelText: AppStrings.status2,
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'active',
+                        child: Text(AppStrings.active),
+                      ),
+                      DropdownMenuItem(
+                        value: 'inactive',
+                        child: Text(AppStrings.inactive),
+                      ),
+                    ],
+                    onChanged: (value) => setState(() => _status = value),
+                  ),
+                  const SizedBox(height: 28),
+                  MentorProfileEditor(
+                    draft: _mentor!,
+                    onChanged: () => setState(() {}),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: _saving ? null : _save,
+                    child: _saving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text(AppStrings.saveChanges),
+                  ),
+                ],
+              ),
             ),
           );
         },
       ),
     );
-  }
-
-  String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'This field is required.';
-    }
-    return null;
   }
 }

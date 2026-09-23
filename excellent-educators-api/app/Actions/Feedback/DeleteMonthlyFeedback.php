@@ -23,15 +23,13 @@ class DeleteMonthlyFeedback
 
         if (! $adminOverride) {
             if ($teacher === null) {
-                throw new ApiException(ErrorCode::FORBIDDEN, 'Only the assigned Master Teacher can delete this feedback.', 403);
+                throw new ApiException(ErrorCode::FORBIDDEN, 'Only the teacher who submitted this rating can delete it.', 403);
             }
 
-            $assigned = $teacher->canAccessStudent($student);
-
-            if (! $assigned || $feedback->master_teacher_id !== $teacher->id) {
+            if ($feedback->master_teacher_id !== $teacher->id) {
                 throw new ApiException(
                     ErrorCode::FORBIDDEN,
-                    'Only the Master Teacher who submitted this rating can delete it.',
+                    'Only the teacher who submitted this rating can delete it.',
                     403,
                 );
             }

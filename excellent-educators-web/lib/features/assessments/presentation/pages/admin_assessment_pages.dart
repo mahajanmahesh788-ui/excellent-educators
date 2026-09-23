@@ -12,6 +12,7 @@ import 'package:excellent_educators_web/features/assessments/presentation/widget
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminAssessmentsPage extends ConsumerWidget {
   const AdminAssessmentsPage({super.key});
@@ -22,11 +23,11 @@ class AdminAssessmentsPage extends ConsumerWidget {
     final repo = ref.watch(assessmentRepositoryProvider);
 
     return AppScaffold(
-      title: 'Assessments',
+      title: AppStrings.assessments,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go(RoutePaths.adminAssessmentNew),
         icon: const Icon(Icons.add),
-        label: const Text('New assessment'),
+        label: const Text(AppStrings.newAssessment),
       ),
       body: AsyncBody(
         value: page,
@@ -35,9 +36,9 @@ class AdminAssessmentsPage extends ConsumerWidget {
           final items = repo.parseAssessments(result);
           if (items.isEmpty) {
             return const EmptyHint(
-              'No aptitude assessments yet',
+              AppStrings.noAptitudeAssessmentsYet,
               icon: EmptyIcons.assessments,
-              subtitle: 'Create an assessment and add questions for students to take.',
+              subtitle: AppStrings.createAnAssessmentAndAddQuestionsForStudentsToTake,
             );
           }
           return ListView.separated(
@@ -77,7 +78,7 @@ class AdminAssessmentEditorPage extends ConsumerWidget {
     final id = assessmentId;
 
     return AppScaffold(
-      title: id == null ? 'New assessment' : 'Edit assessment',
+      title: id == null ? AppStrings.newAssessment : AppStrings.editAssessment,
       backTo: RoutePaths.adminAssessments,
       body: id == null
           ? const _AssessmentEditorForm()
@@ -128,7 +129,7 @@ class _QuestionDraft {
 class _OptionDraft {
   _OptionDraft({this.id, String text = '', List<String>? dimensionCodes})
       : text = TextEditingController(text: text),
-        dimensionCodes = List<String>.from(dimensionCodes ?? const ['TW']);
+        dimensionCodes = List<String>.from(dimensionCodes ?? const [AppStrings.tw]);
 
   final String? id;
   final TextEditingController text;
@@ -181,7 +182,7 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
                     _OptionDraft(
                       id: option.id,
                       text: option.optionText,
-                      dimensionCodes: option.dimensionCodes.isEmpty ? const ['TW'] : option.dimensionCodes,
+                      dimensionCodes: option.dimensionCodes.isEmpty ? const [AppStrings.tw] : option.dimensionCodes,
                     ),
                 ],
               ),
@@ -211,21 +212,21 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
 
   String? _validate() {
     if (_title.text.trim().isEmpty) {
-      return 'Title is required.';
+      return AppStrings.titleIsRequired;
     }
     if (_questions.isEmpty) {
-      return 'Add at least one question.';
+      return AppStrings.addAtLeastOneQuestion;
     }
     for (final question in _questions) {
       if (question.text.text.trim().isEmpty) {
-        return 'Every question needs text.';
+        return AppStrings.everyQuestionNeedsText;
       }
       if (question.options.isEmpty) {
-        return 'Every question must have options.';
+        return AppStrings.everyQuestionMustHaveOptions;
       }
       for (final option in question.options) {
         if (option.text.text.trim().isEmpty) {
-          return 'Every option needs text.';
+          return AppStrings.everyOptionNeedsText;
         }
         if (!DimensionCatalog.areValid(option.dimensionCodes)) {
           return 'Each option needs 1 to ${DimensionCatalog.maxCodesPerOption} unique dimension codes.';
@@ -304,16 +305,16 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
       children: [
         TextField(
           controller: _title,
-          decoration: const InputDecoration(labelText: 'Title'),
+          decoration: const InputDecoration(labelText: AppStrings.title),
         ),
         const SizedBox(height: 20),
-        const Text('Questions', style: TextStyle(fontWeight: FontWeight.w700, color: Brand.navy)),
+        const Text(AppStrings.questions, style: TextStyle(fontWeight: FontWeight.w700, color: Brand.navy)),
         const SizedBox(height: 8),
         for (var q = 0; q < _questions.length; q++) _questionEditor(q),
         TextButton.icon(
           onPressed: () => setState(() => _questions.add(_QuestionDraft())),
           icon: const Icon(Icons.add),
-          label: const Text('Add question'),
+          label: const Text(AppStrings.addQuestion),
         ),
         const SizedBox(height: 16),
         Wrap(
@@ -322,16 +323,16 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
           children: [
             FilledButton(
               onPressed: _saving ? null : () => _save(),
-              child: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
+              child: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text(AppStrings.save),
             ),
             FilledButton.tonal(
               onPressed: _saving ? null : () => _save(activate: true),
-              child: const Text('Save and activate'),
+              child: const Text(AppStrings.saveAndActivate),
             ),
             if (widget.assessmentId != null)
               OutlinedButton(
                 onPressed: _saving ? null : _toggleStatus,
-                child: Text(_status == 'active' ? 'Deactivate' : 'Activate'),
+                child: Text(_status == 'active' ? AppStrings.deactivate : AppStrings.activate),
               ),
           ],
         ),
@@ -393,7 +394,7 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
                       height: 1.35,
                     ),
                     decoration: InputDecoration(
-                      labelText: 'Question',
+                      labelText: AppStrings.question,
                       labelStyle: TextStyle(
                         color: Brand.navy.withValues(alpha: 0.7),
                         fontWeight: FontWeight.w600,
@@ -429,7 +430,7 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Answer options',
+                  AppStrings.answerOptions,
                   style: TextStyle(
                     color: Brand.muted,
                     fontSize: 11,
@@ -441,7 +442,7 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
                 for (var o = 0; o < question.options.length; o++) _optionEditor(index, question, o),
                 TextButton(
                   onPressed: () => setState(() => question.options.add(_OptionDraft())),
-                  child: const Text('Add option'),
+                  child: const Text(AppStrings.addOption),
                 ),
               ],
             ),
@@ -529,7 +530,7 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AppModalDialog(
-              title: 'Select codes',
+              title: AppStrings.selectCodes,
               maxWidth: 380,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -561,7 +562,7 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
                     ),
                   const SizedBox(height: 16),
                   AppDialogActions(
-                    confirmLabel: 'Done',
+                    confirmLabel: AppStrings.done,
                     onCancel: () => Navigator.pop(dialogContext),
                     onConfirm: selected.isEmpty
                         ? null
@@ -590,7 +591,7 @@ class AdminAssessmentAttemptsPage extends ConsumerWidget {
     final attempts = ref.watch(adminAssessmentAttemptsProvider(assessmentId));
 
     return AppScaffold(
-      title: 'Assessment attempts',
+      title: AppStrings.assessmentAttempts,
       backTo: RoutePaths.adminAssessmentFor(assessmentId),
       body: AsyncBody(
         value: attempts,
@@ -598,9 +599,9 @@ class AdminAssessmentAttemptsPage extends ConsumerWidget {
         builder: (items) {
           if (items.isEmpty) {
             return const EmptyHint(
-              'No submissions yet',
+              AppStrings.noSubmissionsYet,
               icon: EmptyIcons.students,
-              subtitle: 'Student aptitude attempts will appear here after they submit.',
+              subtitle: AppStrings.studentAptitudeAttemptsWillAppearHereAfterTheySubmit,
             );
           }
           return ListView.separated(
@@ -609,7 +610,7 @@ class AdminAssessmentAttemptsPage extends ConsumerWidget {
             itemBuilder: (context, index) {
               final result = items[index];
               return DetailSection(
-                title: result.studentName ?? 'Student',
+                title: result.studentName ?? AppStrings.student,
                 children: [
                   if (result.submittedAt != null)
                     Padding(

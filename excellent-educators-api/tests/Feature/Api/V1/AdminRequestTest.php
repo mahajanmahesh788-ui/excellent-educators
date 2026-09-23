@@ -3,13 +3,11 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\AdminRequestStatus;
-use App\Enums\RoleName;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class AdminRequestTest extends TestCase
@@ -129,6 +127,7 @@ class AdminRequestTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => $phone,
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         $this->withToken($this->tokenFor($admin))->putJson("/api/v1/admin/students/{$studentId}/mentor", [
@@ -157,14 +156,6 @@ class AdminRequestTest extends TestCase
         ]);
     }
 
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'ops-requests-'.uniqid('', true).'@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
-    }
-
     private function makeStudent(string $email, ?User $admin = null): User
     {
         $admin ??= $this->makeAdmin();
@@ -176,6 +167,7 @@ class AdminRequestTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => $phone,
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         return StudentProfile::query()->findOrFail($studentId)->user;
@@ -197,13 +189,5 @@ class AdminRequestTest extends TestCase
         $profile->setRelation('user', $user);
 
         return $profile;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        $this->app['auth']->forgetGuards();
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return $user->fresh()->createToken('test')->plainTextToken;
     }
 }

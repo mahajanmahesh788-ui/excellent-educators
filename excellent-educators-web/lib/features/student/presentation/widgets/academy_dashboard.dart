@@ -9,22 +9,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
-Future<void> joinStudentSession(WidgetRef ref, SessionBookingDto booking) async {
-  final updated = await ref.read(scheduleRepositoryProvider).studentJoinClass(booking.id);
+Future<void> joinStudentSession(
+  WidgetRef ref,
+  SessionBookingDto booking,
+) async {
+  final updated = await ref
+      .read(scheduleRepositoryProvider)
+      .studentJoinClass(booking.id);
   ref.invalidate(studentBookingsProvider);
   final url = updated.meetingUrl ?? booking.meetingUrl;
   if (url != null && url.isNotEmpty) {
-    await launchUrl(Uri.parse(url), webOnlyWindowName: '_blank');
+    await launchUrl(Uri.parse(url), webOnlyWindowName: AppStrings.blank);
   }
 }
 
 class StudentHero extends ConsumerStatefulWidget {
-  const StudentHero({
-    super.key,
-    required this.student,
-    required this.snapshot,
-  });
+  const StudentHero({super.key, required this.student, required this.snapshot});
 
   final StudentDto student;
   final StudentJourneySnapshot snapshot;
@@ -41,8 +43,12 @@ class _StudentHeroState extends ConsumerState<StudentHero> {
     final student = widget.student;
     final snapshot = widget.snapshot;
     final firstName = student.fullName.split(' ').first;
-    final classLabel = student.classGrade > 0 ? 'Class ${student.classGrade}' : 'Your class';
-    final levelLabel = student.level != null && !student.level!.isEmpty ? student.level!.label : 'Level';
+    final classLabel = student.classGrade > 0
+        ? 'Class ${student.classGrade}'
+        : 'Your class';
+    final levelLabel = student.level != null && !student.level!.isEmpty
+        ? student.level!.label
+        : AppStrings.level;
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
@@ -92,14 +98,20 @@ class _StudentHeroState extends ConsumerState<StudentHero> {
             SizedBox(height: isMobile ? 12 : 24),
             AcademyButton(
               outlined: snapshot.joinableSession == null,
-              color: snapshot.joinableSession != null ? const Color(0xFF059669) : null,
+              color: snapshot.joinableSession != null
+                  ? StudentColors.live
+                  : null,
               busy: _busy,
               label: snapshot.joinableSession != null
-                  ? (snapshot.joinableSession!.type == 'master_class' ? 'Join Master Class' : 'Join Introduction Call')
+                  ? (snapshot.joinableSession!.type == 'master_class'
+                        ? AppStrings.joinMasterClass
+                        : AppStrings.joinIntroductionCall)
                   : snapshot.nextSession != null
-                      ? 'View your session'
-                      : 'Continue your journey',
-              icon: snapshot.joinableSession != null ? Icons.videocam_rounded : Icons.arrow_forward_rounded,
+                  ? AppStrings.viewYourSession
+                  : AppStrings.continueYourJourney,
+              icon: snapshot.joinableSession != null
+                  ? Icons.videocam_rounded
+                  : Icons.arrow_forward_rounded,
               onPressed: () async {
                 final live = snapshot.joinableSession;
                 final type = snapshot.primaryType;
@@ -131,7 +143,12 @@ class _StudentHeroState extends ConsumerState<StudentHero> {
           width: double.infinity,
           padding: isMobile
               ? const EdgeInsets.all(14)
-              : EdgeInsets.fromLTRB(stacked ? 20 : 32, 28, stacked ? 20 : 32, 28),
+              : EdgeInsets.fromLTRB(
+                  stacked ? 20 : 32,
+                  28,
+                  stacked ? 20 : 32,
+                  28,
+                ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(isMobile ? 16 : 24),
             gradient: const LinearGradient(
@@ -140,7 +157,11 @@ class _StudentHeroState extends ConsumerState<StudentHero> {
               colors: [Color(0xFF0B1F36), Color(0xFF163A5C), Color(0xFF1C2A1A)],
             ),
             boxShadow: [
-              BoxShadow(color: Brand.navy.withValues(alpha: 0.18), blurRadius: 28, offset: const Offset(0, 14)),
+              BoxShadow(
+                color: Brand.navy.withValues(alpha: 0.18),
+                blurRadius: 28,
+                offset: const Offset(0, 14),
+              ),
             ],
           ),
           child: stacked
@@ -148,8 +169,7 @@ class _StudentHeroState extends ConsumerState<StudentHero> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     copy,
-                    SizedBox(height: isMobile ? 14 : 28),
-                    visual,
+                    if (!isMobile) ...[const SizedBox(height: 28), visual],
                   ],
                 )
               : Row(
@@ -181,18 +201,40 @@ class _LevelRibbon extends StatelessWidget {
         Row(
           children: [
             _dot(true),
-            Expanded(child: Container(height: 2, color: Brand.gold.withValues(alpha: 0.7))),
+            Expanded(
+              child: Container(
+                height: 2,
+                color: Brand.gold.withValues(alpha: 0.7),
+              ),
+            ),
             _dot(true),
-            Expanded(child: Container(height: 2, color: Colors.white.withValues(alpha: 0.22))),
+            Expanded(
+              child: Container(
+                height: 2,
+                color: Colors.white.withValues(alpha: 0.22),
+              ),
+            ),
             _dot(false),
           ],
         ),
         const SizedBox(height: 10),
         Row(
           children: [
-            Text('Intro', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
+            Text(
+              AppStrings.intro,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+            ),
             const Spacer(),
-            Text('Master', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
+            Text(
+              AppStrings.master,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+            ),
           ],
         ),
       ],
@@ -232,9 +274,9 @@ class _LiveJoinBannerState extends ConsumerState<LiveJoinBanner> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       decoration: BoxDecoration(
-        color: const Color(0xFFECFDF5),
+        color: StudentColors.successSoft,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF6EE7B7)),
+        border: Border.all(color: StudentColors.liveSoft),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -243,32 +285,41 @@ class _LiveJoinBannerState extends ConsumerState<LiveJoinBanner> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isMaster ? 'Master Class in progress' : 'Introduction Call in progress',
+                isMaster
+                    ? AppStrings.masterClassInProgress
+                    : AppStrings.introductionCallInProgress,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF065F46),
+                  color: StudentColors.liveDeep,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 [
-                  if ((booking.teacherName ?? '').isNotEmpty) 'with ${booking.teacherName}',
+                  if ((booking.teacherName ?? '').isNotEmpty)
+                    'with ${booking.teacherName}',
                   '${formatHm(booking.start)} — ${formatHm(booking.end)}',
                 ].join(' · '),
-                style: const TextStyle(color: Color(0xFF047857), height: 1.4, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: StudentColors.success,
+                  height: 1.4,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 4),
               const Text(
-                'Join now so you don’t miss this session.',
-                style: TextStyle(color: Color(0xFF065F46)),
+                AppStrings.joinNowSoYouDonTMissThisSession,
+                style: TextStyle(color: StudentColors.liveDeep),
               ),
             ],
           );
           final button = AcademyButton(
-            label: isMaster ? 'Join Master Class' : 'Join Introduction Call',
+            label: isMaster
+                ? AppStrings.joinMasterClass
+                : AppStrings.joinIntroductionCall,
             icon: Icons.videocam_rounded,
-            color: const Color(0xFF059669),
+            color: StudentColors.live,
             busy: _busy,
             onPressed: _busy
                 ? null
@@ -323,15 +374,20 @@ class _NextSessionCardState extends ConsumerState<NextSessionCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AcademyLabel('Your next step'),
+            const AcademyLabel(AppStrings.yourNextStep),
             const SizedBox(height: 12),
             const Text(
-              'You don’t have a session scheduled yet.',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Academy.ink, height: 1.25),
+              AppStrings.youDonTHaveASessionScheduledYet,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: Academy.ink,
+                height: 1.25,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Book your next session and keep your learning journey moving.',
+              AppStrings.bookYourNextSessionAndKeepYourLearningJourneyMoving,
               style: TextStyle(color: Academy.muted, height: 1.5),
             ),
             const SizedBox(height: 20),
@@ -339,10 +395,10 @@ class _NextSessionCardState extends ConsumerState<NextSessionCard> {
               alignment: Alignment.centerRight,
               child: AcademyButton(
                 label: snapshot.canBookIntroduction
-                    ? 'Book Introduction'
+                    ? AppStrings.bookIntroduction
                     : snapshot.canBookMasterClass
-                        ? 'Book Master Class'
-                        : 'View sessions',
+                    ? AppStrings.bookMasterClass
+                    : AppStrings.viewSessions,
                 icon: Icons.arrow_forward_rounded,
                 onPressed: () {
                   final type = snapshot.primaryType;
@@ -366,7 +422,7 @@ class _NextSessionCardState extends ConsumerState<NextSessionCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AcademyLabel(live ? 'Happening now' : 'Next session'),
+          AcademyLabel(live ? AppStrings.happeningNow : AppStrings.nextSession),
           SizedBox(height: isMobile ? 6 : 12),
           Text(
             session.typeLabel,
@@ -387,7 +443,10 @@ class _NextSessionCardState extends ConsumerState<NextSessionCard> {
           ),
           Text(
             '${formatHm(session.start)} — ${formatHm(session.end)}',
-            style: TextStyle(color: Academy.muted, fontSize: isMobile ? 13 : 15),
+            style: TextStyle(
+              color: Academy.muted,
+              fontSize: isMobile ? 13 : 15,
+            ),
           ),
           if ((session.teacherName ?? '').isNotEmpty) ...[
             SizedBox(height: isMobile ? 4 : 8),
@@ -405,24 +464,26 @@ class _NextSessionCardState extends ConsumerState<NextSessionCard> {
             alignment: isMobile ? Alignment.centerLeft : Alignment.centerRight,
             child: AcademyButton(
               label: live
-                  ? (session.type == 'master_class' ? 'Join Master Class' : 'Join Introduction Call')
-                  : 'View session',
+                  ? (session.type == 'master_class'
+                        ? AppStrings.joinMasterClass
+                        : AppStrings.joinIntroductionCall)
+                  : AppStrings.viewSession,
               icon: live ? Icons.videocam_rounded : Icons.arrow_forward_rounded,
-              color: live ? const Color(0xFF059669) : null,
+              color: live ? StudentColors.live : null,
               busy: _busy,
               onPressed: live
                   ? (_busy
-                      ? null
-                      : () async {
-                          setState(() => _busy = true);
-                          try {
-                            await joinStudentSession(ref, session);
-                          } finally {
-                            if (mounted) {
-                              setState(() => _busy = false);
+                        ? null
+                        : () async {
+                            setState(() => _busy = true);
+                            try {
+                              await joinStudentSession(ref, session);
+                            } finally {
+                              if (mounted) {
+                                setState(() => _busy = false);
+                              }
                             }
-                          }
-                        })
+                          })
                   : () => context.go(RoutePaths.studentBookings),
             ),
           ),
@@ -439,21 +500,29 @@ class LearningJourney extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nodes = [snapshot.introduction, snapshot.masterClass, snapshot.nextMonth];
+    final nodes = [
+      snapshot.introduction,
+      snapshot.masterClass,
+      snapshot.nextMonth,
+    ];
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
     return AcademySurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AcademyLabel('Your sessions'),
+          const AcademyLabel(AppStrings.yourSessions),
           SizedBox(height: isMobile ? 12 : 20),
           for (var i = 0; i < nodes.length; i++) ...[
             _JourneyRow(node: nodes[i]),
             if (i < nodes.length - 1)
               Padding(
                 padding: const EdgeInsets.only(left: 11, top: 2, bottom: 2),
-                child: Container(width: 2, height: isMobile ? 16 : 28, color: Academy.line),
+                child: Container(
+                  width: 2,
+                  height: isMobile ? 16 : 28,
+                  color: Academy.line,
+                ),
               ),
           ],
         ],
@@ -483,7 +552,9 @@ class _JourneyRow extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: node.phase == JourneyPhase.upcoming ? Colors.white : color.withValues(alpha: 0.15),
+            color: node.phase == JourneyPhase.upcoming
+                ? Colors.white
+                : color.withValues(alpha: 0.15),
             border: Border.all(color: color, width: 2),
           ),
           child: node.phase == JourneyPhase.completed
@@ -493,7 +564,9 @@ class _JourneyRow extends StatelessWidget {
                   height: 8,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: node.phase == JourneyPhase.current ? color : Colors.transparent,
+                    color: node.phase == JourneyPhase.current
+                        ? color
+                        : Colors.transparent,
                   ),
                 ),
         ),
@@ -502,8 +575,18 @@ class _JourneyRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(node.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Academy.ink)),
-              Text(node.detail, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+              Text(
+                node.title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: Academy.ink,
+                ),
+              ),
+              Text(
+                node.detail,
+                style: TextStyle(color: color, fontWeight: FontWeight.w600),
+              ),
             ],
           ),
         ),
@@ -518,7 +601,7 @@ class TeacherGrid extends StatelessWidget {
     required this.teachers,
     required this.levelLabel,
     this.onBook,
-    this.bookLabel = 'Book session',
+    this.bookLabel = AppStrings.bookSession,
     this.selectedTeacherId,
   });
 
@@ -533,15 +616,19 @@ class TeacherGrid extends StatelessWidget {
     if (teachers.isEmpty) {
       return const AcademyEmpty(
         icon: Icons.groups_outlined,
-        title: 'Teachers will appear here',
-        body: 'Master Teachers for your level will be shown as soon as they are assigned.',
+        title: AppStrings.teachersWillAppearHere,
+        body: AppStrings.masterTeachersForYourLevelWillBeShownAsSoon,
       );
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final cols = width >= 1100 ? 4 : width >= 720 ? 2 : 1;
+        final cols = width >= 1100
+            ? 4
+            : width >= 720
+            ? 2
+            : 1;
         const gap = 16.0;
         final cardWidth = (width - gap * (cols - 1)) / cols;
         return Wrap(
@@ -573,7 +660,7 @@ class TeacherCard extends StatefulWidget {
     required this.levelLabel,
     this.onBook,
     this.selected = false,
-    this.bookLabel = 'Book session',
+    this.bookLabel = AppStrings.bookSession,
   });
 
   final TeacherDto teacher;
@@ -591,7 +678,9 @@ class _TeacherCardState extends State<TeacherCard> {
 
   @override
   Widget build(BuildContext context) {
-    final role = widget.teacher.roles.contains('master_teacher') ? 'Master Teacher' : 'Teacher';
+    final role = widget.teacher.roles.contains('master_teacher')
+        ? AppStrings.masterTeacher
+        : AppStrings.teacher;
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
     return MouseRegion(
@@ -609,7 +698,11 @@ class _TeacherCardState extends State<TeacherCard> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(isMobile ? 14 : 18),
-            border: Border.all(color: widget.selected || _hover ? const Color(0xFFD8C9A3) : Academy.line),
+            border: Border.all(
+              color: widget.selected || _hover
+                  ? const Color(0xFFD8C9A3)
+                  : Academy.line,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Brand.navy.withValues(alpha: _hover ? 0.1 : 0.04),
@@ -620,7 +713,10 @@ class _TeacherCardState extends State<TeacherCard> {
           ),
           child: Column(
             children: [
-              AcademyAvatar(name: widget.teacher.fullName, size: isMobile ? 52 : 72),
+              AcademyAvatar(
+                name: widget.teacher.fullName,
+                size: isMobile ? 52 : 72,
+              ),
               SizedBox(height: isMobile ? 10 : 16),
               Text(
                 widget.teacher.fullName,
@@ -643,12 +739,17 @@ class _TeacherCardState extends State<TeacherCard> {
               const SizedBox(height: 4),
               Text(
                 widget.levelLabel,
-                style: TextStyle(color: Academy.muted, fontSize: isMobile ? 11.5 : 13),
+                style: TextStyle(
+                  color: Academy.muted,
+                  fontSize: isMobile ? 11.5 : 13,
+                ),
               ),
               if (widget.onBook != null) ...[
                 SizedBox(height: isMobile ? 10 : 16),
                 AcademyButton(
-                  label: widget.selected ? 'Selected' : widget.bookLabel,
+                  label: widget.selected
+                      ? AppStrings.selected
+                      : widget.bookLabel,
                   onPressed: widget.onBook,
                 ),
               ],
@@ -679,8 +780,8 @@ class TeacherPicker extends StatelessWidget {
     if (teachers.isEmpty) {
       return const AcademyEmpty(
         icon: Icons.groups_outlined,
-        title: 'Teachers will appear here',
-        body: 'Master Teachers for your level will be shown as soon as they are assigned.',
+        title: AppStrings.teachersWillAppearHere,
+        body: AppStrings.masterTeachersForYourLevelWillBeShownAsSoon,
       );
     }
 
@@ -688,7 +789,11 @@ class TeacherPicker extends StatelessWidget {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final isMobile = width < 640;
-        final cols = width >= 1100 ? 3 : width >= 640 ? 2 : 1;
+        final cols = width >= 1100
+            ? 3
+            : width >= 640
+            ? 2
+            : 1;
         final gap = isMobile ? 8.0 : 12.0;
         final cardWidth = (width - gap * (cols - 1)) / cols;
 
@@ -757,14 +862,18 @@ class _FacultyPortraitState extends State<_FacultyPortrait> {
             border: Border.all(
               color: selected
                   ? Brand.gold
-                  : (_hover ? Brand.gold.withValues(alpha: 0.6) : const Color(0xFFE2E8F0)),
+                  : (_hover
+                        ? Brand.gold.withValues(alpha: 0.6)
+                        : StudentColors.border),
               width: selected ? 1.6 : 1.0,
             ),
             boxShadow: [
               BoxShadow(
                 color: selected
                     ? Brand.gold.withValues(alpha: 0.18)
-                    : (_hover ? Brand.navy.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.03)),
+                    : (_hover
+                          ? Brand.navy.withValues(alpha: 0.08)
+                          : Colors.black.withValues(alpha: 0.03)),
                 blurRadius: selected ? 12 : (_hover ? 8 : 4),
                 offset: Offset(0, selected ? 3 : (_hover ? 2 : 1)),
               ),
@@ -776,10 +885,7 @@ class _FacultyPortraitState extends State<_FacultyPortrait> {
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  AcademyAvatar(
-                    name: teacher.fullName,
-                    size: 46,
-                  ),
+                  AcademyAvatar(name: teacher.fullName, size: 46),
                   if (selected)
                     Positioned(
                       right: -2,
@@ -791,7 +897,11 @@ class _FacultyPortraitState extends State<_FacultyPortrait> {
                           color: Brand.gold,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.check_rounded, size: 12, color: Brand.navy),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          size: 12,
+                          color: Brand.navy,
+                        ),
                       ),
                     ),
                 ],
@@ -819,7 +929,7 @@ class _FacultyPortraitState extends State<_FacultyPortrait> {
                     Row(
                       children: [
                         Text(
-                          'Master Teacher',
+                          AppStrings.masterTeacher,
                           style: TextStyle(
                             color: selected ? Brand.gold : Brand.goldDark,
                             fontWeight: FontWeight.w700,
@@ -840,7 +950,9 @@ class _FacultyPortraitState extends State<_FacultyPortrait> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: selected ? Colors.white70 : Academy.muted,
+                                color: selected
+                                    ? Colors.white70
+                                    : Academy.muted,
                                 fontWeight: FontWeight.w500,
                                 fontSize: 12,
                               ),
@@ -865,22 +977,30 @@ class _FacultyPortraitState extends State<_FacultyPortrait> {
                 decoration: BoxDecoration(
                   color: selected
                       ? Brand.gold
-                      : (_hover ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC)),
+                      : (_hover
+                            ? StudentColors.surfaceMuted
+                            : StudentColors.canvasSoft),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: selected
                         ? Brand.gold
-                        : (_hover ? Brand.gold.withValues(alpha: 0.4) : const Color(0xFFE2E8F0)),
+                        : (_hover
+                              ? Brand.gold.withValues(alpha: 0.4)
+                              : StudentColors.border),
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (selected) ...[
-                      const Icon(Icons.check_circle_rounded, size: 14, color: Brand.navy),
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        size: 14,
+                        color: Brand.navy,
+                      ),
                       const SizedBox(width: 4),
                       const Text(
-                        'Selected',
+                        AppStrings.selected,
                         style: TextStyle(
                           color: Brand.navy,
                           fontWeight: FontWeight.w800,
@@ -889,7 +1009,7 @@ class _FacultyPortraitState extends State<_FacultyPortrait> {
                       ),
                     ] else ...[
                       Text(
-                        'Select',
+                        AppStrings.select,
                         style: TextStyle(
                           color: _hover ? Brand.navy : Academy.muted,
                           fontWeight: FontWeight.w700,
@@ -914,6 +1034,108 @@ class _FacultyPortraitState extends State<_FacultyPortrait> {
   }
 }
 
+class ExtraMasterClassBanner extends StatelessWidget {
+  const ExtraMasterClassBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF123524), Color(0xFF1B5E3B), Color(0xFF0B1F36)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Brand.navy.withValues(alpha: 0.14),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Brand.gold.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(color: Brand.gold.withValues(alpha: 0.45)),
+            ),
+            child: const Text(
+              AppStrings.extraBenefitsForYou,
+              style: TextStyle(
+                color: Brand.gold,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            AppStrings.extraMasterClassPerkTitle,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            AppStrings.extraMasterClassPerkBody,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.86),
+              height: 1.45,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const _PerkLine(AppStrings.extraBenefitOne),
+          const SizedBox(height: 6),
+          const _PerkLine(AppStrings.extraBenefitTwo),
+          const SizedBox(height: 6),
+          const _PerkLine(AppStrings.extraBenefitThree),
+        ],
+      ),
+    );
+  }
+}
+
+class _PerkLine extends StatelessWidget {
+  const _PerkLine(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.auto_awesome, size: 16, color: Brand.gold),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class MonthlyProgressCard extends StatelessWidget {
   const MonthlyProgressCard({super.key, required this.snapshot});
 
@@ -921,40 +1143,67 @@ class MonthlyProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final used = snapshot.masterThisMonth.clamp(0, 1);
+    final allotment = snapshot.masterClassAllotment <= 0
+        ? 1
+        : snapshot.masterClassAllotment;
+    final used = (allotment - snapshot.masterClassRemaining).clamp(
+      0,
+      allotment,
+    );
     return AcademySurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AcademyLabel('This month'),
+          const AcademyLabel(AppStrings.thisMonth2),
           const SizedBox(height: 12),
-          const Text('Master Class', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Academy.ink)),
+          const Text(
+            AppStrings.masterClass,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: Academy.ink,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('$used / 1', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Brand.navy)),
+          Text(
+            '$used / $allotment',
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: Brand.navy,
+            ),
+          ),
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
             child: LinearProgressIndicator(
               minHeight: 10,
-              value: used.toDouble(),
+              value: allotment == 0 ? 0 : used / allotment,
               backgroundColor: Academy.goldSoft,
               color: Brand.goldDark,
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            snapshot.introductionCompleted ? 'Introduction ✓ Completed' : snapshot.introduction.detail,
-            style: const TextStyle(color: Academy.muted, fontWeight: FontWeight.w600),
+            snapshot.introductionCompleted
+                ? AppStrings.introductionCompleted
+                : snapshot.introduction.detail,
+            style: const TextStyle(
+              color: Academy.muted,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            used >= 1
-                ? 'Monthly Master Class completed. Beautiful work — your next one opens next month.'
-                : snapshot.masterClass.phase == JourneyPhase.current && snapshot.masterClass.detail == 'Scheduled'
-                    ? 'Your Master Class is booked. Join when it starts.'
-                    : snapshot.canBookMasterClass
-                        ? 'Your monthly Master Class is available.'
-                        : 'Your next Master Class will open when you are ready.',
+            snapshot.masterClassRemaining <= 0
+                ? AppStrings
+                      .monthlyMasterClassCompletedBeautifulWorkYourNextOneOpens
+                : snapshot.masterClass.phase == JourneyPhase.current &&
+                      snapshot.masterClass.detail == AppStrings.scheduled
+                ? AppStrings.yourMasterClassIsBookedJoinWhenItStarts
+                : snapshot.canBookMasterClass
+                ? AppStrings.yourMonthlyMasterClassIsAvailable
+                : AppStrings.yourNextMasterClassWillOpenWhenYouAreReady,
             style: const TextStyle(color: Academy.ink, height: 1.45),
           ),
         ],
@@ -982,7 +1231,14 @@ class QuickActionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Academy.ink)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+              color: Academy.ink,
+            ),
+          ),
           const SizedBox(height: 6),
           Text(body, style: const TextStyle(color: Academy.muted, height: 1.4)),
         ],

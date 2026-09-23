@@ -9,6 +9,7 @@ use App\Enums\UserStatus;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use App\Scheduling\TeacherAvailability;
+use App\Support\MentorProfileRules;
 use Illuminate\Support\Facades\DB;
 
 class CreateTeacher
@@ -16,6 +17,7 @@ class CreateTeacher
     /**
      * @param  array{
      *     name: string,
+     *     gender: string,
      *     email: string,
      *     password: string,
      *     employee_code?: string|null,
@@ -42,9 +44,11 @@ class CreateTeacher
                 'user_id' => $user->id,
                 'employee_code' => $input['employee_code'] ?? null,
                 'full_name' => $input['name'],
+                'gender' => $input['gender'],
                 'phone' => $input['phone'] ?? null,
                 'whatsapp_number' => $input['whatsapp_number'] ?? null,
                 'address' => $input['address'] ?? null,
+                ...MentorProfileRules::extract($input),
                 'status' => ProfileStatus::Active,
                 'work_type' => TeacherWorkType::FullTime->value,
             ]);

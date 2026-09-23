@@ -19,14 +19,15 @@ class StoreMonthlyFeedbackRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'session_date' => ['required', 'date', 'before_or_equal:today'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.target_type' => ['required', Rule::enum(FeedbackTargetType::class)],
+            'booking_id' => ['nullable', 'ulid'],
+            'session_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'positive_points' => ['required', 'string', 'max:5000'],
+            'areas_for_improvement' => ['nullable', 'string', 'max:5000'],
+            'discussed_in_class' => ['nullable', 'string', 'max:5000'],
+            'items' => ['required', 'array', 'min:10'],
+            'items.*.target_type' => ['required', Rule::in([FeedbackTargetType::Dimension->value])],
             'items.*.target_id' => ['required', 'ulid'],
             'items.*.rating' => ['required', 'integer', 'min:1', 'max:10'],
-            'items.*.positive_points' => ['nullable', 'string', 'max:5000'],
-            'items.*.areas_for_improvement' => ['nullable', 'string', 'max:5000'],
-            'items.*.recommended_next_action' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

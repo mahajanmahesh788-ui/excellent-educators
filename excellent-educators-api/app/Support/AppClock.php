@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use DateTimeInterface;
 use Illuminate\Support\Carbon;
 
 final class AppClock
@@ -27,5 +28,14 @@ final class AppClock
             'year' => $now->year,
             'month' => $now->month,
         ];
+    }
+
+    public static function formatTime(?DateTimeInterface $at): string
+    {
+        if ($at === null) {
+            return '';
+        }
+
+        return Carbon::parse($at)->timezone(config('app.timezone'))->format('g:i A');
     }
 }

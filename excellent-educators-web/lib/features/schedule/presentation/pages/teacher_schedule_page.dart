@@ -8,6 +8,7 @@ import 'package:excellent_educators_web/features/schedule/presentation/providers
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/schedule_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 const _breakfastStarts = [
   '06:00', '07:00', '08:00', '09:00', '10:00',
@@ -66,7 +67,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
     });
 
     return AppScaffold(
-      title: 'Take leave',
+      title: AppStrings.takeLeave,
       body: ListView(
         children: [
           _breaksCard(),
@@ -93,10 +94,10 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Daily breaks', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Brand.navy)),
+          const Text(AppStrings.dailyBreaks, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Brand.navy)),
           const SizedBox(height: 4),
           const Text(
-            'Breakfast and lunch are full hours, for example 1:00–2:00, 2:00–3:00, 3:00–4:00. Both apply every day.',
+            AppStrings.breakfastAndLunchAreFullHoursForExample100,
             style: TextStyle(color: Brand.muted, fontSize: 13),
           ),
           const SizedBox(height: 14),
@@ -104,13 +105,13 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
             builder: (context, constraints) {
               final wide = constraints.maxWidth > 720;
               final breakfast = _breakDropdown(
-                label: 'Breakfast (1 hour)',
+                label: AppStrings.breakfast1Hour,
                 value: _breakfastStart,
                 options: _breakfastStarts,
                 onChanged: (value) => setState(() => _breakfastStart = value),
               );
               final lunch = _breakDropdown(
-                label: 'Lunch (1 hour)',
+                label: AppStrings.lunch1Hour,
                 value: _lunchStart,
                 options: _lunchStarts,
                 onChanged: (value) => setState(() => _lunchStart = value),
@@ -123,7 +124,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
                     Expanded(child: lunch),
                     const SizedBox(width: 12),
                     PortalButton(
-                      label: _savingBreaks ? 'Saving…' : 'Save breaks',
+                      label: _savingBreaks ? AppStrings.saving : AppStrings.saveBreaks,
                       busy: _savingBreaks,
                       onPressed: _saveBreaks,
                     ),
@@ -138,7 +139,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
                   lunch,
                   const SizedBox(height: 12),
                   PortalButton(
-                    label: _savingBreaks ? 'Saving…' : 'Save breaks',
+                    label: _savingBreaks ? AppStrings.saving : AppStrings.saveBreaks,
                     busy: _savingBreaks,
                     onPressed: _saveBreaks,
                   ),
@@ -163,7 +164,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
       starts.sort();
     }
     final items = <DropdownMenuItem<String?>>[
-      const DropdownMenuItem<String?>(value: null, child: Text('Not set')),
+      const DropdownMenuItem<String?>(value: null, child: Text(AppStrings.notSet)),
       for (final start in starts)
         DropdownMenuItem<String?>(
           value: start,
@@ -206,7 +207,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
               PortalButton(
                 outlined: true,
                 icon: Icons.calendar_today_outlined,
-                label: 'Change date',
+                label: AppStrings.changeDate,
                 onPressed: () async {
                   final parsed = DateTime.tryParse(date);
                   final initial = parsed == null || scheduleDateOnly(parsed).isBefore(today)
@@ -231,12 +232,12 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
             ],
           ),
           const SizedBox(height: 14),
-          const Text('How do you want to take leave?', style: TextStyle(fontWeight: FontWeight.w600, color: Brand.navy)),
+          const Text(AppStrings.howDoYouWantToTakeLeave, style: TextStyle(fontWeight: FontWeight.w600, color: Brand.navy)),
           const SizedBox(height: 8),
           SegmentedButton<bool>(
             segments: const [
-              ButtonSegment(value: false, label: Text('Select hours'), icon: Icon(Icons.schedule, size: 16)),
-              ButtonSegment(value: true, label: Text('Full day leave'), icon: Icon(Icons.event_busy, size: 16)),
+              ButtonSegment(value: false, label: Text(AppStrings.selectHours), icon: Icon(Icons.schedule, size: 16)),
+              ButtonSegment(value: true, label: Text(AppStrings.fullDayLeave), icon: Icon(Icons.event_busy, size: 16)),
             ],
             selected: {hasFullDayLeave || _fullDay},
             onSelectionChanged: locked
@@ -259,7 +260,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
               ),
               child: Text(
                 isPast
-                    ? 'Past dates cannot be selected for leave. Choose today or a future date.'
+                    ? AppStrings.pastDatesCannotBeSelectedForLeaveChooseTodayOr
                     : hasFullDayLeave
                         ? 'Full day leave is already recorded for $date. Hour slots cannot be selected and Take leave is disabled until this leave is removed.'
                         : 'Full day leave uses this teacher’s working hours on $date. Hour slots are hidden.',
@@ -268,7 +269,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
             )
           else ...[
             const Text(
-              'Tap a start time, then an end time, to mark those hours as leave.',
+              AppStrings.tapAStartTimeThenAnEndTimeToMark,
               style: TextStyle(color: Brand.muted, fontSize: 13),
             ),
             const SizedBox(height: 10),
@@ -306,7 +307,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
                             ),
                           ),
                           Text(
-                            _selectedSlots.contains(slot.start) ? 'Leave' : slotLabel(slot),
+                            _selectedSlots.contains(slot.start) ? AppStrings.leave : slotLabel(slot),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -329,8 +330,8 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
             maxLength: 255,
             onChanged: (_) => setState(() {}),
             decoration: const InputDecoration(
-              labelText: 'Leave reason',
-              hintText: 'Why are you taking leave?',
+              labelText: AppStrings.leaveReason,
+              hintText: AppStrings.whyAreYouTakingLeave,
             ),
           ),
           const SizedBox(height: 16),
@@ -338,8 +339,8 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
             alignment: Alignment.centerRight,
             child: PortalButton(
               label: _savingLeave
-                  ? 'Saving…'
-                  : (locked ? 'Take leave disabled' : (_fullDay ? 'Confirm full day leave' : 'Confirm selected hours')),
+                  ? AppStrings.saving
+                  : (locked ? AppStrings.takeLeaveDisabled : (_fullDay ? AppStrings.confirmFullDayLeave : AppStrings.confirmSelectedHours)),
               busy: _savingLeave,
               onPressed: canSubmit ? _submitLeave : null,
             ),
@@ -359,7 +360,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
               const Icon(Icons.history_edu_rounded, size: 20, color: Brand.navy),
               const SizedBox(width: 8),
               const Text(
-                'History of leaves',
+                AppStrings.historyOfLeaves,
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Brand.navy),
               ),
               const SizedBox(width: 8),
@@ -383,7 +384,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'All recorded leaves with duration, applied date, and status.',
+            AppStrings.allRecordedLeavesWithDurationAppliedDateAndStatus,
             style: TextStyle(color: Brand.muted, fontSize: 13),
           ),
           const SizedBox(height: 14),
@@ -401,12 +402,12 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
                   Icon(Icons.event_available_rounded, size: 36, color: Color(0xFFCBD5E1)),
                   SizedBox(height: 8),
                   Text(
-                    'No leaves recorded yet',
+                    AppStrings.noLeavesRecordedYet,
                     style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF64748B), fontSize: 14),
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Leaves you apply for using the calendar above will appear here.',
+                    AppStrings.leavesYouApplyForUsingTheCalendarAboveWillAppear,
                     style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                   ),
                 ],
@@ -489,7 +490,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
                 ),
                 child: Text(
                   leave.isFullDay
-                      ? 'Full Day'
+                      ? AppStrings.fullDay
                       : '${formatHm(leave.startTime)} – ${formatHm(leave.endTime)}',
                   style: TextStyle(
                     fontSize: 11.5,
@@ -527,7 +528,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
                   ),
                 ),
                 child: Text(
-                  past ? 'Past' : 'Upcoming',
+                  past ? AppStrings.past : AppStrings.upcoming,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -541,15 +542,15 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
                 visualDensity: VisualDensity.compact,
                 padding: const EdgeInsets.all(4),
                 constraints: const BoxConstraints(),
-                tooltip: past ? 'Past leave cannot be removed' : 'Remove leave',
+                tooltip: past ? AppStrings.pastLeaveCannotBeRemoved : AppStrings.removeLeave,
                 onPressed: past
                     ? null
                     : () async {
                         final ok = await showAppConfirmDialog(
                           context,
-                          title: 'Remove this leave?',
-                          message: 'The slots will become available for bookings again.',
-                          confirmLabel: 'Remove',
+                          title: AppStrings.removeThisLeave,
+                          message: AppStrings.theSlotsWillBecomeAvailableForBookingsAgain,
+                          confirmLabel: AppStrings.remove,
                           destructive: true,
                         );
                         if (!ok) return;
@@ -646,8 +647,8 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
   String _formatLeaveDate(String ymd) {
     final parsed = DateTime.tryParse(ymd);
     if (parsed == null) return ymd;
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const weekdays = [AppStrings.mon2, AppStrings.tue2, AppStrings.wed2, AppStrings.thu2, AppStrings.fri2, AppStrings.sat2, AppStrings.sun2];
+    const months = [AppStrings.jan2, AppStrings.feb2, AppStrings.mar2, AppStrings.apr2, AppStrings.may2, AppStrings.jun2, AppStrings.jul2, AppStrings.aug2, AppStrings.sep2, AppStrings.oct2, AppStrings.nov2, AppStrings.dec2];
     return '${weekdays[parsed.weekday - 1]}, ${parsed.day} ${months[parsed.month - 1]} ${parsed.year}';
   }
 
@@ -655,7 +656,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
     if (iso == null || iso.isEmpty) return '';
     final dt = DateTime.tryParse(iso)?.toLocal();
     if (dt == null) return '';
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [AppStrings.jan2, AppStrings.feb2, AppStrings.mar2, AppStrings.apr2, AppStrings.may2, AppStrings.jun2, AppStrings.jul2, AppStrings.aug2, AppStrings.sep2, AppStrings.oct2, AppStrings.nov2, AppStrings.dec2];
     final day = dt.day.toString().padLeft(2, '0');
     final month = months[dt.month - 1];
     final year = dt.year;
@@ -696,7 +697,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
           );
       ref.invalidate(teacherDayProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Breaks saved.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.breaksSaved)));
       }
     } catch (error) {
       if (mounted) showFailure(context, error);

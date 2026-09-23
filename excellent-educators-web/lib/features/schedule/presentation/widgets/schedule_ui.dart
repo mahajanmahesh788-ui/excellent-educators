@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 Color slotColor(String status) {
   switch (status) {
@@ -31,18 +32,18 @@ String slotLabel(ScheduleSlotDto slot) {
   switch (slot.status) {
     case 'booked':
       return slot.studentName == null || slot.studentName!.isEmpty
-          ? 'Student Booking'
+          ? AppStrings.studentBooking
           : slot.studentName!;
     case 'breakfast':
-      return 'Breakfast';
+      return AppStrings.breakfast;
     case 'lunch':
-      return 'Lunch';
+      return AppStrings.lunch;
     case 'leave':
-      return 'Leave';
+      return AppStrings.leave;
     case 'weekly_off':
-      return 'Weekly off';
+      return AppStrings.weeklyOff;
     default:
-      return 'Available';
+      return AppStrings.available;
   }
 }
 
@@ -120,7 +121,7 @@ class _SlotTile extends StatelessWidget {
               ),
             ),
             Text(
-              selected ? 'Selected' : (slot.status == 'booked' ? 'Booked' : slotLabel(slot)),
+              selected ? AppStrings.selected : (slot.status == 'booked' ? AppStrings.booked : slotLabel(slot)),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -140,7 +141,7 @@ class JoinMeetButton extends StatelessWidget {
   const JoinMeetButton({
     super.key,
     required this.meetingUrl,
-    this.label = 'Join Class',
+    this.label = AppStrings.joinClass,
     this.compact = false,
     this.onPressed,
   });
@@ -166,10 +167,10 @@ class JoinMeetButton extends StatelessWidget {
         if (uri == null) {
           return;
         }
-        await launchUrl(uri, webOnlyWindowName: '_blank');
+        await launchUrl(uri, webOnlyWindowName: AppStrings.blank);
       },
       icon: const Icon(Icons.videocam_outlined, size: 18),
-      label: Text(compact ? 'Join' : label),
+      label: Text(compact ? AppStrings.join : label),
       style: FilledButton.styleFrom(
         backgroundColor: Brand.navy,
         foregroundColor: Colors.white,

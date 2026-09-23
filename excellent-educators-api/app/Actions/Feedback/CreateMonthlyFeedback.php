@@ -3,18 +3,18 @@
 namespace App\Actions\Feedback;
 
 use App\Enums\FeedbackTargetType;
+use App\Enums\SessionBookingStatus;
+use App\Enums\SessionBookingType;
 use App\Exceptions\ApiException;
-use App\Models\DevelopmentModule;
 use App\Models\Dimension;
 use App\Models\MonthlyFeedback;
 use App\Models\MonthlyFeedbackItem;
-use App\Models\Skill;
+use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Support\AppClock;
 use App\Support\ErrorCode;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -25,69 +25,116 @@ class CreateMonthlyFeedback
      */
     public function execute(TeacherProfile $teacher, StudentProfile $student, array $input): MonthlyFeedback
     {
-        $this->assertAssigned($teacher, $student);
-        $this->assertTargetsExist($input['items'] ?? []);
+        $booking = $this->resolveBooking($teacher, $student, $input);
+        $this->assertDimensionItems($input['items'] ?? []);
 
-        $sessionDate = Carbon::parse(
-            $input['session_date'] ?? AppClock::todayString(),
-            config('app.timezone'),
-        )->startOfDay();
+        $sessionDate = $booking->date?->timezone(config('app.timezone'))->startOfDay()
+            ?? AppClock::now()->startOfDay();
 
         try {
-            return DB::transaction(function () use ($teacher, $student, $input, $sessionDate) {
+            return DB::transaction(function () use ($teacher, $student, $input, $booking, $sessionDate) {
                 $feedback = MonthlyFeedback::query()->create([
                     'student_id' => $student->id,
                     'master_teacher_id' => $teacher->id,
+                    'session_booking_id' => $booking->id,
                     'year' => $sessionDate->year,
                     'month' => $sessionDate->month,
                     'session_date' => $sessionDate->toDateString(),
+                    'positive_points' => $input['positive_points'] ?? null,
+                    'areas_for_improvement' => $input['areas_for_improvement'] ?? null,
+                    'discussed_in_class' => $input['discussed_in_class'] ?? null,
                     'submitted_at' => now(),
                 ]);
 
                 $this->storeItems($feedback, $input['items']);
 
-                return $feedback->fresh(['items', 'masterTeacher', 'student']) ?? $feedback;
+                return $feedback->fresh(['items', 'masterTeacher', 'student', 'booking']) ?? $feedback;
             });
         } catch (UniqueConstraintViolationException) {
             throw new ApiException(
                 ErrorCode::FEEDBACK_DUPLICATE,
-                'Monthly rating already exists for this student. Edit the existing rating instead.',
+                'This Master Class already has a rating. Edit the existing rating instead.',
                 409,
             );
         }
     }
 
-    private function assertAssigned(TeacherProfile $teacher, StudentProfile $student): void
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private function resolveBooking(TeacherProfile $teacher, StudentProfile $student, array $input): SessionBooking
     {
-        if (! $teacher->canAccessStudent($student)) {
+        $bookingId = $input['booking_id'] ?? null;
+        $query = SessionBooking::query()
+            ->where('student_id', $student->id)
+            ->where('teacher_id', $teacher->id)
+            ->where('type', SessionBookingType::MasterClass->value)
+            ->where('status', '!=', SessionBookingStatus::Cancelled->value)
+            ->where('ends_at', '<=', AppClock::now())
+            ->whereDoesntHave('attendanceIssues')
+            ->whereDoesntHave('monthlyFeedback');
+
+        if (is_string($bookingId) && $bookingId !== '') {
+            $booking = SessionBooking::query()->whereKey($bookingId)->first();
+            if ($booking === null
+                || $booking->student_id !== $student->id
+                || $booking->teacher_id !== $teacher->id
+                || ($booking->type?->value ?? $booking->type) !== SessionBookingType::MasterClass->value
+                || ($booking->status?->value ?? $booking->status) === SessionBookingStatus::Cancelled->value
+            ) {
+                throw new ApiException(ErrorCode::VALIDATION_ERROR, 'Choose a completed Master Class to rate.', 422);
+            }
+            if ($booking->monthlyFeedback()->exists()) {
+                throw new ApiException(
+                    ErrorCode::FEEDBACK_DUPLICATE,
+                    'This Master Class already has a rating. Edit the existing rating instead.',
+                    409,
+                );
+            }
+
+            return $booking;
+        }
+
+        $booking = $query->orderBy('starts_at')->first();
+        if ($booking === null) {
             throw new ApiException(
-                ErrorCode::FORBIDDEN,
-                'Only the currently assigned Master Teacher can submit feedback for this student.',
-                403,
+                ErrorCode::FEEDBACK_NOT_DUE,
+                'Add a rating only after this student completes a Master Class with you.',
+                409,
             );
         }
+
+        return $booking;
     }
 
     /**
      * @param  list<array<string, mixed>>  $items
      */
-    private function assertTargetsExist(array $items): void
+    public function assertDimensionItems(array $items): void
     {
+        $dimensionIds = Dimension::query()->orderBy('display_order')->pluck('id');
+        $seen = [];
+
         foreach ($items as $index => $item) {
             $type = FeedbackTargetType::tryFrom((string) ($item['target_type'] ?? ''));
-            $targetId = $item['target_id'] ?? null;
-            $exists = match ($type) {
-                FeedbackTargetType::Dimension => Dimension::query()->whereKey($targetId)->exists(),
-                FeedbackTargetType::Module => DevelopmentModule::query()->whereKey($targetId)->exists(),
-                FeedbackTargetType::Skill => Skill::query()->whereKey($targetId)->exists(),
-                default => false,
-            };
-
-            if (! $exists) {
+            $targetId = (string) ($item['target_id'] ?? '');
+            if ($type !== FeedbackTargetType::Dimension || ! $dimensionIds->contains($targetId)) {
                 throw ValidationException::withMessages([
-                    "items.{$index}.target_id" => 'The selected skill, module, or dimension is invalid.',
+                    "items.{$index}.target_id" => 'Rate each of the ten development dimensions.',
                 ]);
             }
+            if (isset($seen[$targetId])) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.target_id" => 'Each dimension can only be rated once.',
+                ]);
+            }
+            $seen[$targetId] = true;
+        }
+
+        if (count($seen) !== $dimensionIds->count()) {
+            throw ValidationException::withMessages([
+                'items' => 'Rate all ten dimensions for this Master Class.',
+            ]);
         }
     }
 
@@ -99,12 +146,9 @@ class CreateMonthlyFeedback
         foreach ($items as $item) {
             MonthlyFeedbackItem::query()->create([
                 'monthly_feedback_id' => $feedback->id,
-                'target_type' => $item['target_type'],
+                'target_type' => FeedbackTargetType::Dimension->value,
                 'target_id' => $item['target_id'],
                 'rating' => $item['rating'],
-                'positive_points' => $item['positive_points'] ?? null,
-                'areas_for_improvement' => $item['areas_for_improvement'] ?? null,
-                'recommended_next_action' => $item['recommended_next_action'] ?? null,
             ]);
         }
     }

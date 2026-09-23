@@ -24,7 +24,11 @@ class StudentHeroCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0B1F36), Color(0xFF163A5C), Color(0xFF1E4A73)],
+          colors: [
+            StudentColors.textPrimary,
+            StudentColors.forest,
+            StudentColors.forestMid,
+          ],
         ),
         boxShadow: [
           BoxShadow(
@@ -127,7 +131,7 @@ class StudentStatChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE6DCCB)),
+        border: Border.all(color: StudentColors.border),
         boxShadow: [
           BoxShadow(
             color: Brand.navy.withValues(alpha: 0.04),
@@ -151,13 +155,16 @@ class StudentStatChip extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(color: Brand.muted, fontSize: 11)),
+                Text(
+                  label,
+                  style: const TextStyle(color: Brand.muted, fontSize: 11),
+                ),
                 Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Brand.navy,
+                    color: StudentColors.textPrimary,
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
@@ -192,7 +199,7 @@ class StudentSectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE6DCCB)),
+        border: Border.all(color: StudentColors.border),
         boxShadow: [
           BoxShadow(
             color: Brand.navy.withValues(alpha: 0.05),
@@ -216,7 +223,7 @@ class StudentSectionCard extends StatelessWidget {
                   child: Text(
                     title,
                     style: const TextStyle(
-                      color: Brand.navy,
+                      color: StudentColors.textPrimary,
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
                     ),
@@ -240,7 +247,7 @@ class StudentQuickLink extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onTap,
-    this.color = Brand.navy,
+    this.color = StudentColors.forest,
   });
 
   final String label;
@@ -268,7 +275,11 @@ class StudentQuickLink extends StatelessWidget {
                   style: TextStyle(color: color, fontWeight: FontWeight.w700),
                 ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: color.withValues(alpha: 0.6)),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: color.withValues(alpha: 0.6),
+              ),
             ],
           ),
         ),
@@ -321,8 +332,14 @@ class _StudentPremiumActionState extends State<StudentPremiumAction> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: _hover
-                      ? const [Color(0xFFC6A15B), Color(0xFFE8D19A)]
-                      : const [Color(0xFF123152), Color(0xFF1C4A73)],
+                      ? const [
+                          StudentColors.goldBrand,
+                          StudentColors.goldBrandSoft,
+                        ]
+                      : const [
+                          StudentColors.textPrimary,
+                          StudentColors.forestMid,
+                        ],
                 ),
                 border: Border.all(color: const Color(0x66E8D19A)),
                 boxShadow: [
@@ -336,7 +353,11 @@ class _StudentPremiumActionState extends State<StudentPremiumAction> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(widget.icon, color: _hover ? Brand.navyDeep : Brand.gold, size: 26),
+                  Icon(
+                    widget.icon,
+                    color: _hover ? Brand.navyDeep : Brand.gold,
+                    size: 26,
+                  ),
                   const SizedBox(height: 14),
                   Text(
                     widget.title,
@@ -350,7 +371,9 @@ class _StudentPremiumActionState extends State<StudentPremiumAction> {
                   Text(
                     widget.subtitle,
                     style: TextStyle(
-                      color: _hover ? Brand.navy.withValues(alpha: 0.72) : Colors.white.withValues(alpha: 0.75),
+                      color: _hover
+                          ? Brand.navy.withValues(alpha: 0.72)
+                          : Colors.white.withValues(alpha: 0.75),
                       fontSize: 12,
                       height: 1.35,
                     ),

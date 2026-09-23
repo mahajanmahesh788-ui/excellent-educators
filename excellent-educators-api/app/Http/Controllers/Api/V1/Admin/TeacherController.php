@@ -17,6 +17,7 @@ use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Support\ApiResponse;
 use App\Support\ErrorCode;
+use App\Support\SearchRank;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -52,7 +53,14 @@ class TeacherController extends Controller
             ->when($request->filled('exclude_level_id'), function ($query) use ($request): void {
                 $levelId = $request->string('exclude_level_id')->toString();
                 $query->whereDoesntHave('academicLevels', fn ($q) => $q->where('academic_levels.id', $levelId));
-            })
+            });
+
+        $search = trim($request->string('search')->toString());
+        if ($search !== '') {
+            SearchRank::orderBy($teachers, $search, ['teacher_profiles.full_name', 'teacher_profiles.employee_code']);
+        }
+
+        $teachers = $teachers
             ->orderBy('full_name')
             ->paginate((int) $request->integer('per_page', 15));
 
@@ -133,5 +141,13 @@ class TeacherController extends Controller
             ->loadCount(['academicLevels', 'activeBatchAssignments', 'activeMasterTeacherAssignments']);
 
         return ApiResponse::success('Teacher updated successfully.', TeacherResource::make($teacher)->resolve());
+    }
+
+    public function destroy(TeacherProfile $teacher): JsonResponse
+    {
+        $teacher->user?->delete();
+        $teacher->delete();
+
+        return ApiResponse::success('Teacher deleted successfully.');
     }
 }

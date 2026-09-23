@@ -4,6 +4,7 @@ import 'package:excellent_educators_web/features/academic/presentation/pages/adm
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_standouts_pages.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_detail_pages.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_teacher_history_page.dart';
+import 'package:excellent_educators_web/features/academic/presentation/pages/admin_sub_admins_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_students_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_student_edit_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_teachers_page.dart';
@@ -16,6 +17,7 @@ import 'package:excellent_educators_web/features/auth/presentation/pages/forgot_
 import 'package:excellent_educators_web/features/auth/presentation/pages/login_page.dart';
 import 'package:excellent_educators_web/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:excellent_educators_web/features/auth/presentation/pages/session_page.dart';
+import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/pages/feedback_pages.dart';
 import 'package:excellent_educators_web/features/requests/presentation/pages/request_pages.dart';
@@ -33,10 +35,12 @@ import 'package:excellent_educators_web/features/schedule/presentation/pages/tea
 import 'package:excellent_educators_web/features/schedule/presentation/pages/teacher_student_briefing_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/teacher_schedule_page.dart';
 import 'package:excellent_educators_web/features/student/presentation/pages/student_dashboard_page.dart';
+import 'package:excellent_educators_web/features/student/presentation/pages/student_mentor_profile_page.dart';
 import 'package:excellent_educators_web/features/student/presentation/pages/student_teachers_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -76,15 +80,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           isMasterTeacher: user.isMasterTeacher,
           isStudent: user.isStudent,
         );
-        if (loggingIn || location == RoutePaths.session || location == '/' ||
-            location == RoutePaths.forgotPassword || location == RoutePaths.resetPassword) {
+        if (loggingIn ||
+            location == RoutePaths.session ||
+            location == '/' ||
+            location == RoutePaths.forgotPassword ||
+            location == RoutePaths.resetPassword) {
           return home;
         }
         if (location == '/notifications') {
-          return RoutePaths.notificationsFor(isStudent: user.isStudent);
+          return RoutePaths.notificationsFor(
+            isStudent: user.isStudent,
+            isAdmin: user.isAdmin,
+          );
         }
         if (location.startsWith('/admin') && !user.isAdmin) {
           return home;
+        }
+        if (location.startsWith('/admin') &&
+            user.isAdmin &&
+            !AdminPermission.canOpenPath(user, location)) {
+          return RoutePaths.adminDashboard;
         }
         if (location.startsWith(RoutePaths.teacherBatches)) {
           return RoutePaths.teacherDaySchedule;
@@ -93,7 +108,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           if (!user.isMasterTeacher && !user.isCommonTeacher) {
             return home;
           }
-          final teacherRoutes = location.startsWith(RoutePaths.teacherProfile) ||
+          final teacherRoutes =
+              location.startsWith(RoutePaths.teacherProfile) ||
               location.startsWith(RoutePaths.teacherRequests) ||
               location.startsWith(RoutePaths.teacherNotifications) ||
               location.startsWith(RoutePaths.teacherSchedule);
@@ -118,7 +134,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Page not found'),
+            const Text(AppStrings.pageNotFound),
             const SizedBox(height: 12),
             FilledButton(
               onPressed: () {
@@ -127,14 +143,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   context.go(RoutePaths.login);
                   return;
                 }
-                context.go(RoutePaths.homeFor(
-                  isAdmin: user.isAdmin,
-                  isCommonTeacher: user.isCommonTeacher,
-                  isMasterTeacher: user.isMasterTeacher,
-                  isStudent: user.isStudent,
-                ));
+                context.go(
+                  RoutePaths.homeFor(
+                    isAdmin: user.isAdmin,
+                    isCommonTeacher: user.isCommonTeacher,
+                    isMasterTeacher: user.isMasterTeacher,
+                    isStudent: user.isStudent,
+                  ),
+                );
               },
-              child: const Text('Go home'),
+              child: const Text(AppStrings.goHome),
             ),
           ],
         ),
@@ -170,6 +188,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AdminDashboardPage(),
       ),
       GoRoute(
+        path: RoutePaths.adminSubAdmins,
+        builder: (context, state) => const AdminSubAdminsPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminSubAdminNew,
+        builder: (context, state) => const AdminCreateSubAdminPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminSubAdminEdit,
+        builder: (context, state) =>
+            AdminEditSubAdminPage(subAdminId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: RoutePaths.adminSubAdminHistory,
+        builder: (context, state) =>
+            AdminSubAdminHistoryPage(subAdminId: state.pathParameters['id']!),
+      ),
+      GoRoute(
         path: RoutePaths.adminBestStudents,
         builder: (context, state) => const AdminBestStudentsPage(),
       ),
@@ -187,23 +223,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.adminStudentDetail,
-        builder: (context, state) => AdminStudentDetailPage(studentId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            AdminStudentDetailPage(studentId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminStudentEdit,
-        builder: (context, state) => AdminEditStudentPage(studentId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            AdminEditStudentPage(studentId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminStudentJournal,
-        builder: (context, state) => StaffLearningJournalPage(studentId: state.pathParameters['id']!, masterTeacher: false),
+        builder: (context, state) => StaffLearningJournalPage(
+          studentId: state.pathParameters['id']!,
+          masterTeacher: false,
+        ),
       ),
       GoRoute(
         path: RoutePaths.adminStudentJournalWeek,
         builder: (context, state) => StaffLearningWeekPage(
           studentId: state.pathParameters['id']!,
-          journeyId: state.pathParameters['journeyId']!,
+          journeyId: state.pathParameters[AppStrings.journeyid]!,
           week: int.parse(state.pathParameters['week']!),
-          masterTeacher: false,
+          audience: StaffLearningAudience.admin,
         ),
       ),
       GoRoute(
@@ -211,19 +252,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => MonthlyFeedbackFormPage(
           studentId: state.pathParameters['id']!,
           audience: MonthlyFeedbackFormAudience.admin,
+          bookingId: state.uri.queryParameters[AppStrings.bookingid],
         ),
       ),
       GoRoute(
         path: RoutePaths.adminFeedbackEdit,
         builder: (context, state) => MonthlyFeedbackFormPage(
           studentId: state.pathParameters['id']!,
-          feedbackId: state.pathParameters['feedbackId']!,
+          feedbackId: state.pathParameters[AppStrings.feedbackid]!,
           audience: MonthlyFeedbackFormAudience.admin,
         ),
       ),
       GoRoute(
         path: RoutePaths.adminStudentResults,
-        builder: (context, state) => AdminStudentResultsPage(studentId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            AdminStudentResultsPage(studentId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminTeachers,
@@ -235,23 +278,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.adminTeacherEdit,
-        builder: (context, state) => AdminEditTeacherPage(teacherId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            AdminEditTeacherPage(teacherId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminTeacherAvailability,
-        builder: (context, state) => TeacherAvailabilityEditPage(teacherId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            TeacherAvailabilityEditPage(teacherId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminTeacherHistory,
-        builder: (context, state) => AdminTeacherHistoryPage(teacherId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            AdminTeacherHistoryPage(teacherId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminTeacherPromoted,
-        builder: (context, state) => AdminTeacherPromotedPage(teacherId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            AdminTeacherPromotedPage(teacherId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminTeacherDetail,
-        builder: (context, state) => AdminTeacherDetailPage(teacherId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            AdminTeacherDetailPage(teacherId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminBatches,
@@ -263,7 +311,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.adminBatchDetail,
-        builder: (context, state) => AdminBatchDetailPage(batchId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            AdminBatchDetailPage(batchId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminAssessments,
@@ -275,11 +324,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.adminAssessmentDetail,
-        builder: (context, state) => AdminAssessmentEditorPage(assessmentId: state.pathParameters['id']!),
+        builder: (context, state) => AdminAssessmentEditorPage(
+          assessmentId: state.pathParameters['id']!,
+        ),
       ),
       GoRoute(
         path: RoutePaths.adminAssessmentAttempts,
-        builder: (context, state) => AdminAssessmentAttemptsPage(assessmentId: state.pathParameters['id']!),
+        builder: (context, state) => AdminAssessmentAttemptsPage(
+          assessmentId: state.pathParameters['id']!,
+        ),
       ),
       GoRoute(
         path: RoutePaths.adminLoginPage,
@@ -299,13 +352,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.adminAttendance,
-        builder: (context, state) => AdminAttendancePage(
-          issueId: state.uri.queryParameters['issue'],
-        ),
+        builder: (context, state) =>
+            AdminAttendancePage(issueId: state.uri.queryParameters['issue']),
       ),
       GoRoute(
         path: RoutePaths.adminWeeklyLearning,
-        builder: (context, state) => AdminWeeklyLearningPage(levelId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            AdminWeeklyLearningPage(levelId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.adminRequests,
@@ -313,7 +366,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.adminRequestDetail,
-        builder: (context, state) => AdminRequestDetailPage(requestId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            AdminRequestDetailPage(requestId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.teacherBatches,
@@ -321,26 +375,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.teacherBatchStudents,
-        builder: (context, state) => TeacherBatchStudentsPage(batchId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            TeacherBatchStudentsPage(batchId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.teacherBatchAssessments,
-        builder: (context, state) => TeacherBatchAssessmentsPage(batchId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            TeacherBatchAssessmentsPage(batchId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.teacherAssessmentNew,
-        builder: (context, state) => TeacherCreateAssessmentPage(batchId: state.pathParameters['batchId']!),
+        builder: (context, state) => TeacherCreateAssessmentPage(
+          batchId: state.pathParameters[AppStrings.batchid]!,
+        ),
       ),
       GoRoute(
         path: RoutePaths.teacherAssessmentDetail,
         builder: (context, state) => TeacherAssessmentDetailPage(
-          batchId: state.pathParameters['batchId']!,
-          assessmentId: state.pathParameters['assessmentId']!,
+          batchId: state.pathParameters[AppStrings.batchid]!,
+          assessmentId: state.pathParameters[AppStrings.assessmentid]!,
         ),
       ),
       GoRoute(
         path: RoutePaths.teacherStudentResults,
-        builder: (context, state) => TeacherStudentResultsPage(studentId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            TeacherStudentResultsPage(studentId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.masterTeacherDashboard,
@@ -352,19 +411,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.masterTeacherStudentDetail,
-        builder: (context, state) => MasterTeacherStudentDetailPage(studentId: state.pathParameters['id']!),
+        builder: (context, state) => MasterTeacherStudentDetailPage(
+          studentId: state.pathParameters['id']!,
+        ),
       ),
       GoRoute(
         path: RoutePaths.masterTeacherStudentJournal,
-        builder: (context, state) => StaffLearningJournalPage(studentId: state.pathParameters['id']!, masterTeacher: true),
+        builder: (context, state) => StaffLearningJournalPage(
+          studentId: state.pathParameters['id']!,
+          masterTeacher: true,
+        ),
       ),
       GoRoute(
         path: RoutePaths.masterTeacherStudentJournalWeek,
         builder: (context, state) => StaffLearningWeekPage(
           studentId: state.pathParameters['id']!,
-          journeyId: state.pathParameters['journeyId']!,
+          journeyId: state.pathParameters[AppStrings.journeyid]!,
           week: int.parse(state.pathParameters['week']!),
-          masterTeacher: true,
+          audience: StaffLearningAudience.masterTeacher,
         ),
       ),
       GoRoute(
@@ -372,13 +436,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => MonthlyFeedbackFormPage(
           studentId: state.pathParameters['id']!,
           audience: MonthlyFeedbackFormAudience.masterTeacher,
+          bookingId: state.uri.queryParameters[AppStrings.bookingid],
         ),
       ),
       GoRoute(
         path: RoutePaths.masterTeacherFeedbackEdit,
         builder: (context, state) => MonthlyFeedbackFormPage(
           studentId: state.pathParameters['id']!,
-          feedbackId: state.pathParameters['feedbackId']!,
+          feedbackId: state.pathParameters[AppStrings.feedbackid]!,
           audience: MonthlyFeedbackFormAudience.masterTeacher,
         ),
       ),
@@ -398,6 +463,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: RoutePaths.teacherScheduleStudentWeek,
+        builder: (context, state) => StaffLearningWeekPage(
+          studentId: state.pathParameters['id']!,
+          journeyId: state.pathParameters[AppStrings.journeyid]!,
+          week: int.parse(state.pathParameters['week']!),
+          audience: StaffLearningAudience.teacher,
+        ),
+      ),
+      GoRoute(
         path: RoutePaths.teacherProfile,
         builder: (context, state) => const TeacherProfilePage(),
       ),
@@ -408,6 +482,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.teacherRequestNew,
         builder: (context, state) => const TeacherNewRequestPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminNotifications,
+        builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
         path: RoutePaths.studentNotifications,
@@ -427,13 +505,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final type = state.uri.queryParameters['type'];
           return StudentBookingWizardPage(
             type: type == null || type.isEmpty ? null : type,
-            bookingId: state.uri.queryParameters['bookingId'],
+            bookingId: state.uri.queryParameters[AppStrings.bookingid],
           );
         },
       ),
       GoRoute(
         path: RoutePaths.studentTeachers,
         builder: (context, state) => const StudentTeachersPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.studentMentorProfile,
+        builder: (context, state) => StudentMentorProfilePage(
+          teacherId: state.pathParameters['id']!,
+          bookingType: state.uri.queryParameters['type'],
+        ),
       ),
       GoRoute(
         path: RoutePaths.studentDashboard,
@@ -446,7 +531,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.studentJournalWeek,
         builder: (context, state) => StudentLearningWeekPage(
-          journeyId: state.pathParameters['journeyId']!,
+          journeyId: state.pathParameters[AppStrings.journeyid]!,
           week: int.parse(state.pathParameters['week']!),
         ),
       ),

@@ -51,19 +51,4 @@ class AppSettingsTest extends TestCase
             ->putJson('/api/v1/admin/settings', ['max_active_students' => 10])
             ->assertForbidden();
     }
-
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'ops-settings@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        $this->app['auth']->forgetGuards();
-
-        return $user->createToken('test')->plainTextToken;
-    }
 }

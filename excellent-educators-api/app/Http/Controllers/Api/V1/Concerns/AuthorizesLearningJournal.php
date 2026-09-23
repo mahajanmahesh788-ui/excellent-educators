@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Concerns;
 
+use App\Enums\PermissionName;
 use App\Enums\RoleName;
 use App\Exceptions\ApiException;
 use App\Models\StudentProfile;
@@ -48,6 +49,6 @@ trait AuthorizesLearningJournal
     {
         $user = $request->user();
 
-        return $user !== null && ($user->isAdmin() || $user->hasRole(RoleName::MasterTeacher));
+        return $user !== null && ($user->canAdmin(PermissionName::StudentsView) || $user->hasRole(RoleName::MasterTeacher));
     }
 }

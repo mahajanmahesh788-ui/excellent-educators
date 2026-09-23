@@ -1,6 +1,10 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
+import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
+import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
+import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
+import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
@@ -17,6 +21,7 @@ import 'package:excellent_educators_web/features/schedule/presentation/widgets/t
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminStudentDetailPage extends ConsumerWidget {
   const AdminStudentDetailPage({super.key, required this.studentId});
@@ -27,10 +32,9 @@ class AdminStudentDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final studentValue = ref.watch(adminStudentProvider(studentId));
     final resultsValue = ref.watch(adminStudentResultsProvider(studentId));
-    final wide = MediaQuery.sizeOf(context).width >= 900;
-
+    final user = ref.watch(authControllerProvider).user;
     return AppScaffold(
-      title: 'Student profile',
+      title: AppStrings.studentProfile,
       backTo: RoutePaths.adminStudents,
       body: AsyncBody(
         value: studentValue,
@@ -42,7 +46,7 @@ class AdminStudentDetailPage extends ConsumerWidget {
               StudentCard(
                 student: student,
                 highlightOverallRating: true,
-                showMonthRatingStatus: true,
+                showMonthRatingStatus: false,
                 action: Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -50,96 +54,132 @@ class AdminStudentDetailPage extends ConsumerWidget {
                     FilledButton.tonalIcon(
                       onPressed: () => context.go(RoutePaths.adminStudentJournalFor(student.id)),
                       icon: const Icon(Icons.menu_book_outlined, size: 18),
-                      label: const Text('Learning journal'),
+                      label: const Text(AppStrings.learningJournal2),
                     ),
+                    if (user?.canAdmin(AdminPermission.studentsEdit) ?? false)
+                      FilledButton.tonalIcon(
+                        onPressed: () => updateStudentMasterClassQuota(context, ref, student),
+                        icon: const Icon(Icons.event_available_outlined, size: 18),
+                        label: const Text(AppStrings.masterClasses),
+                      ),
                     if (student.hasSubmittedAptitudeAssessment)
                       FilledButton.tonalIcon(
                         onPressed: () => context.go(RoutePaths.adminStudentResultsFor(student.id)),
                         icon: const Icon(Icons.insights, size: 18),
-                        label: const Text('Aptitude results'),
+                        label: const Text(AppStrings.aptitudeResults),
+                      ),
+                    if (user?.canAdmin(AdminPermission.studentsDelete) ?? false)
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final confirmed = await showAppConfirmDialog(
+                            context,
+                            title: AppStrings.deleteStudent,
+                            message: AppStrings.delete,
+                            confirmLabel: AppStrings.delete,
+                            cancelLabel: AppStrings.cancel,
+                            destructive: true,
+                          );
+                          if (confirmed != true) {
+                            return;
+                          }
+                          try {
+                            await ref.read(academicRepositoryProvider).deleteStudent(student.id);
+                            if (context.mounted) {
+                              context.go(RoutePaths.adminStudents);
+                            }
+                          } catch (error) {
+                            if (context.mounted) {
+                              showFailure(context, error);
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: const Text(AppStrings.deleteStudent),
                       ),
                   ],
                 ),
-                trailing: IconButton(
-                  tooltip: 'Edit student',
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => context.go(RoutePaths.adminStudentEditFor(student.id)),
-                ),
+                trailing: (user?.canAdmin(AdminPermission.studentsEdit) ?? false)
+                    ? IconButton(
+                        tooltip: AppStrings.editStudent,
+                        icon: const Icon(Icons.edit_outlined),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => context.go(RoutePaths.adminStudentEditFor(student.id)),
+                      )
+                    : null,
               ),
               const SizedBox(height: 12),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: wide ? 4 : 2,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: wide ? 2.6 : 2.0,
+              StatGrid(
                 children: [
                   StatTile(
-                    label: 'Status',
-                    value: student.status == 'active' ? 'Active' : 'Inactive',
+                    label: AppStrings.status2,
+                    value: student.status == 'active' ? AppStrings.active : AppStrings.inactive,
                   ),
                   StatTile(
-                    label: 'Class & Level',
+                    label: AppStrings.classLevel,
                     value: student.classGrade > 0
                         ? 'Class ${student.classGrade}${student.level != null && !student.level!.isEmpty ? ' · ${student.level!.label}' : ''}'
-                        : (student.level != null && !student.level!.isEmpty ? student.level!.label : 'Not assigned'),
+                        : (student.level != null && !student.level!.isEmpty ? student.level!.label : AppStrings.notAssigned),
                   ),
                   StatTile(
-                    label: 'Aptitude test',
-                    value: student.hasSubmittedAptitudeAssessment ? 'Submitted' : 'Pending',
+                    label: AppStrings.aptitudeTest,
+                    value: student.hasSubmittedAptitudeAssessment ? AppStrings.submitted : AppStrings.pending,
                   ),
                   StatTile(
-                    label: 'Overall rating',
+                    label: AppStrings.overallRating,
                     value: student.hasOverallRating
                         ? '${student.feedbackOverallAverage!.toStringAsFixed(1)} ★'
-                        : 'Not rated',
+                        : AppStrings.notRated,
+                  ),
+                  StatTile(
+                    label: AppStrings.masterClassesThisMonth,
+                    value: '${student.masterClassRemaining} left',
+                    subtitle: '${student.masterClassUsed} used of ${student.masterClassAllotment}',
+                    onTap: (user?.canAdmin(AdminPermission.studentsEdit) ?? false)
+                        ? () => updateStudentMasterClassQuota(context, ref, student)
+                        : null,
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               DetailSection(
-                title: 'Student information',
+                title: AppStrings.studentInformation,
                 children: [
-                  DetailRow(label: 'Student ID', value: student.studentCode),
-                  DetailRow(label: 'Email', value: student.email),
-                  DetailRow(label: 'Phone', value: student.phone.isNotEmpty ? student.phone : '—'),
+                  DetailRow(label: AppStrings.studentId, value: student.studentCode),
+                  DetailRow(label: AppStrings.gender, value: genderLabel(student.gender)),
+                  DetailRow(label: AppStrings.email, value: student.email),
+                  DetailRow(label: AppStrings.phone, value: student.phone.isNotEmpty ? student.phone : '—'),
                   if (student.whatsappNumber != null && student.whatsappNumber!.isNotEmpty)
-                    DetailRow(label: 'WhatsApp', value: student.whatsappNumber!),
+                    DetailRow(label: AppStrings.whatsapp, value: student.whatsappNumber!),
                   if (student.address != null && student.address!.isNotEmpty)
-                    DetailRow(label: 'Address', value: student.address!),
+                    DetailRow(label: AppStrings.address, value: student.address!),
                   if (student.guardianName != null && student.guardianName!.isNotEmpty)
                     DetailRow(
-                      label: 'Guardian',
+                      label: AppStrings.guardian,
                       value: student.guardianPhone != null && student.guardianPhone!.isNotEmpty
                           ? '${student.guardianName!} · ${student.guardianPhone!}'
                           : student.guardianName!,
                     ),
                   if (student.createdAt != null)
-                    DetailRow(label: 'Registered', value: formatDisplayDateTime(student.createdAt)),
+                    DetailRow(label: AppStrings.registered, value: formatDisplayDateTime(student.createdAt)),
                   if (student.level != null && !student.level!.isEmpty)
-                    DetailRow(label: 'Level', value: student.level!.label),
+                    DetailRow(label: AppStrings.level, value: student.level!.label),
                   if (student.batch != null && !student.batch!.isEmpty)
-                    DetailRow(label: 'Batch', value: student.batch!.label),
-                  DetailRow(
-                    label: 'Master teacher',
-                    value: student.masterTeacher != null && !student.masterTeacher!.isEmpty
-                        ? student.masterTeacher!.label
-                        : 'Not assigned',
-                  ),
+                    DetailRow(label: AppStrings.batch, value: student.batch!.label),
                 ],
               ),
               const SizedBox(height: 12),
+              _StudentHistorySection(studentId: student.id),
+              const SizedBox(height: 12),
               DetailSection(
-                title: 'Aptitude assessment',
+                title: AppStrings.aptitudeAssessment,
                 children: [
                   if (student.hasSubmittedAptitudeAssessment) ...[
-                    DetailRow(label: 'Status', value: 'Submitted'),
+                    DetailRow(label: AppStrings.status2, value: AppStrings.submitted),
                     if (student.aptitudeAssessmentTitle != null && student.aptitudeAssessmentTitle!.isNotEmpty)
-                      DetailRow(label: 'Assessment', value: student.aptitudeAssessmentTitle!),
+                      DetailRow(label: AppStrings.assessment, value: student.aptitudeAssessmentTitle!),
                     if (student.aptitudeAssessmentSubmittedAt != null)
                       DetailRow(
-                        label: 'Submitted on',
+                        label: AppStrings.submittedOn,
                         value: formatDisplayDateTime(student.aptitudeAssessmentSubmittedAt),
                       ),
                     const SizedBox(height: 10),
@@ -169,39 +209,31 @@ class AdminStudentDetailPage extends ConsumerWidget {
                         FilledButton.icon(
                           onPressed: () => context.go(RoutePaths.adminStudentResultsFor(student.id)),
                           icon: const Icon(Icons.insights, size: 18),
-                          label: const Text('View detailed scores & dimensions'),
+                          label: const Text(AppStrings.viewDetailedScoresDimensions),
                         ),
                         OutlinedButton.icon(
                           onPressed: () => context.go(RoutePaths.adminStudentJournalFor(student.id)),
                           icon: const Icon(Icons.menu_book_outlined, size: 18),
-                          label: const Text('Open learning journal'),
+                          label: const Text(AppStrings.openLearningJournal),
                         ),
                       ],
                     ),
                   ] else ...[
-                    const DetailRow(label: 'Status', value: 'Not submitted yet'),
+                    const DetailRow(label: AppStrings.status2, value: AppStrings.notSubmittedYet),
                     const SizedBox(height: 8),
                     Text(
-                      'The student will see the assessment on their dashboard once it is active.',
+                      AppStrings.theStudentWillSeeTheAssessmentOnTheirDashboardOnce,
                       style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
                     ),
                   ],
                 ],
               ),
               const SizedBox(height: 12),
-              _StudentAdminWorkflow(
-                student: student,
-                onReviewResults: student.hasSubmittedAptitudeAssessment
-                    ? () => context.go(RoutePaths.adminStudentResultsFor(student.id))
-                    : null,
-                onOpenBatch: student.batch != null && !student.batch!.isEmpty
-                    ? () => context.go(RoutePaths.adminBatch(student.batch!.id))
-                    : null,
-              ),
-              const SizedBox(height: 12),
               AdminStudentFeedbackSection(student: student),
-              const SizedBox(height: 12),
-              _PromoteStudentCard(studentId: student.id, currentLevelId: student.level?.id),
+              if (user?.canAdmin(AdminPermission.studentsPromote) ?? false) ...[
+                const SizedBox(height: 12),
+                _PromoteStudentCard(studentId: student.id, currentLevelId: student.level?.id),
+              ],
             ],
           );
         },
@@ -210,158 +242,131 @@ class AdminStudentDetailPage extends ConsumerWidget {
   }
 }
 
-class _StudentAdminWorkflow extends StatelessWidget {
-  const _StudentAdminWorkflow({
-    required this.student,
-    this.onReviewResults,
-    this.onOpenBatch,
-  });
+Future<void> updateStudentMasterClassQuota(
+  BuildContext context,
+  WidgetRef ref,
+  StudentDto student,
+) {
+  return showDialog<void>(
+    context: context,
+    builder: (ctx) => _MasterClassQuotaDialog(student: student),
+  );
+}
+
+class _MasterClassQuotaDialog extends ConsumerStatefulWidget {
+  const _MasterClassQuotaDialog({required this.student});
 
   final StudentDto student;
-  final VoidCallback? onReviewResults;
-  final VoidCallback? onOpenBatch;
 
-  bool get _inBatch => student.batch != null && !student.batch!.isEmpty;
+  @override
+  ConsumerState<_MasterClassQuotaDialog> createState() => _MasterClassQuotaDialogState();
+}
+
+class _MasterClassQuotaDialogState extends ConsumerState<_MasterClassQuotaDialog> {
+  late final TextEditingController _controller;
+  final _formKey = GlobalKey<FormState>();
+  var _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final student = widget.student;
+    _controller = TextEditingController(
+      text: '${student.masterClassOverride ?? student.masterClassAllotment}',
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate() || _saving) return;
+    setState(() => _saving = true);
+    final student = widget.student;
+    try {
+      await ref.read(academicRepositoryProvider).updateStudent(student.id, {
+        'master_classes_per_month': int.parse(_controller.text.trim()),
+      });
+      ref.invalidate(adminStudentProvider(student.id));
+      ref.invalidate(adminStudentHistoryProvider(student.id));
+      if (mounted) Navigator.of(context).pop();
+    } catch (error) {
+      if (mounted) {
+        setState(() => _saving = false);
+        showFailure(context, error);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final steps = <_WorkflowStep>[
-      _WorkflowStep(
-        number: 1,
-        title: 'Create student login',
-        subtitle: '${student.email} · ID ${student.studentCode}',
-        state: _WorkflowStepState.done,
-      ),
-      _WorkflowStep(
-        number: 2,
-        title: 'Student completes aptitude test',
-        subtitle: student.hasSubmittedAptitudeAssessment
-            ? 'Submitted ${student.aptitudeAssessmentSubmittedAt != null ? formatDisplayDateTime(student.aptitudeAssessmentSubmittedAt) : ''}'
-            : 'Waiting for student to log in and submit',
-        state: student.hasSubmittedAptitudeAssessment ? _WorkflowStepState.done : _WorkflowStepState.waiting,
-      ),
-      _WorkflowStep(
-        number: 3,
-        title: 'Admin reviews results',
-        subtitle: student.hasSubmittedAptitudeAssessment
-            ? 'Review dimension scores before assigning teachers'
-            : 'Available after the student submits',
-        state: student.hasSubmittedAptitudeAssessment ? _WorkflowStepState.action : _WorkflowStepState.locked,
-        actionLabel: 'Review results',
-        onAction: onReviewResults,
-      ),
-      _WorkflowStep(
-        number: 4,
-        title: 'Enroll in level & batch',
-        subtitle: _inBatch
-            ? student.batch!.label
-            : 'Add student to a level (Levels → Enroll student)',
-        state: _inBatch ? _WorkflowStepState.done : _WorkflowStepState.action,
-        actionLabel: _inBatch ? 'Open level' : 'Go to levels',
-        onAction: _inBatch ? onOpenBatch : () => context.go(RoutePaths.adminBatches),
-      ),
-    ];
-
-    return DetailSection(
-      title: 'Admin workflow',
-      children: [
-        Text(
-          'Follow these steps in order: create login → student submits → you review → enroll in level & batch.',
-          style: TextStyle(color: Brand.muted.withValues(alpha: 0.95), fontSize: 13),
+    final student = widget.student;
+    return AppModalDialog(
+      title: AppStrings.masterClassesThisMonth,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '${student.masterClassUsed} used · ${student.masterClassRemaining} remaining of ${student.masterClassAllotment}',
+              style: const TextStyle(color: Brand.muted, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _controller,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: AppStrings.totalMasterClasses,
+                helperText: AppStrings.thisStudentCanBookThisManyClassesThisMonth,
+              ),
+              validator: (value) {
+                final parsed = int.tryParse(value?.trim() ?? '');
+                if (parsed == null || parsed < 1 || parsed > 10) {
+                  return AppStrings.enterANumberFrom1To10;
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 20),
+            AppDialogActions(
+              confirmLabel: AppStrings.save,
+              isConfirming: _saving,
+              onConfirm: _save,
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        for (var i = 0; i < steps.length; i++) ...[
-          _WorkflowStepTile(step: steps[i]),
-          if (i < steps.length - 1) const SizedBox(height: 8),
-        ],
-      ],
+      ),
     );
   }
 }
 
-enum _WorkflowStepState { done, waiting, action, locked }
+class _StudentHistorySection extends ConsumerWidget {
+  const _StudentHistorySection({required this.studentId});
 
-class _WorkflowStep {
-  const _WorkflowStep({
-    required this.number,
-    required this.title,
-    required this.subtitle,
-    required this.state,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final int number;
-  final String title;
-  final String subtitle;
-  final _WorkflowStepState state;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-}
-
-class _WorkflowStepTile extends StatelessWidget {
-  const _WorkflowStepTile({required this.step});
-
-  final _WorkflowStep step;
+  final String studentId;
 
   @override
-  Widget build(BuildContext context) {
-    final (icon, iconColor, bgColor) = switch (step.state) {
-      _WorkflowStepState.done => (Icons.check_circle, const Color(0xFF2E7D32), const Color(0xFFE8F5E9)),
-      _WorkflowStepState.waiting => (Icons.hourglass_top, const Color(0xFFF57F17), const Color(0xFFFFF8E1)),
-      _WorkflowStepState.action => (Icons.radio_button_checked, Brand.goldDark, const Color(0xFFFBF6EA)),
-      _WorkflowStepState.locked => (Icons.lock_outline, Brand.muted, const Color(0xFFF5F5F5)),
-    };
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE6DCCB)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Icon(icon, size: 16, color: iconColor),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${step.number}. ${step.title}',
-                  style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 14),
-                ),
-                const SizedBox(height: 2),
-                Text(step.subtitle, style: const TextStyle(color: Brand.muted, fontSize: 12)),
-                if (step.state == _WorkflowStepState.action &&
-                    step.actionLabel != null &&
-                    step.onAction != null) ...[
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: FilledButton.tonal(
-                      onPressed: step.onAction,
-                      style: FilledButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      child: Text(step.actionLabel!),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final history = ref.watch(adminStudentHistoryProvider(studentId));
+    return DetailSection(
+      title: AppStrings.studentHistory,
+      children: [
+        AsyncBody(
+          value: history,
+          onRetry: () => ref.invalidate(adminStudentHistoryProvider(studentId)),
+          builder: (items) {
+            if (items.isEmpty) {
+              return const Text(AppStrings.noActivityRecordedYet, style: TextStyle(color: Brand.muted, fontSize: 13));
+            }
+            return ActivityTimeline(items: items);
+          },
+        ),
+      ],
     );
   }
 }
@@ -374,9 +379,10 @@ class AdminTeacherDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teacherValue = ref.watch(adminTeacherProvider(teacherId));
+    final user = ref.watch(authControllerProvider).user;
 
     return AppScaffold(
-      title: 'Teacher',
+      title: AppStrings.teacher,
       backTo: RoutePaths.adminTeachers,
       body: AsyncBody(
         value: teacherValue,
@@ -386,16 +392,51 @@ class AdminTeacherDetailPage extends ConsumerWidget {
             children: [
               TeacherCard(
                 teacher: teacher,
-                action: FilledButton.tonalIcon(
-                  onPressed: () => context.go(RoutePaths.adminTeacherHistoryFor(teacherId)),
-                  icon: const Icon(Icons.history),
-                  label: const Text('History'),
+                action: Wrap(
+                  spacing: 8,
+                  children: [
+                    FilledButton.tonalIcon(
+                      onPressed: () => context.go(RoutePaths.adminTeacherHistoryFor(teacherId)),
+                      icon: const Icon(Icons.history),
+                      label: const Text(AppStrings.history),
+                    ),
+                    if (user?.canAdmin(AdminPermission.teachersDelete) ?? false)
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final confirmed = await showAppConfirmDialog(
+                            context,
+                            title: AppStrings.deleteTeacher,
+                            message: AppStrings.delete,
+                            confirmLabel: AppStrings.delete,
+                            cancelLabel: AppStrings.cancel,
+                            destructive: true,
+                          );
+                          if (confirmed != true) {
+                            return;
+                          }
+                          try {
+                            await ref.read(academicRepositoryProvider).deleteTeacher(teacherId);
+                            if (context.mounted) {
+                              context.go(RoutePaths.adminTeachers);
+                            }
+                          } catch (error) {
+                            if (context.mounted) {
+                              showFailure(context, error);
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text(AppStrings.deleteTeacher),
+                      ),
+                  ],
                 ),
-                trailing: IconButton(
-                  tooltip: 'Edit teacher',
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => context.go(RoutePaths.adminTeacherEditFor(teacherId)),
-                ),
+                trailing: (user?.canAdmin(AdminPermission.teachersEdit) ?? false)
+                    ? IconButton(
+                        tooltip: AppStrings.editTeacher,
+                        icon: const Icon(Icons.edit_outlined),
+                        onPressed: () => context.go(RoutePaths.adminTeacherEditFor(teacherId)),
+                      )
+                    : null,
               ),
               const SizedBox(height: 10),
               TeacherAvailabilitySummary(teacherId: teacherId),
@@ -424,11 +465,11 @@ class _AdminTeacherPromotedTile extends ConsumerWidget {
     final count = promoted.valueOrNull?.length ?? 0;
 
     return StatTile(
-      label: 'Promoted students',
+      label: AppStrings.promotedStudents,
       value: promoted.isLoading ? '…' : '$count',
       icon: Icons.trending_up,
       accentColor: Brand.goldDark,
-      subtitle: 'levelled up with this teacher',
+      subtitle: AppStrings.levelledUpWithThisTeacher,
       onTap: () => context.go(RoutePaths.adminTeacherPromotedFor(teacherId)),
     );
   }
@@ -444,7 +485,7 @@ class AdminTeacherPromotedPage extends ConsumerWidget {
     final students = ref.watch(adminTeacherPromotedProvider(teacherId));
 
     return AppScaffold(
-      title: 'Promoted students',
+      title: AppStrings.promotedStudents,
       backTo: RoutePaths.adminTeacher(teacherId),
       body: AsyncBody(
         value: students,
@@ -452,8 +493,8 @@ class AdminTeacherPromotedPage extends ConsumerWidget {
         builder: (items) {
           if (items.isEmpty) {
             return const EmptyHint(
-              'No promoted students yet',
-              subtitle: 'Students this teacher mentored who later moved to a new level will appear here.',
+              AppStrings.noPromotedStudentsYet,
+              subtitle: AppStrings.studentsThisTeacherMentoredWhoLaterMovedToANew,
             );
           }
           return ListView.separated(
@@ -503,7 +544,7 @@ class _PromoteStudentCardState extends ConsumerState<_PromoteStudentCard> {
   Widget build(BuildContext context) {
     final levels = ref.watch(adminLevelsProvider);
     return DetailSection(
-      title: 'Promote student',
+      title: AppStrings.promoteStudent,
       children: [
         AsyncBody(
           value: levels,
@@ -513,11 +554,11 @@ class _PromoteStudentCardState extends ConsumerState<_PromoteStudentCard> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('The new level starts from its own Week 1. Previous level history stays in the journal.'),
+                const Text(AppStrings.theNewLevelStartsFromItsOwnWeek1Previous),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _levelId,
-                  decoration: const InputDecoration(labelText: 'New level'),
+                  decoration: const InputDecoration(labelText: AppStrings.newLevel),
                   items: [
                     for (final level in options)
                       DropdownMenuItem(value: level.id, child: Text(level.name)),
@@ -549,7 +590,7 @@ class _PromoteStudentCardState extends ConsumerState<_PromoteStudentCard> {
                             if (mounted) setState(() => _saving = false);
                           }
                         },
-                  child: Text(_saving ? 'Promoting…' : 'Promote'),
+                  child: Text(_saving ? AppStrings.promoting : AppStrings.promote),
                 ),
               ],
             );

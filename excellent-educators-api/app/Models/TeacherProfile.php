@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Gender;
 use App\Enums\ProfileStatus;
 use App\Enums\TeacherWorkType;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 class TeacherProfile extends Model
 {
@@ -20,9 +22,19 @@ class TeacherProfile extends Model
         'user_id',
         'employee_code',
         'full_name',
+        'gender',
         'phone',
         'whatsapp_number',
         'address',
+        'photo_url',
+        'professional_title',
+        'bio',
+        'experience_summary',
+        'guidance_areas',
+        'mentoring_approach',
+        'education',
+        'certifications',
+        'experience',
         'status',
         'work_type',
     ];
@@ -30,8 +42,14 @@ class TeacherProfile extends Model
     protected function casts(): array
     {
         return [
+            'gender' => Gender::class,
             'status' => ProfileStatus::class,
             'work_type' => TeacherWorkType::class,
+            'guidance_areas' => 'array',
+            'mentoring_approach' => 'array',
+            'education' => 'array',
+            'certifications' => 'array',
+            'experience' => 'array',
         ];
     }
 
@@ -74,7 +92,7 @@ class TeacherProfile extends Model
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, string>
+     * @return Collection<int, string>
      */
     public function rosterStudentIds()
     {

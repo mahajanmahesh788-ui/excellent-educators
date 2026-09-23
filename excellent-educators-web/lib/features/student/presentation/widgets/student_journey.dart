@@ -1,4 +1,5 @@
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 enum JourneyPhase { completed, current, upcoming }
 
@@ -25,6 +26,8 @@ class StudentJourneySnapshot {
     required this.canBookIntroduction,
     required this.canBookMasterClass,
     this.joinableSession,
+    this.masterClassRemaining = 0,
+    this.masterClassAllotment = 1,
   });
 
   final SessionBookingDto? nextSession;
@@ -36,23 +39,27 @@ class StudentJourneySnapshot {
   final bool introductionCompleted;
   final bool canBookIntroduction;
   final bool canBookMasterClass;
+  final int masterClassRemaining;
+  final int masterClassAllotment;
+
+  bool get hasExtraMasterClasses => masterClassAllotment > 1;
 
   String get heroMessage {
     if (joinableSession != null) {
       return joinableSession!.type == 'master_class'
-          ? 'Your Master Class is live — join now so you don’t miss it.'
-          : 'Your Introduction Call is live — join now so you don’t miss it.';
+          ? AppStrings.yourMasterClassIsLiveJoinNowSoYouDon
+          : AppStrings.yourIntroductionCallIsLiveJoinNowSoYouDon;
     }
     if (nextSession != null) {
-      return 'Your next session is already on the calendar.';
+      return AppStrings.yourNextSessionIsAlreadyOnTheCalendar;
     }
     if (canBookIntroduction) {
-      return 'Your learning journey is waiting for you.';
+      return AppStrings.yourLearningJourneyIsWaitingForYou;
     }
     if (canBookMasterClass) {
-      return 'Your next Master Class is ready to book.';
+      return AppStrings.yourNextMasterClassIsReadyToBook;
     }
-    return 'Your learning journey is moving forward.';
+    return AppStrings.yourLearningJourneyIsMovingForward;
   }
 
   String? get primaryType {
@@ -68,11 +75,11 @@ class StudentJourneySnapshot {
 String bookingActionLabel(String? type) {
   switch (type) {
     case 'introduction_call':
-      return 'Book Introduction';
+      return AppStrings.bookIntroduction;
     case 'master_class':
-      return 'Book Master Class';
+      return AppStrings.bookMasterClass;
     default:
-      return 'Book a session';
+      return AppStrings.bookASession;
   }
 }
 
@@ -96,7 +103,8 @@ StudentJourneySnapshot buildStudentJourney({
     if (current == null || start.isBefore(current)) {
       next = booking;
     }
-    final canJoin = booking.attendance?.canJoin == true || booking.isOngoingAt(clock);
+    final canJoin =
+        booking.attendance?.canJoin == true || booking.isOngoingAt(clock);
     if (canJoin) {
       final liveStart = joinable?.startsAt;
       if (liveStart == null || start.isBefore(liveStart)) {
@@ -106,26 +114,38 @@ StudentJourneySnapshot buildStudentJourney({
   }
 
   final introScheduled = bookings.any(
-    (item) => item.type != 'master_class' && item.isScheduled && !item.hasEndedAt(clock),
+    (item) =>
+        item.type != 'master_class' &&
+        item.isScheduled &&
+        !item.hasEndedAt(clock),
   );
   final JourneyNode introduction;
   if (eligibility.introductionCompleted) {
-    introduction = const JourneyNode(title: 'Introduction', detail: 'Completed', phase: JourneyPhase.completed);
+    introduction = const JourneyNode(
+      title: AppStrings.introduction,
+      detail: AppStrings.completed,
+      phase: JourneyPhase.completed,
+    );
   } else if (introScheduled) {
     final lastChance = bookings.any(
-      (item) => item.type != 'master_class' && item.isScheduled && (item.attemptNumber ?? 1) >= 2,
+      (item) =>
+          item.type != 'master_class' &&
+          item.isScheduled &&
+          (item.attemptNumber ?? 1) >= 2,
     );
     introduction = JourneyNode(
-      title: 'Introduction',
-      detail: lastChance ? 'Scheduled — last chance' : 'Scheduled',
+      title: AppStrings.introduction,
+      detail: lastChance
+          ? AppStrings.scheduledLastChance
+          : AppStrings.scheduled,
       phase: JourneyPhase.current,
     );
   } else {
     introduction = JourneyNode(
-      title: 'Introduction',
+      title: AppStrings.introduction,
       detail: eligibility.introductionLastChance
-          ? 'Last chance — book your Introduction Call'
-          : 'Book your introduction',
+          ? AppStrings.lastChanceBookYourIntroductionCall
+          : AppStrings.bookYourIntroduction,
       phase: JourneyPhase.current,
     );
   }
@@ -137,7 +157,9 @@ StudentJourneySnapshot buildStudentJourney({
     final date = DateTime.tryParse(item.date);
     return date != null && date.year == clock.year && date.month == clock.month;
   }).toList();
-  final masterScheduled = masterThisMonth.any((item) => item.isScheduled && !item.hasEndedAt(clock));
+  final masterScheduled = masterThisMonth.any(
+    (item) => item.isScheduled && !item.hasEndedAt(clock),
+  );
   final masterCompleted = masterThisMonth.any((item) {
     if (item.isCompleted || item.attendance?.classCompleted == true) {
       return true;
@@ -147,22 +169,47 @@ StudentJourneySnapshot buildStudentJourney({
 
   final JourneyNode master;
   if (!eligibility.introductionCompleted && !introScheduled) {
-    master = const JourneyNode(title: 'Master Class', detail: 'Upcoming', phase: JourneyPhase.upcoming);
+    master = const JourneyNode(
+      title: AppStrings.masterClass,
+      detail: AppStrings.upcoming,
+      phase: JourneyPhase.upcoming,
+    );
   } else if (masterScheduled) {
-    master = const JourneyNode(title: 'Master Class', detail: 'Scheduled', phase: JourneyPhase.current);
-  } else if (eligibility.canBookMasterClass && (!masterCompleted || eligibility.masterClassRebookingAvailable)) {
-    master = const JourneyNode(title: 'Master Class', detail: 'Ready to book', phase: JourneyPhase.current);
+    master = const JourneyNode(
+      title: AppStrings.masterClass,
+      detail: AppStrings.scheduled,
+      phase: JourneyPhase.current,
+    );
+  } else if (eligibility.canBookMasterClass &&
+      eligibility.masterClassRemaining > 0) {
+    final remaining = eligibility.masterClassRemaining;
+    final max = eligibility.masterClassAttemptsMax;
+    master = JourneyNode(
+      title: AppStrings.masterClass,
+      detail: max > 1
+          ? 'You have $remaining of $max Master Classes this month'
+          : 'Ready to book',
+      phase: JourneyPhase.current,
+    );
   } else if (masterCompleted) {
-    master = const JourneyNode(title: 'Master Class', detail: 'Completed', phase: JourneyPhase.completed);
+    master = const JourneyNode(
+      title: AppStrings.masterClass,
+      detail: AppStrings.completed,
+      phase: JourneyPhase.completed,
+    );
   } else {
-    master = const JourneyNode(title: 'Master Class', detail: 'Upcoming', phase: JourneyPhase.upcoming);
+    master = const JourneyNode(
+      title: AppStrings.masterClass,
+      detail: AppStrings.upcoming,
+      phase: JourneyPhase.upcoming,
+    );
   }
 
   final nextMonth = JourneyNode(
-    title: 'Next Month',
+    title: AppStrings.nextMonth,
     detail: masterCompleted
-        ? 'Your next Master Class opens next month'
-        : 'Upcoming',
+        ? AppStrings.yourNextMasterClassOpensNextMonth
+        : AppStrings.upcoming,
     phase: JourneyPhase.upcoming,
   );
 
@@ -175,15 +222,18 @@ StudentJourneySnapshot buildStudentJourney({
     masterThisMonth: masterThisMonth.length,
     introductionCompleted: eligibility.introductionCompleted,
     canBookIntroduction: eligibility.canBookIntroduction && !introScheduled,
-    canBookMasterClass: eligibility.canBookMasterClass &&
-        !masterScheduled &&
-        (!masterCompleted || eligibility.masterClassRebookingAvailable),
+    canBookMasterClass:
+        eligibility.canBookMasterClass &&
+        eligibility.masterClassRemaining > 0 &&
+        !masterScheduled,
+    masterClassRemaining: eligibility.masterClassRemaining,
+    masterClassAllotment: eligibility.masterClassAttemptsMax,
   );
 }
 
 String greetingForNow([DateTime? now]) {
   final hour = (now ?? DateTime.now()).hour;
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return AppStrings.goodMorning;
+  if (hour < 17) return AppStrings.goodAfternoon;
+  return AppStrings.goodEvening;
 }

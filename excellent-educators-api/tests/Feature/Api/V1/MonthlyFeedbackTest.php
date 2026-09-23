@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\RoleName;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
 use App\Models\Dimension;
@@ -15,7 +14,7 @@ use App\Support\AppClock;
 use Database\Seeders\DimensionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\PermissionRegistrar;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class MonthlyFeedbackTest extends TestCase
@@ -45,20 +44,18 @@ class MonthlyFeedbackTest extends TestCase
 
         $sessionDate = now()->toDateString();
 
-        $this->withToken($this->tokenFor($master->user))->postJson("/api/v1/master-teacher/students/{$student->id}/feedback", [
-            'session_date' => $sessionDate,
-            'items' => [[
-                'target_type' => 'dimension',
-                'target_id' => $dimension->id,
-                'rating' => 4,
+        $this->withToken($this->tokenFor($master->user))->postJson(
+            "/api/v1/master-teacher/students/{$student->id}/feedback",
+            $this->dimensionRatingPayload(4, [
+                'session_date' => $sessionDate,
                 'positive_points' => 'Collaborates well',
                 'areas_for_improvement' => 'Speak up earlier',
-                'recommended_next_action' => 'Lead a pair activity',
-            ]],
-        ])->assertCreated()
+            ]),
+        )->assertCreated()
             ->assertJsonPath('data.month', (int) now()->format('n'))
             ->assertJsonPath('data.session_date', $sessionDate)
-            ->assertJsonPath('data.items.0.target_name', 'Teamwork')
+            ->assertJsonPath('data.positive_points', 'Collaborates well')
+            ->assertJsonPath('data.discussed_in_class', 'Talked about next goals')
             ->assertJsonPath('data.editable', true);
 
         $this->assertDatabaseHas('audit_logs', ['action' => 'feedback.created']);
@@ -81,14 +78,15 @@ class MonthlyFeedbackTest extends TestCase
         $token = $this->tokenFor($master->user);
         $sessionDate = now()->toDateString();
 
-        $this->withToken($token)->postJson(
+        $created = $this->withToken($token)->postJson(
             "/api/v1/master-teacher/students/{$student->id}/feedback",
             $this->payload($dimension->id, 6, $sessionDate),
         )->assertCreated();
+        $bookingId = $created->json('data.session_booking_id');
 
         $this->withToken($token)->postJson(
             "/api/v1/master-teacher/students/{$student->id}/feedback",
-            $this->payload($dimension->id, 8, $sessionDate),
+            array_merge($this->payload($dimension->id, 8, $sessionDate), ['booking_id' => $bookingId]),
         )->assertStatus(409)
             ->assertJsonPath('error.code', 'FEEDBACK_DUPLICATE');
 
@@ -161,16 +159,10 @@ class MonthlyFeedbackTest extends TestCase
             $this->payload($dimension->id, sessionDate: $sessionDate),
         )->assertCreated()->json('data.id');
 
-        $this->withToken($token)->putJson("/api/v1/master-teacher/students/{$student->id}/feedback/{$feedbackId}", [
-            'items' => [[
-                'target_type' => 'dimension',
-                'target_id' => $dimension->id,
-                'rating' => 5,
-                'positive_points' => 'Updated',
-                'areas_for_improvement' => 'None',
-                'recommended_next_action' => 'Keep going',
-            ]],
-        ])->assertOk()->assertJsonPath('data.items.0.rating', 5);
+        $this->withToken($token)->putJson("/api/v1/master-teacher/students/{$student->id}/feedback/{$feedbackId}", $this->dimensionRatingPayload(5, [
+            'positive_points' => 'Updated',
+            'areas_for_improvement' => 'None',
+        ]))->assertOk()->assertJsonPath('data.positive_points', 'Updated');
 
         MonthlyFeedback::query()->whereKey($feedbackId)->update([
             'year' => 2025,
@@ -178,16 +170,10 @@ class MonthlyFeedbackTest extends TestCase
             'session_date' => '2025-01-15',
         ]);
 
-        $this->withToken($token)->putJson("/api/v1/master-teacher/students/{$student->id}/feedback/{$feedbackId}", [
-            'items' => [[
-                'target_type' => 'dimension',
-                'target_id' => $dimension->id,
-                'rating' => 3,
-                'positive_points' => 'Too late',
-                'areas_for_improvement' => 'Locked',
-                'recommended_next_action' => 'Stop',
-            ]],
-        ])->assertStatus(403);
+        $this->withToken($token)->putJson("/api/v1/master-teacher/students/{$student->id}/feedback/{$feedbackId}", $this->dimensionRatingPayload(3, [
+            'positive_points' => 'Too late',
+            'areas_for_improvement' => 'Locked',
+        ]))->assertStatus(403);
 
         $this->withToken($token)->deleteJson("/api/v1/master-teacher/students/{$student->id}/feedback/{$feedbackId}")
             ->assertStatus(403);
@@ -210,53 +196,31 @@ class MonthlyFeedbackTest extends TestCase
         $this->assertDatabaseMissing('monthly_feedbacks', ['id' => $feedbackId]);
     }
 
-    public function test_reassigned_master_teacher_cannot_edit_or_add_when_month_already_rated(): void
+    public function test_reassigned_master_teacher_cannot_edit_previous_teacher_rating(): void
     {
         [$admin, $student, $master] = $this->assignedPair();
         $newMaster = $this->makeTeacher(['master_teacher'], 'new-master@excellenteducators.test');
-        $dimension = Dimension::query()->firstOrFail();
         $token = $this->tokenFor($master->user);
-        $sessionDate = now()->toDateString();
 
         $feedbackId = $this->withToken($token)->postJson(
             "/api/v1/master-teacher/students/{$student->id}/feedback",
-            $this->payload($dimension->id, sessionDate: $sessionDate),
+            $this->payload(),
         )->assertCreated()->json('data.id');
 
         $this->withToken($this->tokenFor($admin))->putJson("/api/v1/admin/students/{$student->id}/mentor", [
             'teacher_id' => $newMaster->id,
         ])->assertOk();
 
-        $this->withToken($token)->putJson("/api/v1/master-teacher/students/{$student->id}/feedback/{$feedbackId}", [
-            'items' => [[
-                'target_type' => 'dimension',
-                'target_id' => $dimension->id,
-                'rating' => 2,
-                'positive_points' => 'Old master',
-                'areas_for_improvement' => 'No',
-                'recommended_next_action' => 'No',
-            ]],
-        ])->assertStatus(403);
-
-        $this->withToken($token)->deleteJson("/api/v1/master-teacher/students/{$student->id}/feedback/{$feedbackId}")
-            ->assertStatus(403);
-
         $newToken = $this->tokenFor($newMaster->user);
         $this->withToken($newToken)->postJson(
             "/api/v1/master-teacher/students/{$student->id}/feedback",
-            $this->payload($dimension->id, sessionDate: $sessionDate),
+            $this->payload(),
         )->assertStatus(409);
 
-        $this->withToken($newToken)->putJson("/api/v1/master-teacher/students/{$student->id}/feedback/{$feedbackId}", [
-            'items' => [[
-                'target_type' => 'dimension',
-                'target_id' => $dimension->id,
-                'rating' => 9,
-                'positive_points' => 'New master',
-                'areas_for_improvement' => 'No',
-                'recommended_next_action' => 'No',
-            ]],
-        ])->assertStatus(403);
+        $this->withToken($newToken)->putJson(
+            "/api/v1/master-teacher/students/{$student->id}/feedback/{$feedbackId}",
+            $this->dimensionRatingPayload(9, ['positive_points' => 'New master']),
+        )->assertStatus(403);
     }
 
     public function test_new_master_teacher_can_rate_when_previous_master_did_not(): void
@@ -290,16 +254,10 @@ class MonthlyFeedbackTest extends TestCase
 
         $adminToken = $this->tokenFor($admin);
 
-        $this->withToken($adminToken)->putJson("/api/v1/admin/students/{$student->id}/feedback/{$feedbackId}", [
-            'items' => [[
-                'target_type' => 'dimension',
-                'target_id' => $dimension->id,
-                'rating' => 9,
-                'positive_points' => 'Admin edit',
-                'areas_for_improvement' => 'None',
-                'recommended_next_action' => 'Continue',
-            ]],
-        ])->assertOk()->assertJsonPath('data.items.0.rating', 9);
+        $this->withToken($adminToken)->putJson(
+            "/api/v1/admin/students/{$student->id}/feedback/{$feedbackId}",
+            $this->dimensionRatingPayload(9, ['positive_points' => 'Admin edit']),
+        )->assertOk()->assertJsonPath('data.positive_points', 'Admin edit');
 
         $adminToken = $this->tokenFor($admin);
         $this->withToken($adminToken)->deleteJson("/api/v1/admin/students/{$student->id}/feedback/{$feedbackId}")
@@ -308,17 +266,10 @@ class MonthlyFeedbackTest extends TestCase
         $this->assertDatabaseMissing('monthly_feedbacks', ['id' => $feedbackId]);
 
         $adminToken = $this->tokenFor($admin);
-        $this->withToken($adminToken)->postJson("/api/v1/admin/students/{$student->id}/feedback", [
-            'session_date' => now()->toDateString(),
-            'items' => [[
-                'target_type' => 'dimension',
-                'target_id' => $dimension->id,
-                'rating' => 7,
-                'positive_points' => 'Admin create',
-                'areas_for_improvement' => 'None',
-                'recommended_next_action' => 'Continue',
-            ]],
-        ])->assertCreated();
+        $this->withToken($adminToken)->postJson(
+            "/api/v1/admin/students/{$student->id}/feedback",
+            $this->payload(7, now()->toDateString()),
+        )->assertCreated();
     }
 
     public function test_common_teacher_cannot_create_feedback(): void
@@ -362,7 +313,11 @@ class MonthlyFeedbackTest extends TestCase
             ->assertJsonPath('data.overall_average', 7)
             ->json('data.by_dimension');
 
-        $this->assertSame('Teamwork', collect($summary)->value('target_name'));
+        $this->assertGreaterThanOrEqual(10, count($summary));
+        $this->assertTrue(collect($summary)->contains(fn ($row) => ($row['target_name'] ?? '') === 'Teamwork'));
+
+        $studentFeedback = $this->withToken($this->tokenFor($studentUser))->getJson('/api/v1/student/feedback')->json('data.0');
+        $this->assertArrayNotHasKey('discussed_in_class', $studentFeedback);
 
         $this->withToken($this->tokenFor($studentUser))->postJson(
             "/api/v1/master-teacher/students/{$student->id}/feedback",
@@ -383,7 +338,8 @@ class MonthlyFeedbackTest extends TestCase
         $this->withToken($this->tokenFor($admin))->getJson("/api/v1/admin/students/{$student->id}")
             ->assertOk()
             ->assertJsonPath('data.feedback.current_month_completed', true)
-            ->assertJsonPath('data.feedback.total_sessions', 1);
+            ->assertJsonPath('data.feedback.total_sessions', 1)
+            ->assertJsonPath('data.feedback.overall_average', 7);
 
         $this->withToken($this->tokenFor($admin))->getJson("/api/v1/admin/students/{$student->id}/feedback/summary")
             ->assertOk()
@@ -407,6 +363,7 @@ class MonthlyFeedbackTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9111111111',
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         $master = $this->makeTeacher(['master_teacher'], 'fb-master@excellenteducators.test');
@@ -423,27 +380,26 @@ class MonthlyFeedbackTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function payload(string $targetId, int $rating = 4, ?string $sessionDate = null): array
+    private function payload(int|string $ratingOrTarget = 4, int|string|null $ratingOrDate = null, ?string $sessionDate = null): array
     {
-        return [
-            'session_date' => $sessionDate ?? AppClock::todayString(),
-            'items' => [[
-                'target_type' => 'dimension',
-                'target_id' => $targetId,
-                'rating' => $rating,
-                'positive_points' => 'Good work',
-                'areas_for_improvement' => 'Focus',
-                'recommended_next_action' => 'Practice',
-            ]],
-        ];
-    }
+        $rating = 4;
+        $date = $sessionDate;
+        if (is_int($ratingOrTarget)) {
+            $rating = $ratingOrTarget;
+            if (is_string($ratingOrDate)) {
+                $date = $ratingOrDate;
+            }
+        } elseif (is_int($ratingOrDate)) {
+            $rating = $ratingOrDate;
+        } elseif (is_string($ratingOrDate)) {
+            $date = $ratingOrDate;
+        }
 
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'ops-feedback@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
+        return $this->dimensionRatingPayload($rating, [
+            'session_date' => $date ?? AppClock::todayString(),
+            'positive_points' => 'Good work',
+            'areas_for_improvement' => 'Focus',
+        ]);
     }
 
     /**
@@ -464,7 +420,7 @@ class MonthlyFeedbackTest extends TestCase
         return $profile;
     }
 
-    private function pastMasterClass(StudentProfile $student, TeacherProfile $teacher, ?\Illuminate\Support\Carbon $ends = null): SessionBooking
+    private function pastMasterClass(StudentProfile $student, TeacherProfile $teacher, ?Carbon $ends = null): SessionBooking
     {
         $endsAt = $ends ?? AppClock::now()->subHour();
         $startsAt = $endsAt->copy()->subHour();
@@ -478,13 +434,5 @@ class MonthlyFeedbackTest extends TestCase
             'ends_at' => $endsAt,
             'status' => SessionBookingStatus::Completed->value,
         ]);
-    }
-
-    private function tokenFor(User $user): string
-    {
-        $this->app['auth']->forgetGuards();
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return $user->fresh()->createToken('test')->plainTextToken;
     }
 }

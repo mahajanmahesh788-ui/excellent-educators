@@ -57,6 +57,7 @@ class StudentsDueForRating
             ->where('status', '!=', SessionBookingStatus::Cancelled->value)
             ->whereBetween('date', [$start, $end])
             ->where('ends_at', '<=', AppClock::now())
-            ->whereDoesntHave('attendanceIssues');
+            ->whereDoesntHave('attendanceIssues')
+            ->whereDoesntHave('monthlyFeedback');
     }
 }

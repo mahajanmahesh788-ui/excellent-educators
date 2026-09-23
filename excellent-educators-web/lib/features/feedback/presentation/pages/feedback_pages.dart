@@ -1,4 +1,3 @@
-import 'package:excellent_educators_web/core/time/app_clock.dart';
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
@@ -11,7 +10,7 @@ import 'package:excellent_educators_web/features/assessments/presentation/provid
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
 import 'package:excellent_educators_web/features/feedback/data/dto/feedback_dtos.dart';
 import 'package:excellent_educators_web/features/feedback/domain/feedback_form_value.dart';
-import 'package:excellent_educators_web/features/feedback/presentation/widgets/feedback_rating_bar.dart';
+import 'package:excellent_educators_web/features/feedback/presentation/widgets/dimension_factor_profile.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/student_feedback_month_view.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/student_read_only_ratings_section.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
@@ -21,6 +20,7 @@ import 'package:excellent_educators_web/features/student/presentation/widgets/st
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 enum MonthlyFeedbackFormAudience {
   masterTeacher,
@@ -38,7 +38,7 @@ class MasterTeacherStudentDetailPage extends ConsumerWidget {
     final results = ref.watch(masterTeacherStudentResultsProvider(studentId));
 
     return AppScaffold(
-      title: 'Student profile',
+      title: AppStrings.studentProfile,
       backTo: RoutePaths.masterTeacherStudents,
       body: AsyncBody(
         value: student,
@@ -59,16 +59,16 @@ class MasterTeacherStudentDetailPage extends ConsumerWidget {
               FilledButton.icon(
                 onPressed: () => context.go(RoutePaths.masterTeacherStudentJournalFor(studentId)),
                 icon: const Icon(Icons.menu_book_outlined),
-                label: const Text('Learning journal'),
+                label: const Text(AppStrings.learningJournal2),
               ),
               const SizedBox(height: 16),
               Text(
-                'Aptitude interests (reference only)',
+                AppStrings.aptitudeInterestsReferenceOnly,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
               const Text(
-                'Compact view of aptitude results. Monthly development ratings are shown below.',
+                AppStrings.compactViewOfAptitudeResultsMonthlyDevelopmentRatingsAreShown,
                 style: TextStyle(color: Brand.muted, fontSize: 13),
               ),
               const SizedBox(height: 10),
@@ -80,7 +80,7 @@ class MasterTeacherStudentDetailPage extends ConsumerWidget {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Text(
-                        'No aptitude assessment submitted yet.',
+                        AppStrings.noAptitudeAssessmentSubmittedYet,
                         style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
                       ),
                     );
@@ -125,11 +125,11 @@ Future<void> _confirmDeleteRating(
 ) async {
   final confirmed = await showAppConfirmDialog(
     context,
-    title: 'Delete rating?',
+    title: AppStrings.deleteRating2,
     message:
-        'This removes the monthly rating permanently. You can only delete during the same calendar month it was submitted.',
-    confirmLabel: 'Delete',
-    cancelLabel: 'Cancel',
+        AppStrings.thisRemovesTheMonthlyRatingPermanentlyYouCanOnlyDelete,
+    confirmLabel: AppStrings.delete,
+    cancelLabel: AppStrings.cancel,
     destructive: true,
   );
   if (confirmed != true) {
@@ -155,76 +155,67 @@ class MonthlyFeedbackFormPage extends ConsumerStatefulWidget {
     required this.studentId,
     required this.audience,
     this.feedbackId,
+    this.bookingId,
   });
 
   final String studentId;
   final MonthlyFeedbackFormAudience audience;
   final String? feedbackId;
+  final String? bookingId;
 
   @override
   ConsumerState<MonthlyFeedbackFormPage> createState() => _MonthlyFeedbackFormPageState();
 }
 
 class _MonthlyFeedbackFormPageState extends ConsumerState<MonthlyFeedbackFormPage> {
-  late String _sessionDate;
-  String _targetType = 'dimension';
-  String? _targetId;
-  int _rating = 5;
   final _positive = TextEditingController();
   final _improve = TextEditingController();
+  final _discussed = TextEditingController();
+  final _ratings = <String, int>{};
   var _saving = false;
   var _bound = false;
   String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    _sessionDate = AppClock.todayString();
-  }
-
-  String get _monthLabel {
-    final parsed = DateTime.tryParse(_sessionDate);
-    if (parsed == null) {
-      return _sessionDate;
-    }
-    return AppClock.monthLabel(parsed.year, parsed.month);
-  }
-
-  @override
   void dispose() {
     _positive.dispose();
     _improve.dispose();
+    _discussed.dispose();
     super.dispose();
   }
 
-  void _bind(MonthlyFeedbackDto feedback) {
+  void _bind(MonthlyFeedbackDto feedback, List<FeedbackDimensionDto> dimensions) {
     if (_bound) {
       return;
     }
     _bound = true;
-    if (feedback.sessionDate != null) {
-      _sessionDate = feedback.sessionDate!;
+    for (final dimension in dimensions) {
+      final match = feedback.items.where((item) => item.targetId == dimension.id);
+      _ratings[dimension.id] = match.isEmpty ? 5 : match.first.rating;
     }
-    if (feedback.items.isNotEmpty) {
-      final item = feedback.items.first;
-      _targetType = item.targetType;
-      _targetId = item.targetId;
-      _rating = item.rating;
-      _positive.text = item.positivePoints ?? '';
-      _improve.text = item.areasForImprovement ?? '';
+    _positive.text = feedback.positivePoints ?? '';
+    _improve.text = feedback.areasForImprovement ?? '';
+    _discussed.text = feedback.discussedInClass ?? '';
+  }
+
+  void _seedRatings(List<FeedbackDimensionDto> dimensions) {
+    if (_ratings.isNotEmpty) {
+      return;
+    }
+    for (final dimension in dimensions) {
+      _ratings[dimension.id] = 5;
     }
   }
 
-  Future<void> _save() async {
+  Future<void> _save(List<FeedbackDimensionDto> dimensions) async {
     final value = FeedbackFormValue(
-      sessionDate: _sessionDate,
-      targetType: _targetType,
-      targetId: _targetId ?? '',
-      rating: _rating,
+      bookingId: widget.bookingId,
+      ratings: Map<String, int>.from(_ratings),
       positivePoints: _positive.text,
       areasForImprovement: _improve.text,
+      discussedInClass: _discussed.text,
     );
-    final error = FeedbackFormValue.validate(value);
+    final error = FeedbackFormValue.validate(value, expectedCount: dimensions.length);
     if (error != null) {
       setState(() => _error = error);
       return;
@@ -287,95 +278,400 @@ class _MonthlyFeedbackFormPageState extends ConsumerState<MonthlyFeedbackFormPag
             ? ref.watch(adminStudentFeedbackProvider(widget.studentId))
             : ref.watch(masterTeacherStudentFeedbackProvider(widget.studentId));
 
-    existing?.whenData((items) {
-      for (final item in items) {
-        if (item.id == widget.feedbackId) {
-          _bind(item);
-        }
-      }
-    });
-
     return AppScaffold(
-      title: widget.feedbackId == null ? 'Monthly rating' : 'Edit monthly rating',
+      title: widget.feedbackId == null ? AppStrings.monthlyRating : AppStrings.editMonthlyRating,
       backTo: isAdmin
           ? RoutePaths.adminStudent(widget.studentId)
           : RoutePaths.masterTeacherStudentFor(widget.studentId),
       body: AsyncBody(
         value: catalog,
         builder: (dimensions) {
+          existing?.whenData((items) {
+            for (final item in items) {
+              if (item.id == widget.feedbackId) {
+                _bind(item, dimensions);
+              }
+            }
+          });
+          _seedRatings(dimensions);
+
+          final ratingValues = dimensions.map((d) => _ratings[d.id] ?? 5).toList();
+          final avgRating = ratingValues.isEmpty
+              ? 5.0
+              : (ratingValues.reduce((a, b) => a + b) / ratingValues.length);
+          final avgBand = dimensionBand(avgRating.round());
+          final isMobile = MediaQuery.sizeOf(context).width < 600;
+
           return ListView(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 12 : 24,
+              vertical: isMobile ? 12 : 20,
+            ),
             children: [
-              if (isAdmin)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    'Admin override — you can add or change ratings at any time.',
-                    style: TextStyle(color: Brand.muted, fontSize: 13),
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE6DCCB)),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x06000000),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        padding: EdgeInsets.all(isMobile ? 14 : 18),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: isMobile ? 38 : 44,
+                              height: isMobile ? 38 : 44,
+                              decoration: BoxDecoration(
+                                color: Brand.creamDark.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(Icons.stars_rounded, size: isMobile ? 22 : 26, color: Brand.navy),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    AppStrings.onePageTenDimensionsClearNextSteps,
+                                    style: TextStyle(
+                                      fontSize: isMobile ? 16 : 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: Brand.navy,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    isAdmin
+                                        ? AppStrings.oneRatingPerStudentPerMonthAdminsCanEditAny
+                                        : AppStrings.oneRatingPerStudentPerMonthYouCanEditOr,
+                                    style: const TextStyle(color: Brand.muted, fontSize: 13, height: 1.35),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (!isMobile) ...[
+                              const SizedBox(width: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: avgBand.bgColor,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: avgBand.color.withValues(alpha: 0.35)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Average: ',
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: avgBand.color),
+                                        ),
+                                        Text(
+                                          avgRating.toStringAsFixed(1),
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                            color: avgBand.color,
+                                          ),
+                                        ),
+                                        Text(
+                                          ' / 10',
+                                          style: TextStyle(fontSize: 11, color: avgBand.color),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      avgBand.label,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: avgBand.color,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (isMobile) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: avgBand.bgColor,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: avgBand.color.withValues(alpha: 0.35)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Overall Average: ${avgRating.toStringAsFixed(1)} / 10',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: avgBand.color,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: avgBand.color.withValues(alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  avgBand.label,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: avgBand.color,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      if (_error != null)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE4E2),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFFDA29B)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Color(0xFFB42318), size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: const TextStyle(color: Color(0xFFB42318), fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE8EEF5)),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x08000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        padding: EdgeInsets.all(isMobile ? 16 : 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Brand.gold,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'ILLUSTRATIVE STUDENT PROFILE',
+                                        style: TextStyle(
+                                          color: Color(0xFF1D4ED8),
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 11,
+                                          letterSpacing: 1.0,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        'One page. Ten dimensions. Clear next steps.',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: Brand.navy,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (!isMobile) ...[
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 4,
+                                    children: [
+                                      _legendBadge('Strength', const Color(0xFF0F9D58), const Color(0xFFE8F5E9)),
+                                      _legendBadge('Explore', const Color(0xFFD97706), const Color(0xFFFEF3C7)),
+                                      _legendBadge('Develop', const Color(0xFFC4A35A), const Color(0xFFFFFBEB)),
+                                      _legendBadge('Focus', const Color(0xFFD93025), const Color(0xFFFFEBEE)),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            DimensionFactorProfile(
+                              items: [
+                                for (final dimension in dimensions)
+                                  DimensionRatingValue(
+                                    id: dimension.id,
+                                    name: dimension.name,
+                                    rating: _ratings[dimension.id] ?? 5,
+                                  ),
+                              ],
+                              onChanged: (id, rating) => setState(() => _ratings[id] = rating),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE6DCCB)),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x06000000),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        padding: EdgeInsets.all(isMobile ? 14 : 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Brand.creamDark.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.rate_review_outlined, size: 20, color: Brand.navy),
+                                ),
+                                const SizedBox(width: 10),
+                                const Text(
+                                  'Master Class Observations & Guidance',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Brand.navy,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _positive,
+                              maxLines: 3,
+                              decoration: const InputDecoration(
+                                labelText: AppStrings.positivePoints,
+                                hintText: 'Highlight student strengths, active participation, and standout moments...',
+                                alignLabelWithHint: true,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextField(
+                              controller: _improve,
+                              maxLines: 3,
+                              decoration: const InputDecoration(
+                                labelText: AppStrings.areasForImprovementOptional,
+                                hintText: 'Specific skills or behaviors for the student to practice or focus on...',
+                                alignLabelWithHint: true,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextField(
+                              controller: _discussed,
+                              maxLines: 3,
+                              decoration: const InputDecoration(
+                                labelText: AppStrings.discussedInThisMasterClass,
+                                hintText: 'Key discussion topics, recommendations, or goals agreed during the session...',
+                                alignLabelWithHint: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          OutlinedButton(
+                            onPressed: () {
+                              if (isAdmin) {
+                                context.go(RoutePaths.adminStudent(widget.studentId));
+                              } else {
+                                context.go(RoutePaths.masterTeacherStudentFor(widget.studentId));
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(120, 44),
+                              side: const BorderSide(color: Color(0xFFD7CDBB)),
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                          const SizedBox(width: 12),
+                          FilledButton.icon(
+                            onPressed: _saving ? null : () => _save(dimensions),
+                            icon: _saving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Icon(Icons.check_circle_outline, size: 18),
+                            label: const Text(AppStrings.saveMonthlyRating),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(190, 44),
+                              backgroundColor: Brand.navy,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
-              Text(
-                _monthLabel,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                isAdmin
-                    ? 'One rating per student per month. Admins can edit any time.'
-                    : 'One rating per student per month. You can edit or delete during the rating month only.',
-                style: const TextStyle(color: Brand.muted),
-              ),
-              const SizedBox(height: 20),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(_error!, style: const TextStyle(color: Color(0xFFB42318))),
-                ),
-              DropdownButtonFormField<String>(
-                initialValue: _targetType,
-                decoration: const InputDecoration(labelText: 'Area'),
-                items: const [
-                  DropdownMenuItem(value: 'dimension', child: Text('Dimension')),
-                  DropdownMenuItem(value: 'module', child: Text('Module')),
-                  DropdownMenuItem(value: 'skill', child: Text('Skill')),
-                ],
-                onChanged: (value) => setState(() {
-                  _targetType = value ?? _targetType;
-                  _targetId = null;
-                }),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _targetId,
-                decoration: const InputDecoration(labelText: 'Select skill / module / dimension'),
-                items: [
-                  for (final item in _targets(dimensions))
-                    DropdownMenuItem(value: item.id, child: Text(item.name)),
-                ],
-                onChanged: (value) => setState(() => _targetId = value),
-              ),
-              const SizedBox(height: 20),
-              FeedbackRatingBar(
-                rating: _rating,
-                onChanged: (value) => setState(() => _rating = value),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _positive,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Positive points', alignLabelWithHint: true),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _improve,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Areas for improvement', alignLabelWithHint: true),
-              ),
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Save monthly rating'),
               ),
             ],
           );
@@ -384,21 +680,23 @@ class _MonthlyFeedbackFormPageState extends ConsumerState<MonthlyFeedbackFormPag
     );
   }
 
-  List<({String id, String name})> _targets(List<FeedbackDimensionDto> dimensions) {
-    if (_targetType == 'dimension') {
-      return [for (final dimension in dimensions) (id: dimension.id, name: dimension.name)];
-    }
-    if (_targetType == 'module') {
-      return [
-        for (final dimension in dimensions)
-          for (final module in dimension.modules) (id: module.id, name: '${dimension.name} · ${module.name}'),
-      ];
-    }
-    return [
-      for (final dimension in dimensions)
-        for (final module in dimension.modules)
-          for (final skill in module.skills) (id: skill.id, name: '${module.name} · ${skill.name}'),
-    ];
+  Widget _legendBadge(String label, Color color, Color bg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.35), width: 0.5),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
   }
 }
 
@@ -411,7 +709,7 @@ class StudentFeedbackPage extends ConsumerWidget {
     final summary = ref.watch(studentFeedbackSummaryProvider);
 
     return StudentScaffold(
-      title: 'My ratings',
+      title: AppStrings.myRatings,
       body: AsyncBody(
         value: feedback,
         onRetry: () {
@@ -422,8 +720,8 @@ class StudentFeedbackPage extends ConsumerWidget {
           if (items.isEmpty) {
             return const AcademyEmpty(
               icon: Icons.forum_outlined,
-              title: 'No feedback yet',
-              body: 'Your teachers will share monthly notes here as your journey unfolds.',
+              title: AppStrings.noFeedbackYet,
+              body: AppStrings.yourTeachersWillShareMonthlyNotesHereAsYourJourney,
             );
           }
 

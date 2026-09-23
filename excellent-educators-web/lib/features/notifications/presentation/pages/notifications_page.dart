@@ -7,6 +7,7 @@ import 'package:excellent_educators_web/features/notifications/presentation/prov
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
@@ -34,13 +35,16 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       onRetry: () => ref.invalidate(notificationsProvider),
       builder: (items) {
         if (items.isEmpty) {
-          return const Center(
+          final emptyMessage = (user?.isAdmin ?? false)
+              ? 'No notifications yet. Booking and system alerts will show up here.'
+              : AppStrings.noNotificationsYetUpdatesAboutYourTeachersAndBatchWill;
+          return Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
               child: Text(
-                'No notifications yet. Updates about your teachers and batch will appear here.',
+                emptyMessage,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Brand.muted, height: 1.45),
+                style: const TextStyle(color: Brand.muted, height: 1.45),
               ),
             ),
           );
@@ -62,15 +66,15 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     final actions = [
       TextButton(
         onPressed: () => _markAllRead(context, ref),
-        child: const Text('Mark all read', style: TextStyle(color: Colors.white)),
+        child: const Text(AppStrings.markAllRead, style: TextStyle(color: Colors.white)),
       ),
     ];
 
     if (user?.isStudent ?? false) {
-      return StudentScaffold(title: 'Notifications', body: body, actions: actions);
+      return StudentScaffold(title: AppStrings.notifications, body: body, actions: actions);
     }
 
-    return AppScaffold(title: 'Notifications', body: body, actions: actions);
+    return AppScaffold(title: AppStrings.notifications, body: body, actions: actions);
   }
 
   Future<void> _markRead(BuildContext context, WidgetRef ref, UserNotificationDto notification) async {
@@ -147,6 +151,7 @@ class _NotificationTile extends StatelessWidget {
       'master_teacher_assigned' || 'master_teacher_changed' => Icons.psychology_alt_rounded,
       'common_teacher_assigned' || 'common_teacher_changed' => Icons.person_outline,
       'student_enrolled_in_batch' || 'student_unenrolled_from_batch' => Icons.groups_rounded,
+      'student_booking_failed' => Icons.warning_amber_rounded,
       _ => Icons.notifications_outlined,
     };
   }
@@ -157,10 +162,10 @@ String _formatDateTime(String? iso) {
     return '';
   }
   final dt = DateTime.parse(iso).toLocal();
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [AppStrings.jan2, AppStrings.feb2, AppStrings.mar2, AppStrings.apr2, AppStrings.may2, AppStrings.jun2, AppStrings.jul2, AppStrings.aug2, AppStrings.sep2, AppStrings.oct2, AppStrings.nov2, AppStrings.dec2];
   final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
   final minute = dt.minute.toString().padLeft(2, '0');
-  final amPm = dt.hour >= 12 ? 'PM' : 'AM';
+  final amPm = dt.hour >= 12 ? AppStrings.pm : AppStrings.am;
   return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $hour:$minute $amPm';
 }
 

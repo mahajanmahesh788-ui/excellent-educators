@@ -7,6 +7,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/m
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class MasterTeacherDashboardPage extends ConsumerWidget {
   const MasterTeacherDashboardPage({super.key});
@@ -16,7 +17,7 @@ class MasterTeacherDashboardPage extends ConsumerWidget {
     final dashboard = ref.watch(masterTeacherDashboardProvider);
 
     return AppScaffold(
-      title: 'Dashboard',
+      title: AppStrings.dashboard,
       body: AsyncBody(
         value: dashboard,
         onRetry: () => ref.invalidate(masterTeacherDashboardProvider),
@@ -25,7 +26,7 @@ class MasterTeacherDashboardPage extends ConsumerWidget {
             children: [
               MasterTeacherProgressPanel(
                 data: data,
-                pendingStudentsTitle: 'Rate these students',
+                pendingStudentsTitle: AppStrings.rateTheseStudents,
                 onNotRatedTap: () => _openNotRatedStudents(context, ref),
                 onAssessmentPendingTap: () => context.go(RoutePaths.masterTeacherStudents),
                 onPendingStudentTap: (student) => context.go(RoutePaths.masterTeacherStudentFor(student.id)),

@@ -29,6 +29,12 @@ const loginPageIconOptions = <String, IconData>{
   'psychology_outlined': Icons.psychology_outlined,
   'auto_awesome_outlined': Icons.auto_awesome_outlined,
   'groups_outlined': Icons.groups_outlined,
+  'verified_outlined': Icons.verified_outlined,
+  'star_outline': Icons.star_outline,
+  'public_outlined': Icons.public_outlined,
+  'workspace_premium_outlined': Icons.workspace_premium_outlined,
+  'military_tech_outlined': Icons.military_tech_outlined,
+  'favorite_outline': Icons.favorite_outline,
 };
 
 IconData loginPageIcon(String key) {

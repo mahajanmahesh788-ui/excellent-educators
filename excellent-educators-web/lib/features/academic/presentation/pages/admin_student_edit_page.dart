@@ -8,6 +8,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminEditStudentPage extends ConsumerStatefulWidget {
   const AdminEditStudentPage({super.key, required this.studentId});
@@ -28,6 +29,7 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
   final _guardianPhone = TextEditingController();
   String? _status;
   int? _classGrade;
+  String? _gender;
   String? _boundStudentId;
   bool _saving = false;
 
@@ -55,6 +57,7 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
     _guardianPhone.text = student.guardianPhone ?? '';
     _status = student.status;
     _classGrade = student.classGrade > 0 ? student.classGrade : null;
+    _gender = student.gender;
   }
 
   Future<void> _save(StudentDto student) async {
@@ -72,13 +75,14 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
         'guardian_phone': _guardianPhone.text.trim().isEmpty ? null : _guardianPhone.text.trim(),
         'status': _status,
         if (_classGrade != null) 'class_grade': _classGrade,
+        'gender': _gender,
       });
       ref.invalidate(adminStudentProvider(widget.studentId));
       ref.invalidate(adminStudentsProvider);
       ref.invalidate(adminDashboardProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Student updated successfully.')),
+          const SnackBar(content: Text(AppStrings.studentUpdatedSuccessfully)),
         );
         context.go(RoutePaths.adminStudent(widget.studentId));
       }
@@ -98,7 +102,7 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
     final studentValue = ref.watch(adminStudentProvider(widget.studentId));
 
     return AppFormPage(
-      title: 'Edit student',
+      title: AppStrings.editStudent,
       backTo: RoutePaths.adminStudent(widget.studentId),
       child: AsyncBody(
         value: studentValue,
@@ -122,15 +126,20 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
                   TextFormField(
                     controller: _name,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(labelText: 'Full name'),
-                    validator: _required,
+                    decoration: const InputDecoration(labelText: AppStrings.fullName),
+                    validator: validateRequired,
+                  ),
+                  const SizedBox(height: 14),
+                  GenderDropdown(
+                    value: _gender,
+                    onChanged: (value) => setState(() => _gender = value),
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _phone,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
-                      labelText: 'Phone number',
+                      labelText: AppStrings.phoneNumber,
                       prefixText: '+91  ',
                     ),
                     validator: validateRequiredPhone,
@@ -140,7 +149,7 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
                     controller: _whatsapp,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
-                      labelText: 'WhatsApp number (optional)',
+                      labelText: AppStrings.whatsappNumberOptional,
                       prefixText: '+91  ',
                     ),
                     validator: validateOptionalPhone,
@@ -149,7 +158,7 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
                   DropdownButtonFormField<int>(
                     key: ValueKey(_classGrade),
                     value: _classGrade,
-                    decoration: const InputDecoration(labelText: 'Class'),
+                    decoration: const InputDecoration(labelText: AppStrings.classLabel),
                     items: [
                       for (final grade in classOptions)
                         DropdownMenuItem(
@@ -163,10 +172,10 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
                   DropdownButtonFormField<String>(
                     key: ValueKey(_status),
                     value: _status,
-                    decoration: const InputDecoration(labelText: 'Status'),
+                    decoration: const InputDecoration(labelText: AppStrings.status2),
                     items: const [
-                      DropdownMenuItem(value: 'active', child: Text('Active')),
-                      DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
+                      DropdownMenuItem(value: 'active', child: Text(AppStrings.active)),
+                      DropdownMenuItem(value: 'inactive', child: Text(AppStrings.inactive)),
                     ],
                     onChanged: (value) => setState(() => _status = value),
                   ),
@@ -176,8 +185,8 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
                     maxLines: 2,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
-                      labelText: 'Address',
-                      hintText: 'Enter student address',
+                      labelText: AppStrings.address,
+                      hintText: AppStrings.enterStudentAddress,
                       alignLabelWithHint: true,
                     ),
                   ),
@@ -185,14 +194,14 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
                   TextFormField(
                     controller: _guardianName,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(labelText: 'Guardian name (optional)'),
+                    decoration: const InputDecoration(labelText: AppStrings.guardianNameOptional),
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _guardianPhone,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
-                      labelText: 'Guardian phone (optional)',
+                      labelText: AppStrings.guardianPhoneOptional,
                       prefixText: '+91  ',
                     ),
                     validator: validateOptionalPhone,
@@ -206,7 +215,7 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Brand.navy),
                           )
-                        : const Text('Save changes'),
+                        : const Text(AppStrings.saveChanges),
                   ),
                 ],
               ),
@@ -217,10 +226,4 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
     );
   }
 
-  String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'This field is required.';
-    }
-    return null;
-  }
 }

@@ -5,7 +5,6 @@ namespace App\Actions\Teachers;
 use App\Enums\AttendanceVerificationStatus;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
-use App\Models\AttendanceIssue;
 use App\Models\MonthlyFeedback;
 use App\Models\MonthlyFeedbackItem;
 use App\Models\SessionBooking;
@@ -386,7 +385,7 @@ class BuildTeacherHistory
             date: $booking->date?->toDateString(),
             time: $start,
             endTime: $end,
-            title: $isMaster ? 'Master Class' : 'Introduction Call',
+            title: $isMaster ? SessionBookingType::MasterClass->label() : SessionBookingType::IntroductionCall->label(),
             status: $held && $status !== SessionBookingStatus::Cancelled->value ? 'completed' : $status,
             tags: $tags,
             facts: $facts,

@@ -2,12 +2,9 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\RoleName;
-use App\Models\AcademicLevel;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
-use App\Models\User;
 use App\Scheduling\SlotGrid;
 use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\RoleSeeder;
@@ -134,6 +131,11 @@ class SchedulingTest extends TestCase
         $this->assertSame(1, $first->json('data.attempt_number'));
         $this->assertSame(1, $first->json('data.learning_week'));
 
+        $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.master_class_remaining', 0)
+            ->assertJsonPath('data.can_book_master_class', false);
+
         $this->withToken($token)->postJson('/api/v1/student/bookings', [
             'teacher_id' => $teacher->id,
             'type' => 'master_class',
@@ -161,6 +163,41 @@ class SchedulingTest extends TestCase
         ])
             ->assertUnprocessable()
             ->assertJsonPath('error.code', 'MASTER_CLASS_MONTHLY_LIMIT');
+    }
+
+    public function test_student_with_three_master_classes_can_book_one_by_one(): void
+    {
+        [$student, $teacher] = $this->makeStudentWithTeacher();
+        $student->update(['master_classes_per_month' => 3]);
+        $token = $this->tokenFor($student->user);
+
+        $intro = $this->book($student, $teacher, 'introduction_call', '2026-09-16', '11:00');
+        $intro->update(['status' => 'completed']);
+
+        $this->book($student, $teacher, 'master_class', '2026-09-18', '11:00');
+        SessionBooking::query()->where('type', 'master_class')->latest('starts_at')->first()?->update(['status' => 'completed']);
+
+        $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.master_class_remaining', 2)
+            ->assertJsonPath('data.can_book_master_class', true);
+
+        $extra = $this->withToken($token)->postJson('/api/v1/student/bookings', [
+            'teacher_id' => $teacher->id,
+            'type' => 'master_class',
+            'date' => '2026-09-19',
+            'start' => '11:00',
+        ])->assertCreated();
+        $this->assertFalse((bool) $extra->json('data.attendance.is_last_chance'));
+        $this->assertNull($extra->json('data.attendance.last_chance_message'));
+        $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.master_class_remaining', 1);
+
+        $admin = $this->makeAdmin();
+        $this->withToken($this->tokenFor($admin))->getJson('/api/v1/admin/students/'.$student->id.'/history')
+            ->assertOk()
+            ->assertJsonFragment(['type' => 'master_class_booked']);
     }
 
     public function test_student_availability_marks_blocked_slots_and_overlap_is_rejected(): void
@@ -264,30 +301,6 @@ class SchedulingTest extends TestCase
             ->assertJsonPath('error.code', 'LEAVE_DATE_PASSED');
     }
 
-    /**
-     * @return array{0: StudentProfile, 1: TeacherProfile}
-     */
-    private function makeStudentWithTeacher(): array
-    {
-        $admin = User::query()->whereHas('roles', fn ($q) => $q->where('name', RoleName::OperationalAdmin->value))->first()
-            ?? $this->makeAdmin();
-        $teacher = $this->makeMasterTeacher();
-        $level = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
-        $level->masterTeachers()->syncWithoutDetaching([$teacher->id]);
-
-        $id = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/students', [
-            'name' => 'Slot Student',
-            'email' => 'slot-student-'.uniqid().'@excellenteducators.test',
-            'password' => 'StudentPass1!',
-            'phone' => '98'.random_int(10000000, 99999999),
-            'class_grade' => 6,
-        ])->assertCreated()->json('data.id');
-
-        $student = StudentProfile::query()->with('user')->findOrFail($id);
-
-        return [$student, $teacher];
-    }
-
     private function makeSecondStudent(TeacherProfile $teacher): StudentProfile
     {
         $admin = $this->makeAdmin();
@@ -297,6 +310,7 @@ class SchedulingTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '97'.random_int(10000000, 99999999),
             'class_grade' => 6,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         return StudentProfile::query()->with('user')->findOrFail($id);
@@ -312,36 +326,6 @@ class SchedulingTest extends TestCase
         ])->assertCreated()->json('data.id');
 
         return SessionBooking::query()->findOrFail($id);
-    }
-
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'ops-sched-'.uniqid().'@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
-    }
-
-    private function makeMasterTeacher(): TeacherProfile
-    {
-        $user = User::factory()->create(['email' => 'mt-sched-'.uniqid().'@excellenteducators.test']);
-        $user->assignRole(RoleName::MasterTeacher->value);
-
-        $profile = TeacherProfile::query()->create([
-            'user_id' => $user->id,
-            'full_name' => $user->name,
-            'status' => 'active',
-        ]);
-        $profile->setRelation('user', $user);
-
-        return $profile;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        $this->app['auth']->forgetGuards();
-
-        return $user->createToken('test')->plainTextToken;
     }
 
     public function test_live_introduction_or_master_class_cannot_be_booked_again(): void

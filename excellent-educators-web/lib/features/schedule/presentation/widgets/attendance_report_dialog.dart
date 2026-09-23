@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 Future<String?> showAttendanceReportDialog(
   BuildContext context, {
@@ -22,13 +23,13 @@ Future<String?> showAttendanceReportDialog(
               controller: controller,
               maxLines: 4,
               decoration: const InputDecoration(
-                labelText: 'Message to Admin',
+                labelText: AppStrings.messageToAdmin,
                 alignLabelWithHint: true,
               ),
             ),
             const SizedBox(height: 16),
             AppDialogActions(
-              confirmLabel: 'Submit Report',
+              confirmLabel: AppStrings.submitReport,
               onConfirm: () {
                 final text = controller.text.trim();
                 if (text.length < 3) {

@@ -2,11 +2,9 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\RoleName;
 use App\Models\AcademicLevel;
 use App\Models\Batch;
 use App\Models\StudentProfile;
-use App\Models\User;
 use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,21 +20,6 @@ class AcademicLevelBatchAllocationTest extends TestCase
         $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class]);
     }
 
-    private function makeAdmin(): User
-    {
-        $admin = User::factory()->create([
-            'email' => 'admin_level_test@excellenteducators.test',
-        ]);
-        $admin->assignRole(RoleName::OperationalAdmin->value);
-
-        return $admin;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        return $user->createToken('test-token')->plainTextToken;
-    }
-
     public function test_new_student_is_automatically_assigned_to_level_1_and_batch_1(): void
     {
         $admin = $this->makeAdmin();
@@ -48,6 +31,7 @@ class AcademicLevelBatchAllocationTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9811111111',
             'class_grade' => 6,
+            'gender' => 'male',
             'address' => '123 Test Street',
         ])->assertCreated();
 
@@ -79,6 +63,7 @@ class AcademicLevelBatchAllocationTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9800000050',
             'class_grade' => 6,
+            'gender' => 'male',
         ])->assertCreated();
 
         $student50 = StudentProfile::query()->findOrFail($response50->json('data.id'));
@@ -102,6 +87,7 @@ class AcademicLevelBatchAllocationTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9800000051',
             'class_grade' => 6,
+            'gender' => 'male',
         ])->assertCreated();
 
         $student51 = StudentProfile::query()->findOrFail($response51->json('data.id'));
@@ -136,6 +122,7 @@ class AcademicLevelBatchAllocationTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9800000099',
             'class_grade' => 7,
+            'gender' => 'male',
         ])->assertCreated();
 
         $student = StudentProfile::query()->findOrFail($response->json('data.id'));

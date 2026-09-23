@@ -3,6 +3,7 @@ import 'package:excellent_educators_web/features/auth/presentation/providers/aut
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class ResetPasswordPage extends ConsumerStatefulWidget {
   const ResetPasswordPage({super.key, required this.email, required this.token});
@@ -46,7 +47,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password updated. You can sign in now.')),
+          const SnackBar(content: Text(AppStrings.passwordUpdatedYouCanSignInNow)),
         );
         context.go('/login');
       }
@@ -62,7 +63,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Set new password')),
+      appBar: AppBar(title: const Text(AppStrings.setNewPassword)),
       body: SelectionArea(
         child: SafeArea(
         child: Center(
@@ -82,7 +83,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                       controller: _password,
                       obscureText: _obscure,
                       decoration: InputDecoration(
-                        labelText: 'New password',
+                        labelText: AppStrings.newPassword,
                         suffixIcon: IconButton(
                           onPressed: () => setState(() => _obscure = !_obscure),
                           icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
@@ -90,7 +91,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                       ),
                       validator: (value) {
                         if (value == null || value.length < 8) {
-                          return 'Use at least 8 characters.';
+                          return AppStrings.useAtLeast8Characters;
                         }
                         return null;
                       },
@@ -99,10 +100,10 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     TextFormField(
                       controller: _confirm,
                       obscureText: _obscure,
-                      decoration: const InputDecoration(labelText: 'Confirm password'),
+                      decoration: const InputDecoration(labelText: AppStrings.confirmPassword),
                       validator: (value) {
                         if (value != _password.text) {
-                          return 'Passwords do not match.';
+                          return AppStrings.passwordsDoNotMatch;
                         }
                         return null;
                       },
@@ -116,7 +117,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                       onPressed: _loading ? null : _submit,
                       child: _loading
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('Update password'),
+                          : const Text(AppStrings.updatePassword),
                     ),
                   ],
                 ),

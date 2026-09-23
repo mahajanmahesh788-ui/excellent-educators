@@ -5,28 +5,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('feedback form validation requires target, type, session date, and 1-10 rating', () {
+  test('feedback form validation requires all dimensions and a positive point', () {
     expect(
       FeedbackFormValue.validate(
-        const FeedbackFormValue(sessionDate: '2026-08-15', targetType: 'dimension', targetId: '', rating: 4),
+        const FeedbackFormValue(ratings: {'d1': 4}, positivePoints: 'Nice'),
+        expectedCount: 10,
       ),
       isNotNull,
     );
     expect(
       FeedbackFormValue.validate(
-        const FeedbackFormValue(sessionDate: '2026-08-15', targetType: 'subject', targetId: 'd1', rating: 4),
+        FeedbackFormValue(
+          ratings: {for (var i = 0; i < 10; i++) 'd$i': 8},
+          positivePoints: '',
+        ),
+        expectedCount: 10,
       ),
       isNotNull,
     );
     expect(
       FeedbackFormValue.validate(
-        const FeedbackFormValue(sessionDate: '2026-08-15', targetType: 'dimension', targetId: 'd1', rating: 11),
-      ),
-      isNotNull,
-    );
-    expect(
-      FeedbackFormValue.validate(
-        const FeedbackFormValue(sessionDate: '2026-08-15', targetType: 'skill', targetId: 's1', rating: 8),
+        FeedbackFormValue(
+          ratings: {for (var i = 0; i < 10; i++) 'd$i': 8},
+          positivePoints: 'Strong curiosity',
+        ),
+        expectedCount: 10,
       ),
       isNull,
     );
@@ -41,6 +44,7 @@ void main() {
       editable: true,
       deletable: true,
       masterTeacherName: 'Anita',
+      positivePoints: 'Collaborates well',
       items: [
         FeedbackItemDto(
           id: 'i1',
@@ -48,7 +52,6 @@ void main() {
           targetId: 'd1',
           targetName: 'Teamwork',
           rating: 4,
-          positivePoints: 'Collaborates well',
         ),
       ],
     );
@@ -85,6 +88,5 @@ void main() {
     );
 
     expect(find.text('Edit'), findsOneWidget);
-    expect(find.text('Teamwork'), findsOneWidget);
   });
 }

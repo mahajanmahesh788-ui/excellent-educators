@@ -13,6 +13,9 @@ import 'package:excellent_educators_web/features/feedback/presentation/widgets/m
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
+import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminStudentFeedbackSection extends ConsumerStatefulWidget {
   const AdminStudentFeedbackSection({super.key, required this.student});
@@ -44,10 +47,10 @@ class _AdminStudentFeedbackSectionState extends ConsumerState<AdminStudentFeedba
   Future<void> _confirmDelete(String feedbackId) async {
     final confirmed = await showAppConfirmDialog(
       context,
-      title: 'Delete rating?',
-      message: 'This removes the monthly rating permanently. This action cannot be undone.',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
+      title: AppStrings.deleteRating2,
+      message: AppStrings.thisRemovesTheMonthlyRatingPermanentlyThisActionCannotBe,
+      confirmLabel: AppStrings.delete,
+      cancelLabel: AppStrings.cancel,
       destructive: true,
     );
     if (confirmed != true) {
@@ -68,10 +71,10 @@ class _AdminStudentFeedbackSectionState extends ConsumerState<AdminStudentFeedba
   Widget build(BuildContext context) {
     if (!widget.student.hasMasterTeacher) {
       return DetailSection(
-        title: 'Master Teacher ratings',
+        title: AppStrings.masterTeacherRatings,
         children: [
           Text(
-            'Assign a Master Teacher to enable monthly ratings.',
+            AppStrings.assignAMasterTeacherToEnableMonthlyRatings,
             style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
           ),
         ],
@@ -80,9 +83,10 @@ class _AdminStudentFeedbackSectionState extends ConsumerState<AdminStudentFeedba
 
     final summary = ref.watch(adminStudentFeedbackSummaryProvider(widget.student.id));
     final feedback = ref.watch(adminStudentFeedbackProvider(widget.student.id));
+    final canRate = ref.watch(authControllerProvider).user?.canAdmin(AdminPermission.studentsRating) ?? false;
 
     return DetailSection(
-      title: 'Master Teacher ratings',
+      title: AppStrings.masterTeacherRatings,
       children: [
         Wrap(
           spacing: 8,
@@ -91,13 +95,13 @@ class _AdminStudentFeedbackSectionState extends ConsumerState<AdminStudentFeedba
           children: [
             if (widget.student.feedbackCurrentMonthCompleted)
               const _StatusTag(
-                label: 'Monthly rating done',
+                label: AppStrings.monthlyRatingDone,
                 background: Color(0xFFE8F5E9),
                 color: Color(0xFF2E7D32),
               )
             else
               const _StatusTag(
-                label: 'No monthly rating this month',
+                label: AppStrings.noMonthlyRatingThisMonth,
                 background: Color(0xFFFFF8E1),
                 color: Color(0xFFF57F17),
               ),
@@ -119,22 +123,22 @@ class _AdminStudentFeedbackSectionState extends ConsumerState<AdminStudentFeedba
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (currentMonth == null)
+                  if (canRate)
                   FilledButton.icon(
                     onPressed: () => context.go(RoutePaths.adminFeedbackNewFor(widget.student.id)),
                     icon: const Icon(Icons.add),
-                    label: const Text('Add monthly rating'),
-                  )
-                else ...[
+                    label: const Text(AppStrings.addMonthlyRating),
+                  ),
+                if (canRate && currentMonth != null) ...[
                   FilledButton.tonalIcon(
                     onPressed: () => context.go(RoutePaths.adminFeedbackEditFor(widget.student.id, currentMonth.id)),
                     icon: const Icon(Icons.edit),
-                    label: const Text('Edit this month'),
+                    label: const Text(AppStrings.editThisMonth),
                   ),
                   OutlinedButton.icon(
                     onPressed: () => _confirmDelete(currentMonth.id),
                     icon: const Icon(Icons.delete_outline),
-                    label: const Text('Delete this month'),
+                    label: const Text(AppStrings.deleteThisMonth),
                   ),
                 ],
               ],
@@ -158,11 +162,11 @@ class _AdminStudentFeedbackSectionState extends ConsumerState<AdminStudentFeedba
               children: [
                 FeedbackOverallCard(summary: summaryData),
                 const SizedBox(height: 16),
-                Text('Month-wise trend', style: Theme.of(context).textTheme.titleSmall),
+                Text(AppStrings.monthWiseTrend, style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
                 FeedbackMonthlyTrendChart(months: summaryData.byMonth),
                 const SizedBox(height: 16),
-                Text('Overall by skill / dimension', style: Theme.of(context).textTheme.titleSmall),
+                Text(AppStrings.overallBySkillDimension, style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
                 FeedbackDimensionOverview(dimensions: summaryData.byDimension),
               ],
@@ -201,7 +205,7 @@ class _AdminStudentFeedbackSectionState extends ConsumerState<AdminStudentFeedba
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Monthly rating history',
+                            AppStrings.monthlyRatingHistory,
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                           const SizedBox(height: 2),
@@ -227,7 +231,7 @@ class _AdminStudentFeedbackSectionState extends ConsumerState<AdminStudentFeedba
                             icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Brand.navy),
                             style: const TextStyle(color: Brand.navy, fontSize: 13, fontWeight: FontWeight.w600),
                             items: [
-                              const DropdownMenuItem(value: 'all', child: Text('All months')),
+                              const DropdownMenuItem(value: 'all', child: Text(AppStrings.allMonths2)),
                               for (final entry in monthEntries.entries)
                                 DropdownMenuItem(value: entry.key, child: Text(entry.value)),
                             ],
@@ -243,7 +247,7 @@ class _AdminStudentFeedbackSectionState extends ConsumerState<AdminStudentFeedba
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Text(
-                      'No monthly ratings for this month.',
+                      AppStrings.noMonthlyRatingsForThisMonth,
                       style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 13),
                     ),
                   )
@@ -252,6 +256,7 @@ class _AdminStudentFeedbackSectionState extends ConsumerState<AdminStudentFeedba
                     items: filteredItems,
                     onEdit: (feedbackId) => context.go(RoutePaths.adminFeedbackEditFor(widget.student.id, feedbackId)),
                     onDelete: (feedbackId) => _confirmDelete(feedbackId),
+                    showStaffNotes: true,
                   ),
               ],
             );

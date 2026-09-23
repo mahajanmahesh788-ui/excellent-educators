@@ -6,6 +6,7 @@ import 'package:excellent_educators_web/features/learning/presentation/widgets/l
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class StaffLearningJournalPage extends ConsumerWidget {
   const StaffLearningJournalPage({
@@ -24,8 +25,10 @@ class StaffLearningJournalPage extends ConsumerWidget {
         : ref.watch(adminLearningJournalProvider(studentId));
 
     return AppScaffold(
-      title: 'Learning Journal',
-      backTo: masterTeacher ? RoutePaths.masterTeacherStudentFor(studentId) : RoutePaths.adminStudent(studentId),
+      title: AppStrings.learningJournal,
+      backTo: masterTeacher
+          ? RoutePaths.masterTeacherStudentFor(studentId)
+          : RoutePaths.adminStudent(studentId),
       body: AsyncBody(
         value: journal,
         onRetry: () {
@@ -38,16 +41,31 @@ class StaffLearningJournalPage extends ConsumerWidget {
         builder: (data) => ListView(
           children: [
             if (data.studentName != null)
-              Text(data.studentName!, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-            if (data.currentLevelName != null) Text('Current level: ${data.currentLevelName}'),
+              Text(
+                data.studentName!,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            if (data.currentLevelName != null)
+              Text('Current level: ${data.currentLevelName}'),
             const SizedBox(height: 16),
             LearningJournalTable(
               journal: data,
               staffView: true,
               onOpenWeek: (group, week) {
                 final path = masterTeacher
-                    ? RoutePaths.masterTeacherStudentWeekFor(studentId, group.journeyId, week.weekNumber)
-                    : RoutePaths.adminStudentWeekFor(studentId, group.journeyId, week.weekNumber);
+                    ? RoutePaths.masterTeacherStudentWeekFor(
+                        studentId,
+                        group.journeyId,
+                        week.weekNumber,
+                      )
+                    : RoutePaths.adminStudentWeekFor(
+                        studentId,
+                        group.journeyId,
+                        week.weekNumber,
+                      );
                 context.go(path);
               },
             ),

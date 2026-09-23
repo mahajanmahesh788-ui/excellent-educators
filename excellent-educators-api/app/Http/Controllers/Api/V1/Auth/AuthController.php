@@ -52,7 +52,7 @@ class AuthController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $user->load('roles');
+        $user->load('roles', 'permissions');
 
         return ApiResponse::success('Current user fetched successfully.', UserResource::make($user)->resolve());
     }

@@ -2,6 +2,7 @@
 
 namespace App\Scheduling;
 
+use App\Attendance\AttendanceService;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
 use App\Models\ClassAttendance;
@@ -23,9 +24,10 @@ class BookingEligibility
         $introCompleted = $this->introductionCompleted($student);
         $hasUpcomingIntro = $this->hasUpcoming($student, SessionBookingType::IntroductionCall);
         $introCount = $this->introductionBookingCount($student);
-        $introRebooking = app(\App\Attendance\AttendanceService::class)
+        $introRebooking = app(AttendanceService::class)
             ->unusedRebookingFor($student->id, SessionBookingType::IntroductionCall);
         $canBookIntro = ! $hasUpcomingIntro && ! $introCompleted && ($introCount < 2 || $introRebooking !== null);
+        $balance = app(MasterClassBalance::class)->snapshot($student);
 
         return [
             'introduction_completed' => $introCompleted,
@@ -36,10 +38,11 @@ class BookingEligibility
             'can_book_master_class' => $this->canBookMasterClass($student),
             'has_upcoming_introduction' => $hasUpcomingIntro,
             'has_master_class_this_month' => ! $this->canBookMasterClass($student) && $introCompleted,
-            'master_class_rebooking_available' => app(\App\Attendance\AttendanceService::class)
+            'master_class_rebooking_available' => app(AttendanceService::class)
                 ->unusedRebookingFor($student->id, SessionBookingType::MasterClass) !== null,
-            'master_class_attempts_used' => $this->masterClassesThisMonth($student)->count(),
-            'master_class_attempts_max' => 1,
+            'master_class_attempts_used' => $balance['used'],
+            'master_class_attempts_max' => $balance['allotment'],
+            'master_class_remaining' => $balance['remaining'],
             'level_started_on' => $this->levelStartedOn($student),
             'current_month' => AppClock::currentYearMonth(),
         ];
@@ -89,16 +92,11 @@ class BookingEligibility
         if ($this->hasUpcoming($student, SessionBookingType::MasterClass, $ignoreBookingId)) {
             return false;
         }
-
-        if (app(\App\Attendance\AttendanceService::class)
-            ->unusedRebookingFor($student->id, SessionBookingType::MasterClass) !== null) {
+        if ($ignoreBookingId !== null) {
             return true;
         }
 
-        $items = $this->masterClassesThisMonth($student, $ignoreBookingId);
-        $this->heldMasterClassIds($items);
-
-        return $this->masterClassesThisMonth($student, $ignoreBookingId)->isEmpty();
+        return app(MasterClassBalance::class)->remaining($student) > 0;
     }
 
     /**

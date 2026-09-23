@@ -16,11 +16,7 @@ class CalculateAssessmentResult
      */
     public function execute(iterable $answers): array
     {
-        $scores = [];
-
-        foreach (DimensionCode::cases() as $code) {
-            $scores[$code->value] = 0;
-        }
+        $codeLists = [];
 
         foreach ($answers as $answer) {
             $option = $answer->option;
@@ -37,15 +33,65 @@ class CalculateAssessmentResult
                 continue;
             }
 
-            foreach ($rows as $row) {
-                $code = $row->dimension_code instanceof DimensionCode
-                    ? $row->dimension_code->value
-                    : (string) $row->dimension_code;
+            $codeLists[] = $rows->map(fn ($row) => $row->dimension_code)->all();
+        }
 
-                if (array_key_exists($code, $scores)) {
-                    $scores[$code]++;
+        return $this->fromSelectedCodes($codeLists);
+    }
+
+    /**
+     * @param  iterable<int, iterable<int, DimensionCode|string>>  $selectedCodeLists
+     * @return array<string, int>
+     */
+    public function fromSelectedCodes(iterable $selectedCodeLists): array
+    {
+        $scores = $this->emptyScores();
+
+        foreach ($selectedCodeLists as $codes) {
+            foreach ($codes as $code) {
+                $value = $code instanceof DimensionCode ? $code->value : (string) $code;
+                if (array_key_exists($value, $scores)) {
+                    $scores[$value]++;
                 }
             }
+        }
+
+        return $scores;
+    }
+
+    /**
+     * @param  array<string, int>  $scores
+     * @return list<array{name: string, score: int, code?: string}>
+     */
+    public function toDimensions(array $scores, bool $includeCodes = false): array
+    {
+        $dimensions = [];
+
+        foreach (DimensionCode::cases() as $code) {
+            $row = [
+                'name' => $code->label(),
+                'score' => (int) ($scores[$code->value] ?? 0),
+            ];
+
+            if ($includeCodes) {
+                $row['code'] = $code->value;
+            }
+
+            $dimensions[] = $row;
+        }
+
+        return $dimensions;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function emptyScores(): array
+    {
+        $scores = [];
+
+        foreach (DimensionCode::cases() as $code) {
+            $scores[$code->value] = 0;
         }
 
         return $scores;

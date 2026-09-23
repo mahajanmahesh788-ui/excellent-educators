@@ -3,6 +3,7 @@ import 'package:excellent_educators_web/core/network/api_client.dart';
 import 'package:excellent_educators_web/core/network/api_exception.dart';
 import 'package:excellent_educators_web/features/auth/data/dto/user_dto.dart';
 import 'package:excellent_educators_web/features/auth/domain/entities/app_user.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AuthSession {
   const AuthSession({required this.token, required this.user});
@@ -29,7 +30,7 @@ class AuthRemoteDatasource {
       },
     );
     if (data == null || data['token'] is! String || data['user'] is! Map) {
-      throw ApiException(message: 'Invalid login response.', code: 'SERVER_ERROR');
+      throw ApiException(message: AppStrings.invalidLoginResponse, code: 'SERVER_ERROR');
     }
     return AuthSession(
       token: data['token'] as String,
@@ -40,7 +41,7 @@ class AuthRemoteDatasource {
   Future<AppUser> me() async {
     final data = await _client.get(ApiEndpoints.me);
     if (data == null) {
-      throw ApiException(message: 'Invalid profile response.', code: 'SERVER_ERROR');
+      throw ApiException(message: AppStrings.invalidProfileResponse, code: 'SERVER_ERROR');
     }
     return UserDto.fromJson(data).toEntity();
   }

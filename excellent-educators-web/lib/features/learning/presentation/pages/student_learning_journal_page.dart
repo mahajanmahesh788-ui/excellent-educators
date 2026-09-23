@@ -6,6 +6,7 @@ import 'package:excellent_educators_web/features/student/presentation/widgets/st
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class StudentLearningJournalPage extends ConsumerWidget {
   const StudentLearningJournalPage({super.key});
@@ -14,12 +15,16 @@ class StudentLearningJournalPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final journal = ref.watch(studentLearningJournalProvider);
     return StudentScaffold(
-      title: 'Learning Journey',
+      title: AppStrings.learningJourney2,
       body: journal.when(
         loading: () => const AcademySkeleton(height: 280),
-        error: (_, _) => AcademyError(onRetry: () => ref.invalidate(studentLearningJournalProvider)),
+        error: (_, _) => AcademyError(
+          onRetry: () => ref.invalidate(studentLearningJournalProvider),
+        ),
         data: (data) {
-          final current = data.levels.where((level) => level.isCurrent).firstOrNull;
+          final current = data.levels
+              .where((level) => level.isCurrent)
+              .firstOrNull;
           final isMobile = MediaQuery.sizeOf(context).width < 600;
           return ListView(
             padding: EdgeInsets.only(bottom: isMobile ? 20 : 40),
@@ -27,10 +32,10 @@ class StudentLearningJournalPage extends ConsumerWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AcademyLabel('LEARNING JOURNEY'),
+                  const AcademyLabel(AppStrings.learningJourney),
                   const SizedBox(height: 4),
                   Text(
-                    'My Learning Journey',
+                    AppStrings.myLearningJourney,
                     style: TextStyle(
                       fontSize: isMobile ? 20 : 28,
                       fontWeight: FontWeight.w800,
@@ -40,8 +45,11 @@ class StudentLearningJournalPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Your journey is tracked by level and week — complete weekly assignments to level up.',
-                    style: TextStyle(fontSize: isMobile ? 12.5 : 14, color: Academy.muted),
+                    AppStrings.yourJourneyIsTrackedByLevelAndWeekCompleteWeekly,
+                    style: TextStyle(
+                      fontSize: isMobile ? 12.5 : 14,
+                      color: Academy.muted,
+                    ),
                   ),
                 ],
               ),
@@ -49,7 +57,9 @@ class StudentLearningJournalPage extends ConsumerWidget {
               if (current != null)
                 JourneyRibbon(
                   levelName: current.level.name,
-                  currentWeek: current.weeks.isEmpty ? 1 : current.weeks.last.weekNumber,
+                  currentWeek: current.weeks.isEmpty
+                      ? 1
+                      : current.weeks.last.weekNumber,
                   weekCount: current.weekCount,
                 ),
               SizedBox(height: isMobile ? 12 : 22),
@@ -57,7 +67,12 @@ class StudentLearningJournalPage extends ConsumerWidget {
                 journal: data,
                 staffView: false,
                 onOpenWeek: (group, week) {
-                  context.go(RoutePaths.studentJournalWeekFor(group.journeyId, week.weekNumber));
+                  context.go(
+                    RoutePaths.studentJournalWeekFor(
+                      group.journeyId,
+                      week.weekNumber,
+                    ),
+                  );
                 },
               ),
             ],

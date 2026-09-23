@@ -1,3 +1,5 @@
+import 'package:excellent_educators_web/features/assessments/data/dto/assessment_dtos.dart';
+
 class LearningNamedRef {
   const LearningNamedRef({required this.id, required this.name});
 
@@ -34,14 +36,19 @@ class LearningWeekDto {
     this.questions = const [],
     this.attempts = const [],
     this.score,
+    this.result,
   });
 
   factory LearningWeekDto.fromJson(Map<String, dynamic> json) {
-    final student = json['student'] is Map ? Map<String, dynamic>.from(json['student'] as Map) : null;
+    final student = json['student'] is Map
+        ? Map<String, dynamic>.from(json['student'] as Map)
+        : null;
     return LearningWeekDto(
       journeyId: json['journey_id'] as String? ?? '',
       level: LearningNamedRef.fromJson(
-        json['level'] is Map ? Map<String, dynamic>.from(json['level'] as Map) : null,
+        json['level'] is Map
+            ? Map<String, dynamic>.from(json['level'] as Map)
+            : null,
       ),
       weekNumber: (json['week_number'] as num?)?.toInt() ?? 0,
       assignmentStatus: json['assignment_status'] as String? ?? 'pending',
@@ -57,14 +64,27 @@ class LearningWeekDto {
       currentLevelName: student?['current_level'] as String?,
       questions: (json['questions'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => LearningQuestionDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                LearningQuestionDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
       attempts: (json['attempts'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => LearningAttemptDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                LearningAttemptDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
       score: json['score'] is Map
-          ? LearningWeekScoreDto.fromJson(Map<String, dynamic>.from(json['score'] as Map))
+          ? LearningWeekScoreDto.fromJson(
+              Map<String, dynamic>.from(json['score'] as Map),
+            )
+          : null,
+      result: json['result'] is Map
+          ? AssessmentResultDto.fromJson(
+              Map<String, dynamic>.from(json['result'] as Map),
+            )
           : null,
     );
   }
@@ -86,6 +106,7 @@ class LearningWeekDto {
   final List<LearningQuestionDto> questions;
   final List<LearningAttemptDto> attempts;
   final LearningWeekScoreDto? score;
+  final AssessmentResultDto? result;
 
   bool get completed => assignmentStatus == 'completed';
 }
@@ -129,7 +150,10 @@ class LearningQuestionDto {
       questionText: json['question_text'] as String? ?? '',
       options: (json['options'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => LearningOptionDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                LearningOptionDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
     );
   }
@@ -143,20 +167,27 @@ class LearningOptionDto {
   const LearningOptionDto({
     required this.id,
     required this.optionText,
-    this.isCorrect,
+    this.dimensionCodes = const [],
+    this.dimensionNames = const [],
   });
 
   factory LearningOptionDto.fromJson(Map<String, dynamic> json) {
     return LearningOptionDto(
       id: json['id'] as String? ?? '',
       optionText: json['option_text'] as String? ?? '',
-      isCorrect: json['is_correct'] as bool?,
+      dimensionCodes: (json['dimension_codes'] as List<dynamic>? ?? const [])
+          .whereType<String>()
+          .toList(),
+      dimensionNames: (json['dimension_names'] as List<dynamic>? ?? const [])
+          .whereType<String>()
+          .toList(),
     );
   }
 
   final String id;
   final String optionText;
-  final bool? isCorrect;
+  final List<String> dimensionCodes;
+  final List<String> dimensionNames;
 }
 
 class LearningAttemptDto {
@@ -165,6 +196,7 @@ class LearningAttemptDto {
     required this.answers,
     this.submittedAt,
     this.videoUrl,
+    this.result,
   });
 
   factory LearningAttemptDto.fromJson(Map<String, dynamic> json) {
@@ -176,6 +208,11 @@ class LearningAttemptDto {
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .toList(),
+      result: json['result'] is Map
+          ? AssessmentResultDto.fromJson(
+              Map<String, dynamic>.from(json['result'] as Map),
+            )
+          : null,
     );
   }
 
@@ -183,6 +220,7 @@ class LearningAttemptDto {
   final String? submittedAt;
   final String? videoUrl;
   final List<Map<String, dynamic>> answers;
+  final AssessmentResultDto? result;
 
   String? optionIdFor(String questionId) {
     for (final answer in answers) {
@@ -206,14 +244,18 @@ class LearningLevelGroupDto {
   factory LearningLevelGroupDto.fromJson(Map<String, dynamic> json) {
     return LearningLevelGroupDto(
       level: LearningNamedRef.fromJson(
-        json['level'] is Map ? Map<String, dynamic>.from(json['level'] as Map) : null,
+        json['level'] is Map
+            ? Map<String, dynamic>.from(json['level'] as Map)
+            : null,
       ),
       journeyId: json['journey_id'] as String? ?? '',
       isCurrent: json['is_current'] as bool? ?? false,
       weekCount: (json['week_count'] as num?)?.toInt() ?? 0,
       weeks: (json['weeks'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => LearningWeekDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) => LearningWeekDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
     );
   }
@@ -233,13 +275,18 @@ class LearningJournalDto {
   });
 
   factory LearningJournalDto.fromJson(Map<String, dynamic> json) {
-    final student = json['student'] is Map ? Map<String, dynamic>.from(json['student'] as Map) : null;
+    final student = json['student'] is Map
+        ? Map<String, dynamic>.from(json['student'] as Map)
+        : null;
     return LearningJournalDto(
       studentName: student?['full_name'] as String?,
       currentLevelName: student?['current_level'] as String?,
       levels: (json['levels'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => LearningLevelGroupDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                LearningLevelGroupDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
     );
   }
@@ -261,17 +308,25 @@ class LearningDashboardDto {
   });
 
   factory LearningDashboardDto.fromJson(Map<String, dynamic> json) {
-    final progress = json['progress'] is Map ? Map<String, dynamic>.from(json['progress'] as Map) : const {};
+    final progress = json['progress'] is Map
+        ? Map<String, dynamic>.from(json['progress'] as Map)
+        : const {};
     return LearningDashboardDto(
       currentLevel: json['current_level'] is Map
-          ? LearningNamedRef.fromJson(Map<String, dynamic>.from(json['current_level'] as Map))
+          ? LearningNamedRef.fromJson(
+              Map<String, dynamic>.from(json['current_level'] as Map),
+            )
           : null,
       currentWeek: (json['current_week'] as num?)?.toInt() ?? 0,
       nextAction: json['next_action'] as String? ?? '',
       ctaLabel: json['cta_label'] as String? ?? '',
       completedWeeks: (progress['completed_weeks'] as num?)?.toInt() ?? 0,
       totalWeeks: (progress['total_weeks'] as num?)?.toInt() ?? 52,
-      week: json['week'] is Map ? LearningWeekDto.fromJson(Map<String, dynamic>.from(json['week'] as Map)) : null,
+      week: json['week'] is Map
+          ? LearningWeekDto.fromJson(
+              Map<String, dynamic>.from(json['week'] as Map),
+            )
+          : null,
     );
   }
 
@@ -303,7 +358,10 @@ class WeeklyLearningContentDto {
       videoUrl: json['video_url'] as String? ?? '',
       questions: (json['questions'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => LearningQuestionDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                LearningQuestionDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
     );
   }

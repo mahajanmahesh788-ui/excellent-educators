@@ -11,6 +11,7 @@ import 'package:excellent_educators_web/features/student/presentation/widgets/st
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class StudentRequestsPage extends ConsumerWidget {
   const StudentRequestsPage({super.key});
@@ -20,13 +21,13 @@ class StudentRequestsPage extends ConsumerWidget {
     final requests = ref.watch(studentRequestsProvider);
 
     return StudentScaffold(
-      title: 'Request to Admin',
+      title: AppStrings.requestToAdmin,
       body: AsyncBody(
         value: requests,
         onRetry: () => ref.invalidate(studentRequestsProvider),
         builder: (items) => _RequestListBody(
           items: items,
-          emptyMessage: 'No requests yet. Tap below to send your first request to admin.',
+          emptyMessage: AppStrings.noRequestsYetTapBelowToSendYourFirstRequest,
           newRoute: RoutePaths.studentRequestNew,
           nested: false,
         ),
@@ -34,7 +35,7 @@ class StudentRequestsPage extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go(RoutePaths.studentRequestNew),
         icon: const Icon(Icons.add),
-        label: const Text('New request'),
+        label: const Text(AppStrings.newRequest),
       ),
     );
   }
@@ -48,20 +49,20 @@ class TeacherRequestsPage extends ConsumerWidget {
     final requests = ref.watch(teacherRequestsProvider);
 
     return AppScaffold(
-      title: 'Request to Admin',
+      title: AppStrings.requestToAdmin,
       body: AsyncBody(
         value: requests,
         onRetry: () => ref.invalidate(teacherRequestsProvider),
         builder: (items) => _RequestListBody(
           items: items,
-          emptyMessage: 'No requests yet. Tap below to send your first request to admin.',
+          emptyMessage: AppStrings.noRequestsYetTapBelowToSendYourFirstRequest,
           newRoute: RoutePaths.teacherRequestNew,
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go(RoutePaths.teacherRequestNew),
         icon: const Icon(Icons.add),
-        label: const Text('New request'),
+        label: const Text(AppStrings.newRequest),
       ),
     );
   }
@@ -85,33 +86,35 @@ class _RequestListBody extends StatelessWidget {
     if (items.isEmpty) {
       return EmptyState(
         icon: EmptyIcons.requests,
-        title: 'No requests yet',
+        title: AppStrings.noRequestsYet,
         subtitle: emptyMessage,
         action: FilledButton.icon(
           onPressed: () => context.go(newRoute),
           icon: const Icon(Icons.add),
-          label: const Text('New request'),
+          label: const Text(AppStrings.newRequest),
         ),
       );
     }
 
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     final pending = items.where((item) => item.isPending).toList();
     final completed = items.where((item) => item.isCompleted).toList();
 
     return ListView(
       shrinkWrap: nested,
       physics: nested ? const NeverScrollableScrollPhysics() : null,
+      padding: EdgeInsets.fromLTRB(0, isMobile ? 4 : 8, 0, nested ? 0 : 88),
       children: [
         if (pending.isNotEmpty) ...[
-          const _SectionHeading('Pending'),
+          _SectionHeading(label: AppStrings.pending, count: pending.length),
           for (final item in pending) ...[
             RequestListCard(item: item),
             const SizedBox(height: 8),
           ],
-          const SizedBox(height: 12),
+          if (completed.isNotEmpty) SizedBox(height: isMobile ? 8 : 12),
         ],
         if (completed.isNotEmpty) ...[
-          const _SectionHeading('Completed'),
+          _SectionHeading(label: AppStrings.completed, count: completed.length),
           for (final item in completed) ...[
             RequestListCard(item: item),
             const SizedBox(height: 8),
@@ -123,15 +126,48 @@ class _RequestListBody extends StatelessWidget {
 }
 
 class _SectionHeading extends StatelessWidget {
-  const _SectionHeading(this.label);
+  const _SectionHeading({
+    required this.label,
+    this.count,
+  });
 
   final String label;
+  final int? count;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(label, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+      padding: const EdgeInsets.only(top: 4, bottom: 8),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: Brand.navy,
+            ),
+          ),
+          if (count != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
+              decoration: BoxDecoration(
+                color: Brand.creamDark.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Brand.navy,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -169,7 +205,7 @@ class _StudentNewRequestPageState extends ConsumerState<StudentNewRequestPage> {
       ref.invalidate(studentRequestsProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Request sent to admin.')),
+          const SnackBar(content: Text(AppStrings.requestSentToAdmin)),
         );
         context.go(RoutePaths.studentRequests);
       }
@@ -187,7 +223,7 @@ class _StudentNewRequestPageState extends ConsumerState<StudentNewRequestPage> {
   @override
   Widget build(BuildContext context) {
     return StudentScaffold(
-      title: 'New request',
+      title: AppStrings.newRequest,
       backTo: RoutePaths.studentRequests,
       body: _NewRequestForm(
         formKey: _formKey,
@@ -234,7 +270,7 @@ class _TeacherNewRequestPageState extends ConsumerState<TeacherNewRequestPage> {
       ref.invalidate(teacherRequestsProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Request sent to admin.')),
+          const SnackBar(content: Text(AppStrings.requestSentToAdmin)),
         );
         context.go(RoutePaths.teacherRequests);
       }
@@ -252,7 +288,7 @@ class _TeacherNewRequestPageState extends ConsumerState<TeacherNewRequestPage> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: 'New request',
+      title: AppStrings.newRequest,
       backTo: RoutePaths.teacherRequests,
       body: _NewRequestForm(
         formKey: _formKey,
@@ -284,53 +320,120 @@ class _NewRequestForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: formKey,
-      child: ListView(
-        shrinkWrap: nested,
-        physics: nested ? const NeverScrollableScrollPhysics() : null,
-        children: [
-          const Text(
-            'Send a request to the admin team. They will review and mark it as resolved when done.',
-            style: TextStyle(color: Brand.muted),
-          ),
-          const SizedBox(height: 20),
-          TextFormField(
-            controller: subtitle,
-            decoration: const InputDecoration(labelText: 'Subject'),
-            textCapitalization: TextCapitalization.sentences,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Enter a subject.';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: description,
-            decoration: const InputDecoration(
-              labelText: 'Description',
-              alignLabelWithHint: true,
-            ),
-            maxLines: 6,
-            textCapitalization: TextCapitalization.sentences,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Enter a description.';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: saving ? null : onSubmit,
-            child: saving
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Submit request'),
-          ),
-        ],
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+
+    final formCard = Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFE6DCCB)),
       ),
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 16 : 24),
+        child: Form(
+          key: formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Brand.creamDark.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.mark_email_unread_outlined, size: 20, color: Brand.navy),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppStrings.newRequest,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Brand.navy,
+                          ),
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          AppStrings.sendARequestToTheAdminTeamTheyWillReview,
+                          style: TextStyle(fontSize: 12.5, color: Brand.muted, height: 1.35),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: subtitle,
+                decoration: const InputDecoration(
+                  labelText: AppStrings.subject,
+                  hintText: 'e.g. Schedule clash or fee query',
+                ),
+                textCapitalization: TextCapitalization.sentences,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return AppStrings.enterASubject;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: description,
+                decoration: const InputDecoration(
+                  labelText: AppStrings.description,
+                  hintText: 'Provide details about your request...',
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 5,
+                textCapitalization: TextCapitalization.sentences,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return AppStrings.enterADescription;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: saving ? null : onSubmit,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(44),
+                ),
+                child: saving
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text(AppStrings.submitRequest),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return ListView(
+      shrinkWrap: nested,
+      physics: nested ? const NeverScrollableScrollPhysics() : null,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 0 : 16,
+        vertical: isMobile ? 8 : 16,
+      ),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: formCard,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -340,15 +443,15 @@ class AdminRequestsPage extends ConsumerWidget {
 
   static String _emptyMessage(String status) {
     return switch (status) {
-      'completed' => 'Resolved requests will show up here.',
-      _ => 'Nothing waiting for review right now.',
+      'completed' => AppStrings.resolvedRequestsWillShowUpHere,
+      _ => AppStrings.nothingWaitingForReviewRightNow,
     };
   }
 
   static String _emptyTitle(String status) {
     return switch (status) {
-      'completed' => 'No completed requests',
-      _ => 'No pending requests',
+      'completed' => AppStrings.noCompletedRequests,
+      _ => AppStrings.noPendingRequests,
     };
   }
 
@@ -359,7 +462,7 @@ class AdminRequestsPage extends ConsumerWidget {
     final repo = ref.watch(requestRepositoryProvider);
 
     return AppScaffold(
-      title: 'Requests',
+      title: AppStrings.requests,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -381,6 +484,7 @@ class AdminRequestsPage extends ConsumerWidget {
                 }
 
                 return ListView(
+                  padding: const EdgeInsets.only(bottom: 16),
                   children: [
                     for (final item in items) ...[
                       RequestListCard(
@@ -442,12 +546,12 @@ class _AdminRequestFilters extends ConsumerWidget {
       runSpacing: 8,
       children: [
         FilterChip(
-          label: const Text('Pending'),
+          label: const Text(AppStrings.pending),
           selected: filter.status == 'pending',
           onSelected: (_) => setFilter(filter.copyWith(status: 'pending', page: 1)),
         ),
         FilterChip(
-          label: const Text('Completed'),
+          label: const Text(AppStrings.completed),
           selected: filter.status == 'completed',
           onSelected: (_) => setFilter(filter.copyWith(status: 'completed', page: 1)),
         ),
@@ -479,7 +583,7 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              applyAction ? 'Student removed and request completed.' : 'Request marked as resolved.',
+              applyAction ? AppStrings.studentRemovedAndRequestCompleted : AppStrings.requestMarkedAsResolved,
             ),
           ),
         );
@@ -500,7 +604,7 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
     final request = ref.watch(adminRequestDetailProvider(widget.requestId));
 
     return AppScaffold(
-      title: 'Request detail',
+      title: AppStrings.requestDetail,
       backTo: RoutePaths.adminRequests,
       body: AsyncBody(
         value: request,
@@ -521,7 +625,7 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
               ),
               if (item.isCompleted) ...[
                 const SizedBox(height: 20),
-                Text('Resolution', style: Theme.of(context).textTheme.titleSmall),
+                Text(AppStrings.resolution, style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
                 Text(
                   'Resolved by ${item.resolvedByName ?? 'admin'}'
@@ -535,7 +639,7 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                   OutlinedButton.icon(
                     onPressed: () => context.go(RoutePaths.adminStudent(item.student!.id)),
                     icon: const Icon(Icons.school_outlined),
-                    label: const Text('Open student profile'),
+                    label: const Text(AppStrings.openStudentProfile),
                   ),
                 ],
                 const SizedBox(height: 28),
@@ -545,12 +649,12 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                     icon: _resolving
                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.person_remove_outlined),
-                    label: const Text('Approve & remove student'),
+                    label: const Text(AppStrings.approveRemoveStudent),
                   ),
                   const SizedBox(height: 10),
                   OutlinedButton(
                     onPressed: _resolving ? null : () => _resolve(applyAction: false),
-                    child: const Text('Mark resolved without removing'),
+                    child: const Text(AppStrings.markResolvedWithoutRemoving),
                   ),
                 ] else
                   FilledButton.icon(
@@ -558,7 +662,7 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                     icon: _resolving
                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.check_circle_outline),
-                    label: const Text('Mark as resolved'),
+                    label: const Text(AppStrings.markAsResolved),
                   ),
               ],
             ],
@@ -576,12 +680,12 @@ String _formatDate(String iso) {
   }
   final local = parsed.toLocal();
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    AppStrings.jan2, AppStrings.feb2, AppStrings.mar2, AppStrings.apr2, AppStrings.may2, AppStrings.jun2,
+    AppStrings.jul2, AppStrings.aug2, AppStrings.sep2, AppStrings.oct2, AppStrings.nov2, AppStrings.dec2,
   ];
   final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
   final minute = local.minute.toString().padLeft(2, '0');
-  final amPm = local.hour >= 12 ? 'PM' : 'AM';
+  final amPm = local.hour >= 12 ? AppStrings.pm : AppStrings.am;
   return '${local.day} ${months[local.month - 1]} ${local.year}, $hour:$minute $amPm';
 }
 

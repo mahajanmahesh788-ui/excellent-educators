@@ -5,6 +5,7 @@ import 'package:excellent_educators_web/features/auth/presentation/providers/aut
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class ChangePasswordPage extends ConsumerStatefulWidget {
   const ChangePasswordPage({super.key});
@@ -46,7 +47,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password updated. Please sign in again.')),
+          const SnackBar(content: Text(AppStrings.passwordUpdatedPleaseSignInAgain)),
         );
         context.go(RoutePaths.login);
       }
@@ -76,7 +77,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   );
 
     return AppScaffold(
-      title: 'Change password',
+      title: AppStrings.changePassword,
       backTo: backTo,
       body: Center(
         child: SingleChildScrollView(
@@ -87,12 +88,12 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Update your password',
+                    AppStrings.updateYourPassword,
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'You will be signed out on all devices after saving a new password.',
+                    AppStrings.youWillBeSignedOutOnAllDevicesAfterSaving,
                     style: TextStyle(color: Colors.black54, height: 1.4),
                   ),
                   const SizedBox(height: 24),
@@ -100,7 +101,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                     controller: _currentPassword,
                     obscureText: _obscure,
                     decoration: InputDecoration(
-                      labelText: 'Current password',
+                      labelText: AppStrings.currentPassword,
                       suffixIcon: IconButton(
                         onPressed: () => setState(() => _obscure = !_obscure),
                         icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
@@ -108,7 +109,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Enter your current password.';
+                        return AppStrings.enterYourCurrentPassword;
                       }
                       return null;
                     },
@@ -117,10 +118,10 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   TextFormField(
                     controller: _password,
                     obscureText: _obscure,
-                    decoration: const InputDecoration(labelText: 'New password'),
+                    decoration: const InputDecoration(labelText: AppStrings.newPassword),
                     validator: (value) {
                       if (value == null || value.length < 8) {
-                        return 'Use at least 8 characters.';
+                        return AppStrings.useAtLeast8Characters;
                       }
                       return null;
                     },
@@ -129,10 +130,10 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   TextFormField(
                     controller: _confirm,
                     obscureText: _obscure,
-                    decoration: const InputDecoration(labelText: 'Confirm new password'),
+                    decoration: const InputDecoration(labelText: AppStrings.confirmNewPassword),
                     validator: (value) {
                       if (value != _password.text) {
-                        return 'Passwords do not match.';
+                        return AppStrings.passwordsDoNotMatch;
                       }
                       return null;
                     },
@@ -146,7 +147,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                     onPressed: _loading ? null : _submit,
                     child: _loading
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Save new password'),
+                        : const Text(AppStrings.saveNewPassword),
                   ),
                 ],
               ),

@@ -14,14 +14,15 @@ class ResponsiveBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final horizontal = width < Breakpoints.mobile ? 20.0 : 32.0;
+    final horizontal = width < Breakpoints.mobile ? 12.0 : 32.0;
+    final vertical = width < Breakpoints.mobile ? 16.0 : 32.0;
 
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: horizontal, vertical: 32),
+          padding: EdgeInsets.symmetric(horizontal: horizontal, vertical: vertical),
           child: child,
         ),
       ),

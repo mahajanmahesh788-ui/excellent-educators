@@ -12,6 +12,9 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/d
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
+import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminStudentsPage extends ConsumerStatefulWidget {
   const AdminStudentsPage({super.key});
@@ -41,7 +44,7 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
   }) {
     return DirectoryToolbar(
       key: const ValueKey('admin-students-toolbar'),
-      searchHint: 'Search name, Student ID, phone, or email',
+      searchHint: AppStrings.searchNameStudentIdPhoneOrEmail,
       searchQuery: filter.search,
       onSearchChanged: (value) => _setFilter(filter.copyWith(search: value, page: 1)),
       statusItems: statusFilterItems,
@@ -69,13 +72,18 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
     final repo = ref.watch(academicRepositoryProvider);
     final page = students.asData?.value;
 
+    final user = ref.watch(authControllerProvider).user;
+    final canCreate = user?.canAdmin(AdminPermission.studentsCreate) ?? false;
+
     return AppScaffold(
-      title: 'Students',
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go(RoutePaths.adminStudentNew),
-        icon: const Icon(Icons.add),
-        label: const Text('Add student'),
-      ),
+      title: AppStrings.students,
+      floatingActionButton: canCreate
+          ? FloatingActionButton.extended(
+              onPressed: () => context.go(RoutePaths.adminStudentNew),
+              icon: const Icon(Icons.add),
+              label: const Text(AppStrings.addStudent),
+            )
+          : null,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -100,17 +108,17 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
                     filter.status == null &&
                     filter.attentionKey == null) {
                   return const EmptyHint(
-                    'No students yet',
+                    AppStrings.noStudentsYet,
                     icon: EmptyIcons.students,
-                    subtitle: 'Add a student to generate a Student ID and start tracking progress.',
+                    subtitle: AppStrings.addAStudentToGenerateAStudentIdAndStart,
                   );
                 }
 
                 if (items.isEmpty) {
                   return const EmptyHint(
-                    'No students match your filters',
+                    AppStrings.noStudentsMatchYourFilters,
                     icon: EmptyIcons.search,
-                    subtitle: 'Try a different search term or filter.',
+                    subtitle: AppStrings.tryADifferentSearchTermOrFilter,
                   );
                 }
 
@@ -121,7 +129,7 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       return DirectoryHeader(
-                        countLabel: page.total == 1 ? '1 student' : '${page.total} students',
+                        countLabel: page.total == 1 ? AppStrings.n1Student : '${page.total} students',
                       );
                     }
                     final student = items[index - 1];
@@ -157,6 +165,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
   final _password = TextEditingController();
   final _guardianName = TextEditingController();
   int? _classGrade;
+  String? _gender;
   bool _saving = false;
   bool _obscure = true;
 
@@ -173,7 +182,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _classGrade == null) {
+    if (!_formKey.currentState!.validate() || _classGrade == null || _gender == null) {
       return;
     }
 
@@ -187,6 +196,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
         'email': _email.text.trim(),
         'password': _password.text,
         'class_grade': _classGrade,
+        'gender': _gender,
         'guardian_name': _guardianName.text.trim().isEmpty ? null : _guardianName.text.trim(),
       });
       ref.invalidate(adminStudentsProvider);
@@ -227,7 +237,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
           );
 
     return AppScaffold(
-      title: 'Add student',
+      title: AppStrings.addStudent,
       backTo: RoutePaths.adminStudents,
       body: SingleChildScrollView(child: content),
     );
@@ -260,7 +270,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'ENROLMENT REQUEST',
+                    AppStrings.enrolmentRequest,
                     style: TextStyle(
                       color: Brand.goldDark,
                       fontWeight: FontWeight.w700,
@@ -270,7 +280,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Student details',
+                    AppStrings.studentDetails,
                     style: TextStyle(
                       color: Brand.navy,
                       fontWeight: FontWeight.w700,
@@ -280,7 +290,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Submitting this form creates the student and issues a Student ID. Confirmation is immediate.',
+                    AppStrings.submittingThisFormCreatesTheStudentAndIssuesAStudent,
                     style: TextStyle(color: Brand.muted, height: 1.45),
                   ),
                   const SizedBox(height: 20),
@@ -288,8 +298,8 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                     key: ValueKey(_classGrade),
                     value: _classGrade,
                     decoration: const InputDecoration(
-                      labelText: 'Class',
-                      hintText: 'Select student class',
+                      labelText: AppStrings.classLabel,
+                      hintText: AppStrings.selectStudentClass,
                     ),
                     items: [
                       for (final grade in [5, 6, 7, 8, 9, 10, 11, 12])
@@ -298,22 +308,27 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                           child: Text('Class $grade (${_classOrdinal(grade)} Class)'),
                         ),
                     ],
-                    validator: (value) => value == null ? 'Please select a class.' : null,
+                    validator: (value) => value == null ? AppStrings.pleaseSelectAClass : null,
                     onChanged: (value) => setState(() => _classGrade = value),
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _name,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(labelText: 'Full name'),
-                    validator: _required,
+                    decoration: const InputDecoration(labelText: AppStrings.fullName),
+                    validator: validateRequired,
+                  ),
+                  const SizedBox(height: 14),
+                  GenderDropdown(
+                    value: _gender,
+                    onChanged: (value) => setState(() => _gender = value),
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _phone,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
-                      labelText: 'Phone number',
+                      labelText: AppStrings.phoneNumber,
                       prefixText: '+91  ',
                     ),
                     validator: validateRequiredPhone,
@@ -323,7 +338,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                     controller: _whatsapp,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
-                      labelText: 'WhatsApp number (optional)',
+                      labelText: AppStrings.whatsappNumberOptional,
                       prefixText: '+91  ',
                     ),
                     validator: validateOptionalPhone,
@@ -334,8 +349,8 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                     maxLines: 2,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
-                      labelText: 'Address',
-                      hintText: 'Enter student address',
+                      labelText: AppStrings.address,
+                      hintText: AppStrings.enterStudentAddress,
                       alignLabelWithHint: true,
                     ),
                   ),
@@ -343,13 +358,13 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                   TextFormField(
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'Email'),
+                    decoration: const InputDecoration(labelText: AppStrings.email),
                     validator: (value) {
-                      if (_required(value) != null) {
-                        return 'Enter an email.';
+                      if (validateRequired(value) != null) {
+                        return AppStrings.enterAnEmail;
                       }
                       if (!value!.contains('@')) {
-                        return 'Enter a valid email.';
+                        return AppStrings.enterAValidEmail;
                       }
                       return null;
                     },
@@ -359,18 +374,18 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                     controller: _password,
                     obscureText: _obscure,
                     decoration: InputDecoration(
-                      labelText: 'Temporary password',
+                      labelText: AppStrings.temporaryPassword,
                       suffixIcon: IconButton(
                         onPressed: () => setState(() => _obscure = !_obscure),
                         icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                       ),
                     ),
-                    validator: _required,
+                    validator: validateRequired,
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _guardianName,
-                    decoration: const InputDecoration(labelText: 'Guardian name (optional)'),
+                    decoration: const InputDecoration(labelText: AppStrings.guardianNameOptional),
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
@@ -381,7 +396,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                             height: 22,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Brand.navy),
                           )
-                        : const Text('Create student'),
+                        : const Text(AppStrings.createStudent),
                   ),
                 ],
               ),
@@ -392,12 +407,6 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
     );
   }
 
-  String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'This field is required.';
-    }
-    return null;
-  }
 }
 
 class _IntroPanel extends StatelessWidget {
@@ -413,7 +422,7 @@ class _IntroPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'ENROLMENT',
+            AppStrings.enrolment,
             style: TextStyle(
               color: Brand.goldDark,
               fontWeight: FontWeight.w700,
@@ -423,7 +432,7 @@ class _IntroPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Let’s start with a student',
+            AppStrings.letSStartWithAStudent,
             style: TextStyle(
               color: Brand.navy,
               fontWeight: FontWeight.w700,
@@ -433,7 +442,7 @@ class _IntroPanel extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           const Text(
-            'Select the student’s class, then enter contact and address details. The Student ID is generated automatically after you save.',
+            AppStrings.selectTheStudentSClassThenEnterContactAndAddress,
             style: TextStyle(color: Brand.muted, fontSize: 16, height: 1.5),
           ),
           const SizedBox(height: 28),
@@ -448,7 +457,7 @@ class _IntroPanel extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('✦  SELECTED ENROLMENT', style: TextStyle(color: Brand.gold, letterSpacing: 1.4, fontSize: 11, fontWeight: FontWeight.w700)),
+                  const Text(AppStrings.selectedEnrolment, style: TextStyle(color: Brand.gold, letterSpacing: 1.4, fontSize: 11, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   Text(
                     'Class $selectedClassGrade (${_classOrdinal(selectedClassGrade!)} Class)',
@@ -466,21 +475,21 @@ class _IntroPanel extends StatelessWidget {
 String _classOrdinal(int grade) {
   switch (grade) {
     case 5:
-      return '5th';
+      return AppStrings.n5th;
     case 6:
-      return '6th';
+      return AppStrings.n6th;
     case 7:
-      return '7th';
+      return AppStrings.n7th;
     case 8:
-      return '8th';
+      return AppStrings.n8th;
     case 9:
-      return '9th';
+      return AppStrings.n9th;
     case 10:
-      return '10th';
+      return AppStrings.n10th;
     case 11:
-      return '11th';
+      return AppStrings.n11th;
     case 12:
-      return '12th';
+      return AppStrings.n12th;
     default:
       return '${grade}th';
   }

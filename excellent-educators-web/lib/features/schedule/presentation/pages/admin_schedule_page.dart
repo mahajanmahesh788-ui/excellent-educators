@@ -8,6 +8,7 @@ import 'package:excellent_educators_web/features/schedule/presentation/providers
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/schedule_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminSchedulePage extends ConsumerStatefulWidget {
   const AdminSchedulePage({super.key});
@@ -27,7 +28,7 @@ class _AdminSchedulePageState extends ConsumerState<AdminSchedulePage> {
     final day = ref.watch(adminScheduleDayProvider);
 
     return AppScaffold(
-      title: 'Time Management',
+      title: AppStrings.timeManagement,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -37,7 +38,7 @@ class _AdminSchedulePageState extends ConsumerState<AdminSchedulePage> {
             builder: (items) {
               return DropdownButtonFormField<String>(
                 value: teacherId,
-                decoration: const InputDecoration(labelText: 'Select teacher'),
+                decoration: const InputDecoration(labelText: AppStrings.selectTeacher),
                 items: [
                   for (final teacher in items)
                     DropdownMenuItem(value: teacher.id, child: Text(teacher.fullName)),
@@ -50,11 +51,11 @@ class _AdminSchedulePageState extends ConsumerState<AdminSchedulePage> {
           Wrap(
             spacing: 8,
             children: [
-              ChoiceChip(label: const Text('Calendar'), selected: _tab == 0, onSelected: (_) => setState(() => _tab = 0)),
-              ChoiceChip(label: const Text('Leaves'), selected: _tab == 1, onSelected: (_) => setState(() => _tab = 1)),
-              ChoiceChip(label: const Text('Breaks'), selected: _tab == 2, onSelected: (_) => setState(() => _tab = 2)),
-              ChoiceChip(label: const Text('Student Bookings'), selected: _tab == 3, onSelected: (_) => setState(() => _tab = 3)),
-              ChoiceChip(label: const Text('Google Meet'), selected: _tab == 4, onSelected: (_) => setState(() => _tab = 4)),
+              ChoiceChip(label: const Text(AppStrings.calendar), selected: _tab == 0, onSelected: (_) => setState(() => _tab = 0)),
+              ChoiceChip(label: const Text(AppStrings.leaves), selected: _tab == 1, onSelected: (_) => setState(() => _tab = 1)),
+              ChoiceChip(label: const Text(AppStrings.breaks), selected: _tab == 2, onSelected: (_) => setState(() => _tab = 2)),
+              ChoiceChip(label: const Text(AppStrings.studentBookings), selected: _tab == 3, onSelected: (_) => setState(() => _tab = 3)),
+              ChoiceChip(label: const Text(AppStrings.googleMeet), selected: _tab == 4, onSelected: (_) => setState(() => _tab = 4)),
             ],
           ),
           const SizedBox(height: 12),
@@ -80,21 +81,21 @@ class _AdminSchedulePageState extends ConsumerState<AdminSchedulePage> {
                 title: Text('${leave.teacherName ?? ''} · ${leave.date}'),
                 subtitle: Text(
                   [
-                    leave.isFullDay ? 'Full day' : '${formatHm(leave.startTime)} – ${formatHm(leave.endTime)}',
+                    leave.isFullDay ? AppStrings.fullDay2 : '${formatHm(leave.startTime)} – ${formatHm(leave.endTime)}',
                     if ((leave.reason ?? '').trim().isNotEmpty) leave.reason!.trim(),
                   ].join(' · '),
                 ),
                 trailing: IconButton(
-                  tooltip: isScheduleDatePast(leave.date) ? 'Past leave cannot be removed' : 'Remove leave',
+                  tooltip: isScheduleDatePast(leave.date) ? AppStrings.pastLeaveCannotBeRemoved : AppStrings.removeLeave,
                   icon: const Icon(Icons.delete_outline),
                   onPressed: isScheduleDatePast(leave.date)
                       ? null
                       : () async {
                     final ok = await showAppConfirmDialog(
                       context,
-                      title: 'Remove leave?',
-                      message: 'This will make the teacher available again for that time.',
-                      confirmLabel: 'Remove',
+                      title: AppStrings.removeLeave2,
+                      message: AppStrings.thisWillMakeTheTeacherAvailableAgainForThatTime,
+                      confirmLabel: AppStrings.remove,
                       destructive: true,
                     );
                     if (!ok) return;
@@ -128,9 +129,9 @@ class _AdminSchedulePageState extends ConsumerState<AdminSchedulePage> {
                   onPressed: () async {
                     final ok = await showAppConfirmDialog(
                       context,
-                      title: 'Cancel booking?',
-                      message: 'The student will lose this reserved slot.',
-                      confirmLabel: 'Cancel booking',
+                      title: AppStrings.cancelBooking2,
+                      message: AppStrings.theStudentWillLoseThisReservedSlot,
+                      confirmLabel: AppStrings.cancelBooking,
                       destructive: true,
                     );
                     if (!ok) return;
@@ -149,7 +150,7 @@ class _AdminSchedulePageState extends ConsumerState<AdminSchedulePage> {
     if (_tab == 2) {
       return ListView(
         children: [
-          const Text('Set recurring breakfast and lunch for the selected teacher.', style: TextStyle(color: Brand.muted)),
+          const Text(AppStrings.setRecurringBreakfastAndLunchForTheSelectedTeacher, style: TextStyle(color: Brand.muted)),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: teacherId == null
@@ -163,11 +164,11 @@ class _AdminSchedulePageState extends ConsumerState<AdminSchedulePage> {
                     ref.invalidate(adminScheduleDayProvider);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Breaks set to 09:00 breakfast and 13:00 lunch.')),
+                        const SnackBar(content: Text(AppStrings.breaksSetTo0900BreakfastAnd1300Lunch)),
                       );
                     }
                   },
-            child: const Text('Apply default 09:00 / 13:00 breaks'),
+            child: const Text(AppStrings.applyDefault09001300Breaks),
           ),
         ],
       );
@@ -203,7 +204,7 @@ class _AdminSchedulePageState extends ConsumerState<AdminSchedulePage> {
             onRetry: () => ref.invalidate(adminScheduleDayProvider),
             builder: (schedule) {
               if (schedule == null) {
-                return const Center(child: Text('Select a teacher to view their calendar.'));
+                return const Center(child: Text(AppStrings.selectATeacherToViewTheirCalendar));
               }
               return ListView(
                 children: [

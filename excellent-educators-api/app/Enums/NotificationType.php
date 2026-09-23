@@ -12,4 +12,5 @@ enum NotificationType: string
     case MasterTeacherAssigned = 'master_teacher_assigned';
     case MasterTeacherChanged = 'master_teacher_changed';
     case MasterTeacherRemoved = 'master_teacher_removed';
+    case StudentBookingFailed = 'student_booking_failed';
 }

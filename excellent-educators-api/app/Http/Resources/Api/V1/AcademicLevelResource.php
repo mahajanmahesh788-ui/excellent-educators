@@ -31,6 +31,7 @@ class AcademicLevelResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'academic_year' => $this->academic_year,
+            'master_classes_per_month' => (int) ($this->master_classes_per_month ?? 1),
             'status' => $this->status,
             'batch_count' => $batchesCount,
             'batches_count' => $batchesCount,

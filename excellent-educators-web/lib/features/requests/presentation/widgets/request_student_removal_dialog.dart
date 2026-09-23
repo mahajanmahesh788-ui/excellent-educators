@@ -4,6 +4,7 @@ import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/requests/presentation/providers/request_feature_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 Future<bool> showRequestStudentRemovalDialog({
   required BuildContext context,
@@ -102,7 +103,7 @@ class _RequestStudentRemovalDialogState extends ConsumerState<_RequestStudentRem
   @override
   Widget build(BuildContext context) {
     return AppModalDialog(
-      title: 'Remove student',
+      title: AppStrings.removeStudent,
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -112,7 +113,7 @@ class _RequestStudentRemovalDialogState extends ConsumerState<_RequestStudentRem
             children: [
               Text(
                 _isBatch
-                    ? 'Ask admin to remove ${widget.studentName} (${widget.studentCode}) from ${widget.batchName ?? 'this batch'}.'
+                    ? 'Ask admin to remove ${widget.studentName} (${widget.studentCode}) from ${widget.batchName ?? AppStrings.thisBatch}.'
                     : 'Ask admin to remove ${widget.studentName} (${widget.studentCode}) from your mentee list.',
                 style: const TextStyle(color: Brand.muted, height: 1.45),
               ),
@@ -120,7 +121,7 @@ class _RequestStudentRemovalDialogState extends ConsumerState<_RequestStudentRem
               TextFormField(
                 controller: _reasonController,
                 decoration: const InputDecoration(
-                  labelText: 'Reason (optional)',
+                  labelText: AppStrings.reasonOptional,
                   alignLabelWithHint: true,
                 ),
                 maxLines: 4,
@@ -129,7 +130,7 @@ class _RequestStudentRemovalDialogState extends ConsumerState<_RequestStudentRem
               ),
               const SizedBox(height: 20),
               AppDialogActions(
-                confirmLabel: 'Send request',
+                confirmLabel: AppStrings.sendRequest,
                 isConfirming: _submitting,
                 onCancel: () => Navigator.of(context).pop(false),
                 onConfirm: _submit,
@@ -161,7 +162,7 @@ Future<void> confirmAndRequestStudentRemoval({
   );
   if (sent && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Remove student request sent to admin.')),
+      const SnackBar(content: Text(AppStrings.removeStudentRequestSentToAdmin)),
     );
   }
 }
@@ -185,7 +186,7 @@ class RequestStudentRemovalIconButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
-      tooltip: 'Remove student',
+      tooltip: AppStrings.removeStudent,
       icon: const Icon(Icons.delete_outline),
       color: const Color(0xFFC62828),
       onPressed: () => confirmAndRequestStudentRemoval(

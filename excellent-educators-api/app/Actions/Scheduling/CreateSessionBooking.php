@@ -2,20 +2,24 @@
 
 namespace App\Actions\Scheduling;
 
+use App\Actions\Notifications\NotifyAdminsOfStudentBookingFailure;
+use App\Attendance\AttendanceService;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
 use App\Exceptions\ApiException;
+use App\Meetings\TeacherDailyMeetingService;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
-use App\Attendance\AttendanceService;
-use App\Meetings\TeacherDailyMeetingService;
 use App\Scheduling\AvailabilityCalculator;
 use App\Scheduling\BookingEligibility;
+use App\Scheduling\MasterClassBalance;
 use App\Scheduling\SlotGrid;
 use App\Support\AppClock;
 use App\Support\ErrorCode;
+use App\Support\StudentActivity;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class CreateSessionBooking
 {
@@ -24,6 +28,8 @@ class CreateSessionBooking
         private readonly BookingEligibility $eligibility,
         private readonly TeacherDailyMeetingService $meetings,
         private readonly AttendanceService $attendance,
+        private readonly MasterClassBalance $masterClassBalance,
+        private readonly NotifyAdminsOfStudentBookingFailure $notifyAdmins,
     ) {}
 
     /**
@@ -39,56 +45,87 @@ class CreateSessionBooking
         $date = (string) $payload['date'];
         $start = (string) $payload['start'];
 
-        $this->assertSlot($start, $date);
+        try {
+            $this->assertSlot($start, $date);
 
-        $consumeRebooking = false;
-        if (! $skipEligibility) {
-            $consumeRebooking = $this->assertEligibility($student, $teacher, $type);
+            $consumeRebooking = false;
+            if (! $skipEligibility) {
+                $consumeRebooking = $this->assertEligibility($student, $teacher, $type);
+            }
+
+            return DB::transaction(function () use ($student, $teacher, $type, $date, $start, $consumeRebooking): SessionBooking {
+                SessionBooking::query()
+                    ->where('teacher_id', $teacher->id)
+                    ->whereDate('date', $date)
+                    ->lockForUpdate()
+                    ->get();
+
+                if (! $this->availability->isSlotAvailable($teacher, $date, $start)) {
+                    throw new ApiException(ErrorCode::SLOT_UNAVAILABLE, 'This time slot is no longer available.', 409);
+                }
+
+                $startsAt = SlotGrid::atDate($date, $start);
+                $endsAt = $startsAt->copy()->addMinutes(SlotGrid::slotMinutes());
+
+                $overlap = SessionBooking::query()
+                    ->where('teacher_id', $teacher->id)
+                    ->where('status', '!=', SessionBookingStatus::Cancelled->value)
+                    ->where('starts_at', '<', $endsAt)
+                    ->where('ends_at', '>', $startsAt)
+                    ->exists();
+
+                if ($overlap) {
+                    throw new ApiException(ErrorCode::BOOKING_OVERLAP, 'This teacher already has a booking in that time.', 409);
+                }
+
+                $this->meetings->getOrCreate($teacher, $date);
+
+                $booking = SessionBooking::query()->create([
+                    'student_id' => $student->id,
+                    'teacher_id' => $teacher->id,
+                    'type' => $type->value,
+                    'date' => $date,
+                    'starts_at' => $startsAt,
+                    'ends_at' => $endsAt,
+                    'status' => SessionBookingStatus::Scheduled->value,
+                ]);
+
+                if ($consumeRebooking) {
+                    $this->attendance->consumeRebooking($student->id, $booking);
+                }
+
+                if ($type === SessionBookingType::MasterClass) {
+                    $this->masterClassBalance->spend($student);
+                    $remaining = $this->masterClassBalance->remaining($student);
+                    StudentActivity::record(
+                        $student,
+                        'master_class_booked',
+                        'Student booked a Master Class at '.AppClock::formatTime($startsAt).' ('.$remaining.' left this month)',
+                        related: $booking,
+                        meta: ['remaining' => $remaining],
+                    );
+                } else {
+                    StudentActivity::record(
+                        $student,
+                        'introduction_booked',
+                        'Student booked an Introduction Call at '.AppClock::formatTime($startsAt),
+                        related: $booking,
+                    );
+                }
+
+                return $booking;
+            });
+        } catch (Throwable $error) {
+            $this->notifyAdmins->execute(
+                $student,
+                $teacher,
+                $error,
+                'book',
+                ['date' => $date, 'start' => $start, 'type' => $type->value],
+            );
+
+            throw $error;
         }
-
-        return DB::transaction(function () use ($student, $teacher, $type, $date, $start, $consumeRebooking): SessionBooking {
-            SessionBooking::query()
-                ->where('teacher_id', $teacher->id)
-                ->whereDate('date', $date)
-                ->lockForUpdate()
-                ->get();
-
-            if (! $this->availability->isSlotAvailable($teacher, $date, $start)) {
-                throw new ApiException(ErrorCode::SLOT_UNAVAILABLE, 'This time slot is no longer available.', 409);
-            }
-
-            $startsAt = SlotGrid::atDate($date, $start);
-            $endsAt = $startsAt->copy()->addMinutes(SlotGrid::slotMinutes());
-
-            $overlap = SessionBooking::query()
-                ->where('teacher_id', $teacher->id)
-                ->where('status', '!=', SessionBookingStatus::Cancelled->value)
-                ->where('starts_at', '<', $endsAt)
-                ->where('ends_at', '>', $startsAt)
-                ->exists();
-
-            if ($overlap) {
-                throw new ApiException(ErrorCode::BOOKING_OVERLAP, 'This teacher already has a booking in that time.', 409);
-            }
-
-            $this->meetings->getOrCreate($teacher, $date);
-
-            $booking = SessionBooking::query()->create([
-                'student_id' => $student->id,
-                'teacher_id' => $teacher->id,
-                'type' => $type->value,
-                'date' => $date,
-                'starts_at' => $startsAt,
-                'ends_at' => $endsAt,
-                'status' => SessionBookingStatus::Scheduled->value,
-            ]);
-
-            if ($consumeRebooking) {
-                $this->attendance->consumeRebooking($student->id, $booking);
-            }
-
-            return $booking;
-        });
     }
 
     private function assertSlot(string $start, string $date): void
@@ -134,9 +171,12 @@ class CreateSessionBooking
         }
 
         if (! $this->eligibility->canBookMasterClass($student)) {
+            $balance = $this->masterClassBalance->snapshot($student);
             throw new ApiException(
                 ErrorCode::MASTER_CLASS_MONTHLY_LIMIT,
-                'Master Class is limited to one session per month. Book again next month, or after an extra chance is granted.',
+                $balance['remaining'] < 1
+                    ? 'No Master Class remaining this month. Book again next month, or after admin restores a class.'
+                    : 'You already have a Master Class booked. Finish or update that one first.',
                 422,
             );
         }

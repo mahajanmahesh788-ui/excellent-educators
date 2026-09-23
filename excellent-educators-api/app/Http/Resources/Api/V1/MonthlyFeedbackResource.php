@@ -18,15 +18,22 @@ class MonthlyFeedbackResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $staffNotes = $this->viewerCanSeeStaffNotes($request);
+
         return [
             'id' => $this->id,
             'year' => $this->year,
             'month' => $this->month,
             'session_date' => $this->session_date?->toDateString(),
+            'session_booking_id' => $this->session_booking_id,
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
+            'overall_rating' => $this->sessionAverage(),
             'editable' => $this->resolveEditable($request),
             'deletable' => $this->resolveDeletable($request),
+            'positive_points' => $this->positive_points,
+            'areas_for_improvement' => $this->areas_for_improvement,
+            'discussed_in_class' => $this->when($staffNotes, $this->discussed_in_class),
             'master_teacher' => $this->whenLoaded('masterTeacher', fn () => [
                 'id' => $this->masterTeacher->id,
                 'full_name' => $this->masterTeacher->full_name,
@@ -37,20 +44,29 @@ class MonthlyFeedbackResource extends JsonResource
                 'student_code' => $this->student->student_code,
             ]),
             'items' => $this->whenLoaded('items', fn () => $this->items->map(function ($item) {
-                $type = $item->target_type?->value ?? $item->target_type;
-
                 return [
                     'id' => $item->id,
-                    'target_type' => $type,
+                    'target_type' => $item->target_type?->value ?? $item->target_type,
                     'target_id' => $item->target_id,
                     'target_name' => $item->resolveTargetName(),
                     'rating' => $item->rating,
-                    'positive_points' => $item->positive_points,
-                    'areas_for_improvement' => $item->areas_for_improvement,
-                    'recommended_next_action' => $item->recommended_next_action,
                 ];
             })->values()->all()),
         ];
+    }
+
+    private function viewerCanSeeStaffNotes(Request $request): bool
+    {
+        $user = $request->user();
+        if ($user === null) {
+            return false;
+        }
+
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->hasRole(RoleName::MasterTeacher) || $user->hasRole(RoleName::CommonTeacher);
     }
 
     private function resolveEditable(Request $request): bool
@@ -60,7 +76,7 @@ class MonthlyFeedbackResource extends JsonResource
             return false;
         }
 
-        if ($user->isAdmin() && $user->can(PermissionName::FeedbackManage->value)) {
+        if ($user->isAdmin() && $user->canAdmin(PermissionName::StudentsRating)) {
             return true;
         }
 
@@ -70,10 +86,6 @@ class MonthlyFeedbackResource extends JsonResource
 
         $teacher = $user->teacherProfile;
         if ($teacher === null || $this->master_teacher_id !== $teacher->id) {
-            return false;
-        }
-
-        if (! $teacher->canAccessStudent($this->student_id)) {
             return false;
         }
 
@@ -87,7 +99,7 @@ class MonthlyFeedbackResource extends JsonResource
             return false;
         }
 
-        if ($user->isAdmin() && $user->can(PermissionName::FeedbackManage->value)) {
+        if ($user->isAdmin() && $user->canAdmin(PermissionName::StudentsRating)) {
             return true;
         }
 
@@ -97,10 +109,6 @@ class MonthlyFeedbackResource extends JsonResource
 
         $teacher = $user->teacherProfile;
         if ($teacher === null || $this->master_teacher_id !== $teacher->id) {
-            return false;
-        }
-
-        if (! $teacher->canAccessStudent($this->student_id)) {
             return false;
         }
 

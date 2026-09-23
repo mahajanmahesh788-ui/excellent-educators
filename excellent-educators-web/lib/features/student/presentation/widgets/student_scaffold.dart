@@ -1,13 +1,15 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
-import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/widgets/notification_bell_button.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/fresh_student_onboarding.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class StudentScaffold extends ConsumerWidget {
   const StudentScaffold({
@@ -35,14 +37,14 @@ class StudentScaffold extends ConsumerWidget {
     final location = GoRouterState.of(context).uri.path;
 
     return Scaffold(
-      backgroundColor: Academy.canvas,
+      backgroundColor: StudentColors.canvas,
       floatingActionButton: floatingActionButton,
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF7F3EA), Color(0xFFF1EEE6), Color(0xFFECE7DC)],
+            colors: StudentColors.canvasGradient,
           ),
         ),
         child: Column(
@@ -56,15 +58,23 @@ class StudentScaffold extends ConsumerWidget {
             Expanded(
               child: Theme(
                 data: Theme.of(context).copyWith(
-                  progressIndicatorTheme: const ProgressIndicatorThemeData(color: Brand.navy),
+                  progressIndicatorTheme: const ProgressIndicatorThemeData(
+                    color: StudentColors.indigoPrimary,
+                  ),
                 ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final insets = Academy.pageInsets(constraints.maxWidth);
                     return Padding(
-                      padding: EdgeInsets.fromLTRB(insets.left, insets.top, insets.right, 0),
+                      padding: EdgeInsets.fromLTRB(
+                        insets.left,
+                        insets.top,
+                        insets.right,
+                        0,
+                      ),
                       child: SizedBox(
-                        width: constraints.maxWidth - insets.left - insets.right,
+                        width:
+                            constraints.maxWidth - insets.left - insets.right,
                         height: constraints.maxHeight - insets.top,
                         child: body,
                       ),
@@ -92,13 +102,42 @@ class _AcademyNav extends ConsumerWidget {
   final List<Widget>? extraActions;
 
   static const _links = [
-    (label: 'Dashboard', icon: Icons.home_outlined, path: RoutePaths.studentDashboard),
-    (label: 'My Sessions', icon: Icons.event_available_outlined, path: RoutePaths.studentBookings),
-    (label: 'Journey', icon: Icons.explore_outlined, path: RoutePaths.studentJournal),
-    (label: 'Feedback', icon: Icons.forum_outlined, path: RoutePaths.studentFeedback),
-    (label: 'Requests', icon: Icons.support_agent_outlined, path: RoutePaths.studentRequests),
-    (label: 'Profile', icon: Icons.person_outline, path: RoutePaths.studentProfile),
+    (
+      label: AppStrings.dashboard,
+      icon: Icons.dashboard_outlined,
+      path: RoutePaths.studentDashboard,
+    ),
+    (
+      label: AppStrings.mySessions,
+      icon: Icons.event_available_outlined,
+      path: RoutePaths.studentBookings,
+    ),
+    (
+      label: AppStrings.journey,
+      icon: Icons.explore_outlined,
+      path: RoutePaths.studentJournal,
+    ),
+    (
+      label: AppStrings.feedback,
+      icon: Icons.forum_outlined,
+      path: RoutePaths.studentFeedback,
+    ),
+    (
+      label: AppStrings.requests,
+      icon: Icons.support_agent_outlined,
+      path: RoutePaths.studentRequests,
+    ),
+    (
+      label: AppStrings.profile,
+      icon: Icons.person_outline,
+      path: RoutePaths.studentProfile,
+    ),
   ];
+
+  static bool _isLockedLink(String path) {
+    return path != RoutePaths.studentDashboard &&
+        path != RoutePaths.studentProfile;
+  }
 
   bool _selected(String path) {
     if (path == RoutePaths.studentDashboard) {
@@ -115,14 +154,20 @@ class _AcademyNav extends ConsumerWidget {
         final isTight = constraints.maxWidth < 1120;
 
         return Material(
-          color: const Color(0xF20B1F36),
+          color: Colors.white,
           elevation: 0,
           child: Container(
             width: double.infinity,
-            padding: EdgeInsets.fromLTRB(compact ? 16 : 24, 10, compact ? 12 : 20, 10),
-            decoration: BoxDecoration(
+            padding: EdgeInsets.fromLTRB(
+              compact ? 12 : 24,
+              compact ? 8 : 10,
+              compact ? 8 : 20,
+              compact ? 8 : 10,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
               border: Border(
-                bottom: BorderSide(color: Brand.gold.withValues(alpha: 0.28)),
+                bottom: BorderSide(color: StudentColors.border, width: 1.2),
               ),
             ),
             child: Row(
@@ -136,20 +181,23 @@ class _AcademyNav extends ConsumerWidget {
                   },
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 4,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const AppLogo(height: 32),
+                        const AppLogo(height: 26),
                         if (constraints.maxWidth >= 480) ...[
                           const SizedBox(width: 10),
                           const Text(
-                            'Excellent Educators',
+                            AppStrings.excellentEducators,
                             style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
+                              color: StudentColors.textPrimary,
+                              fontWeight: FontWeight.w800,
                               fontSize: 16,
-                              letterSpacing: 0.2,
+                              letterSpacing: -0.2,
                             ),
                           ),
                         ],
@@ -161,27 +209,42 @@ class _AcademyNav extends ConsumerWidget {
                 // Desktop Navigation Items
                 if (!compact) ...[
                   const SizedBox(width: 16),
-                  Container(
-                    height: 20,
-                    width: 1,
-                    color: Colors.white.withValues(alpha: 0.2),
-                  ),
+                  Container(height: 20, width: 1, color: StudentColors.border),
                   const SizedBox(width: 12),
-                  for (final link in _links)
-                    Padding(
-                      padding: EdgeInsets.only(left: isTight ? 2 : 4),
-                      child: _NavItem(
-                        label: link.label,
-                        icon: link.icon,
-                        selected: _selected(link.path),
-                        disabled: pending && link.path == RoutePaths.studentFeedback,
-                        tight: isTight,
-                        onTap: () {
-                          dismissOverlayRoutes(context);
-                          context.go(link.path);
-                        },
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final link in _links)
+                            Padding(
+                              padding: EdgeInsets.only(left: isTight ? 2 : 4),
+                              child: _NavItem(
+                                label: link.label,
+                                icon: link.icon,
+                                selected: _selected(link.path),
+                                disabled: false,
+                                isLocked: pending && _isLockedLink(link.path),
+                                tight: isTight,
+                                onTap: () {
+                                  dismissOverlayRoutes(context);
+                                  if (pending && _isLockedLink(link.path)) {
+                                    LockedFeatureNoticeDialog.show(
+                                      context,
+                                      featureName: link.label,
+                                    );
+                                  } else {
+                                    context.go(link.path);
+                                  }
+                                },
+                              ),
+                            ),
+                        ],
                       ),
                     ),
+                  ),
                 ],
 
                 // Push actions to the far right
@@ -189,60 +252,90 @@ class _AcademyNav extends ConsumerWidget {
 
                 // Divider before actions on desktop
                 if (!compact) ...[
-                  Container(
-                    height: 20,
-                    width: 1,
-                    color: Colors.white.withValues(alpha: 0.18),
-                  ),
+                  Container(height: 20, width: 1, color: StudentColors.border),
                   const SizedBox(width: 6),
                 ],
 
                 // Action buttons
                 ...?extraActions,
-                const NotificationBellButton(),
+                const NotificationBellButton(
+                  color: StudentColors.textSecondary,
+                ),
                 IconButton(
-                  tooltip: 'Sign out',
+                  tooltip: AppStrings.signOut,
                   iconSize: 20,
                   onPressed: () => confirmSignOut(context, ref),
-                  icon: const Icon(Icons.logout_rounded, color: Colors.white),
+                  icon: const Icon(
+                    Icons.logout_rounded,
+                    color: StudentColors.textSecondary,
+                  ),
                 ),
 
                 // Menu button in compact mode
                 if (compact) ...[
                   const SizedBox(width: 2),
                   PopupMenuButton<String>(
-                    tooltip: 'Menu',
-                    color: const Color(0xFF10263D),
+                    tooltip: AppStrings.menu,
+                    color: Colors.white,
                     elevation: 8,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Brand.gold.withValues(alpha: 0.28)),
+                      side: const BorderSide(color: StudentColors.border),
                     ),
-                    icon: const Icon(Icons.menu_rounded, color: Colors.white),
+                    icon: const Icon(
+                      Icons.menu_rounded,
+                      color: StudentColors.textSecondary,
+                    ),
                     onSelected: (path) {
                       dismissOverlayRoutes(context);
-                      context.go(path);
+                      final link = _links.firstWhere(
+                        (l) => l.path == path,
+                        orElse: () => _links.first,
+                      );
+                      if (pending && _isLockedLink(path)) {
+                        LockedFeatureNoticeDialog.show(
+                          context,
+                          featureName: link.label,
+                        );
+                      } else {
+                        context.go(path);
+                      }
                     },
                     itemBuilder: (context) => [
                       for (final link in _links)
                         PopupMenuItem(
                           value: link.path,
-                          enabled: !(pending && link.path == RoutePaths.studentFeedback),
                           child: Row(
                             children: [
                               Icon(
                                 link.icon,
                                 size: 18,
-                                color: _selected(link.path) ? Brand.gold : Colors.white70,
+                                color: _selected(link.path)
+                                    ? StudentColors.indigoPrimary
+                                    : StudentColors.textSecondary,
                               ),
                               const SizedBox(width: 10),
-                              Text(
-                                link.label,
-                                style: TextStyle(
-                                  color: _selected(link.path) ? Brand.gold : Colors.white,
-                                  fontWeight: _selected(link.path) ? FontWeight.w700 : FontWeight.w500,
+                              Expanded(
+                                child: Text(
+                                  link.label,
+                                  style: TextStyle(
+                                    color: _selected(link.path)
+                                        ? StudentColors.indigoPrimary
+                                        : StudentColors.textPrimary,
+                                    fontWeight: _selected(link.path)
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                  ),
                                 ),
                               ),
+                              if (pending && _isLockedLink(link.path)) ...[
+                                const SizedBox(width: 6),
+                                const Icon(
+                                  Icons.lock_rounded,
+                                  size: 13,
+                                  color: StudentColors.textMuted,
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -265,6 +358,7 @@ class _NavItem extends StatefulWidget {
     required this.selected,
     required this.onTap,
     this.disabled = false,
+    this.isLocked = false,
     this.tight = false,
   });
 
@@ -273,6 +367,7 @@ class _NavItem extends StatefulWidget {
   final bool selected;
   final VoidCallback onTap;
   final bool disabled;
+  final bool isLocked;
   final bool tight;
 
   @override
@@ -291,7 +386,9 @@ class _NavItemState extends State<_NavItem> {
     final fontSize = widget.tight ? 12.0 : 13.0;
 
     return MouseRegion(
-      cursor: widget.disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      cursor: widget.disabled
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: Opacity(
@@ -307,12 +404,14 @@ class _NavItemState extends State<_NavItem> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 color: active
-                    ? Brand.gold.withValues(alpha: 0.16)
+                    ? StudentColors.indigoLight
                     : _hover
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.transparent,
+                    ? StudentColors.surfaceMuted
+                    : Colors.transparent,
                 border: Border.all(
-                  color: active ? Brand.gold.withValues(alpha: 0.75) : Colors.transparent,
+                  color: active
+                      ? StudentColors.emeraldBorder
+                      : Colors.transparent,
                   width: 1,
                 ),
               ),
@@ -323,25 +422,33 @@ class _NavItemState extends State<_NavItem> {
                     widget.icon,
                     size: iconSize,
                     color: active
-                        ? Brand.gold
+                        ? StudentColors.indigoPrimary
                         : _hover
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.85),
+                        ? StudentColors.textPrimary
+                        : StudentColors.textMuted,
                   ),
                   SizedBox(width: widget.tight ? 4 : 5),
                   Text(
                     widget.label,
                     style: TextStyle(
                       color: active
-                          ? Brand.gold
+                          ? StudentColors.indigoPrimary
                           : _hover
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.9),
+                          ? StudentColors.textPrimary
+                          : StudentColors.textSecondary,
                       fontWeight: active ? FontWeight.w700 : FontWeight.w600,
                       fontSize: fontSize,
                       letterSpacing: 0.1,
                     ),
                   ),
+                  if (widget.isLocked) ...[
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.lock_rounded,
+                      size: 11,
+                      color: StudentColors.textMuted,
+                    ),
+                  ],
                 ],
               ),
             ),

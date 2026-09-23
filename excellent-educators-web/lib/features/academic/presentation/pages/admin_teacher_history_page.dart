@@ -9,6 +9,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminTeacherHistoryPage extends ConsumerStatefulWidget {
   const AdminTeacherHistoryPage({super.key, required this.teacherId});
@@ -51,7 +52,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
     final history = ref.watch(adminTeacherHistoryProvider(widget.teacherId));
 
     return AppScaffold(
-      title: 'Teacher History',
+      title: AppStrings.teacherHistory,
       backTo: RoutePaths.adminTeacher(widget.teacherId),
       body: AsyncBody(
         value: history,
@@ -77,7 +78,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
             }
           } else if (_timeframeScope == 'all_time') {
             activeCounts = data.allTime;
-            activeCountsLabel = 'All time summary';
+            activeCountsLabel = AppStrings.allTimeSummary;
           } else {
             activeCounts = data.thisMonth;
             activeCountsLabel = 'This month · ${AppClock.monthLabel(data.currentYear, data.currentMonth)}';
@@ -204,7 +205,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    teacherName.isEmpty ? 'Teacher Progress & History' : teacherName,
+                    teacherName.isEmpty ? AppStrings.teacherProgressHistory : teacherName,
                     style: TextStyle(
                       color: Brand.navy,
                       fontWeight: FontWeight.w800,
@@ -213,7 +214,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
                     ),
                   ),
                   const Text(
-                    'Performance, class completions, leaves & conflicts',
+                    AppStrings.performanceClassCompletionsLeavesConflicts,
                     style: TextStyle(color: Brand.muted, fontSize: 11.5),
                   ),
                 ],
@@ -227,12 +228,12 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
             ButtonSegment(
               value: 'timeline',
               icon: Icon(Icons.timeline, size: 15),
-              label: Text('Timeline', style: TextStyle(fontSize: 11.5)),
+              label: Text(AppStrings.timeline, style: TextStyle(fontSize: 11.5)),
             ),
             ButtonSegment(
               value: 'overview',
               icon: Icon(Icons.calendar_view_month, size: 15),
-              label: Text('Monthly Table', style: TextStyle(fontSize: 11.5)),
+              label: Text(AppStrings.monthlyTable, style: TextStyle(fontSize: 11.5)),
             ),
           ],
           selected: {_viewMode},
@@ -319,7 +320,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
                       children: [
                         Icon(Icons.close, size: 14, color: Brand.muted),
                         SizedBox(width: 4),
-                        Text('Reset month filter', style: TextStyle(fontSize: 11, color: Brand.muted)),
+                        Text(AppStrings.resetMonthFilter, style: TextStyle(fontSize: 11, color: Brand.muted)),
                       ],
                     ),
                   ),
@@ -330,7 +331,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
                   children: [
                     ChoiceChip(
                       showCheckmark: false,
-                      label: const Text('This Month', style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.thisMonth, style: TextStyle(fontSize: 11)),
                       selected: timeframeScope == 'month',
                       onSelected: (_) => onScopeChanged('month'),
                       visualDensity: VisualDensity.compact,
@@ -338,7 +339,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
                     ),
                     ChoiceChip(
                       showCheckmark: false,
-                      label: const Text('All Time', style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.allTime, style: TextStyle(fontSize: 11)),
                       selected: timeframeScope == 'all_time',
                       onSelected: (_) => onScopeChanged('all_time'),
                       visualDensity: VisualDensity.compact,
@@ -355,21 +356,21 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
             alignment: WrapAlignment.spaceBetween,
             children: [
               _CompactMetric(
-                label: 'Interviews',
+                label: AppStrings.interviews,
                 value: '${activeCounts.interviewsHeld} / ${activeCounts.interviews}',
-                subtext: 'held / total',
+                subtext: AppStrings.heldTotal,
                 icon: Icons.call_outlined,
                 accentColor: const Color(0xFF2F6FED),
               ),
               _CompactMetric(
-                label: 'Master Classes',
+                label: AppStrings.masterClasses,
                 value: '${activeCounts.masterClassesHeld} / ${activeCounts.masterClasses}',
-                subtext: 'held / total',
+                subtext: AppStrings.heldTotal,
                 icon: Icons.school_outlined,
                 accentColor: const Color(0xFF1B7A4E),
               ),
               _CompactMetric(
-                label: 'Rating',
+                label: AppStrings.rating,
                 value: activeCounts.ratingAverage != null
                     ? '${activeCounts.ratingAverage!.toStringAsFixed(1)} ★'
                     : '—',
@@ -378,14 +379,14 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
                 accentColor: const Color(0xFFC27803),
               ),
               _CompactMetric(
-                label: 'Leaves',
+                label: AppStrings.leaves,
                 value: '${activeCounts.leaveDays} d',
-                subtext: 'days off',
+                subtext: AppStrings.daysOff,
                 icon: Icons.event_busy_outlined,
                 accentColor: const Color(0xFF8A6D3B),
               ),
               _CompactMetric(
-                label: 'Conflicts',
+                label: AppStrings.conflicts,
                 value: '${activeCounts.conflictsReported}',
                 subtext: 'reported',
                 icon: Icons.report_gmailerrorred_outlined,
@@ -421,7 +422,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
             controller: _searchController,
             onChanged: (val) => setState(() => _search = val.trim()),
             decoration: InputDecoration(
-              hintText: 'Search student, code, class, note...',
+              hintText: AppStrings.searchStudentCodeClassNote,
               hintStyle: const TextStyle(fontSize: 12, color: Brand.muted),
               prefixIcon: const Icon(Icons.search, size: 18, color: Brand.muted),
               suffixIcon: _search.isNotEmpty
@@ -469,12 +470,12 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
             items: [
               const DropdownMenuItem<String?>(
                 value: null,
-                child: Text('All Months', style: TextStyle(fontSize: 12)),
+                child: Text(AppStrings.allMonths, style: TextStyle(fontSize: 12)),
               ),
               ...byMonth.map((m) {
                 final key = '${m.year}-${m.month.toString().padLeft(2, '0')}';
                 final isCurrent = key == currentMonthKey;
-                final label = '${AppClock.monthLabel(m.year, m.month)}${isCurrent ? ' (Current)' : ''}';
+                final label = '${AppClock.monthLabel(m.year, m.month)}${isCurrent ? AppStrings.current : ''}';
                 return DropdownMenuItem<String?>(
                   value: key,
                   child: Text(label, style: const TextStyle(fontSize: 12)),
@@ -487,7 +488,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
 
         final resetButton = _hasActiveFilters
             ? IconButton(
-                tooltip: 'Clear all filters',
+                tooltip: AppStrings.clearAllFilters,
                 icon: const Icon(Icons.filter_alt_off, size: 20, color: Color(0xFFC0392B)),
                 onPressed: _resetFilters,
                 visualDensity: VisualDensity.compact,
@@ -537,29 +538,29 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          _buildKindChip('all', 'All', totalAll, Icons.apps_outlined),
+                          _buildKindChip('all', AppStrings.all, totalAll, Icons.apps_outlined),
                           const SizedBox(width: 6),
                           _buildKindChip(
                             'introduction_call',
-                            'Interviews',
+                            AppStrings.interviews,
                             interviewCount,
                             Icons.call_outlined,
                           ),
                           const SizedBox(width: 6),
                           _buildKindChip(
                             'master_class',
-                            'Master Classes',
+                            AppStrings.masterClasses,
                             masterCount,
                             Icons.school_outlined,
                           ),
                           const SizedBox(width: 6),
-                          _buildKindChip('leave', 'Leaves', leaveCount, Icons.event_busy_outlined),
+                          _buildKindChip('leave', AppStrings.leaves, leaveCount, Icons.event_busy_outlined),
                           const SizedBox(width: 6),
-                          _buildKindChip('rating', 'Ratings', ratingCount, Icons.star_outline),
+                          _buildKindChip('rating', AppStrings.ratings, ratingCount, Icons.star_outline),
                           const SizedBox(width: 6),
                           _buildKindChip(
                             'conflict',
-                            'Conflicts',
+                            AppStrings.conflicts,
                             conflictCount,
                             Icons.report_gmailerrorred_outlined,
                           ),
@@ -629,7 +630,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
     String currentMonthKey,
   ) {
     if (byMonth.isEmpty) {
-      return const EmptyHint('No monthly data recorded yet.', fillHeight: false);
+      return const EmptyHint(AppStrings.noMonthlyDataRecordedYet, fillHeight: false);
     }
 
     return Container(
@@ -646,13 +647,13 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
             headingRowColor: WidgetStateProperty.all(const Color(0xFFFAF7F2)),
             columnSpacing: 24,
             columns: const [
-              DataColumn(label: Text('Month', style: TextStyle(fontWeight: FontWeight.w700))),
-              DataColumn(label: Text('Interviews (Held / Total)', style: TextStyle(fontWeight: FontWeight.w700))),
-              DataColumn(label: Text('Master Classes (Held / Total)', style: TextStyle(fontWeight: FontWeight.w700))),
-              DataColumn(label: Text('Leaves', style: TextStyle(fontWeight: FontWeight.w700))),
-              DataColumn(label: Text('Ratings', style: TextStyle(fontWeight: FontWeight.w700))),
-              DataColumn(label: Text('Conflicts', style: TextStyle(fontWeight: FontWeight.w700))),
-              DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.w700))),
+              DataColumn(label: Text(AppStrings.month, style: TextStyle(fontWeight: FontWeight.w700))),
+              DataColumn(label: Text(AppStrings.interviewsHeldTotal, style: TextStyle(fontWeight: FontWeight.w700))),
+              DataColumn(label: Text(AppStrings.masterClassesHeldTotal, style: TextStyle(fontWeight: FontWeight.w700))),
+              DataColumn(label: Text(AppStrings.leaves, style: TextStyle(fontWeight: FontWeight.w700))),
+              DataColumn(label: Text(AppStrings.ratings, style: TextStyle(fontWeight: FontWeight.w700))),
+              DataColumn(label: Text(AppStrings.conflicts, style: TextStyle(fontWeight: FontWeight.w700))),
+              DataColumn(label: Text(AppStrings.action2, style: TextStyle(fontWeight: FontWeight.w700))),
             ],
             rows: byMonth.map((month) {
               final key = '${month.year}-${month.month.toString().padLeft(2, '0')}';
@@ -684,7 +685,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
-                              'Current',
+                              AppStrings.current3,
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
@@ -722,7 +723,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
                         });
                       },
                       icon: const Icon(Icons.visibility_outlined, size: 14),
-                      label: const Text('View Events', style: TextStyle(fontSize: 12)),
+                      label: const Text(AppStrings.viewEvents, style: TextStyle(fontSize: 12)),
                       style: TextButton.styleFrom(
                         visualDensity: VisualDensity.compact,
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -758,12 +759,12 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
             const Icon(Icons.filter_list_off, size: 48, color: Brand.muted),
             const SizedBox(height: 12),
             const Text(
-              'No events found matching current filters',
+              AppStrings.noEventsFoundMatchingCurrentFilters,
               style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 6),
             const Text(
-              'Try changing search terms, date periods, or event category filters.',
+              AppStrings.tryChangingSearchTermsDatePeriodsOrEventCategoryFilters,
               style: TextStyle(color: Brand.muted, fontSize: 13),
             ),
             if (_hasActiveFilters) ...[
@@ -771,7 +772,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
               OutlinedButton.icon(
                 onPressed: _resetFilters,
                 icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Reset all filters'),
+                label: const Text(AppStrings.resetAllFilters),
               ),
             ],
           ],
@@ -829,7 +830,7 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
           ),
           const SizedBox(width: 8),
           Text(
-            count == 1 ? '· 1 event' : '· $count events',
+            count == 1 ? AppStrings.n1Event : '· $count events',
             style: const TextStyle(color: Brand.muted, fontSize: 11),
           ),
         ],
@@ -962,7 +963,7 @@ class _CompactEventCard extends StatelessWidget {
     // Filter facts to eliminate redundancy (student code and class are shown in the main row)
     final uniqueFacts = event.facts.where((f) {
       final l = f.label.toLowerCase();
-      return l != 'student code' &&
+      return l != AppStrings.studentCode &&
           l != 'student_code' &&
           l != 'class' &&
           l != 'student';
@@ -970,14 +971,14 @@ class _CompactEventCard extends StatelessWidget {
 
     // Check if detail is just a raw concatenation of facts (e.g. "Student code: 26-0002 · Class: Class 6")
     final isRedundantDetail = event.detail.isEmpty ||
-        event.detail.contains('Student code:') ||
-        event.detail.contains('Duration:') ||
+        event.detail.contains(AppStrings.studentCode2) ||
+        event.detail.contains(AppStrings.duration) ||
         event.detail == event.facts.map((f) => '${f.label}: ${f.value}').join(' · ');
 
     // Deduplicate tags so they don't repeat status, kind, level, attempt, or conflict
     final cleanTags = event.tags.where((tag) {
       final l = tag.label.toLowerCase();
-      if (l == 'interview' || l == 'master class' || l == 'master_class') return false;
+      if (l == 'interview' || l == AppStrings.masterClass2 || l == 'master_class') return false;
       if (l == 'completed' || l == 'held' || l == 'cancelled' || l == event.status.toLowerCase()) return false;
       if (event.levelName != null && l == event.levelName!.toLowerCase()) return false;
       if (l.startsWith('attempt ')) return false;
@@ -1155,7 +1156,7 @@ class _CompactEventCard extends StatelessWidget {
                       onPressed: () => context.go(RoutePaths.adminAttendanceIssue(event.conflictId!)),
                       icon: const Icon(Icons.report_gmailerrorred_outlined, size: 14),
                       label: Text(
-                        event.conflictStatus == 'resolved' ? 'Resolved' : 'Conflict',
+                        event.conflictStatus == 'resolved' ? AppStrings.resolved : AppStrings.conflict,
                         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                       style: FilledButton.styleFrom(

@@ -25,18 +25,19 @@ class BuildMasterTeacherDashboard
         $assignedStudents = $studentIds->count();
         $dueIds = $this->studentsDueForRating->idsFor($teacher, $year, $month);
 
-        $feedbackByStudent = $dueIds->isEmpty()
+        $ratedStudentIds = $studentIds->isEmpty()
             ? collect()
             : MonthlyFeedback::query()
                 ->where('master_teacher_id', $teacher->id)
-                ->whereIn('student_id', $dueIds)
+                ->whereIn('student_id', $studentIds)
                 ->where('year', $year)
                 ->where('month', $month)
-                ->get(['id', 'student_id'])
-                ->keyBy('student_id');
+                ->pluck('student_id')
+                ->unique()
+                ->values();
 
-        $ratedThisMonth = $feedbackByStudent->count();
-        $notRatedThisMonth = max(0, $dueIds->count() - $ratedThisMonth);
+        $ratedThisMonth = $ratedStudentIds->count();
+        $notRatedThisMonth = $dueIds->count();
 
         $totalRatings = MonthlyFeedback::query()
             ->where('master_teacher_id', $teacher->id)
@@ -53,13 +54,24 @@ class BuildMasterTeacherDashboard
 
         $byMonth = $this->ratingsByMonth($teacher->id, $studentIds);
 
+        $latestRatings = $studentIds->isEmpty()
+            ? collect()
+            : MonthlyFeedback::query()
+                ->where('master_teacher_id', $teacher->id)
+                ->whereIn('student_id', $studentIds)
+                ->where('year', $year)
+                ->where('month', $month)
+                ->orderByDesc('session_date')
+                ->get(['id', 'student_id'])
+                ->unique('student_id')
+                ->keyBy('student_id');
+
         $pendingStudents = $dueIds->isEmpty()
             ? collect()
             : StudentProfile::query()
                 ->whereIn('id', $dueIds)
                 ->orderBy('full_name')
                 ->get(['id', 'full_name', 'student_code'])
-                ->sortBy(fn (StudentProfile $student) => $feedbackByStudent->has($student->id) ? 1 : 0)
                 ->values()
                 ->take(8);
 
@@ -90,15 +102,15 @@ class BuildMasterTeacherDashboard
             ],
             'by_month' => $byMonth,
             'pending_students' => $pendingStudents
-                ->map(function (StudentProfile $student) use ($feedbackByStudent): array {
-                    $feedbackId = $feedbackByStudent->get($student->id)?->id;
+                ->map(function (StudentProfile $student) use ($latestRatings): array {
+                    $feedbackId = $latestRatings->get($student->id)?->id;
 
                     return [
                         'id' => $student->id,
                         'full_name' => $student->full_name,
                         'student_code' => $student->student_code,
                         'monthly_feedback_id' => $feedbackId,
-                        'can_rate' => $feedbackId === null,
+                        'can_rate' => true,
                         'can_edit_rating' => $feedbackId !== null,
                     ];
                 })

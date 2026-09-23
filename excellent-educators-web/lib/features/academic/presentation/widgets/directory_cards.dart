@@ -1,7 +1,9 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
+import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class DirectoryHeader extends StatelessWidget {
   const DirectoryHeader({
@@ -42,40 +44,44 @@ class StudentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget? assessmentBadge;
     if (student.hasSubmittedAptitudeAssessment) {
-      assessmentBadge = const _InfoChip('Assessment submitted', tone: _ChipTone.success);
+      assessmentBadge = const _InfoChip(AppStrings.assessmentSubmitted, tone: _ChipTone.success);
     } else if (student.aptitudeAssessmentStatus == 'pending') {
-      assessmentBadge = const _InfoChip('Assessment pending', tone: _ChipTone.warning);
+      assessmentBadge = const _InfoChip(AppStrings.assessmentPending, tone: _ChipTone.warning);
     }
 
     final ratingBadge = highlightOverallRating ? _OverallRatingBadge(student: student) : null;
-    final trailingBadges = <Widget>[
-      if (assessmentBadge != null) assessmentBadge,
+    final statusChips = <Widget>[
+      if (student.status == 'inactive')
+        const _InfoChip(AppStrings.inactive, tone: _ChipTone.neutral)
+      else if (student.status == 'active')
+        const _InfoChip(AppStrings.active, tone: _ChipTone.success),
+      if (showMonthRatingStatus)
+        student.feedbackFilterMonthCompleted
+            ? const _InfoChip(AppStrings.rated, tone: _ChipTone.success)
+            : const _InfoChip(AppStrings.notRated, tone: _ChipTone.warning),
+    ];
+
+    final headerRightWidgets = <Widget>[
+      ...statusChips,
       if (ratingBadge != null) ratingBadge,
       if (trailing != null) trailing!,
     ];
-    final trailingWidget = trailingBadges.isEmpty
-        ? null
-        : (trailingBadges.length == 1
-            ? trailingBadges.first
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var i = 0; i < trailingBadges.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 8),
-                    trailingBadges[i],
-                  ],
-                ],
-              ));
 
-    final chips = <_InfoChip>[
-      if (student.status == 'inactive')
-        const _InfoChip('Inactive', tone: _ChipTone.neutral)
-      else if (student.status == 'active')
-        const _InfoChip('Active', tone: _ChipTone.success),
-      if (showMonthRatingStatus)
-        student.feedbackFilterMonthCompleted
-            ? const _InfoChip('Rated', tone: _ChipTone.success)
-            : const _InfoChip('Not rated', tone: _ChipTone.warning),
+    final headerTrailing = headerRightWidgets.isNotEmpty
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              for (var i = 0; i < headerRightWidgets.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                headerRightWidgets[i],
+              ],
+            ],
+          )
+        : null;
+
+    final chips = <Widget>[
+      if (assessmentBadge != null) assessmentBadge,
     ];
     final title = student.studentCode.isNotEmpty
         ? '${student.fullName} (${student.studentCode})'
@@ -86,29 +92,29 @@ class StudentCard extends StatelessWidget {
       title: title,
       subtitle: student.email.isNotEmpty ? student.email : null,
       chips: chips,
-      trailing: trailingWidget,
+      trailing: headerTrailing,
       facts: [
         if (student.createdAt != null)
-          _Fact('Registered', formatDisplayDateTime(student.createdAt)),
+          _Fact(AppStrings.registered, formatDisplayDateTime(student.createdAt)),
         if (student.classGrade > 0)
-          _Fact('Class', 'Class ${student.classGrade}'),
-        if (student.phone.isNotEmpty) _Fact('Phone', student.phone),
+          _Fact(AppStrings.classLabel, 'Class ${student.classGrade}'),
+        if (student.gender != null && student.gender!.isNotEmpty)
+          _Fact(AppStrings.gender, genderLabel(student.gender)),
+        if (student.phone.isNotEmpty) _Fact(AppStrings.phone, student.phone),
         if (student.whatsappNumber != null && student.whatsappNumber!.isNotEmpty)
-          _Fact('WhatsApp', student.whatsappNumber!),
+          _Fact(AppStrings.whatsapp, student.whatsappNumber!),
         if (student.address != null && student.address!.isNotEmpty)
-          _Fact('Address', student.address!),
+          _Fact(AppStrings.address, student.address!),
         if (student.level != null && !student.level!.isEmpty)
-          _Fact('Level', student.level!.label)
+          _Fact(AppStrings.level, student.level!.label)
         else if (student.batch != null && !student.batch!.isEmpty)
-          _Fact('Level', student.batch!.label),
+          _Fact(AppStrings.level, student.batch!.label),
         if (student.batch != null && !student.batch!.isEmpty && student.level != null && !student.level!.isEmpty)
-          _Fact('Batch', student.batch!.label),
+          _Fact(AppStrings.batch, student.batch!.label),
         if (student.guardianName != null && student.guardianName!.isNotEmpty)
-          _Fact('Guardian', student.guardianName!),
-        if (student.masterTeacher != null && !student.masterTeacher!.isEmpty)
-          _Fact('Master teacher', student.masterTeacher!.label),
+          _Fact(AppStrings.guardian, student.guardianName!),
         if (student.feedbackTotalSessions > 0)
-          _Fact('Monthly ratings', '${student.feedbackTotalSessions} on record'),
+          _Fact(AppStrings.monthlyRatings, '${student.feedbackTotalSessions} on record'),
       ],
       action: action,
       onTap: onTap,
@@ -126,6 +132,26 @@ class TeacherCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusBadge = teacher.status == 'inactive'
+        ? const _InfoChip(AppStrings.inactive, tone: _ChipTone.neutral)
+        : const _InfoChip(AppStrings.active, tone: _ChipTone.success);
+
+    final teacherRightWidgets = <Widget>[
+      statusBadge,
+      if (trailing != null) trailing!,
+    ];
+
+    final headerTrailing = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        for (var i = 0; i < teacherRightWidgets.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          teacherRightWidgets[i],
+        ],
+      ],
+    );
+
     return _DirectoryCard(
       initials: _initials(teacher.fullName),
       title: teacher.fullName,
@@ -133,16 +159,18 @@ class TeacherCard extends StatelessWidget {
       chips: const [],
       facts: [
         if (teacher.createdAt != null)
-          _Fact('Registered', formatDisplayDateTime(teacher.createdAt)),
-        if (teacher.phone != null && teacher.phone!.isNotEmpty) _Fact('Phone', teacher.phone!),
+          _Fact(AppStrings.registered, formatDisplayDateTime(teacher.createdAt)),
+        if (teacher.gender != null && teacher.gender!.isNotEmpty)
+          _Fact(AppStrings.gender, genderLabel(teacher.gender)),
+        if (teacher.phone != null && teacher.phone!.isNotEmpty) _Fact(AppStrings.phone, teacher.phone!),
         if (teacher.whatsappNumber != null && teacher.whatsappNumber!.isNotEmpty)
-          _Fact('WhatsApp', teacher.whatsappNumber!),
+          _Fact(AppStrings.whatsapp, teacher.whatsappNumber!),
         if (teacher.address != null && teacher.address!.isNotEmpty)
-          _Fact('Address', teacher.address!),
-        _Fact('Assigned level', teacher.assignedLevelsLabel),
+          _Fact(AppStrings.address, teacher.address!),
+        _Fact(AppStrings.assignedLevel, teacher.assignedLevelsLabel),
       ],
       action: action,
-      trailing: trailing,
+      trailing: headerTrailing,
       onTap: onTap,
     );
   }
@@ -164,9 +192,9 @@ class AcademicLevelCard extends StatelessWidget {
         _InfoChip('${level.batchesCount} ${level.batchesCount == 1 ? 'batch' : 'batches'}'),
       ],
       facts: [
-        _Fact('Total students', '${level.studentsCount}'),
-        _Fact('Batches', '${level.batchesCount} sections'),
-        _Fact('Year', '${level.academicYear}'),
+        _Fact(AppStrings.totalStudents2, '${level.studentsCount}'),
+        _Fact(AppStrings.batches, '${level.batchesCount} sections'),
+        _Fact(AppStrings.year, '${level.academicYear}'),
       ],
       onTap: onTap,
     );
@@ -185,11 +213,11 @@ class BatchCard extends StatelessWidget {
       initials: _initials(batch.name),
       title: batch.name,
       subtitle: 'Academic year ${batch.academicYear}',
-      chips: [if (batch.isFull) const _InfoChip('Full')],
+      chips: [if (batch.isFull) const _InfoChip(AppStrings.full)],
       facts: [
-        _Fact('Students', '${batch.activeStudentCount} / ${batch.maxActiveStudents} active'),
-        _Fact('Seats left', '${(batch.maxActiveStudents - batch.activeStudentCount).clamp(0, batch.maxActiveStudents)}'),
-        _Fact('Year', '${batch.academicYear}'),
+        _Fact(AppStrings.students, '${batch.activeStudentCount} / ${batch.maxActiveStudents} active'),
+        _Fact(AppStrings.seatsLeft, '${(batch.maxActiveStudents - batch.activeStudentCount).clamp(0, batch.maxActiveStudents)}'),
+        _Fact(AppStrings.year, '${batch.academicYear}'),
       ],
       onTap: onTap,
     );
@@ -211,7 +239,7 @@ class _DirectoryCard extends StatelessWidget {
   final String initials;
   final String title;
   final String? subtitle;
-  final List<_InfoChip> chips;
+  final List<Widget> chips;
   final List<_Fact> facts;
   final Widget? action;
   final Widget? trailing;
@@ -258,6 +286,7 @@ class _DirectoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
                           child: Column(
@@ -283,7 +312,10 @@ class _DirectoryCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           trailing!,
                         ],
-                        if (action != null && wide) action!,
+                        if (action != null && wide) ...[
+                          const SizedBox(width: 8),
+                          action!,
+                        ],
                       ],
                     ),
                     if (chips.isNotEmpty) ...[
@@ -423,7 +455,7 @@ class _FactView extends StatelessWidget {
 String _initials(String name) {
   final parts = name.trim().split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
   if (parts.isEmpty) {
-    return 'EE';
+    return AppStrings.ee;
   }
   if (parts.length == 1) {
     return parts.first.substring(0, 1).toUpperCase();
@@ -440,14 +472,14 @@ class _OverallRatingBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!student.hasOverallRating) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: const Color(0xFFF5F0E6),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFFE6DCCB)),
         ),
         child: const Text(
-          'No rating',
+          AppStrings.noRating,
           style: TextStyle(color: Brand.muted, fontWeight: FontWeight.w600, fontSize: 11),
         ),
       );
@@ -471,7 +503,7 @@ class _OverallRatingBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            'Overall',
+            AppStrings.overall,
             style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 2),

@@ -28,12 +28,10 @@ class UpdateMonthlyFeedback
         }
 
         if (! $adminOverride) {
-            $assigned = $teacher->canAccessStudent($student);
-
-            if (! $assigned || $feedback->master_teacher_id !== $teacher->id) {
+            if ($feedback->master_teacher_id !== $teacher->id) {
                 throw new ApiException(
                     ErrorCode::FORBIDDEN,
-                    'Only the Master Teacher who submitted this rating can update it.',
+                    'Only the teacher who submitted this rating can update it.',
                     403,
                 );
             }
@@ -58,8 +56,18 @@ class UpdateMonthlyFeedback
                 );
             }
 
+            $this->createMonthlyFeedback->assertDimensionItems($input['items'] ?? []);
             $locked->items()->delete();
             $this->createMonthlyFeedback->storeItems($locked, $input['items']);
+            $locked->update([
+                'positive_points' => $input['positive_points'] ?? $locked->positive_points,
+                'areas_for_improvement' => array_key_exists('areas_for_improvement', $input)
+                    ? $input['areas_for_improvement']
+                    : $locked->areas_for_improvement,
+                'discussed_in_class' => array_key_exists('discussed_in_class', $input)
+                    ? $input['discussed_in_class']
+                    : $locked->discussed_in_class,
+            ]);
             $locked->touch();
 
             return $locked->fresh(['items', 'masterTeacher', 'student']) ?? $locked;

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:excellent_educators_web/core/network/api_exception.dart';
 import 'package:excellent_educators_web/core/platform/platform_info.dart';
 import 'package:excellent_educators_web/core/storage/token_store.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class ApiEnvelope {
   const ApiEnvelope({this.data, this.meta = const {}});
@@ -105,7 +106,7 @@ class ApiClient {
     if (envelope.data is List) {
       return envelope.data as List<dynamic>;
     }
-    throw ApiException(message: 'Expected a list response.', code: 'SERVER_ERROR');
+    throw ApiException(message: AppStrings.expectedAListResponse, code: 'SERVER_ERROR');
   }
 
   Future<PagedResult> getPage(
@@ -186,7 +187,7 @@ class ApiClient {
       );
     }
     return ApiException(
-      message: error.message ?? 'Network error.',
+      message: error.message ?? AppStrings.networkError,
       statusCode: error.response?.statusCode,
       code: 'SERVER_ERROR',
     );
@@ -195,7 +196,7 @@ class ApiClient {
   ApiException _fromEnvelope(Map<String, dynamic> body, int? statusCode) {
     final error = body['error'];
     return ApiException(
-      message: body['message'] as String? ?? 'Request failed.',
+      message: body['message'] as String? ?? AppStrings.requestFailed,
       code: error is Map<String, dynamic> ? error['code'] as String? : null,
       details: error is Map<String, dynamic> ? error['details'] : null,
       statusCode: statusCode,

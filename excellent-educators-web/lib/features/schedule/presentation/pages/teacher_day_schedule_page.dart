@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 int _sessionLane(SessionBookingDto booking, DateTime now) {
   if (booking.attendance?.reportSubmitted == true) {
@@ -42,11 +43,25 @@ Color _sessionBorderColor(SessionBookingDto booking, DateTime now) {
   return const Color(0xFF94A3B8);
 }
 
-class TeacherDaySchedulePage extends ConsumerWidget {
+bool _teacherSessionIsPast(SessionBookingDto booking, DateTime now) {
+  if (booking.isCancelled || booking.isCompleted || booking.attendance?.classCompleted == true) {
+    return true;
+  }
+  return booking.hasEndedAt(now);
+}
+
+class TeacherDaySchedulePage extends ConsumerStatefulWidget {
   const TeacherDaySchedulePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TeacherDaySchedulePage> createState() => _TeacherDaySchedulePageState();
+}
+
+class _TeacherDaySchedulePageState extends ConsumerState<TeacherDaySchedulePage> {
+  int _selectedTab = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final isMobile = Breakpoints.isMobile(context);
     final date = ref.watch(teacherDayScheduleDateProvider);
     final day = ref.watch(teacherDayScheduleProvider);
@@ -57,7 +72,11 @@ class TeacherDaySchedulePage extends ConsumerWidget {
     final isTomorrow = selected != null && scheduleDateOnly(selected) == tomorrow;
 
     void setDate(DateTime target) {
+      final only = scheduleDateOnly(target);
       ref.read(teacherDayScheduleDateProvider.notifier).state = formatScheduleDate(target);
+      setState(() {
+        _selectedTab = only.isBefore(today) ? 1 : 0;
+      });
     }
 
     void stepDay(int delta) {
@@ -66,7 +85,7 @@ class TeacherDaySchedulePage extends ConsumerWidget {
     }
 
     return AppScaffold(
-      title: 'Today schedule',
+      title: AppStrings.todaySchedule,
       body: AnimatedPortalBackdrop(
         child: ListView(
           padding: EdgeInsets.symmetric(
@@ -131,76 +150,104 @@ class TeacherDaySchedulePage extends ConsumerWidget {
                   return a.start.compareTo(b.start);
                 });
 
-                final completedCount = bookings.where((b) => b.isCompleted).length;
-                final scheduledCount = bookings.where((b) => !b.isCompleted && !b.isCancelled).length;
+                final current = bookings.where((item) {
+                  if (item.isCancelled) {
+                    return false;
+                  }
+                  return !_teacherSessionIsPast(item, now);
+                }).toList();
+                final past = bookings.where((item) => _teacherSessionIsPast(item, now)).toList()
+                  ..sort((a, b) => b.start.compareTo(a.start));
+                final activeList = _selectedTab == 0 ? current : past;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Metrics Strip
-                    _DayOverviewStats(
-                      totalCount: bookings.length,
-                      completedCount: completedCount,
-                      upcomingCount: scheduledCount,
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Section Heading
-                    Row(
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: Brand.gold,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isToday ? "Today's Sessions" : 'Scheduled Sessions',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Brand.navy,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Brand.navy.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            '${bookings.length} booked',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Brand.navy,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isNarrow = constraints.maxWidth < 620;
+                        final sectionTitle = Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: Brand.gold,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
+                            const SizedBox(width: 8),
+                            Text(
+                              _selectedTab == 0 ? AppStrings.current3 : AppStrings.pastSessions,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: Brand.navy,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Brand.navy.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '${activeList.length}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Brand.navy,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                        final switcher = _TeacherSessionSwitcher(
+                          selectedIndex: _selectedTab,
+                          currentCount: current.length,
+                          pastCount: past.length,
+                          onTap: (index) => setState(() => _selectedTab = index),
+                        );
+                        if (isNarrow) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              sectionTitle,
+                              const SizedBox(height: 12),
+                              switcher,
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            sectionTitle,
+                            const Spacer(),
+                            switcher,
+                          ],
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 14),
 
-                    if (bookings.isEmpty)
+                    if (activeList.isEmpty)
                       _EmptyScheduleCard(
                         isToday: isToday,
+                        isPastTab: _selectedTab == 1,
                         date: date,
                         onCheckTomorrow: () => setDate(tomorrow),
                       )
                     else
-                      for (int i = 0; i < bookings.length; i++)
+                      for (int i = 0; i < activeList.length; i++)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 14),
                           child: _ExecutiveBookingCard(
-                            booking: bookings[i],
+                            booking: activeList[i],
                             index: i,
+                            isPast: _selectedTab == 1,
                             onRefresh: () => ref.invalidate(teacherDayScheduleProvider),
                           ),
                         ),
@@ -316,8 +363,8 @@ class _TeacherDayHero extends StatelessWidget {
                         ],
                         Text(
                           isToday
-                              ? "TODAY'S SCHEDULE"
-                              : (isTomorrow ? "TOMORROW'S AGENDA" : "SCHEDULE CALENDAR"),
+                              ? AppStrings.todaySSchedule
+                              : (isTomorrow ? AppStrings.tomorrowSAgenda : AppStrings.scheduleCalendar),
                           style: TextStyle(
                             color: isToday
                                 ? const Color(0xFF6EE7B7)
@@ -347,7 +394,7 @@ class _TeacherDayHero extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                'Monitor upcoming student sessions, launch live meeting rooms, and record attendance.',
+                AppStrings.monitorUpcomingStudentSessionsLaunchLiveMeetingRoomsAndRecord,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.72),
                   fontSize: isNarrow ? 12 : 13,
@@ -374,7 +421,7 @@ class _TeacherDayHero extends StatelessWidget {
                     IconButton(
                       onPressed: onPreviousDay,
                       icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
-                      tooltip: 'Previous day',
+                      tooltip: AppStrings.previousDay,
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -382,7 +429,7 @@ class _TeacherDayHero extends StatelessWidget {
 
                     // Today Pill
                     _DateSelectorPill(
-                      label: 'Today',
+                      label: AppStrings.today,
                       isSelected: isToday,
                       icon: Icons.today_rounded,
                       onTap: onSelectToday,
@@ -390,7 +437,7 @@ class _TeacherDayHero extends StatelessWidget {
 
                     // Tomorrow Pill
                     _DateSelectorPill(
-                      label: 'Tomorrow',
+                      label: AppStrings.tomorrow,
                       isSelected: isTomorrow,
                       icon: Icons.event_rounded,
                       onTap: onSelectTomorrow,
@@ -408,7 +455,7 @@ class _TeacherDayHero extends StatelessWidget {
                     IconButton(
                       onPressed: onNextDay,
                       icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
-                      tooltip: 'Next day',
+                      tooltip: AppStrings.nextDay,
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -491,182 +538,108 @@ class _DateSelectorPill extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------------------------
-/// Overview KPI Metrics Strip
-/// ---------------------------------------------------------------------------
-class _DayOverviewStats extends StatelessWidget {
-  const _DayOverviewStats({
-    required this.totalCount,
-    required this.completedCount,
-    required this.upcomingCount,
+class _TeacherSessionSwitcher extends StatelessWidget {
+  const _TeacherSessionSwitcher({
+    required this.selectedIndex,
+    required this.currentCount,
+    required this.pastCount,
+    required this.onTap,
   });
 
-  final int totalCount;
-  final int completedCount;
-  final int upcomingCount;
+  final int selectedIndex;
+  final int currentCount;
+  final int pastCount;
+  final ValueChanged<int> onTap;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 600;
-
-        final cardTotal = _MetricCard(
-          title: 'Total Booked',
-          value: '$totalCount',
-          subtitle: totalCount == 1 ? '1 session' : '$totalCount sessions',
-          icon: Icons.calendar_today_rounded,
-          accentColor: Brand.navy,
-          iconBg: Brand.navy.withValues(alpha: 0.08),
-        );
-
-        final cardCompleted = _MetricCard(
-          title: 'Completed',
-          value: '$completedCount',
-          subtitle: completedCount == 0 ? 'None conducted' : '$completedCount conducted',
-          icon: Icons.check_circle_rounded,
-          accentColor: const Color(0xFF059669),
-          iconBg: const Color(0xFFECFDF5),
-        );
-
-        final cardUpcoming = _MetricCard(
-          title: 'Upcoming / Ready',
-          value: '$upcomingCount',
-          subtitle: upcomingCount == 0 ? 'No pending' : '$upcomingCount ready to meet',
-          icon: Icons.access_time_filled_rounded,
-          accentColor: const Color(0xFFD97706),
-          iconBg: const Color(0xFFFFFBEB),
-        );
-
-        if (isCompact) {
-          return Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(child: cardTotal),
-                  const SizedBox(width: 8),
-                  Expanded(child: cardCompleted),
-                ],
-              ),
-              const SizedBox(height: 8),
-              cardUpcoming,
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(child: cardTotal),
-            const SizedBox(width: 12),
-            Expanded(child: cardCompleted),
-            const SizedBox(width: 12),
-            Expanded(child: cardUpcoming),
-          ],
-        );
-      },
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEBE6D9),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Brand.gold.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _TeacherPillItem(
+            label: AppStrings.current3,
+            count: currentCount,
+            icon: Icons.calendar_today_rounded,
+            selected: selectedIndex == 0,
+            onTap: () => onTap(0),
+          ),
+          const SizedBox(width: 4),
+          _TeacherPillItem(
+            label: AppStrings.pastSessions,
+            count: pastCount,
+            icon: Icons.history_rounded,
+            selected: selectedIndex == 1,
+            onTap: () => onTap(1),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _MetricCard extends StatefulWidget {
-  const _MetricCard({
-    required this.title,
-    required this.value,
-    required this.subtitle,
+class _TeacherPillItem extends StatelessWidget {
+  const _TeacherPillItem({
+    required this.label,
+    required this.count,
     required this.icon,
-    required this.accentColor,
-    required this.iconBg,
+    required this.selected,
+    required this.onTap,
   });
 
-  final String title;
-  final String value;
-  final String subtitle;
+  final String label;
+  final int count;
   final IconData icon;
-  final Color accentColor;
-  final Color iconBg;
-
-  @override
-  State<_MetricCard> createState() => _MetricCardState();
-}
-
-class _MetricCardState extends State<_MetricCard> {
-  bool _isHovered = false;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        transform: Matrix4.translationValues(0, _isHovered ? -2 : 0, 0),
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: _isHovered ? widget.accentColor.withValues(alpha: 0.5) : const Color(0xFFE2E8F0),
-            width: _isHovered ? 1.5 : 1.0,
+            color: selected ? Brand.gold.withValues(alpha: 0.6) : Colors.transparent,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: _isHovered
-                  ? widget.accentColor.withValues(alpha: 0.12)
-                  : Brand.navy.withValues(alpha: 0.04),
-              blurRadius: _isHovered ? 16 : 8,
-              offset: Offset(0, _isHovered ? 6 : 2),
-            ),
-          ],
         ),
         child: Row(
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: widget.iconBg,
-                borderRadius: BorderRadius.circular(10),
+            Icon(icon, size: 14, color: selected ? Brand.navy : Brand.muted),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: selected ? Brand.navy : Brand.muted,
               ),
-              child: Icon(widget.icon, color: widget.accentColor, size: 19),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.title,
-                    style: const TextStyle(
-                      color: Color(0xFF64748B),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text(
-                        widget.value,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: widget.accentColor,
-                          height: 1.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    widget.subtitle,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF94A3B8),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: selected ? Brand.navy.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? Brand.navy : Brand.muted,
+                ),
               ),
             ),
           ],
@@ -684,11 +657,13 @@ class _ExecutiveBookingCard extends ConsumerStatefulWidget {
     required this.booking,
     required this.index,
     required this.onRefresh,
+    this.isPast = false,
   });
 
   final SessionBookingDto booking;
   final int index;
   final VoidCallback onRefresh;
+  final bool isPast;
 
   @override
   ConsumerState<_ExecutiveBookingCard> createState() => _ExecutiveBookingCardState();
@@ -707,13 +682,14 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
 
     // Parse date for two-tone badge
     final dt = DateTime.tryParse(booking.date);
-    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    final month = dt != null && dt.month >= 1 && dt.month <= 12 ? months[dt.month - 1] : 'DATE';
+    const months = [AppStrings.jan, AppStrings.feb, AppStrings.mar, AppStrings.apr, AppStrings.may, AppStrings.jun, AppStrings.jul, AppStrings.aug, AppStrings.sep, AppStrings.oct, AppStrings.nov, AppStrings.dec];
+    const weekdays = [AppStrings.mon, AppStrings.tue, AppStrings.wed, AppStrings.thu, AppStrings.fri, AppStrings.sat, AppStrings.sun];
+    final month = dt != null && dt.month >= 1 && dt.month <= 12 ? months[dt.month - 1] : AppStrings.date;
     final day = dt != null ? '${dt.day}' : '—';
     final weekday = dt != null && dt.weekday >= 1 && dt.weekday <= 7 ? weekdays[dt.weekday - 1] : '';
 
-    final canJoin = booking.attendance?.canJoin ?? false;
+    final canJoin = !widget.isPast && (booking.attendance?.canJoin ?? false);
+    final showJoin = !widget.isPast && !isCancelled && (booking.meetingUrl ?? '').isNotEmpty;
     final canWhatsApp = booking.attendance?.canWhatsAppStudent ?? false;
     final borderColor = _sessionBorderColor(booking, DateTime.now());
     final studentInitial = (booking.studentName?.isNotEmpty ?? false)
@@ -866,7 +842,7 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                   Text(
                                     isMasterClass
                                         ? 'Master Class · Week ${booking.learningWeek ?? 1}'
-                                        : 'Introduction Call',
+                                        : AppStrings.introductionCall,
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 11.5,
@@ -878,7 +854,25 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                             ),
 
                             // Status Pill
-                            if (canJoin)
+                            if (widget.isPast)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                                ),
+                                child: Text(
+                                  isCompleted ? AppStrings.completed : AppStrings.past,
+                                  style: const TextStyle(
+                                    color: Color(0xFF475569),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 10.5,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              )
+                            else if (canJoin)
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                                 decoration: BoxDecoration(
@@ -892,7 +886,7 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                     _PulsingLiveDot(color: Color(0xFF10B981)),
                                     SizedBox(width: 6),
                                     Text(
-                                      'READY TO JOIN',
+                                      AppStrings.readyToJoin,
                                       style: TextStyle(
                                         color: Color(0xFF047857),
                                         fontWeight: FontWeight.w900,
@@ -917,7 +911,7 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                     Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF059669)),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Completed',
+                                      AppStrings.completed,
                                       style: TextStyle(
                                         color: Color(0xFF334155),
                                         fontWeight: FontWeight.w700,
@@ -936,7 +930,7 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                   border: Border.all(color: const Color(0xFFFECACA)),
                                 ),
                                 child: const Text(
-                                  'Cancelled',
+                                  AppStrings.cancelled,
                                   style: TextStyle(color: Color(0xFFDC2626), fontSize: 11, fontWeight: FontWeight.w700),
                                 ),
                               )
@@ -954,7 +948,7 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                     Icon(Icons.calendar_today_rounded, size: 11, color: Color(0xFF2563EB)),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Scheduled',
+                                      AppStrings.scheduled,
                                       style: TextStyle(
                                         color: Color(0xFF1D4ED8),
                                         fontWeight: FontWeight.w700,
@@ -994,7 +988,7 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                   Row(
                                     children: [
                                       Text(
-                                        booking.studentName ?? 'Student',
+                                        booking.studentName ?? AppStrings.student,
                                         style: TextStyle(
                                           fontWeight: FontWeight.w800,
                                           fontSize: isNarrow ? 14.5 : 16,
@@ -1089,10 +1083,10 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                     '${RoutePaths.teacherScheduleStudentFor(booking.studentId)}?slot=${Uri.encodeComponent('${formatHm(booking.start)} – ${formatHm(booking.end)}')}',
                                   ),
                           icon: const Icon(Icons.history_edu_rounded, size: 14, color: Brand.goldDark),
-                          label: const Text('Briefing', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                          label: const Text(AppStrings.briefing, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
                         ),
 
-                        // Join Call Button
+                        if (showJoin)
                         FilledButton.icon(
                           style: FilledButton.styleFrom(
                             backgroundColor: canJoin ? const Color(0xFF047857) : Brand.navy,
@@ -1110,7 +1104,7 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                     await ref.read(scheduleRepositoryProvider).teacherJoinClass(booking.id);
                                     widget.onRefresh();
                                     final uri = Uri.parse(booking.meetingUrl!);
-                                    await launchUrl(uri, webOnlyWindowName: '_blank');
+                                    await launchUrl(uri, webOnlyWindowName: AppStrings.blank);
                                   } finally {
                                     if (mounted) setState(() => _isBusy = false);
                                   }
@@ -1122,15 +1116,15 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                           ),
                           label: Text(
                             isCompleted
-                                ? 'Completed'
-                                : (isMasterClass ? 'Join Class' : 'Join Call'),
+                                ? AppStrings.completed
+                                : (isMasterClass ? AppStrings.joinClass : AppStrings.joinCall),
                             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
                           ),
                         ),
 
                         // WhatsApp Student
                         Tooltip(
-                          message: canWhatsApp ? 'Message student on WhatsApp' : (booking.attendance?.whatsappHint ?? 'Available shortly before session starts'),
+                          message: canWhatsApp ? AppStrings.messageStudentOnWhatsapp : (booking.attendance?.whatsappHint ?? AppStrings.availableShortlyBeforeSessionStarts),
                           child: FilledButton.tonalIcon(
                             style: FilledButton.styleFrom(
                               backgroundColor: canWhatsApp ? const Color(0xFFE8F8EE) : const Color(0xFFF1F5F9),
@@ -1153,7 +1147,7 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                           .teacherWhatsAppStudent(booking.id);
                                       widget.onRefresh();
                                       final uri = Uri.parse(ready.whatsappUrl);
-                                      await launchUrl(uri, webOnlyWindowName: '_blank');
+                                      await launchUrl(uri, webOnlyWindowName: AppStrings.blank);
                                     } catch (error) {
                                       if (context.mounted) {
                                         showFailure(context, error);
@@ -1165,7 +1159,7 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                               size: 14,
                               color: canWhatsApp ? const Color(0xFF25D366) : const Color(0xFF94A3B8),
                             ),
-                            label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                            label: const Text(AppStrings.whatsapp, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
                           ),
                         ),
 
@@ -1194,11 +1188,13 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                       );
                                       return;
                                     }
-                                    context.go(RoutePaths.masterTeacherFeedbackNewFor(booking.studentId));
+                                    context.go(
+                                      '${RoutePaths.masterTeacherFeedbackNewFor(booking.studentId)}?bookingId=${booking.id}',
+                                    );
                                   },
                             icon: const Icon(Icons.star_rounded, size: 14, color: Color(0xFFD97706)),
                             label: Text(
-                              booking.attendance?.canEditStudentRating == true ? 'Edit rating' : 'Rate',
+                              booking.attendance?.canEditStudentRating == true ? AppStrings.editRating : AppStrings.rate,
                               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5),
                             ),
                           ),
@@ -1214,10 +1210,10 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                               visualDensity: VisualDensity.compact,
                             ),
                             onPressed: () async {
-                              final session = booking.type == 'master_class' ? 'class' : 'Introduction Call';
+                              final session = booking.type == 'master_class' ? 'class' : AppStrings.introductionCall;
                               final message = await showAttendanceReportDialog(
                                 context,
-                                title: "Student didn't join",
+                                title: AppStrings.studentDidnTJoin,
                                 hint: 'Tell Admin what happened on this $session:',
                               );
                               if (message == null) return;
@@ -1225,12 +1221,12 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                               widget.onRefresh();
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Report sent to Admin')),
+                                  const SnackBar(content: Text(AppStrings.reportSentToAdmin)),
                                 );
                               }
                             },
                             icon: const Icon(Icons.person_off_rounded, size: 13, color: Color(0xFFDC2626)),
-                            label: const Text("Student didn't join", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5)),
+                            label: const Text(AppStrings.studentDidnTJoin, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5)),
                           ),
 
                         // Report sent badge
@@ -1248,7 +1244,7 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                 Icon(Icons.check_circle_rounded, size: 13, color: Color(0xFF059669)),
                                 SizedBox(width: 4),
                                 Text(
-                                  'Report submitted',
+                                  AppStrings.reportSubmitted,
                                   style: TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.w700, fontSize: 11.5),
                                 ),
                               ],
@@ -1360,9 +1356,11 @@ class _EmptyScheduleCard extends StatelessWidget {
     required this.isToday,
     required this.date,
     required this.onCheckTomorrow,
+    this.isPastTab = false,
   });
 
   final bool isToday;
+  final bool isPastTab;
   final String date;
   final VoidCallback onCheckTomorrow;
 
@@ -1398,7 +1396,9 @@ class _EmptyScheduleCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            isToday ? 'No Session Bookings Today' : 'No Bookings on This Date',
+            isPastTab
+                ? AppStrings.pastSessions
+                : (isToday ? AppStrings.noSessionBookingsToday : AppStrings.noBookingsOnThisDate),
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1409,8 +1409,10 @@ class _EmptyScheduleCard extends StatelessWidget {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 440),
             child: Text(
-              isToday
-                  ? 'There are no student sessions booked on your calendar today. Check tomorrow or pick an upcoming date to see your schedule.'
+              isPastTab
+                  ? AppStrings.noPastSessionsYet
+                  : isToday
+                  ? AppStrings.thereAreNoStudentSessionsBookedOnYourCalendarToday
                   : 'There are no sessions booked for ${formatPrettyDate(date)}. Use the date navigator above to check other days.',
               style: const TextStyle(
                 fontSize: 13,
@@ -1420,7 +1422,7 @@ class _EmptyScheduleCard extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-          if (isToday) ...[
+          if (isToday && !isPastTab) ...[
             const SizedBox(height: 20),
             FilledButton.icon(
               style: FilledButton.styleFrom(
@@ -1431,7 +1433,7 @@ class _EmptyScheduleCard extends StatelessWidget {
               ),
               onPressed: onCheckTomorrow,
               icon: const Icon(Icons.event_rounded, size: 16, color: Brand.gold),
-              label: const Text("Check Tomorrow's Schedule", style: TextStyle(fontWeight: FontWeight.w700)),
+              label: const Text(AppStrings.checkTomorrowSSchedule, style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ],
         ],

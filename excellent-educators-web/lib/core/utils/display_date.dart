@@ -1,3 +1,4 @@
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 /// Formats API date strings for display as `dd-mm-yyyy`.
 String formatDisplayDate(String? raw, {String fallback = '—'}) {
   if (raw == null || raw.isEmpty) {
@@ -34,7 +35,7 @@ String formatDisplayDateTime(String? raw, {String fallback = '—'}) {
   final year = local.year.toString();
   final minute = local.minute.toString().padLeft(2, '0');
   final hour24 = local.hour;
-  final period = hour24 >= 12 ? 'PM' : 'AM';
+  final period = hour24 >= 12 ? AppStrings.pm : AppStrings.am;
   final hour12 = hour24 % 12 == 0 ? 12 : hour24 % 12;
   final hour = hour12.toString().padLeft(2, '0');
 

@@ -8,6 +8,7 @@ class UserDto {
     required this.status,
     required this.roles,
     this.lastLoginAt,
+    this.permissions = const [],
   });
 
   factory UserDto.fromJson(Map<String, dynamic> json) {
@@ -19,6 +20,9 @@ class UserDto {
       roles: (json['roles'] as List<dynamic>? ?? const [])
           .map((role) => role.toString())
           .toList(),
+      permissions: (json['permissions'] as List<dynamic>? ?? const [])
+          .map((permission) => permission.toString())
+          .toList(),
       lastLoginAt: json['last_login_at'] as String?,
     );
   }
@@ -28,6 +32,7 @@ class UserDto {
   final String email;
   final String status;
   final List<String> roles;
+  final List<String> permissions;
   final String? lastLoginAt;
 
   AppUser toEntity() {
@@ -37,6 +42,7 @@ class UserDto {
       email: email,
       status: status,
       roles: roles,
+      permissions: permissions,
       lastLoginAt: lastLoginAt,
     );
   }

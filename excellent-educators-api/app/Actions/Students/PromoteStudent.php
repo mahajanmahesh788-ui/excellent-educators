@@ -9,6 +9,7 @@ use App\Models\AcademicLevel;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Support\ErrorCode;
+use App\Support\StudentActivity;
 use Illuminate\Support\Facades\DB;
 
 class PromoteStudent
@@ -29,9 +30,20 @@ class PromoteStudent
         }
 
         return DB::transaction(function () use ($student, $level, $actor): StudentProfile {
+            $student->loadMissing('academicLevel');
+            $from = $student->academicLevel?->name;
             $student->update(['level_id' => $level->id]);
             $this->allocateBatchForStudent->execute($level, $student->fresh(), $actor);
             $this->startStudentLevelJourney->execute($student->fresh(), $level);
+            StudentActivity::record(
+                $student->fresh(),
+                'level_changed',
+                $from
+                    ? "Admin updated the student from {$from} to {$level->name}"
+                    : "Admin updated the student to {$level->name}",
+                actor: $actor,
+                related: $level,
+            );
 
             return $student->fresh();
         });

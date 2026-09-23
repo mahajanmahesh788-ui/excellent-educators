@@ -17,9 +17,13 @@ class MonthlyFeedback extends Model
     protected $fillable = [
         'student_id',
         'master_teacher_id',
+        'session_booking_id',
         'year',
         'month',
         'session_date',
+        'positive_points',
+        'areas_for_improvement',
+        'discussed_in_class',
         'submitted_at',
     ];
 
@@ -41,6 +45,21 @@ class MonthlyFeedback extends Model
     public function masterTeacher(): BelongsTo
     {
         return $this->belongsTo(TeacherProfile::class, 'master_teacher_id');
+    }
+
+    public function booking(): BelongsTo
+    {
+        return $this->belongsTo(SessionBooking::class, 'session_booking_id');
+    }
+
+    public function sessionAverage(): ?float
+    {
+        $ratings = $this->items->pluck('rating');
+        if ($ratings->isEmpty()) {
+            return null;
+        }
+
+        return round((float) $ratings->avg(), 1);
     }
 
     public function items(): HasMany

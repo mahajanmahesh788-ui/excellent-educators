@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
+use App\Enums\Gender;
 use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -39,6 +40,7 @@ class StoreStudentRequest extends FormRequest
             'email' => ['required', 'email', Rule::unique('users', 'email')->whereNull('deleted_at')],
             'password' => ['required', Password::defaults()],
             'class_grade' => ['required', 'integer', 'min:5', 'max:12'],
+            'gender' => ['required', Rule::enum(Gender::class)],
             'phone' => ['required', 'string', 'min:10', 'max:15', 'unique:student_profiles,phone'],
             'whatsapp_number' => ['nullable', 'string', 'min:10', 'max:15'],
             'address' => ['nullable', 'string', 'max:1000'],

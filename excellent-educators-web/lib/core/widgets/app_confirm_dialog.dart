@@ -1,12 +1,13 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 Future<bool> showAppConfirmDialog(
   BuildContext context, {
   required String title,
   required String message,
   required String confirmLabel,
-  String cancelLabel = 'Cancel',
+  String cancelLabel = AppStrings.cancel,
   bool destructive = false,
 }) async {
   final result = await showDialog<bool>(
@@ -45,9 +46,10 @@ class AppConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 600;
     return Dialog(
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(horizontal: compact ? 16 : 24, vertical: compact ? 16 : 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
@@ -68,13 +70,13 @@ class AppConfirmDialog extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: Brand.navy,
                               fontWeight: FontWeight.w700,
-                              fontSize: 20,
+                              fontSize: compact ? 18 : 20,
                             ),
                       ),
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Close',
+                    tooltip: AppStrings.close,
                     onPressed: () => _close(context, confirmed: false),
                     icon: const Icon(Icons.close, color: Brand.muted, size: 22),
                     style: IconButton.styleFrom(

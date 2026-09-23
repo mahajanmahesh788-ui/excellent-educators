@@ -3,6 +3,7 @@ import 'package:excellent_educators_web/core/errors/failure.dart';
 import 'package:excellent_educators_web/features/auth/domain/entities/app_user.dart';
 import 'package:excellent_educators_web/features/auth/domain/repositories/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AuthState {
   const AuthState({
@@ -70,7 +71,7 @@ class AuthController extends StateNotifier<AuthState> {
       state = state.copyWith(
         isReady: true,
         isLoading: false,
-        error: 'Unable to sign in. Please try again.',
+        error: AppStrings.unableToSignInPleaseTryAgain,
       );
       return false;
     }

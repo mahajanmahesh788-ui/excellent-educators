@@ -2,14 +2,12 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Enums\RoleName;
 use App\Models\AptitudeAssessment;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
-use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class AptitudeAssessmentTest extends TestCase
@@ -286,14 +284,6 @@ class AptitudeAssessmentTest extends TestCase
         );
     }
 
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'ops-aptitude@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
-    }
-
     private function makeStudent(string $email): User
     {
         $admin = User::query()->where('email', 'ops-aptitude@excellenteducators.test')->first() ?? $this->makeAdmin();
@@ -304,16 +294,9 @@ class AptitudeAssessmentTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '9000000000',
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         return StudentProfile::query()->findOrFail($id)->user;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        $this->app['auth']->forgetGuards();
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return $user->fresh()->createToken('test')->plainTextToken;
     }
 }

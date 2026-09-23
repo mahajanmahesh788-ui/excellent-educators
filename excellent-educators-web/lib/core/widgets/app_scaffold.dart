@@ -6,12 +6,14 @@ import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
 import 'package:excellent_educators_web/core/widgets/portal_chrome.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/widgets/notification_bell_button.dart';
+import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
 import 'package:excellent_educators_web/features/auth/domain/entities/app_user.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 void dismissOverlayRoutes(BuildContext context) {
   final navigator = Navigator.of(context, rootNavigator: true);
@@ -70,17 +72,17 @@ class AppScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).user;
-    final pendingConflicts = user?.isAdmin == true
+    final pendingConflicts = user?.isAdmin == true && (user?.canAnyAdmin(const [AdminPermission.queriesView, AdminPermission.queriesResolve]) ?? false)
         ? ref.watch(adminPendingConflictsCountProvider).valueOrNull ?? 0
         : 0;
     final destinations = _destinations(user, pendingConflicts);
     final location = GoRouterState.of(context).uri.path;
-    final selected = destinations.indexWhere((item) => location.startsWith(item.path));
+    final selected = _selectedNavIndex(destinations, location);
     final wide = MediaQuery.sizeOf(context).width >= Breakpoints.mobile;
 
     final portal = user?.isMasterTeacher == true || user?.isCommonTeacher == true;
     Widget content = Padding(
-      padding: EdgeInsets.fromLTRB(wide ? 16 : 12, 12, wide ? 16 : 12, 12),
+      padding: EdgeInsets.fromLTRB(wide ? 16 : 10, wide ? 12 : 8, wide ? 16 : 10, wide ? 12 : 8),
       child: body,
     );
     if (portal) {
@@ -92,7 +94,7 @@ class AppScaffold extends ConsumerWidget {
         leading: backTo == null
             ? null
             : IconButton(
-                tooltip: 'Back',
+                tooltip: AppStrings.back,
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
                   dismissOverlayRoutes(context);
@@ -104,14 +106,21 @@ class AppScaffold extends ConsumerWidget {
                 },
               ),
         automaticallyImplyLeading: backTo == null,
-        title: Text(title),
+        title: Text(title, overflow: TextOverflow.ellipsis),
         actions: [
           ...?actions,
           if (_showNotifications(user)) const NotificationBellButton(),
-          TextButton(
-            onPressed: () => confirmSignOut(context, ref),
-            child: const Text('Sign out', style: TextStyle(color: Colors.white)),
-          ),
+          if (wide)
+            TextButton(
+              onPressed: () => confirmSignOut(context, ref),
+              child: const Text(AppStrings.signOut, style: TextStyle(color: Colors.white)),
+            )
+          else
+            IconButton(
+              tooltip: AppStrings.signOut,
+              onPressed: () => confirmSignOut(context, ref),
+              icon: const Icon(Icons.logout_rounded, color: Colors.white),
+            ),
         ],
       ),
       drawer: wide || destinations.isEmpty
@@ -145,7 +154,7 @@ class AppScaffold extends ConsumerWidget {
                               child: Icon(item.icon),
                             ),
                             title: Text(item.label),
-                            selected: location.startsWith(item.path),
+                            selected: selected >= 0 && destinations[selected].path == item.path,
                             enabled: !disabledNavPaths.contains(item.path),
                             onTap: disabledNavPaths.contains(item.path)
                                 ? null
@@ -190,49 +199,91 @@ class AppScaffold extends ConsumerWidget {
     }
     return [
       if (user.isAdmin) ...[
-        const _NavItem('Dashboard', Icons.dashboard_outlined, RoutePaths.adminDashboard),
-        const _NavItem('Students', Icons.school_outlined, RoutePaths.adminStudents),
-        const _NavItem('Teachers', Icons.badge_outlined, RoutePaths.adminTeachers),
-        const _NavItem('Levels', Icons.layers_outlined, RoutePaths.adminBatches),
-        _NavItem(
-          'Conflicts',
-          Icons.report_outlined,
-          RoutePaths.adminAttendance,
-          badgeCount: pendingConflicts > 0 ? pendingConflicts : null,
-        ),
-        const _NavItem('Assessments', Icons.quiz_outlined, RoutePaths.adminAssessments),
-        const _NavItem('Settings', Icons.settings_outlined, RoutePaths.adminSettings),
-        const _NavItem('Requests', Icons.support_agent_outlined, RoutePaths.adminRequests),
+        const _NavItem(AppStrings.dashboard, Icons.dashboard_outlined, RoutePaths.adminDashboard),
+        if (user.canAnyAdmin(const [
+          AdminPermission.studentsView,
+          AdminPermission.studentsCreate,
+          AdminPermission.studentsEdit,
+          AdminPermission.studentsDelete,
+          AdminPermission.studentsPromote,
+          AdminPermission.studentsRating,
+        ]))
+          const _NavItem(AppStrings.students, Icons.school_outlined, RoutePaths.adminStudents),
+        if (user.canAnyAdmin(const [
+          AdminPermission.teachersView,
+          AdminPermission.teachersCreate,
+          AdminPermission.teachersEdit,
+          AdminPermission.teachersDelete,
+          AdminPermission.teachersSchedule,
+        ]))
+          const _NavItem(AppStrings.teachers, Icons.badge_outlined, RoutePaths.adminTeachers),
+        if (user.canAnyAdmin(const [AdminPermission.levelsView, AdminPermission.levelsManage]))
+          const _NavItem(AppStrings.levels, Icons.layers_outlined, RoutePaths.adminBatches),
+        if (user.canAnyAdmin(const [AdminPermission.queriesView, AdminPermission.queriesResolve]))
+          _NavItem(
+            AppStrings.conflicts,
+            Icons.report_outlined,
+            RoutePaths.adminAttendance,
+            badgeCount: pendingConflicts > 0 ? pendingConflicts : null,
+          ),
+        if (user.canAnyAdmin(const [AdminPermission.assessmentsView, AdminPermission.assessmentsManage]))
+          const _NavItem(AppStrings.assessments, Icons.quiz_outlined, RoutePaths.adminAssessments),
+        if (user.canAdmin(AdminPermission.settingsManage))
+          const _NavItem(AppStrings.settings, Icons.settings_outlined, RoutePaths.adminSettings),
+        if (user.canAnyAdmin(const [AdminPermission.requestsView, AdminPermission.requestsResolve]))
+          const _NavItem(AppStrings.requests, Icons.support_agent_outlined, RoutePaths.adminRequests),
+        if (user.canAdmin(AdminPermission.subAdminsManage))
+          const _NavItem(AppStrings.subAdmins, Icons.admin_panel_settings_outlined, RoutePaths.adminSubAdmins),
       ],
       if (user.isMasterTeacher)
-        const _NavItem('Dashboard', Icons.dashboard_outlined, RoutePaths.masterTeacherDashboard),
+        const _NavItem(AppStrings.dashboard, Icons.dashboard_outlined, RoutePaths.masterTeacherDashboard),
       if (user.isMasterTeacher)
-        const _NavItem('My students', Icons.psychology_outlined, RoutePaths.masterTeacherStudents),
+        const _NavItem(AppStrings.myStudents, Icons.psychology_outlined, RoutePaths.masterTeacherStudents),
       if (user.isMasterTeacher || user.isCommonTeacher) ...[
-        const _NavItem('Today schedule', Icons.today_outlined, RoutePaths.teacherDaySchedule),
-        const _NavItem('Take leave', Icons.event_busy_outlined, RoutePaths.teacherSchedule),
-        const _NavItem('Request admin', Icons.support_agent_outlined, RoutePaths.teacherRequests),
-        const _NavItem('Profile', Icons.person_outline, RoutePaths.teacherProfile),
+        const _NavItem(AppStrings.todaySchedule, Icons.today_outlined, RoutePaths.teacherDaySchedule),
+        const _NavItem(AppStrings.takeLeave, Icons.event_busy_outlined, RoutePaths.teacherSchedule),
+        const _NavItem(AppStrings.requestAdmin, Icons.support_agent_outlined, RoutePaths.teacherRequests),
+        const _NavItem(AppStrings.profile, Icons.person_outline, RoutePaths.teacherProfile),
       ],
       if (user.isStudent) ...[]
     ];
+  }
+
+  static bool _navItemSelected(String location, String path) {
+    return location == path || location.startsWith('$path/');
+  }
+
+  static int _selectedNavIndex(List<_NavItem> destinations, String location) {
+    var best = -1;
+    var bestLength = -1;
+    for (var i = 0; i < destinations.length; i++) {
+      final path = destinations[i].path;
+      if (_navItemSelected(location, path) && path.length > bestLength) {
+        best = i;
+        bestLength = path.length;
+      }
+    }
+    return best;
   }
 
   bool _showNotifications(AppUser? user) {
     if (user == null) {
       return false;
     }
-    return user.isStudent || user.isCommonTeacher || user.isMasterTeacher;
+    return user.isAdmin ||
+        user.isStudent ||
+        user.isCommonTeacher ||
+        user.isMasterTeacher;
   }
 }
 
 Future<void> confirmSignOut(BuildContext context, WidgetRef ref) async {
   final confirmed = await showAppConfirmDialog(
     context,
-    title: 'Sign out?',
-    message: 'You will need to sign in again to access your account.',
-    confirmLabel: 'Sign out',
-    cancelLabel: 'Cancel',
+    title: AppStrings.signOut2,
+    message: AppStrings.youWillNeedToSignInAgainToAccessYour,
+    confirmLabel: AppStrings.signOut,
+    cancelLabel: AppStrings.cancel,
   );
   if (!confirmed || !context.mounted) {
     return;

@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\StudentProfile;
+use App\Scheduling\MasterClassBalance;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -30,6 +31,7 @@ class StudentResource extends JsonResource
             'id' => $this->id,
             'student_code' => $this->student_code,
             'full_name' => $this->full_name,
+            'gender' => $this->gender?->value ?? $this->gender,
             'email' => $this->user?->email,
             'phone' => $this->phone,
             'whatsapp_number' => $this->whatsapp_number,
@@ -57,6 +59,7 @@ class StudentResource extends JsonResource
                 fn () => $this->aptitudeAssessmentSummary(),
             ),
             'feedback' => $this->feedbackSummary(),
+            'master_class' => $this->masterClassSummary(),
         ];
     }
 
@@ -80,6 +83,21 @@ class StudentResource extends JsonResource
             'can_rate' => (bool) ($this->can_rate_this_month ?? false),
             'can_edit_rating' => (bool) ($this->can_edit_rating_this_month ?? false),
             'monthly_feedback_id' => $this->monthly_feedback_id ?? null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function masterClassSummary(): array
+    {
+        $balance = app(MasterClassBalance::class)->snapshot($this->resource);
+
+        return [
+            'allotment' => $balance['allotment'],
+            'remaining' => $balance['remaining'],
+            'used' => $balance['used'],
+            'override' => $this->master_classes_per_month,
         ];
     }
 

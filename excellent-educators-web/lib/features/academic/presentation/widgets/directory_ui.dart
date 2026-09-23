@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class DirectoryToolbar extends StatefulWidget {
   const DirectoryToolbar({
@@ -12,14 +13,14 @@ class DirectoryToolbar extends StatefulWidget {
     this.levelItems,
     this.selectedLevelId,
     this.onLevelChanged,
-    this.levelLabel = 'Level',
+    this.levelLabel = AppStrings.level,
     this.statusItems,
     this.selectedStatus,
     this.onStatusChanged,
     this.attentionItems,
     this.selectedAttention,
     this.onAttentionChanged,
-    this.attentionLabel = 'Needs attention',
+    this.attentionLabel = AppStrings.needsAttention,
     this.total,
     this.page,
     this.perPage,
@@ -95,15 +96,18 @@ class _DirectoryToolbarState extends State<DirectoryToolbar> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final fullWidth = constraints.maxWidth < 640;
+            return Wrap(
           spacing: 8,
           runSpacing: 10,
           crossAxisAlignment: WrapCrossAlignment.end,
           children: [
             SizedBox(
-              width: 280,
+              width: fullWidth ? constraints.maxWidth : 280,
               child: _ToolbarLabeledField(
-                label: 'Search',
+                label: AppStrings.search,
                 child: TextField(
                   controller: _searchController,
                   focusNode: _searchFocusNode,
@@ -121,21 +125,21 @@ class _DirectoryToolbarState extends State<DirectoryToolbar> {
             if (widget.levelItems != null && widget.onLevelChanged != null)
               _ToolbarDropdown<String?>(
                 label: widget.levelLabel,
-                width: 200,
+                width: fullWidth ? constraints.maxWidth : 200,
                 value: widget.selectedLevelId,
                 items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text('All levels')),
+                  const DropdownMenuItem<String?>(value: null, child: Text(AppStrings.allLevels)),
                   ...widget.levelItems!,
                 ],
                 onChanged: widget.onLevelChanged,
               ),
             if (widget.statusItems != null && widget.onStatusChanged != null)
               _ToolbarDropdown<String?>(
-                label: 'Status',
-                width: 140,
+                label: AppStrings.status2,
+                width: fullWidth ? constraints.maxWidth : 140,
                 value: widget.selectedStatus,
                 items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text('All')),
+                  const DropdownMenuItem<String?>(value: null, child: Text(AppStrings.all)),
                   ...widget.statusItems!,
                 ],
                 onChanged: widget.onStatusChanged,
@@ -143,15 +147,17 @@ class _DirectoryToolbarState extends State<DirectoryToolbar> {
             if (widget.attentionItems != null && widget.onAttentionChanged != null)
               _ToolbarDropdown<String?>(
                 label: widget.attentionLabel,
-                width: 220,
+                width: fullWidth ? constraints.maxWidth : 220,
                 value: widget.selectedAttention,
                 items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text('All students')),
+                  const DropdownMenuItem<String?>(value: null, child: Text(AppStrings.allStudents)),
                   ...widget.attentionItems!,
                 ],
                 onChanged: widget.onAttentionChanged,
               ),
           ],
+            );
+          },
         ),
         if (showPagination) ...[
           const SizedBox(height: 8),
@@ -163,13 +169,13 @@ class _DirectoryToolbarState extends State<DirectoryToolbar> {
               ),
               const Spacer(),
               IconButton(
-                tooltip: 'Previous page',
+                tooltip: AppStrings.previousPage,
                 onPressed: widget.page! > 1 ? () => widget.onPageChanged!(widget.page! - 1) : null,
                 icon: const Icon(Icons.chevron_left),
                 visualDensity: VisualDensity.compact,
               ),
               IconButton(
-                tooltip: 'Next page',
+                tooltip: AppStrings.nextPage,
                 onPressed: widget.page! < lastPage ? () => widget.onPageChanged!(widget.page! + 1) : null,
                 icon: const Icon(Icons.chevron_right),
                 visualDensity: VisualDensity.compact,
@@ -262,6 +268,7 @@ class DetailSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -272,17 +279,17 @@ class DetailSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            padding: EdgeInsets.fromLTRB(isMobile ? 12 : 14, isMobile ? 10 : 12, isMobile ? 12 : 14, isMobile ? 8 : 10),
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: Color(0xFFE6DCCB))),
             ),
             child: Text(
               title,
-              style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 15),
+              style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: isMobile ? 14 : 15),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+            padding: EdgeInsets.fromLTRB(isMobile ? 12 : 14, isMobile ? 8 : 10, isMobile ? 12 : 14, isMobile ? 10 : 14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
           ),
         ],
@@ -299,20 +306,30 @@ class DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 600;
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(label, style: const TextStyle(color: Brand.muted, fontSize: 13)),
-          ),
-          Expanded(
-            child: Text(value, style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w600, fontSize: 13)),
-          ),
-        ],
-      ),
+      child: compact
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: Brand.muted, fontSize: 12)),
+                const SizedBox(height: 2),
+                Text(value, style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w600, fontSize: 13)),
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 140,
+                  child: Text(label, style: const TextStyle(color: Brand.muted, fontSize: 13)),
+                ),
+                Expanded(
+                  child: Text(value, style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w600, fontSize: 13)),
+                ),
+              ],
+            ),
     );
   }
 }
@@ -357,7 +374,7 @@ class ActiveFilterBanner extends StatelessWidget {
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Text('Clear', style: TextStyle(fontSize: 12)),
+                child: const Text(AppStrings.clear, style: TextStyle(fontSize: 12)),
               ),
             ],
           ),
@@ -381,37 +398,76 @@ class AttentionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     final needsAttention = count > 0;
     return Material(
       color: needsAttention ? const Color(0xFFFBF6EA) : Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
         side: BorderSide(color: needsAttention ? Brand.gold : const Color(0xFFE6DCCB)),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 14,
+            vertical: isMobile ? 8 : 12,
+          ),
           child: Row(
             children: [
               Expanded(
-                child: Text(label, style: const TextStyle(color: Brand.navy, fontSize: 13, fontWeight: FontWeight.w600)),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: Brand.navy,
+                    fontSize: isMobile ? 12.5 : 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               Text(
                 '$count',
                 style: TextStyle(
                   color: needsAttention ? Brand.goldDark : Brand.muted,
                   fontWeight: FontWeight.w700,
-                  fontSize: 18,
+                  fontSize: isMobile ? 16 : 18,
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right, size: 18, color: needsAttention ? Brand.goldDark : Brand.muted),
+              Icon(
+                Icons.chevron_right,
+                size: isMobile ? 16 : 18,
+                color: needsAttention ? Brand.goldDark : Brand.muted,
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class StatGrid extends StatelessWidget {
+  const StatGrid({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    final wide = width >= 900;
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: wide ? 4 : (isTablet ? 4 : 2),
+      mainAxisSpacing: isMobile ? 6 : 8,
+      crossAxisSpacing: isMobile ? 6 : 8,
+      mainAxisExtent: isMobile ? 58 : (isTablet ? 64 : null),
+      childAspectRatio: 2.4,
+      children: children,
     );
   }
 }
@@ -438,24 +494,28 @@ class StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     final cardContent = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 14,
+        vertical: isMobile ? 6 : 12,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: accentColor ?? Brand.muted),
-                const SizedBox(width: 6),
+                Icon(icon, size: isMobile ? 14 : 16, color: accentColor ?? Brand.muted),
+                SizedBox(width: isMobile ? 4 : 6),
               ],
               Expanded(
                 child: Text(
                   label,
                   style: TextStyle(
                     color: accentColor ?? Brand.muted,
-                    fontSize: 12,
+                    fontSize: isMobile ? 11 : 12,
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -466,34 +526,42 @@ class StatTile extends StatelessWidget {
                 const SizedBox(width: 4),
                 badge!,
               ] else if (onTap != null) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: 2),
                 Icon(
                   Icons.arrow_forward_rounded,
-                  size: 14,
+                  size: isMobile ? 12 : 14,
                   color: (accentColor ?? Brand.muted).withValues(alpha: 0.6),
                 ),
               ],
             ],
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: isMobile ? 2 : 4),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Brand.navy,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 22,
+              Expanded(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    color: Brand.navy,
+                    fontWeight: FontWeight.w700,
+                    fontSize: isMobile ? 15 : 22,
+                    height: 1.15,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (subtitle != null) ...[
-                const SizedBox(width: 6),
-                Expanded(
+                const SizedBox(width: 4),
+                Flexible(
                   child: Text(
                     subtitle!,
-                    style: const TextStyle(color: Brand.muted, fontSize: 11),
+                    style: TextStyle(
+                      color: Brand.muted,
+                      fontSize: isMobile ? 10 : 11,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -508,7 +576,7 @@ class StatTile extends StatelessWidget {
     return Material(
       color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
         side: BorderSide(
           color: accentColor != null ? accentColor!.withValues(alpha: 0.35) : const Color(0xFFE6DCCB),
         ),
@@ -516,7 +584,7 @@ class StatTile extends StatelessWidget {
       child: onTap != null
           ? InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
               hoverColor: (accentColor ?? Brand.gold).withValues(alpha: 0.08),
               child: cardContent,
             )

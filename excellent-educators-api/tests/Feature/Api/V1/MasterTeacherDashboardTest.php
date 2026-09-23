@@ -16,7 +16,6 @@ use App\Support\AppClock;
 use Database\Seeders\DimensionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class MasterTeacherDashboardTest extends TestCase
@@ -39,15 +38,8 @@ class MasterTeacherDashboardTest extends TestCase
         $this->withToken($this->tokenFor($master->user->fresh()))->postJson(
             "/api/v1/master-teacher/students/{$student->id}/feedback",
             [
+                ...$this->dimensionRatingPayload(8),
                 'session_date' => now()->toDateString(),
-                'items' => [[
-                    'target_type' => 'dimension',
-                    'target_id' => $dimension->id,
-                    'rating' => 8,
-                    'positive_points' => 'Good work',
-                    'areas_for_improvement' => 'Focus',
-                    'recommended_next_action' => 'Practice',
-                ]],
             ],
         )->assertCreated();
 
@@ -61,8 +53,7 @@ class MasterTeacherDashboardTest extends TestCase
             ->assertJsonPath('data.current_month.month', $month)
             ->assertJsonCount(1, 'data.by_month')
             ->assertJsonPath('data.by_month.0.students_rated', 1)
-            ->assertJsonPath('data.pending_students.0.can_edit_rating', true)
-            ->assertJsonPath('data.pending_students.0.can_rate', false);
+            ->assertJsonCount(0, 'data.pending_students');
     }
 
     public function test_not_rated_counts_only_held_meetings_without_attendance_complaints(): void
@@ -144,6 +135,7 @@ class MasterTeacherDashboardTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => $phone,
             'class_grade' => 5,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         $this->withToken($this->tokenFor($admin))->putJson("/api/v1/admin/students/{$studentId}/mentor", [
@@ -169,14 +161,6 @@ class MasterTeacherDashboardTest extends TestCase
         ]);
     }
 
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'mt-dash-admin@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
-    }
-
     /**
      * @param  list<string>  $roles
      */
@@ -193,13 +177,5 @@ class MasterTeacherDashboardTest extends TestCase
         $profile->setRelation('user', $user);
 
         return $profile;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        $this->app['auth']->forgetGuards();
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return $user->fresh()->createToken('test')->plainTextToken;
     }
 }

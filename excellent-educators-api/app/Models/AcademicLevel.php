@@ -18,12 +18,14 @@ class AcademicLevel extends Model
         'name',
         'academic_year',
         'status',
+        'master_classes_per_month',
     ];
 
     protected function casts(): array
     {
         return [
             'academic_year' => 'integer',
+            'master_classes_per_month' => 'integer',
         ];
     }
 

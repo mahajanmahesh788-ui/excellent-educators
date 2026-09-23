@@ -1,7 +1,10 @@
 class NamedRef {
   const NamedRef({required this.id, required this.label});
 
-  factory NamedRef.fromJson(Map<String, dynamic>? json, {String labelKey = 'full_name'}) {
+  factory NamedRef.fromJson(
+    Map<String, dynamic>? json, {
+    String labelKey = 'full_name',
+  }) {
     if (json == null) {
       return const NamedRef(id: '', label: '');
     }
@@ -28,6 +31,7 @@ class StudentDto {
     required this.phone,
     this.whatsappNumber,
     this.address,
+    this.gender,
     this.guardianName,
     this.guardianPhone,
     this.level,
@@ -48,6 +52,10 @@ class StudentDto {
     this.canRateThisMonth = false,
     this.canEditRatingThisMonth = false,
     this.monthlyFeedbackId,
+    this.masterClassAllotment = 1,
+    this.masterClassRemaining = 0,
+    this.masterClassUsed = 0,
+    this.masterClassOverride,
   });
 
   factory StudentDto.fromJson(Map<String, dynamic> json) {
@@ -68,16 +76,25 @@ class StudentDto {
       phone: json['phone'] as String? ?? '',
       whatsappNumber: json['whatsapp_number'] as String?,
       address: json['address'] as String?,
+      gender: json['gender'] as String?,
       guardianName: json['guardian_name'] as String?,
       guardianPhone: json['guardian_phone'] as String?,
       level: json['level'] is Map
-          ? NamedRef.fromJson(Map<String, dynamic>.from(json['level'] as Map), labelKey: 'name')
+          ? NamedRef.fromJson(
+              Map<String, dynamic>.from(json['level'] as Map),
+              labelKey: 'name',
+            )
           : null,
       batch: json['batch'] is Map
-          ? NamedRef.fromJson(Map<String, dynamic>.from(json['batch'] as Map), labelKey: 'name')
+          ? NamedRef.fromJson(
+              Map<String, dynamic>.from(json['batch'] as Map),
+              labelKey: 'name',
+            )
           : null,
       masterTeacher: json['master_teacher'] is Map
-          ? NamedRef.fromJson(Map<String, dynamic>.from(json['master_teacher'] as Map))
+          ? NamedRef.fromJson(
+              Map<String, dynamic>.from(json['master_teacher'] as Map),
+            )
           : null,
       masterTeachers: (json['master_teachers'] as List<dynamic>? ?? const [])
           .whereType<Map>()
@@ -87,16 +104,38 @@ class StudentDto {
       aptitudeAssessmentSubmittedAt: aptitude?['submitted_at'] as String?,
       aptitudeAssessmentTitle: aptitude?['assessment_title'] as String?,
       createdAt: json['created_at'] as String?,
-      feedbackTotalSessions: (feedback?['total_sessions'] as num?)?.toInt() ?? 0,
-      feedbackCurrentMonthSessions: (feedback?['current_month_sessions'] as num?)?.toInt() ?? 0,
-      feedbackCurrentMonthCompleted: feedback?['current_month_completed'] == true,
+      feedbackTotalSessions:
+          (feedback?['total_sessions'] as num?)?.toInt() ?? 0,
+      feedbackCurrentMonthSessions:
+          (feedback?['current_month_sessions'] as num?)?.toInt() ?? 0,
+      feedbackCurrentMonthCompleted:
+          feedback?['current_month_completed'] == true,
       feedbackFilterYear: (feedback?['filter_year'] as num?)?.toInt(),
       feedbackFilterMonth: (feedback?['filter_month'] as num?)?.toInt(),
       feedbackFilterMonthCompleted: feedback?['filter_month_completed'] == true,
-      feedbackOverallAverage: (feedback?['overall_average'] as num?)?.toDouble(),
+      feedbackOverallAverage: (feedback?['overall_average'] as num?)
+          ?.toDouble(),
       canRateThisMonth: feedback?['can_rate'] == true,
       canEditRatingThisMonth: feedback?['can_edit_rating'] == true,
       monthlyFeedbackId: feedback?['monthly_feedback_id'] as String?,
+      masterClassAllotment:
+          (json['master_class'] is Map
+              ? (json['master_class']['allotment'] as num?)?.toInt()
+              : null) ??
+          1,
+      masterClassRemaining:
+          (json['master_class'] is Map
+              ? (json['master_class']['remaining'] as num?)?.toInt()
+              : null) ??
+          0,
+      masterClassUsed:
+          (json['master_class'] is Map
+              ? (json['master_class']['used'] as num?)?.toInt()
+              : null) ??
+          0,
+      masterClassOverride: json['master_class'] is Map
+          ? (json['master_class']['override'] as num?)?.toInt()
+          : null,
     );
   }
 
@@ -109,6 +148,7 @@ class StudentDto {
   final String phone;
   final String? whatsappNumber;
   final String? address;
+  final String? gender;
   final String? guardianName;
   final String? guardianPhone;
   final NamedRef? level;
@@ -129,10 +169,17 @@ class StudentDto {
   final bool canRateThisMonth;
   final bool canEditRatingThisMonth;
   final String? monthlyFeedbackId;
+  final int masterClassAllotment;
+  final int masterClassRemaining;
+  final int masterClassUsed;
+  final int? masterClassOverride;
 
-  bool get hasSubmittedAptitudeAssessment => aptitudeAssessmentStatus == 'submitted';
+  bool get hasSubmittedAptitudeAssessment =>
+      aptitudeAssessmentStatus == 'submitted';
 
-  bool get hasMasterTeacher => masterTeachers.isNotEmpty || (masterTeacher != null && !masterTeacher!.isEmpty);
+  bool get hasMasterTeacher =>
+      masterTeachers.isNotEmpty ||
+      (masterTeacher != null && !masterTeacher!.isEmpty);
 
   bool get hasOverallRating => feedbackOverallAverage != null;
 }
@@ -150,7 +197,12 @@ class MasterTeacherRosterLevelDto {
       name: json['name'] as String? ?? '',
       batches: (json['batches'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => NamedRef.fromJson(Map<String, dynamic>.from(item), labelKey: 'name'))
+          .map(
+            (item) => NamedRef.fromJson(
+              Map<String, dynamic>.from(item),
+              labelKey: 'name',
+            ),
+          )
           .toList(),
     );
   }
@@ -181,6 +233,17 @@ class TeacherDto {
     this.phone,
     this.whatsappNumber,
     this.address,
+    this.gender,
+    this.photoUrl,
+    this.professionalTitle,
+    this.bio,
+    this.experienceSummary,
+    this.guidanceAreas = const [],
+    this.mentoringApproach = const [],
+    this.education = const [],
+    this.certifications = const [],
+    this.experience = const [],
+    this.mentorStats,
     this.activeBatchCount,
     this.activeMenteeCount,
     this.assignedLevels = const [],
@@ -189,16 +252,58 @@ class TeacherDto {
   });
 
   factory TeacherDto.fromJson(Map<String, dynamic> json) {
+    final stats = json['mentor_stats'];
     return TeacherDto(
       id: json['id'] as String,
       fullName: json['full_name'] as String? ?? '',
       email: json['email'] as String? ?? '',
       status: json['status'] as String? ?? 'active',
-      roles: (json['roles'] as List<dynamic>? ?? const []).map((role) => role.toString()).toList(),
+      roles: (json['roles'] as List<dynamic>? ?? const [])
+          .map((role) => role.toString())
+          .toList(),
       employeeCode: json['employee_code'] as String?,
       phone: json['phone'] as String?,
       whatsappNumber: json['whatsapp_number'] as String?,
       address: json['address'] as String?,
+      gender: json['gender'] as String?,
+      photoUrl: json['photo_url'] as String?,
+      professionalTitle: json['professional_title'] as String?,
+      bio: json['bio'] as String?,
+      experienceSummary: json['experience_summary'] as String?,
+      guidanceAreas: (json['guidance_areas'] as List<dynamic>? ?? const [])
+          .map((item) => item.toString())
+          .where((item) => item.trim().isNotEmpty)
+          .toList(),
+      mentoringApproach:
+          (json['mentoring_approach'] as List<dynamic>? ?? const [])
+              .map((item) => item.toString())
+              .where((item) => item.trim().isNotEmpty)
+              .toList(),
+      education: (json['education'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) =>
+                MentorEducationDto.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(),
+      certifications: (json['certifications'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => MentorCertificationDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(),
+      experience: (json['experience'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) =>
+                MentorExperienceDto.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(),
+      mentorStats: stats is Map
+          ? MentorStatsDto.fromJson(Map<String, dynamic>.from(stats))
+          : null,
       activeBatchCount: (json['active_batch_count'] as num?)?.toInt(),
       activeMenteeCount: (json['active_mentee_count'] as num?)?.toInt(),
       assignedLevels: (json['assigned_levels'] as List<dynamic>? ?? const [])
@@ -218,6 +323,17 @@ class TeacherDto {
   final String? phone;
   final String? whatsappNumber;
   final String? address;
+  final String? gender;
+  final String? photoUrl;
+  final String? professionalTitle;
+  final String? bio;
+  final String? experienceSummary;
+  final List<String> guidanceAreas;
+  final List<String> mentoringApproach;
+  final List<MentorEducationDto> education;
+  final List<MentorCertificationDto> certifications;
+  final List<MentorExperienceDto> experience;
+  final MentorStatsDto? mentorStats;
   final int? activeBatchCount;
   final int? activeMenteeCount;
   final List<String> assignedLevels;
@@ -226,8 +342,18 @@ class TeacherDto {
 
   bool get isCommonTeacher => roles.contains('common_teacher');
   bool get isMasterTeacher => roles.contains('master_teacher');
+  bool get hasMentorProfile =>
+      (professionalTitle ?? '').trim().isNotEmpty ||
+      (bio ?? '').trim().isNotEmpty ||
+      (experienceSummary ?? '').trim().isNotEmpty ||
+      guidanceAreas.isNotEmpty ||
+      mentoringApproach.isNotEmpty;
 
   String get roleLabel => roles.join(', ');
+
+  String get displayTitle => (professionalTitle ?? '').trim().isNotEmpty
+      ? professionalTitle!.trim()
+      : 'Student Mentor';
 
   String get assignedLevelsLabel {
     if (assignedLevels.isEmpty) {
@@ -242,6 +368,123 @@ class TeacherDto {
     }
     return 'No levels assigned';
   }
+
+  Map<String, dynamic> mentorProfilePayload() {
+    return {
+      'photo_url': (photoUrl ?? '').trim().isEmpty ? null : photoUrl!.trim(),
+      'professional_title': (professionalTitle ?? '').trim().isEmpty
+          ? null
+          : professionalTitle!.trim(),
+      'bio': (bio ?? '').trim().isEmpty ? null : bio!.trim(),
+      'experience_summary': (experienceSummary ?? '').trim().isEmpty
+          ? null
+          : experienceSummary!.trim(),
+      'guidance_areas': guidanceAreas,
+      'mentoring_approach': mentoringApproach,
+      'education': education.map((item) => item.toJson()).toList(),
+      'certifications': certifications.map((item) => item.toJson()).toList(),
+      'experience': experience.map((item) => item.toJson()).toList(),
+    };
+  }
+}
+
+class MentorStatsDto {
+  const MentorStatsDto({
+    required this.studentsGuided,
+    required this.sessionsCompleted,
+    this.ratingAverage,
+  });
+
+  factory MentorStatsDto.fromJson(Map<String, dynamic> json) {
+    return MentorStatsDto(
+      studentsGuided: (json['students_guided'] as num?)?.toInt() ?? 0,
+      sessionsCompleted: (json['sessions_completed'] as num?)?.toInt() ?? 0,
+      ratingAverage: (json['rating_average'] as num?)?.toDouble(),
+    );
+  }
+
+  final int studentsGuided;
+  final int sessionsCompleted;
+  final double? ratingAverage;
+}
+
+class MentorEducationDto {
+  const MentorEducationDto({
+    required this.degree,
+    required this.institution,
+    this.year,
+  });
+
+  factory MentorEducationDto.fromJson(Map<String, dynamic> json) {
+    return MentorEducationDto(
+      degree: json['degree'] as String? ?? '',
+      institution: json['institution'] as String? ?? '',
+      year: json['year'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'degree': degree,
+    'institution': institution,
+    if (year != null && year!.trim().isNotEmpty) 'year': year,
+  };
+
+  final String degree;
+  final String institution;
+  final String? year;
+}
+
+class MentorCertificationDto {
+  const MentorCertificationDto({
+    required this.name,
+    this.organization,
+    this.year,
+  });
+
+  factory MentorCertificationDto.fromJson(Map<String, dynamic> json) {
+    return MentorCertificationDto(
+      name: json['name'] as String? ?? '',
+      organization: json['organization'] as String?,
+      year: json['year'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    if (organization != null && organization!.trim().isNotEmpty)
+      'organization': organization,
+    if (year != null && year!.trim().isNotEmpty) 'year': year,
+  };
+
+  final String name;
+  final String? organization;
+  final String? year;
+}
+
+class MentorExperienceDto {
+  const MentorExperienceDto({
+    required this.organization,
+    required this.role,
+    this.duration,
+  });
+
+  factory MentorExperienceDto.fromJson(Map<String, dynamic> json) {
+    return MentorExperienceDto(
+      organization: json['organization'] as String? ?? '',
+      role: json['role'] as String? ?? '',
+      duration: json['duration'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'organization': organization,
+    'role': role,
+    if (duration != null && duration!.trim().isNotEmpty) 'duration': duration,
+  };
+
+  final String organization;
+  final String role;
+  final String? duration;
 }
 
 class AcademicLevelDto {
@@ -254,6 +497,7 @@ class AcademicLevelDto {
     this.masterTeachers = const [],
     this.batchesCount = 0,
     this.studentsCount = 0,
+    this.masterClassesPerMonth = 1,
   });
 
   factory AcademicLevelDto.fromJson(Map<String, dynamic> json) {
@@ -262,22 +506,27 @@ class AcademicLevelDto {
         .map((item) => BatchDto.fromJson(Map<String, dynamic>.from(item)))
         .toList();
 
-    final masterTeachersList = (json['master_teachers'] as List<dynamic>? ?? const [])
-        .whereType<Map>()
-        .map((item) => TeacherDto.fromJson(Map<String, dynamic>.from(item)))
-        .toList();
+    final masterTeachersList =
+        (json['master_teachers'] as List<dynamic>? ?? const [])
+            .whereType<Map>()
+            .map((item) => TeacherDto.fromJson(Map<String, dynamic>.from(item)))
+            .toList();
 
-    final parsedBatchesCount = (json['batches_count'] as num?)?.toInt() ??
+    final parsedBatchesCount =
+        (json['batches_count'] as num?)?.toInt() ??
         (json['batch_count'] as num?)?.toInt() ??
         batchesList.length;
 
-    final batchStudentsSum = batchesList.fold<int>(0, (sum, b) => sum + b.activeStudentCount);
+    final batchStudentsSum = batchesList.fold<int>(
+      0,
+      (sum, b) => sum + b.activeStudentCount,
+    );
 
     final parsedStudentsCount = batchesList.isNotEmpty
         ? batchStudentsSum
         : ((json['students_count'] as num?)?.toInt() ??
-            (json['student_count'] as num?)?.toInt() ??
-            0);
+              (json['student_count'] as num?)?.toInt() ??
+              0);
 
     return AcademicLevelDto(
       id: json['id'] as String,
@@ -288,6 +537,8 @@ class AcademicLevelDto {
       masterTeachers: masterTeachersList,
       batchesCount: parsedBatchesCount,
       studentsCount: parsedStudentsCount,
+      masterClassesPerMonth:
+          (json['master_classes_per_month'] as num?)?.toInt() ?? 1,
     );
   }
 
@@ -299,6 +550,7 @@ class AcademicLevelDto {
   final List<TeacherDto> masterTeachers;
   final int batchesCount;
   final int studentsCount;
+  final int masterClassesPerMonth;
 }
 
 class BatchDto {
@@ -353,8 +605,18 @@ class BatchDto {
   String get monthName {
     if (month == null || month! < 1 || month! > 12) return '';
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return months[month! - 1];
   }
@@ -375,15 +637,24 @@ class AdminDashboardDto {
       counts: AdminDashboardCountsDto.fromJson(countsJson),
       byLevel: (json['by_level'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => AdminLevelSnapshotDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                AdminLevelSnapshotDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
       topStudents: (json['top_students'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => AdminTopStudentDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                AdminTopStudentDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
       topTeachers: (json['top_teachers'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => AdminTopTeacherDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                AdminTopTeacherDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
     );
   }
@@ -426,18 +697,26 @@ class AdminDashboardCountsDto {
       inactiveStudents: (json['inactive_students'] as num?)?.toInt() ?? 0,
       activeTeachers: (json['active_teachers'] as num?)?.toInt() ?? 0,
       activeBatches: (json['active_batches'] as num?)?.toInt() ?? 0,
-      studentsWithoutBatch: (json['students_without_batch'] as num?)?.toInt() ?? 0,
-      studentsWithoutMasterTeacher: (json['students_without_master_teacher'] as num?)?.toInt() ?? 0,
+      studentsWithoutBatch:
+          (json['students_without_batch'] as num?)?.toInt() ?? 0,
+      studentsWithoutMasterTeacher:
+          (json['students_without_master_teacher'] as num?)?.toInt() ?? 0,
       fullBatches: (json['full_batches'] as num?)?.toInt() ?? 0,
-      studentsAssessmentPending: (json['students_assessment_pending'] as num?)?.toInt() ?? 0,
-      studentsWithoutRatingThisMonth: (json['students_without_rating_this_month'] as num?)?.toInt() ?? 0,
+      studentsAssessmentPending:
+          (json['students_assessment_pending'] as num?)?.toInt() ?? 0,
+      studentsWithoutRatingThisMonth:
+          (json['students_without_rating_this_month'] as num?)?.toInt() ?? 0,
       totalClasses: (json['total_classes'] as num?)?.toInt() ?? 0,
       completedClasses: (json['completed_classes'] as num?)?.toInt() ?? 0,
       pendingVerification: (json['pending_verification'] as num?)?.toInt() ?? 0,
-      studentAttendanceReports: (json['student_attendance_reports'] as num?)?.toInt() ?? 0,
-      teacherAttendanceReports: (json['teacher_attendance_reports'] as num?)?.toInt() ?? 0,
-      verifiedTeacherAbsence: (json['verified_teacher_absence'] as num?)?.toInt() ?? 0,
-      verifiedStudentAbsence: (json['verified_student_absence'] as num?)?.toInt() ?? 0,
+      studentAttendanceReports:
+          (json['student_attendance_reports'] as num?)?.toInt() ?? 0,
+      teacherAttendanceReports:
+          (json['teacher_attendance_reports'] as num?)?.toInt() ?? 0,
+      verifiedTeacherAbsence:
+          (json['verified_teacher_absence'] as num?)?.toInt() ?? 0,
+      verifiedStudentAbsence:
+          (json['verified_student_absence'] as num?)?.toInt() ?? 0,
       technicalIssues: (json['technical_issues'] as num?)?.toInt() ?? 0,
       rebookingsGiven: (json['rebookings_given'] as num?)?.toInt() ?? 0,
       totalStudents: (json['total_students'] as num?)?.toInt() ?? 0,
@@ -486,7 +765,10 @@ class AdminLevelSnapshotDto {
       studentCount: (json['student_count'] as num?)?.toInt() ?? 0,
       batches: (json['batches'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => AdminBatchSnapshotDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                AdminBatchSnapshotDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
     );
   }
@@ -536,7 +818,8 @@ class AdminTopStudentDto {
       studentCode: json['student_code'] as String? ?? '',
       levelName: json['level_name'] as String?,
       ratingAverage: (json['rating_average'] as num?)?.toDouble(),
-      completedMasterClasses: (json['completed_master_classes'] as num?)?.toInt() ?? 0,
+      completedMasterClasses:
+          (json['completed_master_classes'] as num?)?.toInt() ?? 0,
       monthsWithUs: (json['months_with_us'] as num?)?.toInt() ?? 0,
       reason: json['reason'] as String?,
     );
@@ -625,7 +908,9 @@ class AssessmentScoreDto {
   });
 
   factory AssessmentScoreDto.fromJson(Map<String, dynamic> json) {
-    final student = json['student'] is Map ? Map<String, dynamic>.from(json['student'] as Map) : null;
+    final student = json['student'] is Map
+        ? Map<String, dynamic>.from(json['student'] as Map)
+        : null;
     return AssessmentScoreDto(
       id: json['id'] as String?,
       studentId: json['student_id'] as String,
@@ -670,14 +955,23 @@ class MasterTeacherDashboardDto {
 
   factory MasterTeacherDashboardDto.fromJson(Map<String, dynamic> json) {
     final countsJson = json['counts'] as Map<String, dynamic>? ?? {};
-    final currentMonthJson = json['current_month'] as Map<String, dynamic>? ?? {};
+    final currentMonthJson =
+        json['current_month'] as Map<String, dynamic>? ?? {};
     final byMonth = (json['by_month'] as List<dynamic>? ?? const [])
         .whereType<Map>()
-        .map((item) => MasterTeacherDashboardMonthDto.fromJson(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => MasterTeacherDashboardMonthDto.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
         .toList();
     final pending = (json['pending_students'] as List<dynamic>? ?? const [])
         .whereType<Map>()
-        .map((item) => MasterTeacherPendingStudentDto.fromJson(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => MasterTeacherPendingStudentDto.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
         .toList();
 
     return MasterTeacherDashboardDto(
@@ -716,7 +1010,8 @@ class MasterTeacherDashboardCountsDto {
       totalRatings: (json['total_ratings'] as num?)?.toInt() ?? 0,
       overallAverage: (json['overall_average'] as num?)?.toDouble(),
       completionRate: (json['completion_rate'] as num?)?.toDouble() ?? 0,
-      studentsAssessmentPending: (json['students_assessment_pending'] as num?)?.toInt() ?? 0,
+      studentsAssessmentPending:
+          (json['students_assessment_pending'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -775,7 +1070,20 @@ class MasterTeacherDashboardMonthDto {
   }
 
   String get shortLabel {
-    const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const names = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     if (month < 1 || month > 12) {
       return '$month';
     }
@@ -830,15 +1138,27 @@ class TeacherHistoryDto {
       teacherName: teacher['full_name'] as String? ?? '',
       currentYear: (current['year'] as num?)?.toInt() ?? 0,
       currentMonth: (current['month'] as num?)?.toInt() ?? 0,
-      thisMonth: TeacherHistoryCountsDto.fromJson(json['this_month'] as Map<String, dynamic>? ?? {}),
-      allTime: TeacherHistoryCountsDto.fromJson(json['all_time'] as Map<String, dynamic>? ?? {}),
+      thisMonth: TeacherHistoryCountsDto.fromJson(
+        json['this_month'] as Map<String, dynamic>? ?? {},
+      ),
+      allTime: TeacherHistoryCountsDto.fromJson(
+        json['all_time'] as Map<String, dynamic>? ?? {},
+      ),
       byMonth: (json['by_month'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => TeacherHistoryMonthDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) => TeacherHistoryMonthDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
           .toList(),
       events: (json['events'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => TeacherHistoryEventDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) => TeacherHistoryEventDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
           .toList(),
     );
   }
@@ -867,9 +1187,15 @@ class TeacherHistoryCountsDto {
 
   factory TeacherHistoryCountsDto.fromJson(Map<String, dynamic> json) {
     return TeacherHistoryCountsDto(
-      interviews: (json['interviews'] as num?)?.toInt() ?? (json['interviews_held'] as num?)?.toInt() ?? 0,
+      interviews:
+          (json['interviews'] as num?)?.toInt() ??
+          (json['interviews_held'] as num?)?.toInt() ??
+          0,
       interviewsHeld: (json['interviews_held'] as num?)?.toInt() ?? 0,
-      masterClasses: (json['master_classes'] as num?)?.toInt() ?? (json['master_classes_held'] as num?)?.toInt() ?? 0,
+      masterClasses:
+          (json['master_classes'] as num?)?.toInt() ??
+          (json['master_classes_held'] as num?)?.toInt() ??
+          0,
       masterClassesHeld: (json['master_classes_held'] as num?)?.toInt() ?? 0,
       leaveDays: (json['leave_days'] as num?)?.toInt() ?? 0,
       ratingsSubmitted: (json['ratings_submitted'] as num?)?.toInt() ?? 0,
@@ -973,11 +1299,17 @@ class TeacherHistoryEventDto {
       status: json['status'] as String? ?? '',
       tags: (json['tags'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => TeacherHistoryTagDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                TeacherHistoryTagDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
       facts: (json['facts'] as List<dynamic>? ?? const [])
           .whereType<Map>()
-          .map((item) => TeacherHistoryFactDto.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                TeacherHistoryFactDto.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList(),
       studentId: json['student_id'] as String?,
       studentName: json['student_name'] as String?,
@@ -1010,4 +1342,109 @@ class TeacherHistoryEventDto {
   final int? attemptMax;
   final String? conflictStatus;
   final String? conflictId;
+}
+
+class StudentActivityDto {
+  const StudentActivityDto({
+    required this.occurredAt,
+    required this.type,
+    required this.message,
+  });
+
+  factory StudentActivityDto.fromJson(Map<String, dynamic> json) {
+    return StudentActivityDto(
+      occurredAt: json['occurred_at'] as String? ?? '',
+      type: json['type'] as String? ?? '',
+      message: json['message'] as String? ?? '',
+    );
+  }
+
+  final String occurredAt;
+  final String type;
+  final String message;
+}
+
+class PermissionCatalogGroupDto {
+  const PermissionCatalogGroupDto({
+    required this.group,
+    required this.label,
+    required this.items,
+  });
+
+  factory PermissionCatalogGroupDto.fromJson(Map<String, dynamic> json) {
+    return PermissionCatalogGroupDto(
+      group: json['group'] as String? ?? '',
+      label: json['label'] as String? ?? '',
+      items: (json['items'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => PermissionCatalogItemDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  final String group;
+  final String label;
+  final List<PermissionCatalogItemDto> items;
+}
+
+class PermissionCatalogItemDto {
+  const PermissionCatalogItemDto({required this.key, required this.label});
+
+  factory PermissionCatalogItemDto.fromJson(Map<String, dynamic> json) {
+    return PermissionCatalogItemDto(
+      key: json['key'] as String? ?? '',
+      label: json['label'] as String? ?? '',
+    );
+  }
+
+  final String key;
+  final String label;
+}
+
+class SubAdminDto {
+  const SubAdminDto({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.gender,
+    required this.status,
+    required this.permissions,
+    this.lastLoginAt,
+  });
+
+  factory SubAdminDto.fromJson(Map<String, dynamic> json) {
+    final raw = json['permissions'];
+    final permissions = <String, bool>{};
+    if (raw is Map) {
+      raw.forEach((key, value) {
+        permissions['$key'] = value == true;
+      });
+    }
+    return SubAdminDto(
+      id: json['id'] as String,
+      name: json['name'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      phone: json['phone'] as String? ?? '',
+      gender: json['gender'] as String? ?? '',
+      status: json['status'] as String? ?? 'active',
+      permissions: permissions,
+      lastLoginAt: json['last_login_at'] as String?,
+    );
+  }
+
+  final String id;
+  final String name;
+  final String email;
+  final String phone;
+  final String gender;
+  final String status;
+  final Map<String, bool> permissions;
+  final String? lastLoginAt;
+
+  bool get isActive => status == 'active';
 }

@@ -6,6 +6,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminBestStudentsPage extends ConsumerWidget {
   const AdminBestStudentsPage({super.key});
@@ -15,7 +16,7 @@ class AdminBestStudentsPage extends ConsumerWidget {
     final dashboard = ref.watch(adminDashboardProvider);
 
     return AppScaffold(
-      title: 'Best students',
+      title: AppStrings.bestStudents,
       backTo: RoutePaths.adminDashboard,
       body: AsyncBody(
         value: dashboard,
@@ -23,8 +24,8 @@ class AdminBestStudentsPage extends ConsumerWidget {
         builder: (data) {
           if (data.topStudents.isEmpty) {
             return const EmptyHint(
-              'No standout students yet',
-              subtitle: 'This list fills as Master Teachers submit monthly ratings. Until then, longest-enrolled students appear here.',
+              AppStrings.noStandoutStudentsYet,
+              subtitle: AppStrings.thisListFillsAsMasterTeachersSubmitMonthlyRatingsUntil,
             );
           }
 
@@ -61,7 +62,7 @@ class AdminBestTeachersPage extends ConsumerWidget {
     final dashboard = ref.watch(adminDashboardProvider);
 
     return AppScaffold(
-      title: 'Best teachers',
+      title: AppStrings.bestTeachers,
       backTo: RoutePaths.adminDashboard,
       body: AsyncBody(
         value: dashboard,
@@ -69,8 +70,8 @@ class AdminBestTeachersPage extends ConsumerWidget {
         builder: (data) {
           if (data.topTeachers.isEmpty) {
             return const EmptyHint(
-              'No teacher activity yet',
-              subtitle: 'Teachers appear here after they take interviews or master classes.',
+              AppStrings.noTeacherActivityYet,
+              subtitle: AppStrings.teachersAppearHereAfterTheyTakeInterviewsOrMasterClasses,
             );
           }
 
@@ -109,36 +110,54 @@ class _StandoutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     return Material(
       color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
         side: const BorderSide(color: Color(0xFFE6DCCB)),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 10 : 14,
+            vertical: isMobile ? 8 : 12,
+          ),
           child: Row(
             children: [
               CircleAvatar(
+                radius: isMobile ? 16 : 20,
                 backgroundColor: const Color(0xFFF4EEE3),
                 foregroundColor: Brand.navy,
-                child: Text('$rank', style: const TextStyle(fontWeight: FontWeight.w800)),
+                child: Text('$rank', style: TextStyle(fontWeight: FontWeight.w800, fontSize: isMobile ? 12 : 14)),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: isMobile ? 8 : 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700)),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: Brand.navy,
+                        fontWeight: FontWeight.w700,
+                        fontSize: isMobile ? 13.5 : 15,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: const TextStyle(color: Brand.muted, fontSize: 13)),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Brand.muted,
+                        fontSize: isMobile ? 11.5 : 13,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Brand.muted),
+              Icon(Icons.chevron_right, size: isMobile ? 18 : 22, color: Brand.muted),
             ],
           ),
         ),

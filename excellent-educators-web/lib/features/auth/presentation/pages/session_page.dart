@@ -3,6 +3,7 @@ import 'package:excellent_educators_web/core/widgets/responsive_body.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class SessionPage extends ConsumerWidget {
   const SessionPage({super.key});
@@ -14,11 +15,11 @@ class SessionPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ExcellentEducators'),
+        title: const Text(AppStrings.excellenteducators),
         actions: [
           TextButton(
             onPressed: () => confirmSignOut(context, ref),
-            child: const Text('Sign out'),
+            child: const Text(AppStrings.signOut),
           ),
         ],
       ),
@@ -28,17 +29,17 @@ class SessionPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Signed in', style: theme.textTheme.headlineSmall),
+            Text(AppStrings.signedIn, style: theme.textTheme.headlineSmall),
             const SizedBox(height: 8),
             Text(
-              'Signed in. Use the navigation to open the screens for your role.',
+              AppStrings.signedInUseTheNavigationToOpenTheScreensFor,
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 24),
             if (user != null) ...[
-              _InfoRow(label: 'Name', value: user.name),
-              _InfoRow(label: 'Email', value: user.email),
-              _InfoRow(label: 'Roles', value: user.roles.join(', ')),
+              _InfoRow(label: AppStrings.name, value: user.name),
+              _InfoRow(label: AppStrings.email, value: user.email),
+              _InfoRow(label: AppStrings.roles, value: user.roles.join(', ')),
             ],
           ],
         ),

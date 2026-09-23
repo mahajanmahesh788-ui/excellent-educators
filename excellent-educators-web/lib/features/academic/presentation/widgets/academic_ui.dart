@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/app/theme/breakpoints.dart';
+import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/empty_state.dart';
@@ -8,6 +10,7 @@ import 'package:excellent_educators_web/features/academic/data/academic_reposito
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 export 'package:excellent_educators_web/core/widgets/empty_state.dart' show EmptyIcons, EmptyState;
 
@@ -36,7 +39,7 @@ class AsyncBody<T> extends StatelessWidget {
             Text(error.toString()),
             if (onRetry != null) ...[
               const SizedBox(height: 12),
-              FilledButton(onPressed: onRetry, child: const Text('Retry')),
+              FilledButton(onPressed: onRetry, child: const Text(AppStrings.retry)),
             ],
           ],
         ),
@@ -92,7 +95,7 @@ Future<T?> pickOption<T>({
             if (options.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('No options available.', style: TextStyle(color: Brand.muted)),
+                child: Text(AppStrings.noOptionsAvailable, style: TextStyle(color: Brand.muted)),
               )
             else
               for (final option in options)
@@ -252,7 +255,10 @@ class _TeacherSearchDialogState extends State<_TeacherSearchDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: Breakpoints.isMobile(context) ? 12 : 24,
+        vertical: Breakpoints.isMobile(context) ? 16 : 24,
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520, maxHeight: 560),
         child: Column(
@@ -264,7 +270,7 @@ class _TeacherSearchDialogState extends State<_TeacherSearchDialog> {
                 children: [
                   Expanded(child: Text(widget.title, style: Theme.of(context).textTheme.titleLarge)),
                   IconButton(
-                    tooltip: 'Close',
+                    tooltip: AppStrings.close,
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close),
                   ),
@@ -276,7 +282,7 @@ class _TeacherSearchDialogState extends State<_TeacherSearchDialog> {
               child: TextField(
                 controller: _search,
                 decoration: const InputDecoration(
-                  hintText: 'Search name, phone, or email',
+                  hintText: AppStrings.searchNamePhoneOrEmail,
                   prefixIcon: Icon(Icons.search, size: 20),
                   isDense: true,
                 ),
@@ -292,9 +298,9 @@ class _TeacherSearchDialogState extends State<_TeacherSearchDialog> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text('Could not load teachers.'),
+                              const Text(AppStrings.couldNotLoadTeachers),
                               const SizedBox(height: 8),
-                              FilledButton(onPressed: () => _load(page: _page), child: const Text('Retry')),
+                              FilledButton(onPressed: () => _load(page: _page), child: const Text(AppStrings.retry)),
                             ],
                           ),
                         )
@@ -302,7 +308,7 @@ class _TeacherSearchDialogState extends State<_TeacherSearchDialog> {
                           ? Padding(
                               padding: const EdgeInsets.all(24),
                               child: Text(
-                                widget.emptyMessage ?? 'No teachers match your search.',
+                                widget.emptyMessage ?? AppStrings.noTeachersMatchYourSearch,
                                 style: const TextStyle(color: Brand.muted),
                               ),
                             )
@@ -432,7 +438,10 @@ class _StudentSearchDialogState extends State<_StudentSearchDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: Breakpoints.isMobile(context) ? 12 : 24,
+        vertical: Breakpoints.isMobile(context) ? 16 : 24,
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520, maxHeight: 560),
         child: Column(
@@ -444,7 +453,7 @@ class _StudentSearchDialogState extends State<_StudentSearchDialog> {
                 children: [
                   Expanded(child: Text(widget.title, style: Theme.of(context).textTheme.titleLarge)),
                   IconButton(
-                    tooltip: 'Close',
+                    tooltip: AppStrings.close,
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close),
                   ),
@@ -456,7 +465,7 @@ class _StudentSearchDialogState extends State<_StudentSearchDialog> {
               child: TextField(
                 controller: _search,
                 decoration: const InputDecoration(
-                  hintText: 'Search name, Student ID, phone, or email',
+                  hintText: AppStrings.searchNameStudentIdPhoneOrEmail,
                   prefixIcon: Icon(Icons.search, size: 20),
                   isDense: true,
                 ),
@@ -472,9 +481,9 @@ class _StudentSearchDialogState extends State<_StudentSearchDialog> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text('Could not load students.'),
+                              const Text(AppStrings.couldNotLoadStudents),
                               const SizedBox(height: 8),
-                              FilledButton(onPressed: () => _load(page: _page), child: const Text('Retry')),
+                              FilledButton(onPressed: () => _load(page: _page), child: const Text(AppStrings.retry)),
                             ],
                           ),
                         )
@@ -482,7 +491,7 @@ class _StudentSearchDialogState extends State<_StudentSearchDialog> {
                           ? Padding(
                               padding: const EdgeInsets.all(24),
                               child: Text(
-                                widget.emptyMessage ?? 'No students match your search.',
+                                widget.emptyMessage ?? AppStrings.noStudentsMatchYourSearch,
                                 style: const TextStyle(color: Brand.muted),
                               ),
                             )
@@ -575,7 +584,7 @@ class _PickerTeacherTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      teacher.email.isEmpty ? 'No email on file' : teacher.email,
+                      teacher.email.isEmpty ? AppStrings.noEmailOnFile : teacher.email,
                       style: const TextStyle(color: Brand.muted, fontSize: 13),
                     ),
                     const SizedBox(height: 8),
@@ -595,7 +604,7 @@ class _PickerTeacherTile extends StatelessWidget {
                     if (highlighted) ...[
                       const SizedBox(height: 6),
                       const Text(
-                        'Already teaches this level',
+                        AppStrings.alreadyTeachesThisLevel,
                         style: TextStyle(color: Color(0xFF2E7D32), fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -652,7 +661,7 @@ class _PickerStudentTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      student.email.isEmpty ? 'No email on file' : student.email,
+                      student.email.isEmpty ? AppStrings.noEmailOnFile : student.email,
                       style: const TextStyle(color: Brand.muted, fontSize: 13),
                     ),
                     if (student.phone.isNotEmpty) ...[
@@ -724,10 +733,17 @@ String _initials(String name) {
   return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
 }
 
+String? validateRequired(String? value, {String message = AppStrings.thisFieldIsRequired}) {
+  if (value == null || value.trim().isEmpty) {
+    return message;
+  }
+  return null;
+}
+
 String? validateRequiredPhone(String? value) {
   final digits = (value ?? '').replaceAll(RegExp(r'[^0-9]'), '');
   if (digits.length < 10) {
-    return 'Enter a valid 10-digit phone number.';
+    return AppStrings.enterAValid10DigitPhoneNumber;
   }
   return null;
 }
@@ -737,6 +753,153 @@ String? validateOptionalPhone(String? value) {
     return null;
   }
   return validateRequiredPhone(value);
+}
+
+const genderValues = ['male', 'female', 'other'];
+
+String genderLabel(String? value) {
+  return switch (value) {
+    'male' => AppStrings.male,
+    'female' => AppStrings.female,
+    'other' => AppStrings.other,
+    _ => '—',
+  };
+}
+
+class GenderDropdown extends StatelessWidget {
+  const GenderDropdown({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.requiredField = true,
+  });
+
+  final String? value;
+  final ValueChanged<String?> onChanged;
+  final bool requiredField;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      key: ValueKey(value),
+      value: value,
+      decoration: const InputDecoration(labelText: AppStrings.gender),
+      items: [
+        for (final item in genderValues)
+          DropdownMenuItem(value: item, child: Text(genderLabel(item))),
+      ],
+      validator: requiredField
+          ? (selected) => selected == null || selected.isEmpty ? AppStrings.pleaseSelectAGender : null
+          : null,
+      onChanged: onChanged,
+    );
+  }
+}
+
+class ActivityTimeline extends StatefulWidget {
+  const ActivityTimeline({super.key, required this.items, this.previewLimit = 10});
+
+  final List<StudentActivityDto> items;
+  final int previewLimit;
+
+  @override
+  State<ActivityTimeline> createState() => _ActivityTimelineState();
+}
+
+class _ActivityTimelineState extends State<ActivityTimeline> {
+  var _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.items.isEmpty) {
+      return const Text(AppStrings.noActivityRecordedYet, style: TextStyle(color: Brand.muted, fontSize: 13));
+    }
+
+    final canCollapse = widget.items.length > widget.previewLimit;
+    final visible = (!_expanded && canCollapse)
+        ? widget.items.take(widget.previewLimit).toList()
+        : widget.items;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var index = 0; index < visible.length; index++)
+          _ActivityTimelineRow(
+            item: visible[index],
+            isLast: index == visible.length - 1,
+          ),
+        if (canCollapse && !_expanded) ...[
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => setState(() => _expanded = true),
+              child: const Text(AppStrings.viewAll),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ActivityTimelineRow extends StatelessWidget {
+  const _ActivityTimelineRow({required this.item, required this.isLast});
+
+  final StudentActivityDto item;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 18,
+            child: Column(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Brand.gold,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Brand.navy, width: 2),
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 2),
+                      color: const Color(0xFFD6C7A8),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    formatDisplayDateTime(item.occurredAt),
+                    style: const TextStyle(color: Brand.muted, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(item.message, style: const TextStyle(color: Brand.navy, fontSize: 13, height: 1.35)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class AppFormPage extends StatelessWidget {
@@ -760,7 +923,7 @@ class AppFormPage extends StatelessWidget {
         alignment: Alignment.topLeft,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
-          child: child,
+          child: SingleChildScrollView(child: child),
         ),
       ),
     );

@@ -109,7 +109,7 @@ void main() {
     expect(snapshot.masterClass.detail, 'Scheduled');
   });
 
-  test('completed master class this month is not offered for booking', () {
+  test('completed master class can still be booked if remaining classes exist', () {
     final now = DateTime(2026, 9, 14, 17);
     final snapshot = buildStudentJourney(
       now: now,
@@ -117,6 +117,8 @@ void main() {
         introductionCompleted: true,
         canBookIntroduction: false,
         canBookMasterClass: true,
+        masterClassRemaining: 2,
+        masterClassAttemptsMax: 3,
       ),
       bookings: [
         SessionBookingDto(
@@ -135,9 +137,8 @@ void main() {
       ],
     );
 
-    expect(snapshot.canBookMasterClass, isFalse);
-    expect(snapshot.primaryType, isNull);
-    expect(snapshot.masterClass.detail, 'Completed');
+    expect(snapshot.canBookMasterClass, isTrue);
+    expect(snapshot.masterClass.detail, contains('2 of 3'));
   });
 
   test('past master class this month is not offered again even if eligibility is stale', () {
@@ -147,7 +148,8 @@ void main() {
       eligibility: const BookingEligibilityDto(
         introductionCompleted: true,
         canBookIntroduction: false,
-        canBookMasterClass: true,
+        canBookMasterClass: false,
+        masterClassRemaining: 0,
       ),
       bookings: [
         SessionBookingDto(
@@ -168,5 +170,37 @@ void main() {
     expect(snapshot.canBookMasterClass, isFalse);
     expect(snapshot.primaryType, isNull);
     expect(snapshot.masterClass.detail, 'Completed');
+  });
+
+  test('zero remaining master classes are not offered for booking', () {
+    final snapshot = buildStudentJourney(
+      eligibility: const BookingEligibilityDto(
+        introductionCompleted: true,
+        canBookIntroduction: false,
+        canBookMasterClass: true,
+        masterClassRemaining: 0,
+        masterClassAttemptsMax: 1,
+      ),
+      bookings: const [],
+    );
+
+    expect(snapshot.canBookMasterClass, isFalse);
+    expect(snapshot.primaryType, isNull);
+  });
+
+  test('allotment above one is treated as an extra master class perk', () {
+    final snapshot = buildStudentJourney(
+      eligibility: const BookingEligibilityDto(
+        introductionCompleted: true,
+        canBookIntroduction: false,
+        canBookMasterClass: true,
+        masterClassRemaining: 2,
+        masterClassAttemptsMax: 2,
+      ),
+      bookings: const [],
+    );
+
+    expect(snapshot.hasExtraMasterClasses, isTrue);
+    expect(snapshot.canBookMasterClass, isTrue);
   });
 }

@@ -14,6 +14,7 @@ use App\Models\AptitudeAssessmentResult;
 use App\Models\AptitudeAssessmentResultDimension;
 use App\Models\StudentProfile;
 use App\Support\ErrorCode;
+use App\Support\StudentActivity;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -92,6 +93,13 @@ class SubmitStudentAssessment
                         'score' => $score,
                     ]);
                 }
+
+                StudentActivity::record(
+                    $student,
+                    'assessment_submitted',
+                    'Student finished '.($assessment->title ?? 'aptitude assessment'),
+                    related: $result,
+                );
 
                 return $result->fresh([
                     'dimensions',

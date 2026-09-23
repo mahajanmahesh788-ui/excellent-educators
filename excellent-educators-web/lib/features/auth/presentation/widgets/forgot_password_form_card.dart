@@ -6,6 +6,7 @@ import 'package:excellent_educators_web/features/auth/presentation/widgets/auth_
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class ForgotPasswordFormCard extends ConsumerStatefulWidget {
   const ForgotPasswordFormCard({super.key});
@@ -39,7 +40,7 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
     try {
       await ref.read(authControllerProvider.notifier).forgotPassword(_email.text.trim());
       setState(() {
-        _message = 'If that email exists, a password reset link has been sent.';
+        _message = AppStrings.ifThatEmailExistsAPasswordResetLinkHasBeen;
       });
     } catch (error) {
       setState(() => _error = error.toString());
@@ -63,7 +64,7 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Reset your password',
+              AppStrings.resetYourPassword,
               style: isMobile
                   ? const TextStyle(
                       fontSize: 20,
@@ -77,7 +78,7 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
             ),
             const SizedBox(height: 4),
             Text(
-              'Enter the email you use to sign in. Students and teachers can use this form.',
+              AppStrings.enterTheEmailYouUseToSignInStudentsAnd,
               style: isMobile
                   ? const TextStyle(
                       fontSize: 12.5,
@@ -95,15 +96,15 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
               keyboardType: TextInputType.emailAddress,
               autofillHints: const [AutofillHints.email],
               decoration: const InputDecoration(
-                labelText: 'Email',
+                labelText: AppStrings.email,
                 prefixIcon: Icon(Icons.mail_outline),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Enter your email.';
+                  return AppStrings.enterYourEmail;
                 }
                 if (!value.contains('@')) {
-                  return 'Enter a valid email.';
+                  return AppStrings.enterAValidEmail;
                 }
                 return null;
               },
@@ -153,7 +154,7 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Send reset link'),
+                  : const Text(AppStrings.sendResetLink),
             ),
             const SizedBox(height: 6),
             TextButton(
@@ -165,7 +166,7 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     )
                   : null,
-              child: const Text('Back to sign in'),
+              child: const Text(AppStrings.backToSignIn),
             ),
           ],
         ),

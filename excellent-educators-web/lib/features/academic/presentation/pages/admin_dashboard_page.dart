@@ -9,6 +9,9 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/d
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
+import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminDashboardPage extends ConsumerWidget {
   const AdminDashboardPage({super.key});
@@ -17,10 +20,9 @@ class AdminDashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboard = ref.watch(adminDashboardProvider);
     final filter = ref.watch(adminDashboardFilterProvider);
-    final wide = MediaQuery.sizeOf(context).width >= 900;
 
     return AppScaffold(
-      title: 'Dashboard',
+      title: AppStrings.dashboard,
       body: AsyncBody(
         value: dashboard,
         onRetry: () => ref.invalidate(adminDashboardProvider),
@@ -32,51 +34,48 @@ class AdminDashboardPage extends ConsumerWidget {
               counts.studentsWithoutRatingThisMonth +
               counts.fullBatches;
 
+          final isMobile = MediaQuery.sizeOf(context).width < 600;
+
           return ListView(
-            padding: const EdgeInsets.only(bottom: 48),
+            padding: EdgeInsets.only(bottom: isMobile ? 16 : 24),
             children: [
               // 1. Quick Actions Bar
-              _buildQuickActionsBar(context),
-              const SizedBox(height: 16),
+              _buildQuickActionsBar(context, ref),
+              SizedBox(height: isMobile ? 10 : 16),
 
               // 2. Interactive Filter Toolbar
               _buildFilterToolbar(context, ref, filter),
-              const SizedBox(height: 12),
+              SizedBox(height: isMobile ? 8 : 12),
 
               // 3. Category Filter Chips
               _buildCategoryChips(context, ref, filter, totalAttention),
-              const SizedBox(height: 12),
+              SizedBox(height: isMobile ? 8 : 12),
 
               // 4. Active Filter Banner (if filter is active)
               if (filter.hasActiveFilter) ...[
                 _buildActiveFilterBanner(context, ref, filter),
-                const SizedBox(height: 16),
+                SizedBox(height: isMobile ? 10 : 16),
               ],
 
               // 5. Academic Directory Section
               if (filter.category == AdminDashboardCategory.all ||
                   filter.category == AdminDashboardCategory.academic) ...[
                 _buildSectionHeader(
-                  title: 'Academic directory',
-                  subtitle: 'Students, teachers, and batches across the academy',
-                  actionLabel: 'View students',
+                  context: context,
+                  title: AppStrings.academicDirectory,
+                  subtitle: AppStrings.studentsTeachersAndBatchesAcrossTheAcademy,
+                  actionLabel: AppStrings.viewStudents,
                   onAction: () => context.go(
                     studentsRouteWithFilters(
                       status: 'active',
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: wide ? 4 : 2,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: wide ? 2.4 : 1.9,
+                SizedBox(height: isMobile ? 6 : 10),
+                StatGrid(
                   children: [
                     StatTile(
-                      label: 'Active students',
+                      label: AppStrings.activeStudents,
                       value: '${counts.activeStudents}',
                       icon: Icons.school_outlined,
                       accentColor: const Color(0xFF2E7D32),
@@ -88,7 +87,7 @@ class AdminDashboardPage extends ConsumerWidget {
                       ),
                     ),
                     StatTile(
-                      label: 'Inactive students',
+                      label: AppStrings.inactiveStudents,
                       value: '${counts.inactiveStudents}',
                       icon: Icons.person_off_outlined,
                       accentColor: Brand.muted,
@@ -100,7 +99,7 @@ class AdminDashboardPage extends ConsumerWidget {
                       ),
                     ),
                     StatTile(
-                      label: 'Active teachers',
+                      label: AppStrings.activeTeachers,
                       value: '${counts.activeTeachers}',
                       icon: Icons.psychology_outlined,
                       accentColor: Brand.navy,
@@ -108,7 +107,7 @@ class AdminDashboardPage extends ConsumerWidget {
                       onTap: () => context.go(RoutePaths.adminTeachers),
                     ),
                     StatTile(
-                      label: 'Active batches',
+                      label: AppStrings.activeBatches,
                       value: '${counts.activeBatches}',
                       icon: Icons.view_carousel_outlined,
                       accentColor: Brand.goldDark,
@@ -121,26 +120,21 @@ class AdminDashboardPage extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: isMobile ? 14 : 24),
               ],
 
               if (filter.category == AdminDashboardCategory.all ||
                   filter.category == AdminDashboardCategory.progress) ...[
                 _buildSectionHeader(
-                  title: 'Academy snapshot',
-                  subtitle: 'Headcount, classes, promotions, and who is doing well',
+                  context: context,
+                  title: AppStrings.academySnapshot,
+                  subtitle: AppStrings.headcountClassesPromotionsAndWhoIsDoingWell,
                 ),
-                const SizedBox(height: 10),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: wide ? 4 : 2,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: wide ? 2.4 : 1.9,
+                SizedBox(height: isMobile ? 6 : 10),
+                StatGrid(
                   children: [
                     StatTile(
-                      label: 'All students',
+                      label: AppStrings.allStudents,
                       value: '${counts.totalStudents}',
                       icon: Icons.groups_outlined,
                       accentColor: Brand.navy,
@@ -148,7 +142,7 @@ class AdminDashboardPage extends ConsumerWidget {
                       onTap: () => context.go(studentsRouteWithFilters(status: 'active')),
                     ),
                     StatTile(
-                      label: 'Teachers',
+                      label: AppStrings.teachers,
                       value: '${counts.activeTeachers}',
                       icon: Icons.badge_outlined,
                       accentColor: Brand.navy,
@@ -156,35 +150,39 @@ class AdminDashboardPage extends ConsumerWidget {
                       onTap: () => context.go(RoutePaths.adminTeachers),
                     ),
                     StatTile(
-                      label: 'Interviews',
+                      label: AppStrings.interviews,
                       value: '${counts.interviews}',
                       icon: Icons.call_outlined,
                       accentColor: const Color(0xFF2F6FED),
-                      subtitle: filter.hasActiveFilter ? 'in selected month' : 'held / booked',
+                      subtitle: filter.hasActiveFilter ? AppStrings.inSelectedMonth : AppStrings.heldBooked,
                     ),
                     StatTile(
-                      label: 'Master classes',
+                      label: AppStrings.masterClasses2,
                       value: '${counts.masterClasses}',
                       icon: Icons.school_outlined,
                       accentColor: const Color(0xFF1B7A4E),
-                      subtitle: filter.hasActiveFilter ? 'in selected month' : 'held / booked',
+                      subtitle: filter.hasActiveFilter ? AppStrings.inSelectedMonth : AppStrings.heldBooked,
                     ),
                     StatTile(
-                      label: 'Levelled up',
+                      label: AppStrings.levelledUp,
                       value: '${counts.promotedStudents}',
                       icon: Icons.trending_up,
                       accentColor: Brand.goldDark,
-                      subtitle: 'students promoted',
+                      subtitle: AppStrings.studentsPromoted,
                       onTap: () => context.go(studentsRouteWithAttention('promoted', status: 'active')),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Students by level and batch',
-                  style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 16),
+                SizedBox(height: isMobile ? 10 : 16),
+                Text(
+                  AppStrings.studentsByLevelAndBatch,
+                  style: TextStyle(
+                    color: Brand.navy,
+                    fontWeight: FontWeight.w700,
+                    fontSize: isMobile ? 14 : 16,
+                  ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: isMobile ? 6 : 8),
                 ...data.byLevel.map((level) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -200,7 +198,10 @@ class AdminDashboardPage extends ConsumerWidget {
                           studentsRouteWithFilters(status: 'active', levelId: level.id),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: isMobile ? 8 : 12,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -241,43 +242,56 @@ class AdminDashboardPage extends ConsumerWidget {
                     ),
                   );
                 }),
-                const SizedBox(height: 16),
+                SizedBox(height: isMobile ? 10 : 16),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
                     FilledButton.icon(
                       onPressed: () => context.go(RoutePaths.adminBestStudents),
-                      icon: const Icon(Icons.emoji_events_outlined, size: 18),
-                      label: const Text('Best students'),
+                      icon: Icon(Icons.emoji_events_outlined, size: isMobile ? 16 : 18),
+                      label: const Text(AppStrings.bestStudents),
+                      style: isMobile
+                          ? FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            )
+                          : null,
                     ),
                     FilledButton.tonalIcon(
                       onPressed: () => context.go(RoutePaths.adminBestTeachers),
-                      icon: const Icon(Icons.workspace_premium_outlined, size: 18),
-                      label: const Text('Best teachers'),
+                      icon: Icon(Icons.workspace_premium_outlined, size: isMobile ? 16 : 18),
+                      label: const Text(AppStrings.bestTeachers),
+                      style: isMobile
+                          ? FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            )
+                          : null,
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: isMobile ? 14 : 24),
               ],
 
               // 6. Needs Attention / Action Required Section
               if (filter.category == AdminDashboardCategory.all ||
                   filter.category == AdminDashboardCategory.attention) ...[
                 _buildSectionHeader(
-                  title: 'Needs attention',
-                  subtitle: 'Items requiring administrative review or assignment',
+                  context: context,
+                  title: AppStrings.needsAttention,
+                  subtitle: AppStrings.itemsRequiringAdministrativeReviewOrAssignment,
                   badgeCount: totalAttention,
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: isMobile ? 6 : 10),
                 AttentionCard(
-                  label: 'Pending class conflicts',
+                  label: AppStrings.pendingClassConflicts,
                   count: counts.pendingVerification,
                   onTap: () => context.go(RoutePaths.adminAttendance),
                 ),
                 const SizedBox(height: 6),
                 AttentionCard(
-                  label: 'Students not in a batch',
+                  label: AppStrings.studentsNotInABatch,
                   count: counts.studentsWithoutBatch,
                   onTap: () => context.go(
                     studentsRouteWithAttention('without_batch'),
@@ -285,7 +299,7 @@ class AdminDashboardPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 AttentionCard(
-                  label: 'Students — assessment pending',
+                  label: AppStrings.studentsAssessmentPending,
                   count: counts.studentsAssessmentPending,
                   onTap: () => context.go(
                     studentsRouteWithAttention('assessment_pending'),
@@ -293,7 +307,7 @@ class AdminDashboardPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 AttentionCard(
-                  label: 'Students — no monthly rating',
+                  label: AppStrings.studentsNoMonthlyRating,
                   count: counts.studentsWithoutRatingThisMonth,
                   onTap: () => context.go(
                     studentsRouteWithAttention('without_rating_this_month'),
@@ -301,35 +315,30 @@ class AdminDashboardPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 AttentionCard(
-                  label: 'Full batches (40 students)',
+                  label: AppStrings.fullBatches40Students,
                   count: counts.fullBatches,
                   onTap: () => context.go(
                     batchesRouteWithAttention('full'),
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: isMobile ? 14 : 24),
               ],
 
               // 7. Classes & Attendance Section
               if (filter.category == AdminDashboardCategory.all ||
                   filter.category == AdminDashboardCategory.classes) ...[
                 _buildSectionHeader(
-                  title: 'Classes & attendance',
-                  subtitle: 'Operational session bookings and fulfillment',
-                  actionLabel: 'Open attendance hub',
+                  context: context,
+                  title: AppStrings.classesAttendance,
+                  subtitle: AppStrings.operationalSessionBookingsAndFulfillment,
+                  actionLabel: AppStrings.openAttendanceHub,
                   onAction: () => context.go(RoutePaths.adminAttendance),
                 ),
-                const SizedBox(height: 10),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: wide ? 4 : 2,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: wide ? 2.4 : 1.9,
+                SizedBox(height: isMobile ? 6 : 10),
+                StatGrid(
                   children: [
                     StatTile(
-                      label: 'Total classes',
+                      label: AppStrings.totalClasses,
                       value: '${counts.totalClasses}',
                       icon: Icons.event_available_outlined,
                       accentColor: Brand.navy,
@@ -337,7 +346,7 @@ class AdminDashboardPage extends ConsumerWidget {
                       onTap: () => context.go(RoutePaths.adminAttendance),
                     ),
                     StatTile(
-                      label: 'Completed classes',
+                      label: AppStrings.completedClasses,
                       value: '${counts.completedClasses}',
                       icon: Icons.check_circle_outline,
                       accentColor: const Color(0xFF2E7D32),
@@ -347,70 +356,65 @@ class AdminDashboardPage extends ConsumerWidget {
                       onTap: () => context.go(RoutePaths.adminAttendance),
                     ),
                     StatTile(
-                      label: 'Rebookings given',
+                      label: AppStrings.rebookingsGiven,
                       value: '${counts.rebookingsGiven}',
                       icon: Icons.replay_outlined,
                       accentColor: const Color(0xFF1976D2),
-                      subtitle: 'extra chances',
+                      subtitle: AppStrings.extraChances,
                       onTap: () => context.go(RoutePaths.adminAttendance),
                     ),
                     StatTile(
-                      label: 'Technical issues',
+                      label: AppStrings.technicalIssues,
                       value: '${counts.technicalIssues}',
                       icon: Icons.wifi_off_outlined,
                       accentColor: counts.technicalIssues > 0 ? const Color(0xFFE65100) : Brand.muted,
-                      subtitle: 'meeting errors',
+                      subtitle: AppStrings.meetingErrors,
                       onTap: () => context.go(RoutePaths.adminAttendance),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: isMobile ? 14 : 24),
               ],
 
               // 8. Conflicts & Resolutions Section
               if (filter.category == AdminDashboardCategory.all ||
                   filter.category == AdminDashboardCategory.conflicts) ...[
                 _buildSectionHeader(
-                  title: 'Conflicts & issue reports',
-                  subtitle: 'Dispute reports filed by students and teachers',
-                  actionLabel: 'Resolve issues',
+                  context: context,
+                  title: AppStrings.conflictsIssueReports,
+                  subtitle: AppStrings.disputeReportsFiledByStudentsAndTeachers,
+                  actionLabel: AppStrings.resolveIssues,
                   onAction: () => context.go(RoutePaths.adminAttendance),
                 ),
-                const SizedBox(height: 10),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: wide ? 4 : 2,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: wide ? 2.4 : 1.9,
+                SizedBox(height: isMobile ? 6 : 10),
+                StatGrid(
                   children: [
                     StatTile(
-                      label: 'Pending verification',
+                      label: AppStrings.pendingVerification,
                       value: '${counts.pendingVerification}',
                       icon: Icons.pending_actions_outlined,
                       accentColor: counts.pendingVerification > 0 ? const Color(0xFFD32F2F) : Brand.muted,
-                      subtitle: 'awaiting admin',
+                      subtitle: AppStrings.awaitingAdmin,
                       onTap: () => context.go(RoutePaths.adminAttendance),
                     ),
                     StatTile(
-                      label: 'Student reports',
+                      label: AppStrings.studentReports,
                       value: '${counts.studentAttendanceReports}',
                       icon: Icons.report_problem_outlined,
                       accentColor: const Color(0xFFE65100),
-                      subtitle: 'filed by students',
+                      subtitle: AppStrings.filedByStudents,
                       onTap: () => context.go(RoutePaths.adminAttendance),
                     ),
                     StatTile(
-                      label: 'Teacher reports',
+                      label: AppStrings.teacherReports,
                       value: '${counts.teacherAttendanceReports}',
                       icon: Icons.report_gmailerrorred_outlined,
                       accentColor: const Color(0xFFE65100),
-                      subtitle: 'filed by teachers',
+                      subtitle: AppStrings.filedByTeachers,
                       onTap: () => context.go(RoutePaths.adminAttendance),
                     ),
                     StatTile(
-                      label: 'Verified teacher absence',
+                      label: AppStrings.verifiedTeacherAbsence,
                       value: '${counts.verifiedTeacherAbsence}',
                       icon: Icons.person_remove_outlined,
                       accentColor: const Color(0xFFC2185B),
@@ -419,7 +423,7 @@ class AdminDashboardPage extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: isMobile ? 14 : 24),
               ],
 
               // 8. Google Meet Integration Banner
@@ -431,73 +435,92 @@ class AdminDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickActionsBar(BuildContext context) {
+  Widget _buildQuickActionsBar(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authControllerProvider).user;
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          FilledButton.icon(
-            onPressed: () => context.go(RoutePaths.adminStudentNew),
-            icon: const Icon(Icons.person_add_outlined, size: 18),
-            label: const Text('Add student'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          if (user?.canAdmin(AdminPermission.studentsCreate) ?? false) ...[
+            FilledButton.icon(
+              onPressed: () => context.go(RoutePaths.adminStudentNew),
+              icon: Icon(Icons.person_add_outlined, size: isMobile ? 15 : 18),
+              label: Text(AppStrings.addStudent, style: TextStyle(fontSize: isMobile ? 12 : 14)),
+              style: FilledButton.styleFrom(
+                visualDensity: isMobile ? VisualDensity.compact : VisualDensity.standard,
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: isMobile ? 6 : 10),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          FilledButton.tonalIcon(
-            onPressed: () => context.go(RoutePaths.adminTeacherNew),
-            icon: const Icon(Icons.group_add_outlined, size: 18),
-            label: const Text('Add teacher'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            SizedBox(width: isMobile ? 6 : 8),
+          ],
+          if (user?.canAdmin(AdminPermission.teachersCreate) ?? false) ...[
+            FilledButton.tonalIcon(
+              onPressed: () => context.go(RoutePaths.adminTeacherNew),
+              icon: Icon(Icons.group_add_outlined, size: isMobile ? 15 : 18),
+              label: Text(AppStrings.addTeacher, style: TextStyle(fontSize: isMobile ? 12 : 14)),
+              style: FilledButton.styleFrom(
+                visualDensity: isMobile ? VisualDensity.compact : VisualDensity.standard,
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: isMobile ? 6 : 10),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          FilledButton.tonalIcon(
-            onPressed: () => context.go(RoutePaths.adminBatchNew),
-            icon: const Icon(Icons.post_add_outlined, size: 18),
-            label: const Text('Add level / batch'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            SizedBox(width: isMobile ? 6 : 8),
+          ],
+          if (user?.canAdmin(AdminPermission.levelsManage) ?? false) ...[
+            FilledButton.tonalIcon(
+              onPressed: () => context.go(RoutePaths.adminBatchNew),
+              icon: Icon(Icons.post_add_outlined, size: isMobile ? 15 : 18),
+              label: Text(AppStrings.addLevelBatch, style: TextStyle(fontSize: isMobile ? 12 : 14)),
+              style: FilledButton.styleFrom(
+                visualDensity: isMobile ? VisualDensity.compact : VisualDensity.standard,
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: isMobile ? 6 : 10),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
+            SizedBox(width: isMobile ? 6 : 8),
+          ],
           OutlinedButton.icon(
             onPressed: () => context.go(RoutePaths.adminBestStudents),
-            icon: const Icon(Icons.emoji_events_outlined, size: 18),
-            label: const Text('Best students'),
+            icon: Icon(Icons.emoji_events_outlined, size: isMobile ? 15 : 18),
+            label: Text(AppStrings.bestStudents, style: TextStyle(fontSize: isMobile ? 12 : 14)),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              visualDensity: isMobile ? VisualDensity.compact : VisualDensity.standard,
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: isMobile ? 6 : 10),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: isMobile ? 6 : 8),
           OutlinedButton.icon(
             onPressed: () => context.go(RoutePaths.adminBestTeachers),
-            icon: const Icon(Icons.workspace_premium_outlined, size: 18),
-            label: const Text('Best teachers'),
+            icon: Icon(Icons.workspace_premium_outlined, size: isMobile ? 15 : 18),
+            label: Text(AppStrings.bestTeachers, style: TextStyle(fontSize: isMobile ? 12 : 14)),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              visualDensity: isMobile ? VisualDensity.compact : VisualDensity.standard,
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: isMobile ? 6 : 10),
             ),
           ),
-          const SizedBox(width: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.go(RoutePaths.adminAttendance),
-            icon: const Icon(Icons.fact_check_outlined, size: 18),
-            label: const Text('Attendance'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          if (user?.canAnyAdmin(const [AdminPermission.queriesView, AdminPermission.queriesResolve]) ?? false) ...[
+            SizedBox(width: isMobile ? 6 : 8),
+            OutlinedButton.icon(
+              onPressed: () => context.go(RoutePaths.adminAttendance),
+              icon: Icon(Icons.fact_check_outlined, size: isMobile ? 15 : 18),
+              label: Text(AppStrings.attendance, style: TextStyle(fontSize: isMobile ? 12 : 14)),
+              style: OutlinedButton.styleFrom(
+                visualDensity: isMobile ? VisualDensity.compact : VisualDensity.standard,
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: isMobile ? 6 : 10),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.go(RoutePaths.adminSettings),
-            icon: const Icon(Icons.videocam_outlined, size: 18),
-            label: const Text('Google Meet'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          ],
+          if (user?.canAdmin(AdminPermission.settingsManage) ?? false) ...[
+            SizedBox(width: isMobile ? 6 : 8),
+            OutlinedButton.icon(
+              onPressed: () => context.go(RoutePaths.adminSettings),
+              icon: Icon(Icons.videocam_outlined, size: isMobile ? 15 : 18),
+              label: Text(AppStrings.googleMeet, style: TextStyle(fontSize: isMobile ? 12 : 14)),
+              style: OutlinedButton.styleFrom(
+                visualDensity: isMobile ? VisualDensity.compact : VisualDensity.standard,
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: isMobile ? 6 : 10),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -508,9 +531,10 @@ class AdminDashboardPage extends ConsumerWidget {
     WidgetRef ref,
     AdminDashboardFilter filter,
   ) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     final now = DateTime.now();
     final months = <MapEntry<String, String>>[
-      const MapEntry('all', 'All time'),
+      const MapEntry('all', AppStrings.allTime2),
       MapEntry('${now.year}-${now.month}', 'This month (${AppClock.monthLabel(now.year, now.month)})'),
       for (var i = 1; i <= 5; i++) ...[
         () {
@@ -525,36 +549,43 @@ class AdminDashboardPage extends ConsumerWidget {
         : '${filter.year}-${filter.month}';
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 10 : 12,
+        vertical: isMobile ? 8 : 12,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(isMobile ? 10 : 14),
         border: Border.all(color: const Color(0xFFE6DCCB)),
       ),
       child: Wrap(
-        spacing: 12,
-        runSpacing: 10,
+        spacing: isMobile ? 8 : 12,
+        runSpacing: isMobile ? 6 : 10,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.filter_list_rounded, size: 18, color: Brand.navy),
-              const SizedBox(width: 6),
-              const Text(
-                'Filters:',
-                style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 13),
+              Icon(Icons.filter_list_rounded, size: isMobile ? 16 : 18, color: Brand.navy),
+              const SizedBox(width: 5),
+              Text(
+                AppStrings.filters,
+                style: TextStyle(
+                  color: Brand.navy,
+                  fontWeight: FontWeight.w700,
+                  fontSize: isMobile ? 12 : 13,
+                ),
               ),
             ],
           ),
 
           // Period / Month Dropdown
           Container(
-            height: 38,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            height: isMobile ? 32 : 38,
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12),
             decoration: BoxDecoration(
               color: const Color(0xFFFBF6EA),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(isMobile ? 8 : 10),
               border: Border.all(
                 color: (filter.year != null && filter.month != null) ? Brand.goldDark : const Color(0xFFE6DCCB),
               ),
@@ -562,8 +593,12 @@ class AdminDashboardPage extends ConsumerWidget {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: months.any((m) => m.key == currentPeriodKey) ? currentPeriodKey : 'all',
-                icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Brand.navy),
-                style: const TextStyle(color: Brand.navy, fontSize: 13, fontWeight: FontWeight.w600),
+                icon: Icon(Icons.keyboard_arrow_down, size: isMobile ? 16 : 18, color: Brand.navy),
+                style: TextStyle(
+                  color: Brand.navy,
+                  fontSize: isMobile ? 12 : 13,
+                  fontWeight: FontWeight.w600,
+                ),
                 items: [
                   for (final entry in months)
                     DropdownMenuItem(value: entry.key, child: Text(entry.value)),
@@ -590,7 +625,7 @@ class AdminDashboardPage extends ConsumerWidget {
                 ref.read(adminDashboardFilterProvider.notifier).state = const AdminDashboardFilter();
               },
               icon: const Icon(Icons.clear, size: 16),
-              label: const Text('Reset filters'),
+              label: const Text(AppStrings.resetFilters),
               style: TextButton.styleFrom(
                 visualDensity: VisualDensity.compact,
                 foregroundColor: Brand.goldDark,
@@ -607,13 +642,14 @@ class AdminDashboardPage extends ConsumerWidget {
     AdminDashboardFilter filter,
     int totalAttention,
   ) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     final categories = [
-      (AdminDashboardCategory.all, 'All overview', null),
-      (AdminDashboardCategory.attention, 'Action required', totalAttention > 0 ? '$totalAttention' : null),
-      (AdminDashboardCategory.academic, 'Academic directory', null),
-      (AdminDashboardCategory.progress, 'Progress & standouts', null),
-      (AdminDashboardCategory.classes, 'Classes & attendance', null),
-      (AdminDashboardCategory.conflicts, 'Conflicts & issues', null),
+      (AdminDashboardCategory.all, AppStrings.allOverview, null),
+      (AdminDashboardCategory.attention, AppStrings.actionRequired, totalAttention > 0 ? '$totalAttention' : null),
+      (AdminDashboardCategory.academic, AppStrings.academicDirectory, null),
+      (AdminDashboardCategory.progress, AppStrings.progressStandouts, null),
+      (AdminDashboardCategory.classes, AppStrings.classesAttendance, null),
+      (AdminDashboardCategory.conflicts, AppStrings.conflictsIssues, null),
     ];
 
     return SingleChildScrollView(
@@ -622,14 +658,15 @@ class AdminDashboardPage extends ConsumerWidget {
         children: [
           for (final (cat, label, badge) in categories) ...[
             ChoiceChip(
+              visualDensity: isMobile ? VisualDensity.compact : VisualDensity.standard,
               label: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(label),
                   if (badge != null) ...[
-                    const SizedBox(width: 6),
+                    SizedBox(width: isMobile ? 4 : 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      padding: EdgeInsets.symmetric(horizontal: isMobile ? 5 : 6, vertical: 1),
                       decoration: BoxDecoration(
                         color: cat == filter.category ? Colors.white : const Color(0xFFD32F2F),
                         borderRadius: BorderRadius.circular(10),
@@ -638,7 +675,7 @@ class AdminDashboardPage extends ConsumerWidget {
                         badge,
                         style: TextStyle(
                           color: cat == filter.category ? Brand.navy : Colors.white,
-                          fontSize: 11,
+                          fontSize: isMobile ? 10 : 11,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -653,7 +690,7 @@ class AdminDashboardPage extends ConsumerWidget {
               labelStyle: TextStyle(
                 color: filter.category == cat ? Colors.white : Brand.navy,
                 fontWeight: FontWeight.w600,
-                fontSize: 13,
+                fontSize: isMobile ? 11.5 : 13,
               ),
               side: BorderSide(
                 color: filter.category == cat ? Brand.navy : const Color(0xFFE6DCCB),
@@ -665,7 +702,7 @@ class AdminDashboardPage extends ConsumerWidget {
                 }
               },
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: isMobile ? 6 : 8),
           ],
         ],
       ),
@@ -681,11 +718,11 @@ class AdminDashboardPage extends ConsumerWidget {
       if (filter.year != null && filter.month != null) 'Period: ${AppClock.monthLabel(filter.year!, filter.month!)}',
       if (filter.category != AdminDashboardCategory.all)
         'Section: ${switch (filter.category) {
-          AdminDashboardCategory.attention => 'Action required',
-          AdminDashboardCategory.academic => 'Academic directory',
-          AdminDashboardCategory.progress => 'Progress & standouts',
-          AdminDashboardCategory.classes => 'Classes & attendance',
-          AdminDashboardCategory.conflicts => 'Conflicts & issues',
+          AdminDashboardCategory.attention => AppStrings.actionRequired,
+          AdminDashboardCategory.academic => AppStrings.academicDirectory,
+          AdminDashboardCategory.progress => AppStrings.progressStandouts,
+          AdminDashboardCategory.classes => AppStrings.classesAttendance,
+          AdminDashboardCategory.conflicts => AppStrings.conflictsIssues,
           _ => '',
         }}',
     ];
@@ -716,7 +753,7 @@ class AdminDashboardPage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8),
               foregroundColor: Brand.goldDark,
             ),
-            child: const Text('Clear all', style: TextStyle(fontWeight: FontWeight.w700)),
+            child: const Text(AppStrings.clearAll, style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -724,12 +761,14 @@ class AdminDashboardPage extends ConsumerWidget {
   }
 
   Widget _buildSectionHeader({
+    required BuildContext context,
     required String title,
     required String subtitle,
     String? actionLabel,
     VoidCallback? onAction,
     int? badgeCount,
   }) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     return Row(
       children: [
         Expanded(
@@ -740,28 +779,32 @@ class AdminDashboardPage extends ConsumerWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 18),
+                    style: TextStyle(
+                      color: Brand.navy,
+                      fontWeight: FontWeight.w700,
+                      fontSize: isMobile ? 15 : 18,
+                    ),
                   ),
                   if (badgeCount != null && badgeCount > 0) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
                       decoration: BoxDecoration(
                         color: const Color(0xFFD32F2F),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '$badgeCount',
-                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                        style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ],
                 ],
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 subtitle,
-                style: const TextStyle(color: Brand.muted, fontSize: 12),
+                style: TextStyle(color: Brand.muted, fontSize: isMobile ? 11 : 12),
               ),
             ],
           ),
@@ -769,10 +812,11 @@ class AdminDashboardPage extends ConsumerWidget {
         if (actionLabel != null && onAction != null) ...[
           TextButton.icon(
             onPressed: onAction,
-            icon: const Icon(Icons.arrow_forward, size: 16),
-            label: Text(actionLabel),
+            icon: Icon(Icons.arrow_forward, size: isMobile ? 14 : 16),
+            label: Text(actionLabel, style: TextStyle(fontSize: isMobile ? 12 : 13)),
             style: TextButton.styleFrom(
-              visualDensity: VisualDensity.compact,
+              visualDensity: isMobile ? VisualDensity.compact : VisualDensity.standard,
+              padding: isMobile ? const EdgeInsets.symmetric(horizontal: 6, vertical: 2) : null,
               foregroundColor: Brand.goldDark,
             ),
           ),
@@ -802,12 +846,12 @@ class AdminDashboardPage extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Google Meet Integration',
+                      AppStrings.googleMeetIntegration,
                       style: TextStyle(color: Brand.navy, fontSize: 14, fontWeight: FontWeight.w700),
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'Connect Google account, set meeting rules, or manage credentials',
+                      AppStrings.connectGoogleAccountSetMeetingRulesOrManageCredentials,
                       style: TextStyle(color: Brand.muted, fontSize: 12),
                     ),
                   ],

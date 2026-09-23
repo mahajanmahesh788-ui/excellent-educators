@@ -4,11 +4,9 @@ namespace Tests\Feature\Api\V1;
 
 use App\Attendance\AttendanceService;
 use App\Enums\AttendanceDecision;
-use App\Enums\RoleName;
 use App\Enums\SessionBookingStatus;
 use App\Meetings\FakeGoogleMeetGateway;
 use App\Meetings\GoogleMeetGateway;
-use App\Models\AcademicLevel;
 use App\Models\AttendanceIssue;
 use App\Models\ClassAttendance;
 use App\Models\ClassJoinEvent;
@@ -16,7 +14,6 @@ use App\Models\MonthlyFeedback;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
-use App\Models\User;
 use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\LevelSeeder;
 use Database\Seeders\RoleSeeder;
@@ -236,6 +233,7 @@ class ClassAttendanceTest extends TestCase
         MonthlyFeedback::query()->create([
             'student_id' => $student->id,
             'master_teacher_id' => $teacher->id,
+            'session_booking_id' => $masterId,
             'year' => 2026,
             'month' => 9,
             'session_date' => '2026-09-16',
@@ -437,12 +435,8 @@ class ClassAttendanceTest extends TestCase
 
         $this->withToken($this->tokenFor($student->user))->getJson('/api/v1/student/bookings/eligibility')
             ->assertOk()
-            ->assertJsonPath('data.can_book_master_class', false);
-
-        $this->assertSame(
-            SessionBookingStatus::Completed,
-            SessionBooking::query()->findOrFail($masterId)->status,
-        );
+            ->assertJsonPath('data.can_book_master_class', false)
+            ->assertJsonPath('data.master_class_remaining', 0);
 
         $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
             'teacher_id' => $teacher->id,
@@ -450,27 +444,6 @@ class ClassAttendanceTest extends TestCase
             'date' => '2026-09-20',
             'start' => '11:00',
         ])->assertUnprocessable()->assertJsonPath('error.code', 'MASTER_CLASS_MONTHLY_LIMIT');
-    }
-
-    /**
-     * @return array{0: StudentProfile, 1: TeacherProfile}
-     */
-    private function makeStudentWithTeacher(): array
-    {
-        $admin = $this->makeAdmin();
-        $teacher = $this->makeMasterTeacher();
-        AcademicLevel::query()->where('name', 'Level 1')->firstOrFail()
-            ->masterTeachers()->syncWithoutDetaching([$teacher->id]);
-
-        $id = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/students', [
-            'name' => 'Attend Student',
-            'email' => 'attend-'.uniqid().'@excellenteducators.test',
-            'password' => 'StudentPass1!',
-            'phone' => '98'.random_int(10000000, 99999999),
-            'class_grade' => 6,
-        ])->assertCreated()->json('data.id');
-
-        return [StudentProfile::query()->with('user')->findOrFail($id), $teacher];
     }
 
     private function makeSecondStudent(): StudentProfile
@@ -482,6 +455,7 @@ class ClassAttendanceTest extends TestCase
             'password' => 'StudentPass1!',
             'phone' => '97'.random_int(10000000, 99999999),
             'class_grade' => 6,
+            'gender' => 'male',
         ])->assertCreated()->json('data.id');
 
         return StudentProfile::query()->with('user')->findOrFail($id);
@@ -497,34 +471,5 @@ class ClassAttendanceTest extends TestCase
         ])->assertCreated()->json('data.id');
 
         return SessionBooking::query()->findOrFail($id);
-    }
-
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create(['email' => 'ops-att-'.uniqid().'@excellenteducators.test']);
-        $user->assignRole(RoleName::OperationalAdmin->value);
-
-        return $user;
-    }
-
-    private function makeMasterTeacher(): TeacherProfile
-    {
-        $user = User::factory()->create(['email' => 'mt-att-'.uniqid().'@excellenteducators.test']);
-        $user->assignRole(RoleName::MasterTeacher->value);
-        $profile = TeacherProfile::query()->create([
-            'user_id' => $user->id,
-            'full_name' => $user->name,
-            'status' => 'active',
-        ]);
-        $profile->setRelation('user', $user);
-
-        return $profile;
-    }
-
-    private function tokenFor(User $user): string
-    {
-        $this->app['auth']->forgetGuards();
-
-        return $user->createToken('test')->plainTextToken;
     }
 }

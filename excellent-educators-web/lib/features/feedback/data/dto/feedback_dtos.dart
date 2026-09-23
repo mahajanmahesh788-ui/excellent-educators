@@ -42,9 +42,14 @@ class MonthlyFeedbackDto {
     required this.deletable,
     required this.items,
     this.sessionDate,
+    this.sessionBookingId,
     this.submittedAt,
     this.editableUntil,
     this.masterTeacherName,
+    this.overallRating,
+    this.positivePoints,
+    this.areasForImprovement,
+    this.discussedInClass,
   });
 
   factory MonthlyFeedbackDto.fromJson(Map<String, dynamic> json) {
@@ -53,6 +58,7 @@ class MonthlyFeedbackDto {
       year: (json['year'] as num?)?.toInt() ?? 0,
       month: (json['month'] as num?)?.toInt() ?? 0,
       sessionDate: json['session_date'] as String?,
+      sessionBookingId: json['session_booking_id'] as String?,
       submittedAt: json['submitted_at'] as String?,
       editable: json['editable'] == true,
       deletable: json['deletable'] == true,
@@ -60,6 +66,10 @@ class MonthlyFeedbackDto {
       masterTeacherName: json['master_teacher'] is Map
           ? (json['master_teacher'] as Map)['full_name'] as String?
           : null,
+      overallRating: (json['overall_rating'] as num?)?.toDouble(),
+      positivePoints: json['positive_points'] as String?,
+      areasForImprovement: json['areas_for_improvement'] as String?,
+      discussedInClass: json['discussed_in_class'] as String?,
       items: (json['items'] as List<dynamic>? ?? const [])
           .whereType<Map>()
           .map((item) => FeedbackItemDto.fromJson(Map<String, dynamic>.from(item)))
@@ -71,14 +81,22 @@ class MonthlyFeedbackDto {
   final int year;
   final int month;
   final String? sessionDate;
+  final String? sessionBookingId;
   final String? submittedAt;
   final bool editable;
   final bool deletable;
   final String? editableUntil;
   final String? masterTeacherName;
+  final double? overallRating;
+  final String? positivePoints;
+  final String? areasForImprovement;
+  final String? discussedInClass;
   final List<FeedbackItemDto> items;
 
   double? get averageRating {
+    if (overallRating != null) {
+      return overallRating;
+    }
     if (items.isEmpty) {
       return null;
     }
