@@ -872,6 +872,41 @@ class _NextSessionFeatureCard extends StatelessWidget {
 
           const SizedBox(height: 14),
 
+          if (booking.wasReassigned) ...[
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    AppStrings.sessionUpdated,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1D4ED8),
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${AppStrings.yourMentorWasChangedDueToAnUnexpectedAvailabilityIssue} ${booking.teacherName ?? AppStrings.teacher}.',
+                    style: const TextStyle(
+                      color: Color(0xFF1E3A8A),
+                      fontSize: 12.5,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // Main Info Details
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,

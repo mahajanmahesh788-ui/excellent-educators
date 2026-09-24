@@ -28,7 +28,7 @@ final teacherDayScheduleProvider = FutureProvider.autoDispose<ScheduleDayDto>((r
   return ref.watch(scheduleRepositoryProvider).teacherDay(date);
 });
 
-final teacherLeavesProvider = FutureProvider.autoDispose<List<ScheduleLeaveDto>>((ref) {
+final teacherLeavesProvider = FutureProvider.autoDispose<List<LeaveRequestDto>>((ref) {
   return ref.watch(scheduleRepositoryProvider).teacherLeaves();
 });
 
@@ -73,9 +73,23 @@ final adminScheduleDayProvider = FutureProvider.autoDispose<ScheduleDayDto?>((re
   return ref.watch(scheduleRepositoryProvider).adminDay(teacherId: teacherId, date: date);
 });
 
-final adminScheduleLeavesProvider = FutureProvider.autoDispose<List<ScheduleLeaveDto>>((ref) {
+final adminScheduleLeavesProvider = FutureProvider.autoDispose<List<LeaveRequestDto>>((ref) {
   final teacherId = ref.watch(adminScheduleTeacherIdProvider);
   return ref.watch(scheduleRepositoryProvider).adminLeaves(teacherId: teacherId);
+});
+
+final adminAllLeavesProvider = FutureProvider.autoDispose<List<LeaveRequestDto>>((ref) {
+  return ref.watch(scheduleRepositoryProvider).adminLeaves();
+});
+
+final adminTeacherLeavesProvider =
+    FutureProvider.autoDispose.family<List<LeaveRequestDto>, String>((ref, teacherId) {
+  return ref.watch(scheduleRepositoryProvider).adminLeaves(teacherId: teacherId);
+});
+
+final adminLeaveRequestProvider =
+    FutureProvider.autoDispose.family<LeaveRequestDto, String>((ref, groupId) {
+  return ref.watch(scheduleRepositoryProvider).adminLeaveRequest(groupId);
 });
 
 final adminScheduleBookingsProvider = FutureProvider.autoDispose<List<SessionBookingDto>>((ref) {

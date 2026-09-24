@@ -350,7 +350,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
     );
   }
 
-  Widget _leavesCard(List<ScheduleLeaveDto> items) {
+  Widget _leavesCard(List<LeaveRequestDto> items) {
     return PortalCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,10 +421,16 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
     );
   }
 
-  Widget _leaveItemTile(ScheduleLeaveDto leave) {
+  Widget _leaveItemTile(LeaveRequestDto leave) {
     final past = isScheduleDatePast(leave.date);
     final appliedText = _formatAppliedDate(leave.createdAt);
     final reason = leave.reason?.trim();
+    final rangeLabel = leave.isFullDay
+        ? AppStrings.fullDay
+        : (leave.ranges.isNotEmpty
+            ? '${formatHm(leave.ranges.first.startTime)} – ${formatHm(leave.ranges.last.endTime)}'
+            : AppStrings.partial);
+    final canCancel = leave.isOpen && !past;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -489,9 +495,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
                   ),
                 ),
                 child: Text(
-                  leave.isFullDay
-                      ? AppStrings.fullDay
-                      : '${formatHm(leave.startTime)} – ${formatHm(leave.endTime)}',
+                  rangeLabel,
                   style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
@@ -528,7 +532,7 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
                   ),
                 ),
                 child: Text(
-                  past ? AppStrings.past : AppStrings.upcoming,
+                  leave.statusLabel,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -536,38 +540,31 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 4),
-              IconButton(
-                iconSize: 18,
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.all(4),
-                constraints: const BoxConstraints(),
-                tooltip: past ? AppStrings.pastLeaveCannotBeRemoved : AppStrings.removeLeave,
-                onPressed: past
-                    ? null
-                    : () async {
-                        final ok = await showAppConfirmDialog(
-                          context,
-                          title: AppStrings.removeThisLeave,
-                          message: AppStrings.theSlotsWillBecomeAvailableForBookingsAgain,
-                          confirmLabel: AppStrings.remove,
-                          destructive: true,
-                        );
-                        if (!ok) return;
-                        try {
-                          await ref.read(scheduleRepositoryProvider).deleteTeacherLeave(leave.id);
-                          ref.invalidate(teacherLeavesProvider);
-                          ref.invalidate(teacherDayProvider);
-                        } catch (error) {
-                          if (mounted) showFailure(context, error);
-                        }
-                      },
-                icon: Icon(
-                  Icons.delete_outline_rounded,
-                  size: 18,
-                  color: past ? const Color(0xFFCBD5E1) : const Color(0xFFDC2626),
+              if (canCancel) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  iconSize: 18,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.all(4),
+                  tooltip: AppStrings.cancel,
+                  icon: const Icon(Icons.close_rounded, color: Color(0xFF94A3B8)),
+                  onPressed: () async {
+                    final ok = await showAppConfirmDialog(
+                      context,
+                      title: AppStrings.cancel,
+                      message: AppStrings.thisWillMakeTheTeacherAvailableAgainForThatTime,
+                      confirmLabel: AppStrings.cancel,
+                      destructive: true,
+                    );
+                    if (!ok) return;
+                    await ref
+                        .read(scheduleRepositoryProvider)
+                        .deleteTeacherLeave(leave.primaryLeaveId);
+                    ref.invalidate(teacherLeavesProvider);
+                    ref.invalidate(teacherDayProvider);
+                  },
                 ),
-              ),
+              ],
             ],
           );
 
@@ -738,6 +735,11 @@ class _TeacherSchedulePageState extends ConsumerState<TeacherSchedulePage> {
         _rangeStart = null;
         _reason.clear();
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.leavePendingAdminReview)),
+        );
+      }
     } catch (error) {
       if (mounted) showFailure(context, error);
     } finally {

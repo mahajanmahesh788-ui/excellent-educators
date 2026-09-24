@@ -20,6 +20,7 @@ class StudentProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'created_by_user_id',
         'student_code',
         'level_id',
         'master_classes_per_month',
@@ -49,6 +50,11 @@ class StudentProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     public function academicLevel(): BelongsTo

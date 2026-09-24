@@ -197,6 +197,20 @@ abstract final class ApiEndpoints {
   static const adminScheduleDay = '/api/v1/admin/schedule/day';
   static const adminScheduleMonth = '/api/v1/admin/schedule/month';
   static const adminScheduleLeaves = '/api/v1/admin/schedule/leaves';
+  static String adminScheduleLeave(String id) =>
+      '/api/v1/admin/schedule/leaves/$id';
+  static String adminLeaveRequest(String groupId) =>
+      '/api/v1/admin/schedule/leave-requests/$groupId';
+  static String adminLeaveRequestReplacements(String groupId, String bookingId) =>
+      '/api/v1/admin/schedule/leave-requests/$groupId/bookings/$bookingId/replacements';
+  static String adminLeaveRequestReassignment(String groupId, String bookingId) =>
+      '/api/v1/admin/schedule/leave-requests/$groupId/reassignments/$bookingId';
+  static String adminLeaveRequestApprove(String groupId) =>
+      '/api/v1/admin/schedule/leave-requests/$groupId/approve';
+  static String adminLeaveRequestReject(String groupId) =>
+      '/api/v1/admin/schedule/leave-requests/$groupId/reject';
+  static String adminLeaveRequestCancel(String groupId) =>
+      '/api/v1/admin/schedule/leave-requests/$groupId/cancel';
   static const adminScheduleBookings = '/api/v1/admin/schedule/bookings';
   static String adminTeacherAvailability(String teacherId) =>
       '/api/v1/admin/schedule/teachers/$teacherId/availability';
@@ -211,8 +225,6 @@ abstract final class ApiEndpoints {
       '/api/v1/admin/schedule/teachers/$teacherId/breaks';
   static String adminTeacherLeaves(String teacherId) =>
       '/api/v1/admin/schedule/teachers/$teacherId/leaves';
-  static String adminScheduleLeave(String id) =>
-      '/api/v1/admin/schedule/leaves/$id';
   static String adminScheduleBooking(String id) =>
       '/api/v1/admin/schedule/bookings/$id';
 

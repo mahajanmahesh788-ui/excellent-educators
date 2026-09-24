@@ -17,11 +17,14 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/d
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
 import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/teacher_availability_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/widgets/schedule_ui.dart';
 
 class AdminStudentDetailPage extends ConsumerWidget {
   const AdminStudentDetailPage({super.key, required this.studentId});
@@ -441,10 +444,205 @@ class AdminTeacherDetailPage extends ConsumerWidget {
               const SizedBox(height: 10),
               TeacherAvailabilitySummary(teacherId: teacherId),
               const SizedBox(height: 12),
+              _AdminTeacherLeavesTile(teacherId: teacherId),
+              const SizedBox(height: 12),
               _AdminTeacherPromotedTile(teacherId: teacherId),
               if (teacher.isMasterTeacher) ...[
                 const SizedBox(height: 12),
                 _AdminTeacherProgressSection(teacherId: teacherId),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _AdminTeacherLeavesTile extends ConsumerWidget {
+  const _AdminTeacherLeavesTile({required this.teacherId});
+
+  final String teacherId;
+
+  bool _isCurrentMonth(LeaveRequestDto leave) {
+    final parts = leave.date.split('-');
+    if (parts.length < 2) return false;
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    if (year == null || month == null) return false;
+    final now = DateTime.now();
+    return year == now.year && month == now.month;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final leaves = ref.watch(adminTeacherLeavesProvider(teacherId));
+    final approved =
+        leaves.valueOrNull?.where((l) => l.status == 'approved').toList() ??
+            const <LeaveRequestDto>[];
+    final thisMonth = approved.where(_isCurrentMonth).length;
+    final total = approved.length;
+
+    return StatTile(
+      label: AppStrings.leaves,
+      value: leaves.isLoading ? '…' : '$thisMonth',
+      icon: Icons.event_busy_outlined,
+      accentColor: Brand.navy,
+      subtitle: leaves.isLoading
+          ? AppStrings.leaveHistory
+          : '$thisMonth this month · total $total leaves',
+      onTap: () => context.go(RoutePaths.adminTeacherLeavesFor(teacherId)),
+    );
+  }
+}
+
+class AdminTeacherLeavesPage extends ConsumerWidget {
+  const AdminTeacherLeavesPage({super.key, required this.teacherId});
+
+  final String teacherId;
+
+  Color _statusColor(String status) {
+    return switch (status) {
+      'pending' => const Color(0xFF785500),
+      'reassignment_pending' => const Color(0xFF9A3412),
+      'approved' => const Color(0xFF047857),
+      'rejected' => const Color(0xFFB91C1C),
+      'cancelled' => const Color(0xFF64748B),
+      _ => Brand.muted,
+    };
+  }
+
+  Color _statusBg(String status) {
+    return switch (status) {
+      'pending' => const Color(0xFFFFF7E8),
+      'reassignment_pending' => const Color(0xFFFFF1E8),
+      'approved' => const Color(0xFFECFDF5),
+      'rejected' => const Color(0xFFFEF2F2),
+      'cancelled' => const Color(0xFFF1F5F9),
+      _ => const Color(0xFFF8FAFC),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final leaves = ref.watch(adminTeacherLeavesProvider(teacherId));
+
+    return AppScaffold(
+      title: AppStrings.leaveHistory,
+      backTo: RoutePaths.adminTeacher(teacherId),
+      body: AsyncBody(
+        value: leaves,
+        onRetry: () => ref.invalidate(adminTeacherLeavesProvider(teacherId)),
+        builder: (items) {
+          if (items.isEmpty) {
+            return const Center(
+              child: Text(
+                AppStrings.noLeavesRecordedYet,
+                style: TextStyle(
+                  color: Brand.muted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            );
+          }
+
+          final approved = items.where((l) => l.status == 'approved').toList();
+          final now = DateTime.now();
+          final thisMonth = approved.where((leave) {
+            final parts = leave.date.split('-');
+            if (parts.length < 2) return false;
+            final year = int.tryParse(parts[0]);
+            final month = int.tryParse(parts[1]);
+            return year == now.year && month == now.month;
+          }).length;
+
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 32),
+            children: [
+              Text(
+                '$thisMonth this month · total ${approved.length} leaves',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: Brand.navyDeep,
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 14),
+              for (final leave in items) ...[
+                Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: leave.requestGroupId.isEmpty
+                        ? null
+                        : () => context.go(
+                              RoutePaths.adminLeaveRequest(leave.requestGroupId),
+                            ),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE8E0D4)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  leave.date,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: Brand.navyDeep,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  leave.isFullDay
+                                      ? AppStrings.fullDay2
+                                      : (leave.ranges.isNotEmpty
+                                          ? '${formatHm(leave.ranges.first.startTime)} – ${formatHm(leave.ranges.last.endTime)}'
+                                          : AppStrings.partial),
+                                  style: const TextStyle(
+                                    color: Brand.muted,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if ((leave.reason ?? '').trim().isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(leave.reason!.trim()),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _statusBg(leave.status),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              leave.statusLabel,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: _statusColor(leave.status),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.chevron_right, color: Brand.muted),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ],
           );

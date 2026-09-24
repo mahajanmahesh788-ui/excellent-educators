@@ -6,6 +6,7 @@ use App\Attendance\AttendanceService;
 use App\Enums\ScheduleSlotStatus;
 use App\Enums\SessionBookingStatus;
 use App\Enums\TeacherBreakType;
+use App\Enums\TeacherLeaveStatus;
 use App\Models\SessionBooking;
 use App\Models\TeacherBreak;
 use App\Models\TeacherDailyMeeting;
@@ -96,9 +97,24 @@ class AvailabilityCalculator
         $leaves = TeacherLeave::query()
             ->where('teacher_id', $teacher->id)
             ->whereDate('date', $date)
+            ->whereNotIn('status', [
+                TeacherLeaveStatus::Rejected->value,
+                TeacherLeaveStatus::Cancelled->value,
+            ])
             ->get();
 
-        foreach ($leaves as $leave) {
+        $approvedLeaves = $leaves->filter(
+            fn (TeacherLeave $leave) => $leave->status === TeacherLeaveStatus::Approved,
+        );
+        $holdLeaves = $leaves->filter(
+            fn (TeacherLeave $leave) => in_array(
+                $leave->status?->value,
+                TeacherLeaveStatus::bookingHoldValues(),
+                true,
+            ),
+        );
+
+        foreach ($approvedLeaves as $leave) {
             foreach ($this->overlappingStarts($slots, $this->hm($leave->start_time), $this->hm($leave->end_time)) as $start) {
                 if (($slots[$start]['status'] ?? null) === ScheduleSlotStatus::Available->value
                     || in_array($slots[$start]['status'], [
@@ -108,6 +124,13 @@ class AvailabilityCalculator
                     $slots[$start]['status'] = ScheduleSlotStatus::Leave->value;
                     $slots[$start]['leave_id'] = $leave->id;
                 }
+            }
+        }
+
+        $holdStarts = [];
+        foreach ($holdLeaves as $leave) {
+            foreach ($this->overlappingStarts($slots, $this->hm($leave->start_time), $this->hm($leave->end_time)) as $start) {
+                $holdStarts[$start] = true;
             }
         }
 
@@ -136,8 +159,11 @@ class AvailabilityCalculator
 
         $list = array_values($slots);
         if ($bookableOnly) {
-            $list = array_values(array_filter($list, function (array $slot) use ($isToday, $nowMinutes): bool {
+            $list = array_values(array_filter($list, function (array $slot) use ($isToday, $nowMinutes, $holdStarts): bool {
                 if ($slot['status'] !== ScheduleSlotStatus::Available->value) {
+                    return false;
+                }
+                if (isset($holdStarts[$slot['start']])) {
                     return false;
                 }
                 if ($isToday && SlotGrid::parseHm($slot['start']) <= $nowMinutes) {
@@ -222,7 +248,33 @@ class AvailabilityCalculator
         $day = $this->day($teacher, $date, $ignoreBookingId);
         foreach ($day['slots'] as $slot) {
             if ($slot['start'] === $start) {
-                return $slot['status'] === ScheduleSlotStatus::Available->value;
+                if ($slot['status'] !== ScheduleSlotStatus::Available->value) {
+                    return false;
+                }
+
+                return ! $this->hasBookingHold($teacher, $date, $start);
+            }
+        }
+
+        return false;
+    }
+
+    public function hasBookingHold(TeacherProfile $teacher, string $date, string $start): bool
+    {
+        $startM = SlotGrid::parseHm($start);
+        $endM = $startM + SlotGrid::slotMinutes();
+
+        $holds = TeacherLeave::query()
+            ->where('teacher_id', $teacher->id)
+            ->whereDate('date', $date)
+            ->whereIn('status', TeacherLeaveStatus::bookingHoldValues())
+            ->get();
+
+        foreach ($holds as $leave) {
+            $from = SlotGrid::parseHm($this->hm($leave->start_time));
+            $to = SlotGrid::parseHm($this->hm($leave->end_time));
+            if ($startM < $to && $from < $endM) {
+                return true;
             }
         }
 
@@ -250,7 +302,7 @@ class AvailabilityCalculator
      */
     public function bookingPayload(SessionBooking $booking, string $viewer = 'student'): array
     {
-        $booking->loadMissing(['student.currentLevelJourney', 'teacher']);
+        $booking->loadMissing(['student.currentLevelJourney', 'teacher', 'reassignedFromTeacher']);
         $eligibility = app(BookingEligibility::class);
         $type = $booking->type?->value ?? $booking->type;
         $attempt = $eligibility->attemptNumber($booking);
@@ -276,6 +328,9 @@ class AvailabilityCalculator
                 ->whereDate('date', $booking->date?->toDateString() ?? SlotGrid::dateFrom($booking->starts_at))
                 ->value('meet_url'),
             'attendance' => $this->attendance->payloadFor($booking, $viewer),
+            'was_reassigned' => $booking->reassigned_at !== null,
+            'reassigned_at' => $booking->reassigned_at?->toIso8601String(),
+            'previous_teacher_name' => $booking->reassignedFromTeacher?->full_name,
         ];
     }
 

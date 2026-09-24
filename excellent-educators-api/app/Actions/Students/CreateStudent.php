@@ -79,10 +79,11 @@ class CreateStudent
             ]);
             $user->assignRole(RoleName::Student->value);
 
-            $code = $this->generateStudentCode->execute($academicYear);
+            $code = $this->generateStudentCode->execute();
 
             $profile = StudentProfile::query()->create([
                 'user_id' => $user->id,
+                'created_by_user_id' => auth()->id(),
                 'student_code' => $code,
                 'level_id' => $academicLevel?->id,
                 'class_grade' => $grade,

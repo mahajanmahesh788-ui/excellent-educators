@@ -53,34 +53,39 @@ class SchedulingTest extends TestCase
         $this->assertCount(34, $day['slots']);
     }
 
-    public function test_leave_is_auto_approved_and_rejected_when_overlapping_booking(): void
+    public function test_leave_with_bookings_enters_reassignment_pending_and_empty_leave_stays_pending(): void
     {
         [$student, $teacher] = $this->makeStudentWithTeacher();
         $this->book($student, $teacher, 'introduction_call', '2026-09-16', '10:00');
 
         $token = $this->tokenFor($teacher->user);
-        $this->withToken($token)->postJson('/api/v1/teacher/schedule/leaves', [
+        $withBooking = $this->withToken($token)->postJson('/api/v1/teacher/schedule/leaves', [
             'date' => '2026-09-16',
             'is_full_day' => false,
             'reason' => 'Family visit',
             'start_time' => '09:00',
             'end_time' => '11:00',
-        ])
-            ->assertUnprocessable()
-            ->assertJsonPath('error.code', 'LEAVE_OVERLAPS_BOOKING')
-            ->assertJsonPath('message', 'This leave period overlaps with an existing booking. Please choose another time.');
+        ])->assertCreated()->json('data');
 
-        $this->withToken($token)->postJson('/api/v1/teacher/schedule/leaves', [
+        $this->assertSame('reassignment_pending', $withBooking['status']);
+        $this->assertSame(1, $withBooking['affected_count']);
+        $this->assertSame(0, $withBooking['reassigned_count']);
+
+        $day = $this->withToken($token)->getJson('/api/v1/teacher/schedule/day?date=2026-09-16')->json('data');
+        $byStart = collect($day['slots'])->keyBy('start');
+        // Pending leave does not paint calendar leave; booking still shows.
+        $this->assertSame('booked', $byStart['10:00']['status']);
+        $this->assertSame('available', $byStart['09:00']['status']);
+
+        $withoutBooking = $this->withToken($token)->postJson('/api/v1/teacher/schedule/leaves', [
             'date' => '2026-09-16',
             'is_full_day' => false,
             'reason' => 'Personal work',
             'slot_starts' => ['16:00', '16:30'],
-        ])->assertCreated();
+        ])->assertCreated()->json('data');
 
-        $day = $this->withToken($token)->getJson('/api/v1/teacher/schedule/day?date=2026-09-16')->json('data');
-        $byStart = collect($day['slots'])->keyBy('start');
-        $this->assertSame('leave', $byStart['16:00']['status']);
-        $this->assertSame('booked', $byStart['10:00']['status']);
+        $this->assertSame('pending', $withoutBooking['status']);
+        $this->assertSame(0, $withoutBooking['affected_count']);
     }
 
     public function test_student_must_complete_introduction_before_master_class_and_monthly_limit(): void
@@ -254,6 +259,27 @@ class SchedulingTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.start', '14:00')
             ->assertJsonPath('data.type', 'introduction_call');
+
+        $this->assertTrue(
+            \App\Models\UserNotification::query()
+                ->where('user_id', $teacher->user_id)
+                ->where('type', \App\Enums\NotificationType::SessionRescheduled->value)
+                ->exists(),
+        );
+    }
+
+    public function test_teacher_is_notified_when_student_books(): void
+    {
+        [$student, $teacher] = $this->makeStudentWithTeacher();
+        $this->book($student, $teacher, 'introduction_call', '2026-09-16', '11:00');
+
+        $notification = \App\Models\UserNotification::query()
+            ->where('user_id', $teacher->user_id)
+            ->where('type', \App\Enums\NotificationType::SessionBooked->value)
+            ->first();
+
+        $this->assertNotNull($notification);
+        $this->assertStringContainsString($student->full_name, $notification->body);
     }
 
     public function test_admin_can_view_teacher_calendar_and_delete_booking(): void
@@ -288,15 +314,18 @@ class SchedulingTest extends TestCase
             'date' => '2026-09-16',
             'is_full_day' => true,
             'reason' => 'Family function',
-        ])->assertCreated()->json('data.items.0');
+        ])->assertCreated()->json('data');
 
         $this->assertSame('Family function', $created['reason']);
-        $this->assertNotNull($created['created_at']);
+        $this->assertSame('pending', $created['status']);
+        $this->assertNotEmpty($created['items']);
+        $leaveId = $created['items'][0]['id'];
+        $this->assertNotNull($created['items'][0]['created_at']);
 
         Carbon::setTestNow(Carbon::parse('2026-09-17 08:00:00', 'Asia/Kolkata'));
 
         $this->withToken($token)
-            ->deleteJson('/api/v1/teacher/schedule/leaves/'.$created['id'])
+            ->deleteJson('/api/v1/teacher/schedule/leaves/'.$leaveId)
             ->assertUnprocessable()
             ->assertJsonPath('error.code', 'LEAVE_DATE_PASSED');
     }

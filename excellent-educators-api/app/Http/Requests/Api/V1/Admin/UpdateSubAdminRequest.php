@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
+use App\Enums\AdminAccountType;
 use App\Enums\Gender;
 use App\Enums\UserStatus;
 use App\Support\PhoneNumber;
@@ -44,6 +45,7 @@ class UpdateSubAdminRequest extends FormRequest
                 Rule::unique('admin_profiles', 'phone')->ignore($userId, 'user_id'),
             ],
             'gender' => ['sometimes', Rule::enum(Gender::class)],
+            'type' => ['sometimes', Rule::enum(AdminAccountType::class)],
             'status' => ['sometimes', Rule::enum(UserStatus::class)],
             'permissions' => ['sometimes'],
         ];

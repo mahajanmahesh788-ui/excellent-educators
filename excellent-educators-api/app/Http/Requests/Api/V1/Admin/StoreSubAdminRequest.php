@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
+use App\Enums\AdminAccountType;
 use App\Enums\Gender;
 use App\Enums\PermissionName;
 use App\Support\PhoneNumber;
@@ -38,6 +39,7 @@ class StoreSubAdminRequest extends FormRequest
             'password' => ['required', Password::defaults()],
             'phone' => ['required', 'string', 'min:10', 'max:15', 'unique:admin_profiles,phone'],
             'gender' => ['required', Rule::enum(Gender::class)],
+            'type' => ['sometimes', Rule::enum(AdminAccountType::class)],
             'permissions' => ['sometimes'],
             'permissions.*' => ['nullable'],
         ] + collect($keys)->mapWithKeys(fn (string $key) => ["permissions.{$key}" => ['sometimes', 'boolean']])->all();

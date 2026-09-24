@@ -5,6 +5,7 @@ namespace Tests\Feature\Api\V1;
 use App\Enums\PermissionName;
 use App\Enums\RoleName;
 use App\Enums\UserStatus;
+use App\Models\StudentProfile;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -114,7 +115,14 @@ class SubAdminTest extends TestCase
         $this->postJson('/api/v1/auth/login', [
             'email' => $email,
             'password' => 'SubAdminPass1!',
-        ])->assertForbidden();
+        ])
+            ->assertForbidden()
+            ->assertJsonPath('error.code', 'ACCOUNT_INACTIVE');
+
+        $this->actingAs($sub->fresh())
+            ->getJson('/api/v1/auth/me')
+            ->assertForbidden()
+            ->assertJsonPath('error.code', 'ACCOUNT_INACTIVE');
     }
 
     public function test_sub_admin_cannot_manage_sub_admins(): void
@@ -157,6 +165,77 @@ class SubAdminTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.type', 'student.edit')
             ->assertJsonFragment(['message' => 'Edited student Tracked Student']);
+    }
+
+    public function test_agent_is_limited_to_student_view_and_create(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $response = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/sub-admins', [
+            'name' => 'Agent Ops',
+            'email' => 'agent-'.uniqid().'@excellenteducators.test',
+            'password' => 'SubAdminPass1!',
+            'phone' => '98'.random_int(10000000, 99999999),
+            'gender' => 'female',
+            'type' => 'agent',
+            'permissions' => [
+                PermissionName::StudentsView->value => true,
+                PermissionName::StudentsCreate->value => true,
+                PermissionName::TeachersView->value => true,
+                PermissionName::SettingsManage->value => true,
+            ],
+        ])->assertCreated();
+
+        $permissions = $response->json('data.permissions');
+        $this->assertSame('agent', $response->json('data.type'));
+        $this->assertTrue($permissions[PermissionName::StudentsView->value] ?? false);
+        $this->assertTrue($permissions[PermissionName::StudentsCreate->value] ?? false);
+        $this->assertFalse($permissions[PermissionName::TeachersView->value] ?? true);
+        $this->assertFalse($permissions[PermissionName::SettingsManage->value] ?? true);
+
+        $agentId = $response->json('data.id');
+        $agent = User::query()->findOrFail($agentId);
+        $token = $this->tokenFor($agent);
+
+        $this->withToken($token)->getJson('/api/v1/admin/students')->assertOk();
+        $this->withToken($token)->getJson('/api/v1/admin/teachers')->assertForbidden();
+
+        $created = $this->withToken($token)->postJson('/api/v1/admin/students', [
+            'name' => 'Agent Student',
+            'email' => 'agent-student-'.uniqid().'@excellenteducators.test',
+            'password' => 'StudentPass1!',
+            'phone' => '97'.random_int(10000000, 99999999),
+            'class_grade' => 6,
+            'gender' => 'male',
+        ])->assertCreated();
+
+        $this->withToken($this->tokenFor($admin))->getJson('/api/v1/admin/sub-admins/'.$agentId.'/history')
+            ->assertOk()
+            ->assertJsonPath('meta.students_created_count', 1)
+            ->assertJsonPath('data.0.type', 'student.create')
+            ->assertJsonPath('data.0.student_name', 'Agent Student');
+
+        $this->assertSame('Agent Student', $created->json('data.full_name'));
+        $this->assertSame(
+            $agentId,
+            StudentProfile::query()->find($created->json('data.id'))?->created_by_user_id,
+        );
+
+        $other = $this->makeStudentViaAdmin($admin);
+
+        $list = $this->withToken($this->tokenFor($agent))->getJson('/api/v1/admin/students')->assertOk();
+        $ids = collect($list->json('data'))->pluck('id')->all();
+        $this->assertContains($created->json('data.id'), $ids);
+        $this->assertNotContains($other->id, $ids);
+        $this->assertSame(1, $list->json('meta.total'));
+
+        $this->withToken($this->tokenFor($agent))->getJson('/api/v1/admin/students/'.$other->id)
+            ->assertNotFound();
+
+        $this->withToken($this->tokenFor($agent))->getJson('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonPath('data.admin_type', 'agent')
+            ->assertJsonPath('data.id', $agentId);
     }
 
     /**

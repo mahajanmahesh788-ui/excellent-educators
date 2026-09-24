@@ -5,6 +5,7 @@ use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureAdminPermission;
 use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\EnsureUserActive;
 use App\Http\Middleware\RecordSubAdminActivity;
 use App\Support\ApiResponse;
 use App\Support\ErrorCode;
@@ -42,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureAdmin::class,
             'admin.permission' => EnsureAdminPermission::class,
             'subadmin.activity' => RecordSubAdminActivity::class,
+            'active' => EnsureUserActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

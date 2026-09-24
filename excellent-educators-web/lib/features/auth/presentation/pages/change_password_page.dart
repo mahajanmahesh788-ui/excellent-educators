@@ -74,6 +74,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                     isCommonTeacher: user.isCommonTeacher,
                     isMasterTeacher: user.isMasterTeacher,
                     isStudent: user.isStudent,
+                    isAgent: user.isAgent,
                   );
 
     return AppScaffold(

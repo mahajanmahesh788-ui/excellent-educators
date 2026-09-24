@@ -2,9 +2,11 @@
 
 namespace App\Actions\Teachers;
 
+use App\Enums\ProfileStatus;
 use App\Enums\RoleName;
 use App\Models\TeacherProfile;
 use App\Support\MentorProfileRules;
+use App\Support\SyncUserAccess;
 
 class UpdateTeacher
 {
@@ -32,6 +34,13 @@ class UpdateTeacher
 
         if (isset($input['name'])) {
             $teacher->user->update(['name' => $input['name']]);
+        }
+
+        if (isset($input['status'])) {
+            $status = is_string($input['status'])
+                ? $input['status']
+                : ($input['status'] instanceof ProfileStatus ? $input['status']->value : (string) $input['status']);
+            SyncUserAccess::syncFromProfileStatus($teacher->user, $status);
         }
 
         return $teacher->refresh();

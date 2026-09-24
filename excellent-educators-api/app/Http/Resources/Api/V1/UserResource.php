@@ -24,6 +24,7 @@ class UserResource extends JsonResource
             'status' => $this->status?->value ?? $this->status,
             'roles' => $this->getRoleNames()->values()->all(),
             'permissions' => $this->permissionKeys(),
+            'admin_type' => $this->adminProfile?->type?->value,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
         ];
     }

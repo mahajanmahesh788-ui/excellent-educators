@@ -141,13 +141,16 @@ class LearningQuestionDto {
   const LearningQuestionDto({
     required this.id,
     required this.questionText,
+    required this.questionType,
     required this.options,
   });
 
   factory LearningQuestionDto.fromJson(Map<String, dynamic> json) {
+    final rawType = json['question_type'] as String? ?? 'options';
     return LearningQuestionDto(
       id: json['id'] as String? ?? '',
       questionText: json['question_text'] as String? ?? '',
+      questionType: rawType == 'text' ? 'text' : 'options',
       options: (json['options'] as List<dynamic>? ?? const [])
           .whereType<Map>()
           .map(
@@ -160,7 +163,11 @@ class LearningQuestionDto {
 
   final String id;
   final String questionText;
+  final String questionType;
   final List<LearningOptionDto> options;
+
+  bool get isText => questionType == 'text';
+  bool get isOptions => !isText;
 }
 
 class LearningOptionDto {
@@ -229,6 +236,25 @@ class LearningAttemptDto {
       }
     }
     return null;
+  }
+
+  String? textAnswerFor(String questionId) {
+    for (final answer in answers) {
+      if (answer['question_id'] == questionId) {
+        final text = answer['text_answer'] as String?;
+        if (text != null && text.trim().isNotEmpty) {
+          return text;
+        }
+      }
+    }
+    return null;
+  }
+
+  bool hasAnswerFor(LearningQuestionDto question) {
+    if (question.isText) {
+      return textAnswerFor(question.id) != null;
+    }
+    return optionIdFor(question.id) != null;
   }
 }
 

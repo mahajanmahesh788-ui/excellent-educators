@@ -22,6 +22,7 @@ enum PermissionName: string
     case TeachersEdit = 'teachers.edit';
     case TeachersDelete = 'teachers.delete';
     case TeachersSchedule = 'teachers.schedule';
+    case TeachersLeaves = 'teachers.leaves';
 
     case LevelsView = 'levels.view';
     case LevelsManage = 'levels.manage';
@@ -41,7 +42,7 @@ enum PermissionName: string
             self::StudentsView, self::StudentsCreate, self::StudentsEdit, self::StudentsDelete,
             self::StudentsPromote, self::StudentsRating, self::StudentsMentor => 'students',
             self::TeachersView, self::TeachersCreate, self::TeachersEdit, self::TeachersDelete,
-            self::TeachersSchedule => 'teachers',
+            self::TeachersSchedule, self::TeachersLeaves => 'teachers',
             self::LevelsView, self::LevelsManage => 'levels',
             self::QueriesView, self::QueriesResolve => 'queries',
             self::RequestsView, self::RequestsResolve => 'requests',
@@ -67,6 +68,7 @@ enum PermissionName: string
             self::TeachersEdit => 'Edit teacher',
             self::TeachersDelete => 'Delete teacher',
             self::TeachersSchedule => 'Manage teacher schedule & bookings',
+            self::TeachersLeaves => 'Accept / reject teacher leave requests',
             self::LevelsView => 'View levels & batches',
             self::LevelsManage => 'Manage levels, batches & learning',
             self::QueriesView => 'View queries / class conflicts',
@@ -80,6 +82,19 @@ enum PermissionName: string
             self::SettingsManage => 'Manage settings',
             self::SubAdminsManage => 'Manage sub admins',
         };
+    }
+
+    /**
+     * Toggles shown on the sub-admin editor for agent accounts.
+     *
+     * @return list<self>
+     */
+    public static function agentToggles(): array
+    {
+        return [
+            self::StudentsView,
+            self::StudentsCreate,
+        ];
     }
 
     /**
@@ -102,6 +117,7 @@ enum PermissionName: string
             self::TeachersEdit,
             self::TeachersDelete,
             self::TeachersSchedule,
+            self::TeachersLeaves,
             self::LevelsView,
             self::LevelsManage,
             self::QueriesView,

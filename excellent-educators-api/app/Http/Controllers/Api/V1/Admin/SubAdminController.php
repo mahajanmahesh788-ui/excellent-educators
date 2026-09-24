@@ -76,20 +76,55 @@ class SubAdminController extends Controller
     public function history(User $subAdmin): JsonResponse
     {
         $this->ensureSubAdmin($subAdmin);
+        $isAgent = $subAdmin->adminProfile?->isAgent() ?? false;
 
-        $events = AdminActivityEvent::query()
+        $query = AdminActivityEvent::query()
             ->where('actor_id', $subAdmin->id)
-            ->orderByDesc('occurred_at')
+            ->orderByDesc('occurred_at');
+
+        if ($isAgent) {
+            $query->where('type', 'student.create');
+        }
+
+        $events = $query
             ->limit(500)
             ->get()
-            ->map(fn (AdminActivityEvent $event) => [
-                'occurred_at' => $event->occurred_at?->timezone(config('app.timezone'))->toIso8601String(),
-                'type' => $event->type,
-                'message' => $event->message,
-            ])
+            ->map(function (AdminActivityEvent $event) {
+                $studentName = $event->meta['student_name'] ?? null;
+                if (! is_string($studentName) || $studentName === '') {
+                    $studentName = self::studentNameFromMessage($event->message);
+                }
+
+                return [
+                    'occurred_at' => $event->occurred_at?->timezone(config('app.timezone'))->toIso8601String(),
+                    'type' => $event->type,
+                    'message' => $event->message,
+                    'student_name' => $studentName,
+                ];
+            })
             ->all();
 
-        return ApiResponse::success('Sub admin history fetched successfully.', $events);
+        $createdCount = AdminActivityEvent::query()
+            ->where('actor_id', $subAdmin->id)
+            ->where('type', 'student.create')
+            ->count();
+
+        return ApiResponse::success('Sub admin history fetched successfully.', $events, [
+            'students_created_count' => $createdCount,
+            'is_agent' => $isAgent,
+        ]);
+    }
+
+    private static function studentNameFromMessage(?string $message): ?string
+    {
+        if ($message === null || $message === '') {
+            return null;
+        }
+        if (preg_match('/Created student login for (.+)$/', $message, $matches) === 1) {
+            return trim($matches[1]);
+        }
+
+        return null;
     }
 
     public function update(UpdateSubAdminRequest $request, User $subAdmin, UpdateSubAdmin $update): JsonResponse

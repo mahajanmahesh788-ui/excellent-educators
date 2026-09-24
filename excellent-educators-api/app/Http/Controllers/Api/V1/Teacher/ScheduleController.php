@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Teacher;
 
+use App\Actions\Scheduling\CancelTeacherLeave;
 use App\Actions\Scheduling\CreateTeacherLeave;
 use App\Actions\Scheduling\UpsertTeacherBreaks;
 use App\Attendance\AttendanceService;
@@ -16,6 +17,7 @@ use App\Http\Requests\Api\V1\Scheduling\UpsertBreaksRequest;
 use App\Models\SessionBooking;
 use App\Models\TeacherLeave;
 use App\Scheduling\AvailabilityCalculator;
+use App\Scheduling\LeaveRequestAssembler;
 use App\Support\ApiResponse;
 use App\Support\AppClock;
 use App\Support\ErrorCode;
@@ -78,48 +80,39 @@ class ScheduleController extends Controller
         ]);
     }
 
-    public function leaves(Request $request): JsonResponse
+    public function leaves(Request $request, LeaveRequestAssembler $assembler): JsonResponse
     {
         $teacher = $this->teacherFrom($request);
-        $from = $request->string('from')->toString();
-        $to = $request->string('to')->toString();
+        $items = $assembler->listGrouped(
+            $teacher->id,
+            $request->filled('from') ? $request->string('from')->toString() : null,
+            $request->filled('to') ? $request->string('to')->toString() : null,
+        );
 
-        $leaves = $teacher->leaves()
-            ->when($from !== '', fn ($q) => $q->whereDate('date', '>=', $from))
-            ->when($to !== '', fn ($q) => $q->whereDate('date', '<=', $to))
-            ->orderBy('date')
-            ->orderBy('start_time')
-            ->get()
-            ->map(fn (TeacherLeave $leave) => $leave->toScheduleArray());
-
-        return ApiResponse::success('Leaves fetched successfully.', $leaves);
+        return ApiResponse::success('Leaves fetched successfully.', $items);
     }
 
-    public function storeLeave(StoreLeaveRequest $request, CreateTeacherLeave $action): JsonResponse
+    public function storeLeave(StoreLeaveRequest $request, CreateTeacherLeave $action, LeaveRequestAssembler $assembler): JsonResponse
     {
         $leaves = $action->execute($this->teacherFrom($request), $request->validated(), $request->user());
 
         return ApiResponse::success(
-            'Leave recorded successfully.',
-            [
-                'items' => $leaves->map(fn (TeacherLeave $leave) => $leave->toScheduleArray())->all(),
-            ],
+            'Leave request submitted successfully.',
+            $assembler->serializeGroup($leaves),
             status: 201,
         );
     }
 
-    public function destroyLeave(Request $request, TeacherLeave $leave): JsonResponse
+    public function destroyLeave(Request $request, TeacherLeave $leave, CancelTeacherLeave $cancel): JsonResponse
     {
         $teacher = $this->teacherFrom($request);
         if ($leave->teacher_id !== $teacher->id) {
             return ApiResponse::error('Leave not found.', ErrorCode::NOT_FOUND, null, 404);
         }
-        if ($leave->dateHasPassed()) {
-            return ApiResponse::error('Past leave cannot be removed.', ErrorCode::LEAVE_DATE_PASSED, null, 422);
-        }
-        $leave->delete();
 
-        return ApiResponse::success('Leave removed successfully.');
+        $payload = $cancel->execute((string) $leave->request_group_id, $request->user(), $teacher->id);
+
+        return ApiResponse::success('Leave cancelled successfully.', $payload);
     }
 
     public function completeBooking(Request $request, SessionBooking $booking): JsonResponse

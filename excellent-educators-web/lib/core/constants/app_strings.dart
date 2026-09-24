@@ -36,6 +36,14 @@ abstract final class AppStrings {
   static const addQuestion = 'Add question';
   static const addStudent = 'Add student';
   static const addSubAdmin = 'Add sub admin';
+  static const accountDisabledByAdmin =
+      'Admin has disabled your ID. Kindly connect with them.';
+  static const contactSupport = 'Contact';
+  static const accountDisabledTitle = 'Account disabled';
+  static const accountType = 'Account type';
+  static const agent = 'Agent';
+  static const agentPermissionsHint =
+      'Agents can only view students and create student logins.';
   static const addStudentToALevelLevelsEnrollStudent = 'Add student to a level (Levels → Enroll student)';
   static const addStudentToBatch = 'Add student to batch';
   static const addTeacher = 'Add teacher';
@@ -59,6 +67,14 @@ abstract final class AppStrings {
   static const am = 'AM';
   static const anAdminAuthorizesGoogleOnceAfterThatEachTeacherAnd = 'An admin authorizes Google once. After that, each teacher and date shares one Meet link.';
   static const answerOptions = 'Answer options';
+  static const answerType = 'Answer type';
+  static const answerTypeOptions = 'Options';
+  static const answerTypeTextField = 'Text field';
+  static const textFieldQuestionHint =
+      'Students type a free-text answer (max 250 characters).';
+  static const yourAnswer = 'Your answer';
+  static const charactersRemaining = 'characters remaining';
+  static const enterATextAnswerMax250 = 'Enter a text answer (max 250 characters).';
   static const answered = 'Answered';
   static const applyDefault09001300Breaks = 'Apply default 09:00 / 13:00 breaks';
   static const approveRemoveStudent = 'Approve & remove student';
@@ -82,6 +98,10 @@ abstract final class AppStrings {
   static const assignAMasterTeacherToEnableMonthlyRatings = 'Assign a Master Teacher to enable monthly ratings.';
   static const assignedLevel = 'Assigned level';
   static const assignedStudents = 'Assigned students';
+  static const assignedTo = 'Assigned to';
+  static const assignToOneOf = 'Assign to one of these teachers';
+  static const approvedLeaves = 'Approved leaves';
+  static const clearAssignment = 'Clear assignment';
   static const assignmentCompleted = 'Assignment Completed';
   static const assignmentCompletedYourSelectedAnswersAreShownBelow = 'Assignment completed! Your selected answers are shown below.';
   static const assignments = 'Assignments';
@@ -406,6 +426,26 @@ abstract final class AppStrings {
   static const learningJournal2 = 'Learning journal';
   static const learningJourney = 'LEARNING JOURNEY';
   static const learningJourney2 = 'Learning Journey';
+  static const leaveRequest = 'Leave Request';
+  static const leaveApprovedSuccessfully = 'Leave approved successfully.';
+  static const leaveRejected = 'Leave rejected.';
+  static const rejectLeaveRequest = 'Reject leave request';
+  static const rejectLeave = 'Reject Leave';
+  static const approveLeave = 'Approve Leave';
+  static const optionalRejectionReason = 'Rejection reason (optional)';
+  static const affectedSessions = 'Affected Sessions';
+  static const noAffectedSessions = 'No affected sessions';
+  static const reassigned = 'Reassigned';
+  static const replacement = 'Replacement';
+  static const noAvailableMentorForThisSession = 'No available mentor for this session.';
+  static const partial = 'Partial';
+  static const type = 'Type';
+  static const reason = 'Reason';
+  static const sessionUpdated = 'Session updated';
+  static const yourMentorWasChangedDueToAnUnexpectedAvailabilityIssue =
+      'Your mentor was changed due to an unexpected availability issue. Your session is now with';
+  static const leavePendingAdminReview =
+      'Leave request submitted. An admin will review it and reassign any affected sessions if needed.';
   static const leave = 'Leave';
   static const leaveReason = 'Leave reason';
   static const leaves = 'Leaves';
@@ -530,6 +570,9 @@ abstract final class AppStrings {
   static const noFirstAssignmentYet = 'No first assignment yet';
   static const noIndividualClickRecorded = 'No individual click recorded';
   static const noLeavesRecordedYet = 'No leaves recorded yet';
+  static const noCurrentLeaveRequests = 'No current leave requests';
+  static const noPastLeavesYet = 'No past leaves yet';
+  static const leaveHistory = 'Leave history';
   static const noLevelsMatchYourSearch = 'No levels match your search';
   static const noLevelsYet = 'No levels yet';
   static const noMasterTeacherAssignedYetMonthlyRatingsWillAppearHere = 'No Master Teacher assigned yet. Monthly ratings will appear here once assigned.';
@@ -561,6 +604,7 @@ abstract final class AppStrings {
   static const noStudentsMatchYourFilters = 'No students match your filters';
   static const noStudentsMatchYourSearch = 'No students match your search.';
   static const noStudentsYet = 'No students yet';
+  static const noStudentsCreatedYet = 'No students created yet';
   static const noSubmissionsYet = 'No submissions yet';
   static const noTeacherActivityYet = 'No teacher activity yet';
   static const noTeachersMatchYourFilters = 'No teachers match your filters';
@@ -788,7 +832,7 @@ abstract final class AppStrings {
   static const studentBookings = 'Student Bookings';
   static const studentCode = 'student code';
   static const studentCode2 = 'Student code:';
-  static const studentCode260002ClassClass6 = 'Student code: 26-0002 · Class: Class 6';
+  static const studentCode260002ClassClass6 = 'Student code: 26-09-02 · Class: Class 6';
   static const studentCompletesAptitudeTest = 'Student completes aptitude test';
   static const studentDetails = 'Student details';
   static const studentDidnTJoin = 'Student didn\'t join';
@@ -803,6 +847,7 @@ abstract final class AppStrings {
   static const studentSTestResult = 'Student\'s Test Result';
   static const studentUpdatedSuccessfully = 'Student updated successfully.';
   static const students = 'Students';
+  static const studentsCreated = 'Students created';
   static const studentsAssessmentPending = 'Students — assessment pending';
   static const studentsAwaitingRating = 'Students awaiting rating';
   static const studentsByLevelAndBatch = 'Students by level and batch';

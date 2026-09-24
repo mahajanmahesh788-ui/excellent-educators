@@ -32,6 +32,7 @@ class LearningJournalTest extends TestCase
 
         $this->assertSame(['TW'], $week['questions'][0]['options'][0]['dimension_codes']);
         $this->assertSame(['P', 'I'], $week['questions'][0]['options'][1]['dimension_codes']);
+        $this->assertSame('options', $week['questions'][0]['question_type']);
 
         $dashboard = $this->withToken($this->tokenFor($student->user))
             ->getJson('/api/v1/student/learning/dashboard')
@@ -136,6 +137,83 @@ class LearningJournalTest extends TestCase
         $this->assertNull($week['result']);
         $this->assertNull($week['attempts'][0]['result']);
         $this->assertNull($week['attempts'][1]['result']);
+    }
+
+    public function test_admin_can_save_text_field_questions_and_students_submit_text_answers(): void
+    {
+        [$admin, $student] = $this->makeStudent();
+        $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+
+        $unit = $this->withToken($this->tokenFor($admin))->putJson("/api/v1/admin/levels/{$level1->id}/weekly-learnings", [
+            'week_number' => 1,
+            'video_url' => 'https://video.test/text-week',
+            'questions' => [
+                [
+                    'question_text' => 'Pick one',
+                    'question_type' => 'options',
+                    'options' => [
+                        ['option_text' => 'A', 'dimension_codes' => ['TW']],
+                        ['option_text' => 'B', 'dimension_codes' => ['P']],
+                    ],
+                ],
+                [
+                    'question_text' => 'Describe your approach',
+                    'question_type' => 'text',
+                    'options' => [],
+                ],
+            ],
+        ])->assertOk()->json('data');
+
+        $this->assertSame('options', $unit['questions'][0]['question_type']);
+        $this->assertSame('text', $unit['questions'][1]['question_type']);
+        $this->assertSame([], $unit['questions'][1]['options']);
+
+        $journal = $this->withToken($this->tokenFor($student->user))
+            ->getJson('/api/v1/student/learning/journal')
+            ->assertOk()
+            ->json('data.levels.0');
+
+        $this->withToken($this->tokenFor($student->user))
+            ->postJson("/api/v1/student/learning/journal/{$journal['journey_id']}/1", [
+                'answers' => [
+                    [
+                        'question_id' => $unit['questions'][0]['id'],
+                        'option_id' => $unit['questions'][0]['options'][0]['id'],
+                    ],
+                    [
+                        'question_id' => $unit['questions'][1]['id'],
+                        'text_answer' => 'I start by reading the brief carefully.',
+                    ],
+                ],
+            ])
+            ->assertCreated();
+
+        $week = $this->withToken($this->tokenFor($student->user))
+            ->getJson("/api/v1/student/learning/journal/{$journal['journey_id']}/1")
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame('text', $week['questions'][1]['question_type']);
+        $this->assertSame(
+            'I start by reading the brief carefully.',
+            $week['attempts'][0]['answers'][1]['text_answer'],
+        );
+
+        $tooLong = str_repeat('a', 251);
+        $this->withToken($this->tokenFor($student->user))
+            ->postJson("/api/v1/student/learning/journal/{$journal['journey_id']}/1", [
+                'answers' => [
+                    [
+                        'question_id' => $unit['questions'][0]['id'],
+                        'option_id' => $unit['questions'][0]['options'][1]['id'],
+                    ],
+                    [
+                        'question_id' => $unit['questions'][1]['id'],
+                        'text_answer' => $tooLong,
+                    ],
+                ],
+            ])
+            ->assertUnprocessable();
     }
 
     public function test_week_assignment_result_matches_assessment_dimension_scores(): void
@@ -267,6 +345,7 @@ class LearningJournalTest extends TestCase
             'questions' => [
                 [
                     'question_text' => 'Question 1',
+                    'question_type' => 'options',
                     'options' => [
                         ['option_text' => 'A', 'dimension_codes' => ['TW']],
                         ['option_text' => 'B', 'dimension_codes' => ['P', 'I']],
@@ -274,6 +353,7 @@ class LearningJournalTest extends TestCase
                 ],
                 [
                     'question_text' => 'Question 2',
+                    'question_type' => 'options',
                     'options' => [
                         ['option_text' => 'C', 'dimension_codes' => ['CF']],
                         ['option_text' => 'D', 'dimension_codes' => ['L', 'CM']],

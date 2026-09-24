@@ -7,6 +7,7 @@ use App\Exceptions\ApiException;
 use App\Models\StudentProfile;
 use App\Scheduling\MasterClassBalance;
 use App\Support\ErrorCode;
+use App\Support\SyncUserAccess;
 
 class UpdateStudent
 {
@@ -56,8 +57,11 @@ class UpdateStudent
             $student->user->update(['name' => $input['name']]);
         }
 
-        if (isset($input['status']) && $input['status'] === ProfileStatus::Inactive->value) {
-            $student->user->update(['status' => 'inactive']);
+        if (isset($input['status'])) {
+            $status = is_string($input['status'])
+                ? $input['status']
+                : ($input['status'] instanceof ProfileStatus ? $input['status']->value : (string) $input['status']);
+            SyncUserAccess::syncFromProfileStatus($student->user, $status);
         }
 
         if (array_key_exists('master_classes_per_month', $input)) {

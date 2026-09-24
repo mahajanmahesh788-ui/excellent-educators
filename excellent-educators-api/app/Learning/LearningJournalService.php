@@ -321,6 +321,7 @@ class LearningJournalService
             return [
                 'id' => $question->id,
                 'question_text' => $question->question_text,
+                'question_type' => $question->question_type->value,
                 'display_order' => $question->display_order,
                 'options' => $question->options->map(fn ($option) => [
                     'id' => $option->id,
@@ -402,7 +403,7 @@ class LearningJournalService
     }
 
     /**
-     * @param  array<int, array{question_id?: mixed, option_id?: mixed}>  $answers
+     * @param  array<int, array{question_id?: mixed, option_id?: mixed, text_answer?: mixed}>  $answers
      */
     private function assertAnswers(WeeklyLearning $unit, array $answers): void
     {
@@ -414,14 +415,26 @@ class LearningJournalService
         $answered = [];
         foreach ($answers as $answer) {
             $questionId = (string) ($answer['question_id'] ?? '');
-            $optionId = (string) ($answer['option_id'] ?? '');
             $question = $unit->questions->firstWhere('id', $questionId);
             if ($question === null) {
                 throw new ApiException(ErrorCode::VALIDATION_ERROR, 'An answer refers to an unknown question.', 422);
             }
-            if (! $question->options->contains('id', $optionId)) {
-                throw new ApiException(ErrorCode::VALIDATION_ERROR, 'An answer refers to an unknown option.', 422);
+
+            if ($question->isText()) {
+                $text = trim((string) ($answer['text_answer'] ?? ''));
+                if ($text === '') {
+                    throw new ApiException(ErrorCode::VALIDATION_ERROR, 'Enter an answer for every text field question.', 422);
+                }
+                if (mb_strlen($text) > 250) {
+                    throw new ApiException(ErrorCode::VALIDATION_ERROR, 'Text answers may be at most 250 characters.', 422);
+                }
+            } else {
+                $optionId = (string) ($answer['option_id'] ?? '');
+                if (! $question->options->contains('id', $optionId)) {
+                    throw new ApiException(ErrorCode::VALIDATION_ERROR, 'An answer refers to an unknown option.', 422);
+                }
             }
+
             $answered[] = $questionId;
         }
 

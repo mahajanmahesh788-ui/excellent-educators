@@ -3,6 +3,7 @@ import 'package:excellent_educators_web/core/network/api_exception.dart';
 import 'package:excellent_educators_web/core/platform/platform_info.dart';
 import 'package:excellent_educators_web/core/storage/token_store.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiEnvelope {
   const ApiEnvelope({this.data, this.meta = const {}});
@@ -25,6 +26,7 @@ class PagedResult {
 class ApiClient {
   ApiClient({
     required this.tokenStore,
+    this.onAccountInactive,
     Dio? dio,
     String? baseUrl,
   }) : _dio = dio ??
@@ -61,6 +63,7 @@ class ApiClient {
   }
 
   final TokenStore tokenStore;
+  final VoidCallback? onAccountInactive;
   final Dio _dio;
 
   Future<Map<String, dynamic>?> post(
@@ -195,9 +198,13 @@ class ApiClient {
 
   ApiException _fromEnvelope(Map<String, dynamic> body, int? statusCode) {
     final error = body['error'];
+    final code = error is Map<String, dynamic> ? error['code'] as String? : null;
+    if (code == 'ACCOUNT_INACTIVE') {
+      onAccountInactive?.call();
+    }
     return ApiException(
       message: body['message'] as String? ?? AppStrings.requestFailed,
-      code: error is Map<String, dynamic> ? error['code'] as String? : null,
+      code: code,
       details: error is Map<String, dynamic> ? error['details'] : null,
       statusCode: statusCode,
     );

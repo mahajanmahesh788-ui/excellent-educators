@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Admin\DevelopmentController as AdminDevelopmentC
 use App\Http\Controllers\Api\V1\Admin\GoogleMeetController as AdminGoogleMeetController;
 use App\Http\Controllers\Api\V1\Admin\LoginPageContentController as AdminLoginPageContentController;
 use App\Http\Controllers\Api\V1\Admin\ScheduleController as AdminScheduleController;
+use App\Http\Controllers\Api\V1\Admin\LeaveRequestController as AdminLeaveRequestController;
 use App\Http\Controllers\Api\V1\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Api\V1\Admin\SitePageController as AdminSitePageController;
 use App\Http\Controllers\Api\V1\Admin\StudentController as AdminStudentController;
@@ -46,7 +47,7 @@ Route::prefix('auth')->group(function (): void {
     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth');
     Route::post('reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth');
 
-    Route::middleware('auth:sanctum')->group(function (): void {
+    Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('me', [AuthController::class, 'me']);
         Route::put('password', [AuthController::class, 'changePassword']);
@@ -56,14 +57,14 @@ Route::prefix('auth')->group(function (): void {
 Route::get('site-pages', [SitePageController::class, 'index']);
 Route::get('site-pages/{slug}', [SitePageController::class, 'show']);
 
-Route::middleware('auth:sanctum')->group(function (): void {
+Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
     Route::get('notifications', [NotificationController::class, 'index']);
     Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::post('notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead']);
 });
 
-Route::middleware(['auth:sanctum', 'admin', 'admin.permission', 'subadmin.activity'])->prefix('admin')->group(function (): void {
+Route::middleware(['auth:sanctum', 'active', 'admin', 'admin.permission', 'subadmin.activity'])->prefix('admin')->group(function (): void {
     Route::get('dashboard', [DashboardController::class, 'show']);
 
     Route::get('sub-admins/permissions', [SubAdminController::class, 'catalog']);
@@ -166,6 +167,12 @@ Route::middleware(['auth:sanctum', 'admin', 'admin.permission', 'subadmin.activi
     Route::post('schedule/teachers/{teacher}/breaks', [AdminScheduleController::class, 'upsertBreaks']);
     Route::post('schedule/teachers/{teacher}/leaves', [AdminScheduleController::class, 'storeLeave']);
     Route::delete('schedule/leaves/{leave}', [AdminScheduleController::class, 'destroyLeave']);
+    Route::get('schedule/leave-requests/{groupId}', [AdminLeaveRequestController::class, 'show']);
+    Route::get('schedule/leave-requests/{groupId}/bookings/{booking}/replacements', [AdminLeaveRequestController::class, 'replacements']);
+    Route::put('schedule/leave-requests/{groupId}/reassignments/{bookingId}', [AdminLeaveRequestController::class, 'assignReplacement']);
+    Route::post('schedule/leave-requests/{groupId}/approve', [AdminLeaveRequestController::class, 'approve']);
+    Route::post('schedule/leave-requests/{groupId}/reject', [AdminLeaveRequestController::class, 'reject']);
+    Route::post('schedule/leave-requests/{groupId}/cancel', [AdminLeaveRequestController::class, 'cancel']);
     Route::get('schedule/bookings', [AdminScheduleController::class, 'bookings']);
     Route::post('schedule/bookings', [AdminScheduleController::class, 'storeBooking']);
     Route::put('schedule/bookings/{booking}', [AdminScheduleController::class, 'updateBooking']);
@@ -177,7 +184,7 @@ Route::middleware(['auth:sanctum', 'admin', 'admin.permission', 'subadmin.activi
     Route::delete('schedule/teachers/{teacher}/availability/overrides/{override}', [AdminScheduleController::class, 'destroyAvailabilityOverride']);
 });
 
-Route::middleware(['auth:sanctum', 'role:common_teacher|master_teacher'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'active', 'role:common_teacher|master_teacher'])->group(function (): void {
     Route::get('teacher/profile', [TeacherProfileController::class, 'show']);
     Route::put('teacher/profile', [TeacherProfileController::class, 'update']);
     Route::get('teacher/requests', [TeacherAdminRequestController::class, 'index']);
@@ -196,7 +203,7 @@ Route::middleware(['auth:sanctum', 'role:common_teacher|master_teacher'])->group
     Route::post('teacher/schedule/bookings/{booking}/whatsapp', [TeacherScheduleController::class, 'whatsappStudent']);
 });
 
-Route::middleware(['auth:sanctum', 'role:master_teacher'])->prefix('teacher')->group(function (): void {
+Route::middleware(['auth:sanctum', 'active', 'role:master_teacher'])->prefix('teacher')->group(function (): void {
     Route::get('students/{student}', [TeacherStudentController::class, 'show']);
     Route::get('students/{student}/results', [TeacherStudentResultController::class, 'show']);
     Route::get('students/{student}/feedback', [TeacherStudentFeedbackController::class, 'index']);
@@ -205,7 +212,7 @@ Route::middleware(['auth:sanctum', 'role:master_teacher'])->prefix('teacher')->g
     Route::get('students/{student}/learning-journal/{journey}/{week}', [TeacherStudentLearningController::class, 'week']);
 });
 
-Route::middleware(['auth:sanctum', 'role:master_teacher'])->prefix('master-teacher')->group(function (): void {
+Route::middleware(['auth:sanctum', 'active', 'role:master_teacher'])->prefix('master-teacher')->group(function (): void {
     Route::get('dashboard', [MasterTeacherDashboardController::class, 'show']);
     Route::get('students', [MasterTeacherStudentController::class, 'index']);
     Route::get('students/{student}', [MasterTeacherStudentController::class, 'show']);
@@ -221,7 +228,7 @@ Route::middleware(['auth:sanctum', 'role:master_teacher'])->prefix('master-teach
     Route::post('students/{student}/promote', [MasterTeacherStudentLearningController::class, 'promote']);
 });
 
-Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->group(function (): void {
+Route::middleware(['auth:sanctum', 'active', 'role:student'])->prefix('student')->group(function (): void {
     Route::get('profile', [ProfileController::class, 'show']);
     Route::get('assessment', [StudentAssessmentController::class, 'show']);
     Route::post('assessment/{aptitudeAssessment}/submit', [StudentAssessmentController::class, 'submit']);

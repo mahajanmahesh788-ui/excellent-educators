@@ -15,6 +15,7 @@ class StudentCodeSequence extends Model
     protected $fillable = [
         'campaign_code',
         'academic_year',
+        'month',
         'last_seq',
     ];
 
@@ -22,6 +23,7 @@ class StudentCodeSequence extends Model
     {
         return [
             'academic_year' => 'integer',
+            'month' => 'integer',
             'last_seq' => 'integer',
         ];
     }

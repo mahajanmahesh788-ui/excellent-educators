@@ -2,25 +2,33 @@
 
 namespace App\Actions\Identity;
 
+use App\Support\AppClock;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 class GenerateStudentCode
 {
-    public function execute(int $academicYear): string
+    public function execute(?CarbonInterface $at = null): string
     {
         $campaign = strtoupper((string) config('excellent_educators.student_id.campaign_code', 'APS'));
-        $yearSuffix = str_pad((string) ($academicYear % 100), 2, '0', STR_PAD_LEFT);
+        $now = ($at ?? AppClock::now())->copy()->timezone(config('app.timezone'));
+        $academicYear = (int) $now->year;
+        $month = (int) $now->month;
+        $yearSuffix = $now->format('y');
+        $monthSuffix = $now->format('m');
 
-        return DB::transaction(function () use ($campaign, $academicYear, $yearSuffix): string {
+        return DB::transaction(function () use ($campaign, $academicYear, $month, $yearSuffix, $monthSuffix): string {
             $exists = DB::table('student_code_sequences')
                 ->where('campaign_code', $campaign)
                 ->where('academic_year', $academicYear)
+                ->where('month', $month)
                 ->exists();
 
             if (! $exists) {
                 DB::table('student_code_sequences')->insert([
                     'campaign_code' => $campaign,
                     'academic_year' => $academicYear,
+                    'month' => $month,
                     'last_seq' => 0,
                 ]);
             }
@@ -28,6 +36,7 @@ class GenerateStudentCode
             $sequence = DB::table('student_code_sequences')
                 ->where('campaign_code', $campaign)
                 ->where('academic_year', $academicYear)
+                ->where('month', $month)
                 ->lockForUpdate()
                 ->first();
 
@@ -36,9 +45,10 @@ class GenerateStudentCode
             DB::table('student_code_sequences')
                 ->where('campaign_code', $campaign)
                 ->where('academic_year', $academicYear)
+                ->where('month', $month)
                 ->update(['last_seq' => $next]);
 
-            return sprintf('%s-%04d', $yearSuffix, $next);
+            return sprintf('%s-%s-%02d', $yearSuffix, $monthSuffix, $next);
         });
     }
 }

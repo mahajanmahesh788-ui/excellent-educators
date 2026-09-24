@@ -27,6 +27,8 @@ import 'package:excellent_educators_web/features/learning/presentation/pages/sta
 import 'package:excellent_educators_web/features/learning/presentation/pages/student_learning_journal_page.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_attendance_page.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_leave_request_page.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_leaves_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_schedule_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/teacher_availability_editor.dart';
 import 'package:excellent_educators_web/features/content/data/dto/site_page_dto.dart';
@@ -44,6 +46,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
   ref.listen(authControllerProvider, (_, _) {
@@ -52,6 +56,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: RoutePaths.login,
     refreshListenable: refresh,
     redirect: (context, state) {
@@ -85,6 +90,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           isCommonTeacher: user.isCommonTeacher,
           isMasterTeacher: user.isMasterTeacher,
           isStudent: user.isStudent,
+          isAgent: user.isAgent,
         );
         if (loggingIn ||
             location == RoutePaths.session ||
@@ -105,7 +111,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         if (location.startsWith('/admin') &&
             user.isAdmin &&
             !AdminPermission.canOpenPath(user, location)) {
-          return RoutePaths.adminDashboard;
+          return home;
         }
         if (location.startsWith(RoutePaths.teacherBatches)) {
           return RoutePaths.teacherDaySchedule;
@@ -155,6 +161,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     isCommonTeacher: user.isCommonTeacher,
                     isMasterTeacher: user.isMasterTeacher,
                     isStudent: user.isStudent,
+                    isAgent: user.isAgent,
                   ),
                 );
               },
@@ -318,6 +325,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             AdminTeacherHistoryPage(teacherId: state.pathParameters['id']!),
       ),
       GoRoute(
+        path: RoutePaths.adminTeacherLeaves,
+        builder: (context, state) =>
+            AdminTeacherLeavesPage(teacherId: state.pathParameters['id']!),
+      ),
+      GoRoute(
         path: RoutePaths.adminTeacherPromoted,
         builder: (context, state) =>
             AdminTeacherPromotedPage(teacherId: state.pathParameters['id']!),
@@ -373,8 +385,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AdminSchedulePage(),
       ),
       GoRoute(
+        path: RoutePaths.adminLeaves,
+        builder: (context, state) => const AdminLeavesPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminLeaveRequestDetail,
+        builder: (context, state) => AdminLeaveRequestPage(
+          groupId: state.pathParameters['groupId']!,
+        ),
+      ),
+      GoRoute(
         path: RoutePaths.adminGoogleMeet,
         redirect: (context, state) => RoutePaths.adminSettings,
+      ),
+      // Legacy leave-request deep links
+      GoRoute(
+        path: '/admin/schedule/leave-requests/:groupId',
+        redirect: (context, state) =>
+            RoutePaths.adminLeaveRequest(state.pathParameters['groupId']!),
       ),
       GoRoute(
         path: RoutePaths.adminAttendance,

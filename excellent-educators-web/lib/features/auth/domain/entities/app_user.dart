@@ -6,6 +6,7 @@ class AppUser {
     required this.status,
     required this.roles,
     this.permissions = const [],
+    this.adminType,
     this.lastLoginAt,
   });
 
@@ -15,12 +16,15 @@ class AppUser {
   final String status;
   final List<String> roles;
   final List<String> permissions;
+  final String? adminType;
   final String? lastLoginAt;
 
   bool get isFullAdmin =>
       roles.contains('super_admin') || roles.contains('operational_admin');
 
   bool get isSubAdmin => roles.contains('sub_admin');
+
+  bool get isAgent => isSubAdmin && adminType == 'agent';
 
   bool get isAdmin => isFullAdmin || isSubAdmin;
 
@@ -29,6 +33,8 @@ class AppUser {
   bool get isMasterTeacher => roles.contains('master_teacher');
 
   bool get isStudent => roles.contains('student');
+
+  bool get isActive => status == 'active';
 
   bool canAdmin(String permission) => isFullAdmin || permissions.contains(permission);
 

@@ -3,6 +3,7 @@
 namespace App\Actions\Scheduling;
 
 use App\Actions\Notifications\NotifyAdminsOfStudentBookingFailure;
+use App\Actions\Notifications\NotifyTeacherOfStudentBooking;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
 use App\Exceptions\ApiException;
@@ -15,6 +16,7 @@ use App\Scheduling\SlotGrid;
 use App\Support\AppClock;
 use App\Support\ErrorCode;
 use App\Support\StudentActivity;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -25,6 +27,7 @@ class RescheduleSessionBooking
         private readonly BookingEligibility $eligibility,
         private readonly TeacherDailyMeetingService $meetings,
         private readonly NotifyAdminsOfStudentBookingFailure $notifyAdmins,
+        private readonly NotifyTeacherOfStudentBooking $notifyTeacher,
     ) {}
 
     /**
@@ -35,6 +38,14 @@ class RescheduleSessionBooking
         if ($booking->status === SessionBookingStatus::Cancelled) {
             throw new ApiException(ErrorCode::CONFLICT, 'Cancelled bookings cannot be rescheduled.', 409);
         }
+
+        $booking->loadMissing(['student', 'teacher']);
+        $previousTeacher = $booking->teacher;
+        $previousDate = $booking->date?->toDateString();
+        $previousWhen = trim(
+            ($previousDate !== null ? Carbon::parse($previousDate)->format('d M Y') : '')
+            .' at '.AppClock::formatTime($booking->starts_at)
+        );
 
         $teacher = TeacherProfile::query()->findOrFail($payload['teacher_id'] ?? $booking->teacher_id);
         $date = (string) ($payload['date'] ?? $booking->date?->toDateString());
@@ -65,7 +76,7 @@ class RescheduleSessionBooking
                 }
             }
 
-            return DB::transaction(function () use ($booking, $teacher, $date, $start, $startsAt): SessionBooking {
+            $updated = DB::transaction(function () use ($booking, $teacher, $date, $start, $startsAt): SessionBooking {
                 SessionBooking::query()
                     ->where('teacher_id', $teacher->id)
                     ->whereDate('date', $date)
@@ -111,6 +122,10 @@ class RescheduleSessionBooking
 
                 return $booking->fresh(['student', 'teacher']) ?? $booking;
             });
+
+            $this->notifyTeacher->rescheduled($updated, $previousTeacher, $previousWhen);
+
+            return $updated;
         } catch (Throwable $error) {
             $this->notifyAdmins->execute(
                 $student,

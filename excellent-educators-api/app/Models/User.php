@@ -68,6 +68,16 @@ class User extends Authenticatable
         ]);
     }
 
+    public function isSubAdmin(): bool
+    {
+        return $this->hasRole(RoleName::SubAdmin->value);
+    }
+
+    public function isAgent(): bool
+    {
+        return $this->isSubAdmin() && ($this->adminProfile?->isAgent() ?? false);
+    }
+
     public function canAdmin(PermissionName $permission): bool
     {
         if ($this->isFullAdmin()) {

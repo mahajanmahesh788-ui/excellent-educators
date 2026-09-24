@@ -199,7 +199,8 @@ class AppScaffold extends ConsumerWidget {
     }
     return [
       if (user.isAdmin) ...[
-        const _NavItem(AppStrings.dashboard, Icons.dashboard_outlined, RoutePaths.adminDashboard),
+        if (!user.isAgent)
+          const _NavItem(AppStrings.dashboard, Icons.dashboard_outlined, RoutePaths.adminDashboard),
         if (user.canAnyAdmin(const [
           AdminPermission.studentsView,
           AdminPermission.studentsCreate,
@@ -209,30 +210,36 @@ class AppScaffold extends ConsumerWidget {
           AdminPermission.studentsRating,
         ]))
           const _NavItem(AppStrings.students, Icons.school_outlined, RoutePaths.adminStudents),
-        if (user.canAnyAdmin(const [
+        if (!user.isAgent && user.canAnyAdmin(const [
           AdminPermission.teachersView,
           AdminPermission.teachersCreate,
           AdminPermission.teachersEdit,
           AdminPermission.teachersDelete,
           AdminPermission.teachersSchedule,
+          AdminPermission.teachersLeaves,
         ]))
           const _NavItem(AppStrings.teachers, Icons.badge_outlined, RoutePaths.adminTeachers),
-        if (user.canAnyAdmin(const [AdminPermission.levelsView, AdminPermission.levelsManage]))
+        if (!user.isAgent && user.canAnyAdmin(const [AdminPermission.levelsView, AdminPermission.levelsManage]))
           const _NavItem(AppStrings.levels, Icons.layers_outlined, RoutePaths.adminBatches),
-        if (user.canAnyAdmin(const [AdminPermission.queriesView, AdminPermission.queriesResolve]))
+        if (!user.isAgent && user.canAnyAdmin(const [AdminPermission.queriesView, AdminPermission.queriesResolve]))
           _NavItem(
             AppStrings.conflicts,
             Icons.report_outlined,
             RoutePaths.adminAttendance,
             badgeCount: pendingConflicts > 0 ? pendingConflicts : null,
           ),
-        if (user.canAnyAdmin(const [AdminPermission.assessmentsView, AdminPermission.assessmentsManage]))
+        if (!user.isAgent && user.canAnyAdmin(const [
+          AdminPermission.teachersLeaves,
+          AdminPermission.teachersSchedule,
+        ]))
+          const _NavItem(AppStrings.leaves, Icons.event_busy_outlined, RoutePaths.adminLeaves),
+        if (!user.isAgent && user.canAnyAdmin(const [AdminPermission.assessmentsView, AdminPermission.assessmentsManage]))
           const _NavItem(AppStrings.assessments, Icons.quiz_outlined, RoutePaths.adminAssessments),
-        if (user.canAdmin(AdminPermission.settingsManage))
+        if (!user.isAgent && user.canAdmin(AdminPermission.settingsManage))
           const _NavItem(AppStrings.settings, Icons.settings_outlined, RoutePaths.adminSettings),
-        if (user.canAnyAdmin(const [AdminPermission.requestsView, AdminPermission.requestsResolve]))
+        if (!user.isAgent && user.canAnyAdmin(const [AdminPermission.requestsView, AdminPermission.requestsResolve]))
           const _NavItem(AppStrings.requests, Icons.support_agent_outlined, RoutePaths.adminRequests),
-        if (user.canAdmin(AdminPermission.subAdminsManage))
+        if (!user.isAgent && user.canAdmin(AdminPermission.subAdminsManage))
           const _NavItem(AppStrings.subAdmins, Icons.admin_panel_settings_outlined, RoutePaths.adminSubAdmins),
       ],
       if (user.isMasterTeacher)

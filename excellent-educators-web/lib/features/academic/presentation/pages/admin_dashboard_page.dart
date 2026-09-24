@@ -73,7 +73,7 @@ class AdminDashboardPage extends ConsumerWidget {
                 ),
                 SizedBox(height: isMobile ? 6 : 10),
                 StatGrid(
-                  children: [
+                children: [
                     StatTile(
                       label: AppStrings.activeStudents,
                       value: '${counts.activeStudents}',
@@ -184,20 +184,20 @@ class AdminDashboardPage extends ConsumerWidget {
                 ),
                 SizedBox(height: isMobile ? 6 : 8),
                 ...data.byLevel.map((level) {
-                  return Padding(
+                return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: Material(
-                      color: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Color(0xFFE6DCCB)),
+                  child: Material(
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Color(0xFFE6DCCB)),
                       ),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(12),
                         onTap: () => context.go(
                           studentsRouteWithFilters(status: 'active', levelId: level.id),
-                        ),
-                        child: Padding(
+                    ),
+                    child: Padding(
                           padding: EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: isMobile ? 8 : 12,
@@ -206,14 +206,14 @@ class AdminDashboardPage extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Row(
-                                children: [
-                                  Expanded(
+                        children: [
+                          Expanded(
                                     child: Text(
                                       level.name,
-                                      style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700),
+                                  style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700),
                                     ),
-                                  ),
-                                  Text(
+                                ),
+                                Text(
                                     '${level.studentCount} students',
                                     style: const TextStyle(color: Brand.muted, fontWeight: FontWeight.w600),
                                   ),

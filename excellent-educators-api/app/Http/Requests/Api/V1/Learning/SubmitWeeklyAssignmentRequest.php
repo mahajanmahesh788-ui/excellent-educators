@@ -19,7 +19,8 @@ class SubmitWeeklyAssignmentRequest extends FormRequest
         return [
             'answers' => ['required', 'array', 'min:1'],
             'answers.*.question_id' => ['required', 'ulid'],
-            'answers.*.option_id' => ['required', 'ulid'],
+            'answers.*.option_id' => ['nullable', 'ulid'],
+            'answers.*.text_answer' => ['nullable', 'string', 'max:250'],
         ];
     }
 }

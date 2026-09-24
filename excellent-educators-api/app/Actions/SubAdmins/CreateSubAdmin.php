@@ -2,6 +2,7 @@
 
 namespace App\Actions\SubAdmins;
 
+use App\Enums\AdminAccountType;
 use App\Enums\PermissionName;
 use App\Enums\RoleName;
 use App\Enums\UserStatus;
@@ -17,6 +18,9 @@ class CreateSubAdmin
     public function execute(array $input): User
     {
         return DB::transaction(function () use ($input): User {
+            $type = AdminAccountType::tryFrom((string) ($input['type'] ?? AdminAccountType::Admin->value))
+                ?? AdminAccountType::Admin;
+
             $user = User::query()->create([
                 'name' => $input['name'],
                 'email' => $input['email'],
@@ -29,9 +33,10 @@ class CreateSubAdmin
                 'user_id' => $user->id,
                 'phone' => $input['phone'] ?? null,
                 'gender' => $input['gender'] ?? null,
+                'type' => $type,
             ]);
 
-            $user->syncPermissions(self::enabledKeys($input['permissions'] ?? []));
+            $user->syncPermissions(self::enabledKeys($input['permissions'] ?? [], $type));
 
             return $user->load('adminProfile', 'roles', 'permissions');
         });
@@ -40,9 +45,12 @@ class CreateSubAdmin
     /**
      * @return list<string>
      */
-    public static function enabledKeys(mixed $permissions): array
+    public static function enabledKeys(mixed $permissions, AdminAccountType $type = AdminAccountType::Admin): array
     {
-        $allowed = array_map(fn (PermissionName $p) => $p->value, PermissionName::subAdminToggles());
+        $allowed = array_map(
+            fn (PermissionName $p) => $p->value,
+            $type->isAgent() ? PermissionName::agentToggles() : PermissionName::subAdminToggles(),
+        );
 
         if (is_array($permissions) && array_is_list($permissions)) {
             return array_values(array_intersect($allowed, array_map('strval', $permissions)));

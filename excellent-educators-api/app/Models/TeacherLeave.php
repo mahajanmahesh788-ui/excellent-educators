@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TeacherLeaveStatus;
 use App\Support\AppClock;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -12,12 +13,17 @@ class TeacherLeave extends Model
     use HasUlids;
 
     protected $fillable = [
+        'request_group_id',
         'teacher_id',
         'date',
         'start_time',
         'end_time',
         'is_full_day',
         'reason',
+        'status',
+        'reviewed_by',
+        'reviewed_at',
+        'rejection_reason',
         'created_by',
     ];
 
@@ -26,6 +32,8 @@ class TeacherLeave extends Model
         return [
             'date' => 'date',
             'is_full_day' => 'boolean',
+            'status' => TeacherLeaveStatus::class,
+            'reviewed_at' => 'datetime',
         ];
     }
 
@@ -37,6 +45,11 @@ class TeacherLeave extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 
     public function dateHasPassed(): bool
@@ -53,6 +66,7 @@ class TeacherLeave extends Model
     {
         return [
             'id' => $this->id,
+            'request_group_id' => $this->request_group_id,
             'teacher_id' => $this->teacher_id,
             'teacher_name' => $this->relationLoaded('teacher') ? $this->teacher?->full_name : null,
             'date' => $this->date?->toDateString(),
@@ -60,6 +74,9 @@ class TeacherLeave extends Model
             'end_time' => substr((string) $this->end_time, 0, 5),
             'is_full_day' => $this->is_full_day,
             'reason' => $this->reason,
+            'status' => $this->status?->value ?? TeacherLeaveStatus::Approved->value,
+            'rejection_reason' => $this->rejection_reason,
+            'reviewed_at' => $this->reviewed_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

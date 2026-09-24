@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Support\AdminActivity;
 use Closure;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -16,7 +17,12 @@ class RecordSubAdminActivity
 
         if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300) {
             try {
-                AdminActivity::fromRequest($request);
+                $payload = null;
+                if ($response instanceof JsonResponse) {
+                    $data = $response->getData(true);
+                    $payload = is_array($data) ? ($data['data'] ?? null) : null;
+                }
+                AdminActivity::fromRequest($request, is_array($payload) ? $payload : null);
             } catch (Throwable) {
                 // Activity logging must not break the request.
             }

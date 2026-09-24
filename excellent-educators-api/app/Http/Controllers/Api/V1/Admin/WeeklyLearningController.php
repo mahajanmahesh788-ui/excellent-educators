@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Actions\Learning\SyncWeeklyOptionDimensionCodes;
+use App\Enums\WeeklyQuestionType;
 use App\Http\Controllers\Api\V1\Concerns\AuthorizesLearningJournal;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Learning\UpsertWeeklyLearningRequest;
@@ -51,11 +52,18 @@ class WeeklyLearningController extends Controller
             $unit->questions()->delete();
 
             foreach ($data['questions'] as $index => $questionData) {
+                $type = WeeklyQuestionType::from($questionData['question_type']);
                 $question = $unit->questions()->create([
                     'question_text' => $questionData['question_text'],
+                    'question_type' => $type,
                     'display_order' => $index + 1,
                 ]);
-                foreach ($questionData['options'] as $optionIndex => $optionData) {
+
+                if ($type !== WeeklyQuestionType::Options) {
+                    continue;
+                }
+
+                foreach ($questionData['options'] ?? [] as $optionIndex => $optionData) {
                     $option = $question->options()->create([
                         'option_text' => $optionData['option_text'],
                         'display_order' => $optionIndex + 1,
@@ -83,6 +91,7 @@ class WeeklyLearningController extends Controller
             'questions' => $unit->questions->map(fn ($question) => [
                 'id' => $question->id,
                 'question_text' => $question->question_text,
+                'question_type' => $question->question_type->value,
                 'display_order' => $question->display_order,
                 'options' => $question->options->map(fn ($option) => [
                     'id' => $option->id,

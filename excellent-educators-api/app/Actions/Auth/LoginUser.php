@@ -28,7 +28,7 @@ class LoginUser
         if ($user->status !== UserStatus::Active) {
             throw new ApiException(
                 ErrorCode::ACCOUNT_INACTIVE,
-                'This account is not active.',
+                'Your account has been disabled by the admin. Kindly contact support.',
                 403,
             );
         }

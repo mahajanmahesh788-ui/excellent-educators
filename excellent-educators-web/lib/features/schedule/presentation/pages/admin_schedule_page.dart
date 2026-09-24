@@ -1,4 +1,5 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -8,6 +9,7 @@ import 'package:excellent_educators_web/features/schedule/presentation/providers
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/schedule_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class AdminSchedulePage extends ConsumerStatefulWidget {
@@ -78,32 +80,26 @@ class _AdminSchedulePageState extends ConsumerState<AdminSchedulePage> {
           children: [
             for (final leave in items)
               ListTile(
+                onTap: leave.requestGroupId.isEmpty
+                    ? null
+                    : () => context.go(
+                          RoutePaths.adminLeaveRequest(leave.requestGroupId),
+                        ),
                 title: Text('${leave.teacherName ?? ''} · ${leave.date}'),
                 subtitle: Text(
                   [
-                    leave.isFullDay ? AppStrings.fullDay2 : '${formatHm(leave.startTime)} – ${formatHm(leave.endTime)}',
+                    leave.statusLabel,
+                    leave.isFullDay
+                        ? AppStrings.fullDay2
+                        : (leave.ranges.isNotEmpty
+                            ? '${formatHm(leave.ranges.first.startTime)} – ${formatHm(leave.ranges.first.endTime)}'
+                            : AppStrings.partial),
                     if ((leave.reason ?? '').trim().isNotEmpty) leave.reason!.trim(),
+                    if (leave.affectedCount > 0)
+                      '${leave.reassignedCount}/${leave.affectedCount} reassigned',
                   ].join(' · '),
                 ),
-                trailing: IconButton(
-                  tooltip: isScheduleDatePast(leave.date) ? AppStrings.pastLeaveCannotBeRemoved : AppStrings.removeLeave,
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: isScheduleDatePast(leave.date)
-                      ? null
-                      : () async {
-                    final ok = await showAppConfirmDialog(
-                      context,
-                      title: AppStrings.removeLeave2,
-                      message: AppStrings.thisWillMakeTheTeacherAvailableAgainForThatTime,
-                      confirmLabel: AppStrings.remove,
-                      destructive: true,
-                    );
-                    if (!ok) return;
-                    await ref.read(scheduleRepositoryProvider).adminDeleteLeave(leave.id);
-                    ref.invalidate(adminScheduleLeavesProvider);
-                    ref.invalidate(adminScheduleDayProvider);
-                  },
-                ),
+                trailing: const Icon(Icons.chevron_right),
               ),
           ],
         ),

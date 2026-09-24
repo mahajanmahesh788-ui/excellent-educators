@@ -29,7 +29,7 @@ class AuthController extends Controller
             deviceName: $request->string('device_name', 'web')->toString(),
         );
 
-        $result['user']->load('roles');
+        $result['user']->load('roles', 'permissions', 'adminProfile');
 
         return ApiResponse::success('Logged in successfully.', [
             'token' => $result['token'],
@@ -52,7 +52,7 @@ class AuthController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $user->load('roles', 'permissions');
+        $user->load('roles', 'permissions', 'adminProfile');
 
         return ApiResponse::success('Current user fetched successfully.', UserResource::make($user)->resolve());
     }

@@ -9,6 +9,7 @@ use App\Models\TeacherProfile;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class AcademicCoreTest extends TestCase
@@ -19,6 +20,13 @@ class AcademicCoreTest extends TestCase
     {
         parent::setUp();
         $this->seed([RoleSeeder::class]);
+        Carbon::setTestNow(Carbon::parse('2026-02-10 10:00:00', 'Asia/Kolkata'));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     public function test_admin_creates_student_with_generated_code(): void
@@ -37,7 +45,7 @@ class AcademicCoreTest extends TestCase
 
         $response
             ->assertCreated()
-            ->assertJsonPath('data.student_code', '26-0001')
+            ->assertJsonPath('data.student_code', '26-02-01')
             ->assertJsonPath('data.phone', '9876543210')
             ->assertJsonPath('data.class_grade', 5)
             ->assertJsonPath('data.gender', 'male');
@@ -58,7 +66,7 @@ class AcademicCoreTest extends TestCase
             'class_grade' => 5,
             'gender' => 'male',
             'academic_year' => 2026,
-            'student_code' => '26-9999',
+            'student_code' => '26-02-99',
         ])->assertUnprocessable();
     }
 
@@ -336,7 +344,7 @@ class AcademicCoreTest extends TestCase
 
         $response
             ->assertCreated()
-            ->assertJsonPath('data.student_code', '26-0001')
+            ->assertJsonPath('data.student_code', '26-02-01')
             ->assertJsonPath('data.class_grade', 5)
             ->assertJsonPath('data.address', 'Flat 402, Green Meadows, Mumbai');
 
@@ -352,7 +360,7 @@ class AcademicCoreTest extends TestCase
 
         $response10
             ->assertCreated()
-            ->assertJsonPath('data.student_code', '26-0002')
+            ->assertJsonPath('data.student_code', '26-02-02')
             ->assertJsonPath('data.class_grade', 10);
     }
 

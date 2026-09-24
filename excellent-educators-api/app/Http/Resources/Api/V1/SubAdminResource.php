@@ -2,7 +2,9 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Enums\AdminAccountType;
 use App\Enums\PermissionName;
+use App\Models\AdminActivityEvent;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -29,8 +31,13 @@ class SubAdminResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->adminProfile?->phone,
             'gender' => $this->adminProfile?->gender?->value ?? $this->adminProfile?->gender,
+            'type' => $this->adminProfile?->type?->value ?? AdminAccountType::Admin->value,
             'status' => $this->status?->value ?? $this->status,
             'permissions' => $permissions,
+            'students_created_count' => AdminActivityEvent::query()
+                ->where('actor_id', $this->id)
+                ->where('type', 'student.create')
+                ->count(),
             'last_login_at' => $this->last_login_at?->toIso8601String(),
         ];
     }

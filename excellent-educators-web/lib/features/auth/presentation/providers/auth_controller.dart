@@ -11,12 +11,16 @@ class AuthState {
     this.isReady = false,
     this.isLoading = false,
     this.error,
+    this.errorCode,
+    this.accountDisabled = false,
   });
 
   final AppUser? user;
   final bool isReady;
   final bool isLoading;
   final String? error;
+  final String? errorCode;
+  final bool accountDisabled;
 
   bool get isAuthenticated => user != null;
 
@@ -25,6 +29,8 @@ class AuthState {
     bool? isReady,
     bool? isLoading,
     String? error,
+    String? errorCode,
+    bool? accountDisabled,
     bool clearUser = false,
     bool clearError = false,
   }) {
@@ -33,6 +39,8 @@ class AuthState {
       isReady: isReady ?? this.isReady,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
+      errorCode: clearError ? null : (errorCode ?? this.errorCode),
+      accountDisabled: accountDisabled ?? this.accountDisabled,
     );
   }
 }
@@ -52,26 +60,57 @@ class AuthController extends StateNotifier<AuthState> {
     }
     try {
       final user = await _repository.me();
+      if (!user.isActive) {
+        await _repository.logout();
+        state = const AuthState(isReady: true, accountDisabled: true);
+        return;
+      }
       state = AuthState(user: user, isReady: true);
+    } on Failure catch (error) {
+      if (error.code == 'ACCOUNT_INACTIVE') {
+        await _repository.logout();
+        state = const AuthState(isReady: true, accountDisabled: true);
+        return;
+      }
+      state = const AuthState(isReady: true);
     } catch (_) {
       state = const AuthState(isReady: true);
     }
   }
 
   Future<bool> login({required String email, required String password}) async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    state = state.copyWith(isLoading: true, clearError: true, accountDisabled: false);
     try {
       final user = await _repository.login(email: email, password: password);
+      if (!user.isActive) {
+        await _repository.logout();
+        state = const AuthState(
+          isReady: true,
+          accountDisabled: true,
+          error: AppStrings.accountDisabledByAdmin,
+          errorCode: 'ACCOUNT_INACTIVE',
+        );
+        return false;
+      }
       state = AuthState(user: user, isReady: true);
       return true;
     } on Failure catch (error) {
-      state = state.copyWith(isReady: true, isLoading: false, error: error.message);
+      final disabled = error.code == 'ACCOUNT_INACTIVE';
+      state = state.copyWith(
+        isReady: true,
+        isLoading: false,
+        error: disabled ? AppStrings.accountDisabledByAdmin : error.message,
+        errorCode: error.code,
+        accountDisabled: disabled,
+        clearUser: true,
+      );
       return false;
     } catch (_) {
       state = state.copyWith(
         isReady: true,
         isLoading: false,
         error: AppStrings.unableToSignInPleaseTryAgain,
+        clearUser: true,
       );
       return false;
     }
@@ -80,6 +119,14 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> logout() async {
     await _repository.logout();
     state = const AuthState(isReady: true);
+  }
+
+  void handleAccountDisabled() {
+    state = const AuthState(isReady: true, accountDisabled: true);
+  }
+
+  void clearAccountDisabled() {
+    state = state.copyWith(accountDisabled: false);
   }
 
   Future<void> forgotPassword(String email) async {

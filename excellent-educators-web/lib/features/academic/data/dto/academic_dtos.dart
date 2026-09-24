@@ -1349,6 +1349,7 @@ class StudentActivityDto {
     required this.occurredAt,
     required this.type,
     required this.message,
+    this.studentName,
   });
 
   factory StudentActivityDto.fromJson(Map<String, dynamic> json) {
@@ -1356,12 +1357,14 @@ class StudentActivityDto {
       occurredAt: json['occurred_at'] as String? ?? '',
       type: json['type'] as String? ?? '',
       message: json['message'] as String? ?? '',
+      studentName: json['student_name'] as String?,
     );
   }
 
   final String occurredAt;
   final String type;
   final String message;
+  final String? studentName;
 }
 
 class PermissionCatalogGroupDto {
@@ -1414,6 +1417,8 @@ class SubAdminDto {
     required this.gender,
     required this.status,
     required this.permissions,
+    this.type = 'admin',
+    this.studentsCreatedCount = 0,
     this.lastLoginAt,
   });
 
@@ -1432,7 +1437,10 @@ class SubAdminDto {
       phone: json['phone'] as String? ?? '',
       gender: json['gender'] as String? ?? '',
       status: json['status'] as String? ?? 'active',
+      type: json['type'] as String? ?? 'admin',
       permissions: permissions,
+      studentsCreatedCount:
+          (json['students_created_count'] as num?)?.toInt() ?? 0,
       lastLoginAt: json['last_login_at'] as String?,
     );
   }
@@ -1443,8 +1451,11 @@ class SubAdminDto {
   final String phone;
   final String gender;
   final String status;
+  final String type;
   final Map<String, bool> permissions;
+  final int studentsCreatedCount;
   final String? lastLoginAt;
 
   bool get isActive => status == 'active';
+  bool get isAgent => type == 'agent';
 }

@@ -69,12 +69,12 @@ class ScheduleRepository with MapsApiFailures {
     return runApi(() => _client.delete(ApiEndpoints.teacherScheduleLeave(id)));
   }
 
-  Future<List<ScheduleLeaveDto>> teacherLeaves() {
+  Future<List<LeaveRequestDto>> teacherLeaves() {
     return runApi(() async {
       final items = await _client.getList(ApiEndpoints.teacherScheduleLeaves);
       return items
           .whereType<Map>()
-          .map((item) => ScheduleLeaveDto.fromJson(Map<String, dynamic>.from(item)))
+          .map((item) => LeaveRequestDto.fromJson(Map<String, dynamic>.from(item)))
           .toList();
     });
   }
@@ -281,7 +281,7 @@ class ScheduleRepository with MapsApiFailures {
         }));
   }
 
-  Future<List<ScheduleLeaveDto>> adminLeaves({String? teacherId}) {
+  Future<List<LeaveRequestDto>> adminLeaves({String? teacherId}) {
     return runApi(() async {
       final items = await _client.getList(
         ApiEndpoints.adminScheduleLeaves,
@@ -289,8 +289,70 @@ class ScheduleRepository with MapsApiFailures {
       );
       return items
           .whereType<Map>()
-          .map((item) => ScheduleLeaveDto.fromJson(Map<String, dynamic>.from(item)))
+          .map((item) => LeaveRequestDto.fromJson(Map<String, dynamic>.from(item)))
           .toList();
+    });
+  }
+
+  Future<LeaveRequestDto> adminLeaveRequest(String groupId) {
+    return runApi(() async {
+      final json = await _client.get(ApiEndpoints.adminLeaveRequest(groupId));
+      return LeaveRequestDto.fromJson(json!);
+    });
+  }
+
+  Future<List<LeaveReplacementTeacherDto>> adminLeaveReplacements({
+    required String groupId,
+    required String bookingId,
+  }) {
+    return runApi(() async {
+      final json = await _client.get(
+        ApiEndpoints.adminLeaveRequestReplacements(groupId, bookingId),
+      );
+      final teachers = json?['teachers'] as List<dynamic>? ?? const [];
+      return teachers
+          .whereType<Map>()
+          .map(
+            (item) => LeaveReplacementTeacherDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList();
+    });
+  }
+
+  Future<LeaveRequestDto> adminAssignLeaveReplacement({
+    required String groupId,
+    required String bookingId,
+    String? replacementTeacherId,
+  }) {
+    return runApi(() async {
+      final json = await _client.put(
+        ApiEndpoints.adminLeaveRequestReassignment(groupId, bookingId),
+        data: {'replacement_teacher_id': replacementTeacherId},
+      );
+      return LeaveRequestDto.fromJson(json!);
+    });
+  }
+
+  Future<LeaveRequestDto> adminApproveLeaveRequest(String groupId) {
+    return runApi(() async {
+      final json =
+          await _client.post(ApiEndpoints.adminLeaveRequestApprove(groupId));
+      return LeaveRequestDto.fromJson(json!);
+    });
+  }
+
+  Future<LeaveRequestDto> adminRejectLeaveRequest(
+    String groupId, {
+    String? reason,
+  }) {
+    return runApi(() async {
+      final json = await _client.post(
+        ApiEndpoints.adminLeaveRequestReject(groupId),
+        data: {if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim()},
+      );
+      return LeaveRequestDto.fromJson(json!);
     });
   }
 

@@ -2,22 +2,27 @@
 
 namespace App\Actions\Scheduling;
 
+use App\Actions\Notifications\NotifyAdminsOfTeacherLeaveSubmitted;
+use App\Enums\TeacherLeaveStatus;
 use App\Exceptions\ApiException;
 use App\Models\TeacherLeave;
+use App\Models\TeacherLeaveReassignment;
 use App\Models\TeacherProfile;
 use App\Models\User;
-use App\Scheduling\AvailabilityCalculator;
+use App\Scheduling\FindBookingsAffectedByLeave;
 use App\Scheduling\SlotGrid;
 use App\Scheduling\TeacherAvailability;
 use App\Support\AppClock;
 use App\Support\ErrorCode;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CreateTeacherLeave
 {
     public function __construct(
-        private readonly AvailabilityCalculator $availability,
         private readonly TeacherAvailability $teacherAvailability,
+        private readonly FindBookingsAffectedByLeave $findAffected,
+        private readonly NotifyAdminsOfTeacherLeaveSubmitted $notifyAdmins,
     ) {}
 
     /**
@@ -43,34 +48,88 @@ class CreateTeacherLeave
             throw new ApiException(ErrorCode::VALIDATION_ERROR, 'Select at least one leave slot.', 422);
         }
 
-        if ($this->availability->overlapsBookings($teacher, $date, $starts)) {
-            throw new ApiException(
-                ErrorCode::LEAVE_OVERLAPS_BOOKING,
-                'This leave period overlaps with an existing booking. Please choose another time.',
-                422,
-            );
-        }
-
         $ranges = $isFullDay
             ? $this->workingRanges($teacher, $date)
             : $this->collapse($starts);
 
-        return DB::transaction(function () use ($teacher, $date, $isFullDay, $reason, $ranges, $actor) {
+        $this->assertNoOverlappingLeave($teacher, $date, $ranges);
+
+        $affected = $this->findAffected->forStarts($teacher, $date, $starts);
+        $status = $affected->isEmpty()
+            ? TeacherLeaveStatus::Pending
+            : TeacherLeaveStatus::ReassignmentPending;
+        $groupId = (string) Str::ulid();
+
+        $created = DB::transaction(function () use (
+            $teacher,
+            $date,
+            $isFullDay,
+            $reason,
+            $ranges,
+            $actor,
+            $status,
+            $groupId,
+            $affected,
+        ) {
             $created = collect();
             foreach ($ranges as [$start, $end]) {
                 $created->push(TeacherLeave::query()->create([
+                    'request_group_id' => $groupId,
                     'teacher_id' => $teacher->id,
                     'date' => $date,
                     'start_time' => $start.':00',
                     'end_time' => $end.':00',
                     'is_full_day' => $isFullDay,
                     'reason' => $reason,
+                    'status' => $status,
                     'created_by' => $actor?->id,
                 ]));
             }
 
+            foreach ($affected as $booking) {
+                TeacherLeaveReassignment::query()->create([
+                    'leave_request_group_id' => $groupId,
+                    'booking_id' => $booking->id,
+                    'replacement_teacher_id' => null,
+                    'assigned_by' => null,
+                    'assigned_at' => null,
+                ]);
+            }
+
             return $created;
         });
+
+        $this->notifyAdmins->execute($teacher, $groupId, $date, $status);
+
+        return $created;
+    }
+
+    /**
+     * @param  list<array{0: string, 1: string}>  $ranges
+     */
+    private function assertNoOverlappingLeave(TeacherProfile $teacher, string $date, array $ranges): void
+    {
+        $existing = TeacherLeave::query()
+            ->where('teacher_id', $teacher->id)
+            ->whereDate('date', $date)
+            ->whereIn('status', TeacherLeaveStatus::activeValues())
+            ->get();
+
+        foreach ($existing as $leave) {
+            $leaveStart = SlotGrid::parseHm(substr((string) $leave->start_time, 0, 5));
+            $leaveEnd = SlotGrid::parseHm(substr((string) $leave->end_time, 0, 5));
+            foreach ($ranges as [$start, $end]) {
+                $from = SlotGrid::parseHm($start);
+                $to = SlotGrid::parseHm($end);
+                if ($from < $leaveEnd && $leaveStart < $to) {
+                    throw new ApiException(
+                        ErrorCode::LEAVE_OVERLAPS_LEAVE,
+                        'This leave overlaps an existing leave request for the same period.',
+                        422,
+                    );
+                }
+            }
+        }
     }
 
     /**

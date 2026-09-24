@@ -30,7 +30,7 @@ class AdminActivity
         ]);
     }
 
-    public static function fromRequest(Request $request): void
+    public static function fromRequest(Request $request, ?array $responseData = null): void
     {
         $user = $request->user();
         if ($user === null || ! $user->hasRole(RoleName::SubAdmin->value)) {
@@ -47,17 +47,17 @@ class AdminActivity
             return;
         }
 
-        [$type, $message, $related] = self::describe($request, $method, $path);
-        self::record($user, $type, $message, $related, [
+        [$type, $message, $related, $meta] = self::describe($request, $method, $path, $responseData);
+        self::record($user, $type, $message, $related, array_merge([
             'method' => $method,
             'path' => $path,
-        ]);
+        ], $meta));
     }
 
     /**
-     * @return array{0: string, 1: string, 2: mixed}
+     * @return array{0: string, 1: string, 2: mixed, 3: array<string, mixed>}
      */
-    private static function describe(Request $request, string $method, string $path): array
+    private static function describe(Request $request, string $method, string $path, ?array $responseData = null): array
     {
         $student = $request->route('student');
         $teacher = $request->route('teacher');
@@ -76,54 +76,67 @@ class AdminActivity
                 ? (AcademicLevel::query()->find($to)?->name ?? 'a new level')
                 : 'a new level';
 
-            return ['student.promote', "Updated {$studentName} to {$levelName}", $student];
+            return ['student.promote', "Updated {$studentName} to {$levelName}", $student, []];
         }
         if (Str::is('admin/students/*/mentor', $path) && $method === 'DELETE') {
-            return ['student.mentor', "Removed master teacher from {$studentName}", $student];
+            return ['student.mentor', "Removed master teacher from {$studentName}", $student, []];
         }
         if (Str::is('admin/students/*/mentor', $path)) {
-            return ['student.mentor', "Assigned a master teacher to {$studentName}", $student];
+            return ['student.mentor', "Assigned a master teacher to {$studentName}", $student, []];
         }
         if (Str::is('admin/students/*/feedback*', $path)) {
             $verb = $method === 'DELETE' ? 'Deleted' : ($method === 'POST' ? 'Added' : 'Edited');
 
-            return ['student.rating', "{$verb} monthly rating for {$studentName}", $student];
+            return ['student.rating', "{$verb} monthly rating for {$studentName}", $student, []];
         }
         if ($path === 'admin/students' && $method === 'POST') {
-            return ['student.create', "Created student login for {$studentName}", $student];
+            $createdName = is_string($responseData['full_name'] ?? null)
+                ? $responseData['full_name']
+                : $studentName;
+            $createdId = is_string($responseData['id'] ?? null) ? $responseData['id'] : null;
+
+            return [
+                'student.create',
+                "Created student login for {$createdName}",
+                null,
+                array_filter([
+                    'student_name' => $createdName !== '' ? $createdName : null,
+                    'student_id' => $createdId,
+                ]),
+            ];
         }
         if (Str::is('admin/students/*', $path) && $method === 'DELETE') {
-            return ['student.delete', "Deleted student {$studentName}", $student];
+            return ['student.delete', "Deleted student {$studentName}", $student, []];
         }
         if (Str::is('admin/students/*', $path)) {
-            return ['student.edit', "Edited student {$studentName}", $student];
+            return ['student.edit', "Edited student {$studentName}", $student, []];
         }
 
         if ($path === 'admin/teachers' && $method === 'POST') {
-            return ['teacher.create', "Created teacher login for {$teacherName}", $teacher];
+            return ['teacher.create', "Created teacher login for {$teacherName}", $teacher, []];
         }
         if (Str::is('admin/teachers/*', $path) && $method === 'DELETE') {
-            return ['teacher.delete', "Deleted teacher {$teacherName}", $teacher];
+            return ['teacher.delete', "Deleted teacher {$teacherName}", $teacher, []];
         }
         if (Str::is('admin/teachers/*', $path)) {
-            return ['teacher.edit', "Edited teacher {$teacherName}", $teacher];
+            return ['teacher.edit', "Edited teacher {$teacherName}", $teacher, []];
         }
         if (Str::is('admin/schedule*', $path)) {
-            return ['teacher.schedule', self::scheduleMessage($method, $path, $teacherName), $teacher ?? $booking];
+            return ['teacher.schedule', self::scheduleMessage($method, $path, $teacherName), $teacher ?? $booking, []];
         }
 
         if (Str::is('admin/attendance/*/resolve', $path)) {
-            return ['query.resolve', 'Resolved a class conflict / query', $issue];
+            return ['query.resolve', 'Resolved a class conflict / query', $issue, []];
         }
 
         if (Str::is('admin/requests/*/resolve', $path)) {
-            return ['request.resolve', 'Resolved an admin request', $adminRequest];
+            return ['request.resolve', 'Resolved an admin request', $adminRequest, []];
         }
 
         if (Str::is('admin/assessments*', $path)) {
             $title = self::label($assessment, 'title', $request->input('title')) ?: 'an assessment';
 
-            return ['assessment.manage', self::verb($method).' assessment '.$title, $assessment];
+            return ['assessment.manage', self::verb($method).' assessment '.$title, $assessment, []];
         }
 
         if (Str::is('admin/levels*', $path) || Str::is('admin/batches*', $path)) {
@@ -132,26 +145,26 @@ class AdminActivity
                 ?: 'a level or batch';
 
             if (Str::contains($path, 'students') && $method === 'POST') {
-                return ['level.enroll', "Enrolled a student into {$name}", $batch ?? $level];
+                return ['level.enroll', "Enrolled a student into {$name}", $batch ?? $level, []];
             }
             if (Str::contains($path, 'students') && $method === 'DELETE') {
-                return ['level.unenroll', "Removed a student from {$name}", $batch ?? $level];
+                return ['level.unenroll', "Removed a student from {$name}", $batch ?? $level, []];
             }
             if (Str::contains($path, 'teachers')) {
-                return ['level.teachers', self::verb($method).' master teacher on '.$name, $level];
+                return ['level.teachers', self::verb($method).' master teacher on '.$name, $level, []];
             }
             if (Str::contains($path, 'weekly-learnings')) {
-                return ['level.learning', "Updated weekly learning for {$name}", $level];
+                return ['level.learning', "Updated weekly learning for {$name}", $level, []];
             }
 
-            return ['level.manage', self::verb($method).' '.$name, $level ?? $batch];
+            return ['level.manage', self::verb($method).' '.$name, $level ?? $batch, []];
         }
 
         if (Str::is('admin/settings*', $path) || Str::is('admin/login-page*', $path) || Str::is('admin/site-pages*', $path) || Str::is('admin/google*', $path)) {
-            return ['settings.manage', 'Updated academy settings', null];
+            return ['settings.manage', 'Updated academy settings', null, []];
         }
 
-        return ['admin.action', self::verb($method).' '.$path, null];
+        return ['admin.action', self::verb($method).' '.$path, null, []];
     }
 
     private static function scheduleMessage(string $method, string $path, string $teacherName): string

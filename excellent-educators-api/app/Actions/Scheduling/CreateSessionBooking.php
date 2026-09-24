@@ -3,6 +3,7 @@
 namespace App\Actions\Scheduling;
 
 use App\Actions\Notifications\NotifyAdminsOfStudentBookingFailure;
+use App\Actions\Notifications\NotifyTeacherOfStudentBooking;
 use App\Attendance\AttendanceService;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
@@ -30,6 +31,7 @@ class CreateSessionBooking
         private readonly AttendanceService $attendance,
         private readonly MasterClassBalance $masterClassBalance,
         private readonly NotifyAdminsOfStudentBookingFailure $notifyAdmins,
+        private readonly NotifyTeacherOfStudentBooking $notifyTeacher,
     ) {}
 
     /**
@@ -53,7 +55,7 @@ class CreateSessionBooking
                 $consumeRebooking = $this->assertEligibility($student, $teacher, $type);
             }
 
-            return DB::transaction(function () use ($student, $teacher, $type, $date, $start, $consumeRebooking): SessionBooking {
+            $booking = DB::transaction(function () use ($student, $teacher, $type, $date, $start, $consumeRebooking): SessionBooking {
                 SessionBooking::query()
                     ->where('teacher_id', $teacher->id)
                     ->whereDate('date', $date)
@@ -115,6 +117,10 @@ class CreateSessionBooking
 
                 return $booking;
             });
+
+            $this->notifyTeacher->booked($booking);
+
+            return $booking;
         } catch (Throwable $error) {
             $this->notifyAdmins->execute(
                 $student,

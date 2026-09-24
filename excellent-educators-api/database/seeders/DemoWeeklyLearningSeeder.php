@@ -39,10 +39,11 @@ class DemoWeeklyLearningSeeder extends Seeder
                 foreach ($week['questions'] as $questionIndex => $questionData) {
                     $question = $unit->questions()->create([
                         'question_text' => $questionData['question_text'],
+                        'question_type' => $questionData['question_type'] ?? 'options',
                         'display_order' => $questionIndex + 1,
                     ]);
 
-                    foreach ($questionData['options'] as $optionIndex => $optionData) {
+                    foreach ($questionData['options'] ?? [] as $optionIndex => $optionData) {
                         $option = $question->options()->create([
                             'option_text' => $optionData['option_text'],
                             'display_order' => $optionIndex + 1,

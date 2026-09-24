@@ -63,6 +63,9 @@ class _AdminWeeklyLearningPageState
         showFailure(context, AppStrings.everyQuestionNeedsText);
         return;
       }
+      if (question.isText) {
+        continue;
+      }
       if (question.options.length < 2) {
         showFailure(context, AppStrings.eachQuestionNeedsAtLeastTwoOptions);
         return;
@@ -94,13 +97,16 @@ class _AdminWeeklyLearningPageState
               for (final question in _questions)
                 {
                   'question_text': question.text.text.trim(),
-                  'options': [
-                    for (final option in question.options)
-                      {
-                        'option_text': option.text.text.trim(),
-                        'dimension_codes': option.dimensionCodes,
-                      },
-                  ],
+                  'question_type': question.questionType,
+                  'options': question.isText
+                      ? <Map<String, dynamic>>[]
+                      : [
+                          for (final option in question.options)
+                            {
+                              'option_text': option.text.text.trim(),
+                              'dimension_codes': option.dimensionCodes,
+                            },
+                        ],
                 },
             ],
           );
@@ -315,7 +321,7 @@ class _AdminWeeklyLearningPageState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  AppStrings.answerOptions,
+                  AppStrings.answerType,
                   style: TextStyle(
                     color: Brand.muted,
                     fontSize: 11,
@@ -324,17 +330,73 @@ class _AdminWeeklyLearningPageState
                   ),
                 ),
                 const SizedBox(height: 8),
-                for (
-                  var optionIndex = 0;
-                  optionIndex < question.options.length;
-                  optionIndex++
-                )
-                  _optionEditor(question, optionIndex),
-                TextButton(
-                  onPressed: () =>
-                      setState(() => question.options.add(_OptionDraft())),
-                  child: const Text(AppStrings.addOption),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'options',
+                      label: Text(AppStrings.answerTypeOptions),
+                      icon: Icon(Icons.list_alt_rounded, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: 'text',
+                      label: Text(AppStrings.answerTypeTextField),
+                      icon: Icon(Icons.short_text_rounded, size: 16),
+                    ),
+                  ],
+                  selected: {question.questionType},
+                  onSelectionChanged: (selected) {
+                    setState(() {
+                      question.questionType = selected.first;
+                      if (question.isOptions && question.options.length < 2) {
+                        while (question.options.length < 2) {
+                          question.options.add(_OptionDraft());
+                        }
+                      }
+                    });
+                  },
                 ),
+                const SizedBox(height: 12),
+                if (question.isText)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE8E0D4)),
+                    ),
+                    child: const Text(
+                      AppStrings.textFieldQuestionHint,
+                      style: TextStyle(
+                        color: Brand.muted,
+                        fontSize: 13,
+                        height: 1.35,
+                      ),
+                    ),
+                  )
+                else ...[
+                  const Text(
+                    AppStrings.answerOptions,
+                    style: TextStyle(
+                      color: Brand.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (
+                    var optionIndex = 0;
+                    optionIndex < question.options.length;
+                    optionIndex++
+                  )
+                    _optionEditor(question, optionIndex),
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => question.options.add(_OptionDraft())),
+                    child: const Text(AppStrings.addOption),
+                  ),
+                ],
               ],
             ),
           ),
@@ -617,16 +679,24 @@ class _WeekStripState extends State<_WeekStrip> {
 class _QuestionDraft {
   _QuestionDraft()
     : text = TextEditingController(),
+      questionType = 'options',
       options = [_OptionDraft(), _OptionDraft()];
 
   _QuestionDraft.fromDto(LearningQuestionDto dto)
     : text = TextEditingController(text: dto.questionText),
-      options = dto.options.isEmpty
+      questionType = dto.isText ? 'text' : 'options',
+      options = dto.isText
           ? [_OptionDraft(), _OptionDraft()]
-          : dto.options.map(_OptionDraft.fromDto).toList();
+          : (dto.options.isEmpty
+                ? [_OptionDraft(), _OptionDraft()]
+                : dto.options.map(_OptionDraft.fromDto).toList());
 
   final TextEditingController text;
+  String questionType;
   final List<_OptionDraft> options;
+
+  bool get isText => questionType == 'text';
+  bool get isOptions => !isText;
 
   void dispose() {
     text.dispose();

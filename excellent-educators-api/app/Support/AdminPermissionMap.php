@@ -62,11 +62,17 @@ final class AdminPermissionMap
             [$get, 'admin/students*', [PermissionName::StudentsView, PermissionName::StudentsEdit, PermissionName::StudentsCreate, PermissionName::StudentsRating, PermissionName::StudentsPromote]],
             [$get, 'admin/feedback-catalog', [PermissionName::StudentsRating, PermissionName::StudentsView]],
 
+            [['POST'], 'admin/schedule/leave-requests/*/approve', [PermissionName::TeachersLeaves]],
+            [['POST'], 'admin/schedule/leave-requests/*/reject', [PermissionName::TeachersLeaves]],
+            [['POST'], 'admin/schedule/leave-requests/*/cancel', [PermissionName::TeachersLeaves]],
+            [['PUT', 'PATCH'], 'admin/schedule/leave-requests/*/reassignments/*', [PermissionName::TeachersLeaves]],
+            [$get, 'admin/schedule/leave-requests*', [PermissionName::TeachersLeaves, PermissionName::TeachersSchedule]],
+            [$get, 'admin/schedule/leaves*', [PermissionName::TeachersLeaves, PermissionName::TeachersSchedule]],
             [$all, 'admin/schedule*', [PermissionName::TeachersSchedule]],
             [['DELETE'], 'admin/teachers/*', [PermissionName::TeachersDelete]],
             [['POST'], 'admin/teachers', [PermissionName::TeachersCreate]],
             [['PUT', 'PATCH'], 'admin/teachers/*', [PermissionName::TeachersEdit]],
-            [$get, 'admin/teachers*', [PermissionName::TeachersView, PermissionName::TeachersEdit, PermissionName::TeachersCreate, PermissionName::TeachersSchedule]],
+            [$get, 'admin/teachers*', [PermissionName::TeachersView, PermissionName::TeachersEdit, PermissionName::TeachersCreate, PermissionName::TeachersSchedule, PermissionName::TeachersLeaves]],
 
             [$write, 'admin/attendance/*/resolve', [PermissionName::QueriesResolve]],
             [$get, 'admin/attendance*', [PermissionName::QueriesView, PermissionName::QueriesResolve]],

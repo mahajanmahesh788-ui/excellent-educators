@@ -32,9 +32,25 @@ class StudentLearningWeekPage extends ConsumerStatefulWidget {
 class _StudentLearningWeekPageState
     extends ConsumerState<StudentLearningWeekPage> {
   final _answers = <String, String>{};
+  final _textControllers = <String, TextEditingController>{};
   final _questionKeys = <int, GlobalKey>{};
   var _submitting = false;
   String? _error;
+
+  TextEditingController _textControllerFor(String questionId, {String? seed}) {
+    return _textControllers.putIfAbsent(
+      questionId,
+      () => TextEditingController(text: seed ?? ''),
+    );
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _textControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
   void _scrollToQuestion(int index) {
     final key = _questionKeys[index];
@@ -82,24 +98,40 @@ class _StudentLearningWeekPageState
           final latestAttempt = week.attempts.lastOrNull;
 
           // Prepopulate answers from latest attempt if available and not yet touched
-          if (_answers.isEmpty && latestAttempt != null && week.canSubmit) {
+          if (_answers.isEmpty &&
+              _textControllers.isEmpty &&
+              latestAttempt != null &&
+              week.canSubmit) {
             for (final q in week.questions) {
-              final optId = latestAttempt.optionIdFor(q.id);
-              if (optId != null) {
-                _answers[q.id] = optId;
+              if (q.isText) {
+                final text = latestAttempt.textAnswerFor(q.id);
+                if (text != null) {
+                  _textControllerFor(q.id, seed: text);
+                }
+              } else {
+                final optId = latestAttempt.optionIdFor(q.id);
+                if (optId != null) {
+                  _answers[q.id] = optId;
+                }
               }
             }
           }
 
-          final displayAnswers = week.canSubmit
-              ? _answers
-              : {
-                  for (final q in week.questions)
-                    if (latestAttempt?.optionIdFor(q.id) != null)
-                      q.id: latestAttempt!.optionIdFor(q.id)!,
-                };
+          bool isAnswered(LearningQuestionDto q) {
+            if (q.isText) {
+              if (week.canSubmit) {
+                return (_textControllers[q.id]?.text.trim().isNotEmpty ??
+                    false);
+              }
+              return latestAttempt?.textAnswerFor(q.id) != null;
+            }
+            if (week.canSubmit) {
+              return _answers.containsKey(q.id);
+            }
+            return latestAttempt?.optionIdFor(q.id) != null;
+          }
 
-          final answeredCount = displayAnswers.length;
+          final answeredCount = week.questions.where(isAnswered).length;
 
           for (var i = 0; i < totalQuestions; i++) {
             _questionKeys.putIfAbsent(i, () => GlobalKey());
@@ -489,18 +521,12 @@ class _StudentLearningWeekPageState
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color:
-                                          displayAnswers.containsKey(
-                                            week.questions[i].id,
-                                          )
+                                      color: isAnswered(week.questions[i])
                                           ? const Color(0xFFE8F5E9)
                                           : const Color(0xFFF4F1EA),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color:
-                                            displayAnswers.containsKey(
-                                              week.questions[i].id,
-                                            )
+                                        color: isAnswered(week.questions[i])
                                             ? const Color(0xFF81C784)
                                             : Academy.line,
                                       ),
@@ -508,9 +534,7 @@ class _StudentLearningWeekPageState
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        if (displayAnswers.containsKey(
-                                          week.questions[i].id,
-                                        )) ...[
+                                        if (isAnswered(week.questions[i])) ...[
                                           const Icon(
                                             Icons.check_rounded,
                                             size: 12,
@@ -522,9 +546,7 @@ class _StudentLearningWeekPageState
                                           'Q${i + 1}',
                                           style: TextStyle(
                                             color:
-                                                displayAnswers.containsKey(
-                                                  week.questions[i].id,
-                                                )
+                                                isAnswered(week.questions[i])
                                                 ? const Color(0xFF1B5E20)
                                                 : Academy.muted,
                                             fontWeight: FontWeight.w800,
@@ -551,18 +573,38 @@ class _StudentLearningWeekPageState
                     key: _questionKeys[i],
                     index: i,
                     question: week.questions[i],
-                    selectedOptionId: displayAnswers[week.questions[i].id],
+                    selectedOptionId: week.questions[i].isText
+                        ? null
+                        : (week.canSubmit
+                              ? _answers[week.questions[i].id]
+                              : latestAttempt?.optionIdFor(
+                                  week.questions[i].id,
+                                )),
+                    textController: week.questions[i].isText && week.canSubmit
+                        ? _textControllerFor(week.questions[i].id)
+                        : null,
+                    textAnswer: week.questions[i].isText
+                        ? (week.canSubmit
+                              ? _textControllers[week.questions[i].id]?.text
+                              : latestAttempt?.textAnswerFor(
+                                  week.questions[i].id,
+                                ))
+                        : null,
                     isReadOnly: !week.canSubmit,
                     showResult:
                         !week.canSubmit &&
                         (week.completed || week.attemptsUsed > 0),
-                    onOptionSelected: week.canSubmit
+                    onOptionSelected:
+                        week.canSubmit && week.questions[i].isOptions
                         ? (optId) {
                             setState(() {
                               _answers[week.questions[i].id] = optId;
                               _error = null;
                             });
                           }
+                        : null,
+                    onTextChanged: week.canSubmit && week.questions[i].isText
+                        ? (_) => setState(() => _error = null)
                         : null,
                   ),
 
@@ -700,17 +742,35 @@ class _StudentLearningWeekPageState
   }
 
   Future<void> _submit(LearningWeekDto week) async {
-    final unansweredIndex = week.questions.indexWhere(
-      (q) => !_answers.containsKey(q.id),
-    );
+    final unansweredIndex = week.questions.indexWhere((q) {
+      if (q.isText) {
+        return (_textControllers[q.id]?.text.trim().isEmpty ?? true);
+      }
+      return !_answers.containsKey(q.id);
+    });
     if (unansweredIndex != -1) {
       _scrollToQuestion(unansweredIndex);
-      final remaining = week.questions.length - _answers.length;
+      final remaining = week.questions.where((q) {
+        if (q.isText) {
+          return (_textControllers[q.id]?.text.trim().isEmpty ?? true);
+        }
+        return !_answers.containsKey(q.id);
+      }).length;
       setState(() {
         _error =
             'Please answer all questions before submitting ($remaining remaining).';
       });
       return;
+    }
+
+    for (final question in week.questions.where((q) => q.isText)) {
+      final text = _textControllers[question.id]?.text.trim() ?? '';
+      if (text.length > 250) {
+        setState(() {
+          _error = AppStrings.enterATextAnswerMax250;
+        });
+        return;
+      }
     }
 
     setState(() {
@@ -725,13 +785,24 @@ class _StudentLearningWeekPageState
             week: widget.week,
             answers: [
               for (final question in week.questions)
-                {
-                  'question_id': question.id,
-                  'option_id': _answers[question.id],
-                },
+                if (question.isText)
+                  {
+                    'question_id': question.id,
+                    'text_answer':
+                        _textControllers[question.id]?.text.trim() ?? '',
+                  }
+                else
+                  {
+                    'question_id': question.id,
+                    'option_id': _answers[question.id],
+                  },
             ],
           );
       _answers.clear();
+      for (final controller in _textControllers.values) {
+        controller.dispose();
+      }
+      _textControllers.clear();
       ref.invalidate(
         studentLearningWeekProvider((
           journeyId: widget.journeyId,
@@ -840,24 +911,34 @@ class _CompactQuestionCard extends StatelessWidget {
     super.key,
     required this.index,
     required this.question,
-    required this.selectedOptionId,
+    this.selectedOptionId,
+    this.textController,
+    this.textAnswer,
     this.isReadOnly = false,
     this.showResult = false,
     this.onOptionSelected,
+    this.onTextChanged,
   });
 
   final int index;
   final LearningQuestionDto question;
   final String? selectedOptionId;
+  final TextEditingController? textController;
+  final String? textAnswer;
   final bool isReadOnly;
   final bool showResult;
   final ValueChanged<String>? onOptionSelected;
+  final ValueChanged<String>? onTextChanged;
 
   static const _letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+  static const _maxTextLength = 250;
 
   @override
   Widget build(BuildContext context) {
-    final isAnswered = selectedOptionId != null;
+    final displayedText = textController?.text ?? textAnswer ?? '';
+    final isAnswered = question.isText
+        ? displayedText.trim().isNotEmpty
+        : selectedOptionId != null;
 
     Color borderColor;
     double borderWidth;
@@ -1005,74 +1086,146 @@ class _CompactQuestionCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Options (2 columns when wide, 1 column when narrow)
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 520;
-              const gap = 8.0;
+          if (question.isText)
+            _textAnswerField(displayedText)
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 520;
+                const gap = 8.0;
 
-              if (isWide) {
-                final cardWidth = (constraints.maxWidth - gap) / 2;
-                return Wrap(
-                  spacing: gap,
-                  runSpacing: gap,
+                if (isWide) {
+                  final cardWidth = (constraints.maxWidth - gap) / 2;
+                  return Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: [
+                      for (
+                        var optIndex = 0;
+                        optIndex < question.options.length;
+                        optIndex++
+                      )
+                        SizedBox(
+                          width: cardWidth,
+                          child: _CompactOptionTile(
+                            letter: optIndex < _letters.length
+                                ? _letters[optIndex]
+                                : '${optIndex + 1}',
+                            option: question.options[optIndex],
+                            selected:
+                                selectedOptionId ==
+                                question.options[optIndex].id,
+                            isReadOnly: isReadOnly,
+                            showResult: showResult,
+                            onTap: onOptionSelected != null
+                                ? () => onOptionSelected!(
+                                    question.options[optIndex].id,
+                                  )
+                                : null,
+                          ),
+                        ),
+                    ],
+                  );
+                }
+
+                return Column(
                   children: [
                     for (
                       var optIndex = 0;
                       optIndex < question.options.length;
                       optIndex++
-                    )
-                      SizedBox(
-                        width: cardWidth,
-                        child: _CompactOptionTile(
-                          letter: optIndex < _letters.length
-                              ? _letters[optIndex]
-                              : '${optIndex + 1}',
-                          option: question.options[optIndex],
-                          selected:
-                              selectedOptionId == question.options[optIndex].id,
-                          isReadOnly: isReadOnly,
-                          showResult: showResult,
-                          onTap: onOptionSelected != null
-                              ? () => onOptionSelected!(
-                                  question.options[optIndex].id,
-                                )
-                              : null,
-                        ),
+                    ) ...[
+                      if (optIndex > 0) const SizedBox(height: gap),
+                      _CompactOptionTile(
+                        letter: optIndex < _letters.length
+                            ? _letters[optIndex]
+                            : '${optIndex + 1}',
+                        option: question.options[optIndex],
+                        selected:
+                            selectedOptionId == question.options[optIndex].id,
+                        isReadOnly: isReadOnly,
+                        showResult: showResult,
+                        onTap: onOptionSelected != null
+                            ? () => onOptionSelected!(
+                                question.options[optIndex].id,
+                              )
+                            : null,
                       ),
+                    ],
                   ],
                 );
-              }
-
-              return Column(
-                children: [
-                  for (
-                    var optIndex = 0;
-                    optIndex < question.options.length;
-                    optIndex++
-                  ) ...[
-                    if (optIndex > 0) const SizedBox(height: gap),
-                    _CompactOptionTile(
-                      letter: optIndex < _letters.length
-                          ? _letters[optIndex]
-                          : '${optIndex + 1}',
-                      option: question.options[optIndex],
-                      selected:
-                          selectedOptionId == question.options[optIndex].id,
-                      isReadOnly: isReadOnly,
-                      showResult: showResult,
-                      onTap: onOptionSelected != null
-                          ? () =>
-                                onOptionSelected!(question.options[optIndex].id)
-                          : null,
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
+              },
+            ),
         ],
       ),
+    );
+  }
+
+  Widget _textAnswerField(String displayedText) {
+    final remaining = _maxTextLength - displayedText.length;
+    if (isReadOnly) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F6F1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Academy.line),
+        ),
+        child: Text(
+          displayedText.trim().isEmpty
+              ? AppStrings.notAnswered
+              : displayedText,
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.4,
+            color: displayedText.trim().isEmpty ? Academy.muted : Academy.ink,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: textController,
+          maxLength: _maxTextLength,
+          minLines: 3,
+          maxLines: 5,
+          onChanged: onTextChanged,
+          decoration: InputDecoration(
+            labelText: AppStrings.yourAnswer,
+            hintText: AppStrings.enterATextAnswerMax250,
+            alignLabelWithHint: true,
+            filled: true,
+            fillColor: const Color(0xFFFAF8F3),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE8E0D4)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Brand.gold, width: 1.4),
+            ),
+            counterText: '',
+          ),
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            '$remaining ${AppStrings.charactersRemaining}',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: remaining < 20 ? Colors.orange.shade800 : Academy.muted,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1253,7 +1406,7 @@ class StaffLearningWeekPage extends ConsumerWidget {
               ? 0
               : weekData.questions
                     .where(
-                      (q) => weekData.attempts.last.optionIdFor(q.id) != null,
+                      (q) => weekData.attempts.last.hasAnswerFor(q),
                     )
                     .length;
 
@@ -1457,7 +1610,7 @@ class _AttemptReview extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalCount = week.questions.length;
     final answeredCount = week.questions
-        .where((q) => attempt.optionIdFor(q.id) != null)
+        .where((q) => attempt.hasAnswerFor(q))
         .length;
 
     return Padding(
@@ -1555,7 +1708,12 @@ class _AttemptReview extends StatelessWidget {
               _CompactQuestionCard(
                 index: i,
                 question: week.questions[i],
-                selectedOptionId: attempt.optionIdFor(week.questions[i].id),
+                selectedOptionId: week.questions[i].isText
+                    ? null
+                    : attempt.optionIdFor(week.questions[i].id),
+                textAnswer: week.questions[i].isText
+                    ? attempt.textAnswerFor(week.questions[i].id)
+                    : null,
                 isReadOnly: true,
                 showResult: true,
               ),

@@ -14,6 +14,7 @@ abstract final class AdminPermission {
   static const teachersEdit = 'teachers.edit';
   static const teachersDelete = 'teachers.delete';
   static const teachersSchedule = 'teachers.schedule';
+  static const teachersLeaves = 'teachers.leaves';
 
   static const levelsView = 'levels.view';
   static const levelsManage = 'levels.manage';
@@ -33,6 +34,23 @@ abstract final class AdminPermission {
   static bool canOpenPath(AppUser user, String location) {
     if (!location.startsWith('/admin')) {
       return true;
+    }
+    if (user.isAgent) {
+      if (location.startsWith('/admin/notifications')) {
+        return true;
+      }
+      if (location.startsWith('/admin/students')) {
+        return user.canAnyAdmin(const [
+          studentsView,
+          studentsCreate,
+          studentsEdit,
+          studentsDelete,
+          studentsPromote,
+          studentsRating,
+          studentsMentor,
+        ]);
+      }
+      return false;
     }
     if (location == '/admin/dashboard' ||
         location.startsWith('/admin/best-') ||
@@ -68,6 +86,9 @@ abstract final class AdminPermission {
     if (location.contains('/teachers/') && location.endsWith('/edit')) {
       return user.canAdmin(teachersEdit);
     }
+    if (location.startsWith('/admin/leaves')) {
+      return user.canAnyAdmin(const [teachersLeaves, teachersSchedule]);
+    }
     if (location.startsWith('/admin/schedule') || location.contains('/availability')) {
       return user.canAdmin(teachersSchedule);
     }
@@ -78,6 +99,7 @@ abstract final class AdminPermission {
         teachersEdit,
         teachersDelete,
         teachersSchedule,
+        teachersLeaves,
       ]);
     }
     if (location.startsWith('/admin/attendance')) {

@@ -1,3 +1,4 @@
+import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -7,6 +8,7 @@ import 'package:excellent_educators_web/features/notifications/presentation/prov
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
@@ -57,7 +59,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, index) => _NotificationTile(
             notification: items[index],
-            onTap: () => _markRead(context, ref, items[index]),
+            onTap: () => _openNotification(context, ref, items[index]),
           ),
         );
       },
@@ -75,6 +77,39 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     }
 
     return AppScaffold(title: AppStrings.notifications, body: body, actions: actions);
+  }
+
+  Future<void> _openNotification(
+    BuildContext context,
+    WidgetRef ref,
+    UserNotificationDto notification,
+  ) async {
+    await _markRead(context, ref, notification);
+    if (!context.mounted) return;
+
+    final groupId = notification.data?['leave_request_group_id'] as String?;
+    if (notification.type == 'teacher_leave_submitted' &&
+        groupId != null &&
+        groupId.isNotEmpty) {
+      context.go(RoutePaths.adminLeaveRequest(groupId));
+      return;
+    }
+
+    final link = notification.data?['link'] as String?;
+    if (link != null &&
+        (link.startsWith('/admin/leaves/') ||
+            link.startsWith('/admin/schedule/leave-requests/'))) {
+      final leaveGroupId = link.split('/').last;
+      if (leaveGroupId.isNotEmpty) {
+        context.go(RoutePaths.adminLeaveRequest(leaveGroupId));
+      }
+      return;
+    }
+
+    if (notification.type == 'session_booked' ||
+        notification.type == 'session_rescheduled') {
+      context.go(RoutePaths.teacherDaySchedule);
+    }
   }
 
   Future<void> _markRead(BuildContext context, WidgetRef ref, UserNotificationDto notification) async {
@@ -152,6 +187,11 @@ class _NotificationTile extends StatelessWidget {
       'common_teacher_assigned' || 'common_teacher_changed' => Icons.person_outline,
       'student_enrolled_in_batch' || 'student_unenrolled_from_batch' => Icons.groups_rounded,
       'student_booking_failed' => Icons.warning_amber_rounded,
+      'session_booked' => Icons.event_available_rounded,
+      'session_rescheduled' => Icons.event_repeat_rounded,
+      'teacher_leave_submitted' => Icons.event_busy_rounded,
+      'teacher_leave_rejected' => Icons.event_busy_rounded,
+      'session_mentor_updated' => Icons.swap_horiz_rounded,
       _ => Icons.notifications_outlined,
     };
   }

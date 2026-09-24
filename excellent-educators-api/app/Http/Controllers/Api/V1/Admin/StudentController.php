@@ -24,9 +24,11 @@ class StudentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $search = trim($request->string('search')->toString());
+        $actor = $request->user();
         $students = StudentProfile::query()
             ->with($this->studentRelations())
             ->withCount($this->feedbackCounts())
+            ->when($actor?->isAgent(), fn ($query) => $query->where('created_by_user_id', $actor->id))
             ->when($search !== '', function ($query) use ($search): void {
                 $digits = preg_replace('/\D+/', '', $search) ?? '';
 
@@ -109,8 +111,9 @@ class StudentController extends Controller
         return ApiResponse::success('Student created successfully.', StudentResource::make($student)->resolve(), status: 201);
     }
 
-    public function show(StudentProfile $student): JsonResponse
+    public function show(Request $request, StudentProfile $student): JsonResponse
     {
+        $this->ensureAgentOwnsStudent($request, $student);
         $student->load($this->studentRelations());
         $student->loadCount($this->feedbackCounts());
         StudentProfile::attachOverallAverages([$student]);
@@ -120,6 +123,7 @@ class StudentController extends Controller
 
     public function update(UpdateStudentRequest $request, StudentProfile $student, UpdateStudent $updateStudent): JsonResponse
     {
+        $this->ensureAgentOwnsStudent($request, $student);
         $student = $updateStudent->execute($student, $request->validated());
         $student->load($this->studentRelations());
         $student->loadCount($this->feedbackCounts());
@@ -128,20 +132,35 @@ class StudentController extends Controller
         return ApiResponse::success('Student updated successfully.', StudentResource::make($student)->resolve());
     }
 
-    public function destroy(StudentProfile $student): JsonResponse
+    public function destroy(Request $request, StudentProfile $student): JsonResponse
     {
+        $this->ensureAgentOwnsStudent($request, $student);
         $student->user?->delete();
         $student->delete();
 
         return ApiResponse::success('Student deleted successfully.');
     }
 
-    public function history(StudentProfile $student, BuildStudentHistory $history): JsonResponse
+    public function history(Request $request, StudentProfile $student, BuildStudentHistory $history): JsonResponse
     {
+        $this->ensureAgentOwnsStudent($request, $student);
+
         return ApiResponse::success(
             'Student history fetched successfully.',
             $history->execute($student),
         );
+    }
+
+    private function ensureAgentOwnsStudent(Request $request, StudentProfile $student): void
+    {
+        $actor = $request->user();
+        if ($actor === null || ! $actor->isAgent()) {
+            return;
+        }
+
+        if ($student->created_by_user_id !== $actor->id) {
+            abort(404);
+        }
     }
 
     /**

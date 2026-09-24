@@ -30,6 +30,7 @@ abstract final class RoutePaths {
   static const adminTeacherAvailability = '/admin/teachers/:id/availability';
   static const adminTeacherHistory = '/admin/teachers/:id/history';
   static const adminTeacherPromoted = '/admin/teachers/:id/promoted';
+  static const adminTeacherLeaves = '/admin/teachers/:id/leaves';
   static const adminBatches = '/admin/batches';
   static const adminBatchNew = '/admin/batches/new';
   static const adminBatchDetail = '/admin/batches/:id';
@@ -92,6 +93,9 @@ abstract final class RoutePaths {
   static const adminAssessmentAttempts = '/admin/assessments/:id/attempts';
   static const adminRequests = '/admin/requests';
   static const adminSchedule = '/admin/schedule';
+  static const adminLeaves = '/admin/leaves';
+  static const adminLeaveRequestDetail = '/admin/leaves/:groupId';
+  static String adminLeaveRequest(String groupId) => '/admin/leaves/$groupId';
   static const adminGoogleMeet = '/admin/google-meet';
   static const adminAttendance = '/admin/attendance';
   static String adminAttendanceIssue(String id) =>
@@ -122,6 +126,8 @@ abstract final class RoutePaths {
       '/admin/teachers/$id/history';
   static String adminTeacherPromotedFor(String id) =>
       '/admin/teachers/$id/promoted';
+  static String adminTeacherLeavesFor(String id) =>
+      '/admin/teachers/$id/leaves';
   static String teacherBatch(String id) => '/teacher/batches/$id/students';
   static String teacherAssessmentsFor(String id) =>
       '/teacher/batches/$id/assessments';
@@ -175,9 +181,10 @@ abstract final class RoutePaths {
     required bool isCommonTeacher,
     required bool isMasterTeacher,
     required bool isStudent,
+    bool isAgent = false,
   }) {
     if (isAdmin) {
-      return adminDashboard;
+      return isAgent ? adminStudents : adminDashboard;
     }
     if (isMasterTeacher) {
       return masterTeacherDashboard;

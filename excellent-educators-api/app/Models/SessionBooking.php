@@ -18,6 +18,8 @@ class SessionBooking extends Model
     protected $fillable = [
         'student_id',
         'teacher_id',
+        'reassigned_from_teacher_id',
+        'reassigned_at',
         'type',
         'date',
         'starts_at',
@@ -33,6 +35,7 @@ class SessionBooking extends Model
             'date' => 'date',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
+            'reassigned_at' => 'datetime',
         ];
     }
 
@@ -44,6 +47,11 @@ class SessionBooking extends Model
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(TeacherProfile::class, 'teacher_id');
+    }
+
+    public function reassignedFromTeacher(): BelongsTo
+    {
+        return $this->belongsTo(TeacherProfile::class, 'reassigned_from_teacher_id');
     }
 
     public function attendanceIssues(): HasMany

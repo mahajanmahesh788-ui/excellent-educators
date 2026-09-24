@@ -186,6 +186,8 @@ class ScheduleLeaveDto {
     this.teacherId,
     this.teacherName,
     this.createdAt,
+    this.requestGroupId,
+    this.status = 'approved',
   });
 
   factory ScheduleLeaveDto.fromJson(Map<String, dynamic> json) {
@@ -199,6 +201,8 @@ class ScheduleLeaveDto {
       teacherId: json['teacher_id'] as String?,
       teacherName: json['teacher_name'] as String?,
       createdAt: json['created_at'] as String?,
+      requestGroupId: json['request_group_id'] as String?,
+      status: json['status'] as String? ?? 'approved',
     );
   }
 
@@ -211,6 +215,252 @@ class ScheduleLeaveDto {
   final String? teacherId;
   final String? teacherName;
   final String? createdAt;
+  final String? requestGroupId;
+  final String status;
+
+  bool get isOpen => status == 'pending' || status == 'reassignment_pending';
+}
+
+class LeaveRequestDto {
+  const LeaveRequestDto({
+    required this.requestGroupId,
+    required this.teacherId,
+    required this.date,
+    required this.isFullDay,
+    required this.status,
+    required this.affectedCount,
+    required this.reassignedCount,
+    required this.canApprove,
+    this.teacherName,
+    this.teacherPhotoUrl,
+    this.teacherPhone,
+    this.teacherWhatsapp,
+    this.teacherEmail,
+    this.teacherStatus,
+    this.teacherWorkType,
+    this.teacherLevels = const [],
+    this.leaveType,
+    this.reason,
+    this.rejectionReason,
+    this.reviewedAt,
+    this.createdAt,
+    this.ranges = const [],
+    this.affectedBookings = const [],
+    this.items = const [],
+  });
+
+  factory LeaveRequestDto.fromJson(Map<String, dynamic> json) {
+    return LeaveRequestDto(
+      requestGroupId: json['request_group_id'] as String? ?? '',
+      teacherId: json['teacher_id'] as String? ?? '',
+      teacherName: json['teacher_name'] as String?,
+      teacherPhotoUrl: json['teacher_photo_url'] as String?,
+      teacherPhone: json['teacher_phone'] as String?,
+      teacherWhatsapp: json['teacher_whatsapp'] as String?,
+      teacherEmail: json['teacher_email'] as String?,
+      teacherStatus: json['teacher_status'] as String?,
+      teacherWorkType: json['teacher_work_type'] as String?,
+      teacherLevels: (json['teacher_levels'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map((item) => item['name'] as String? ?? '')
+          .where((name) => name.isNotEmpty)
+          .toList(),
+      date: json['date'] as String? ?? '',
+      isFullDay: json['is_full_day'] as bool? ?? false,
+      leaveType: json['leave_type'] as String?,
+      reason: json['reason'] as String?,
+      status: json['status'] as String? ?? 'pending',
+      rejectionReason: json['rejection_reason'] as String?,
+      reviewedAt: json['reviewed_at'] as String?,
+      createdAt: json['created_at'] as String?,
+      affectedCount: (json['affected_count'] as num?)?.toInt() ?? 0,
+      reassignedCount: (json['reassigned_count'] as num?)?.toInt() ?? 0,
+      canApprove: json['can_approve'] as bool? ?? false,
+      ranges: (json['ranges'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map((item) => ScheduleLeaveDto.fromJson({
+                ...Map<String, dynamic>.from(item),
+                'date': json['date'],
+                'reason': json['reason'],
+                'status': json['status'],
+                'request_group_id': json['request_group_id'],
+                'teacher_id': json['teacher_id'],
+                'teacher_name': json['teacher_name'],
+              }))
+          .toList(),
+      affectedBookings: (json['affected_bookings'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => LeaveAffectedBookingDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(),
+      items: (json['items'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) =>
+                ScheduleLeaveDto.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(),
+    );
+  }
+
+  final String requestGroupId;
+  final String teacherId;
+  final String? teacherName;
+  final String? teacherPhotoUrl;
+  final String? teacherPhone;
+  final String? teacherWhatsapp;
+  final String? teacherEmail;
+  final String? teacherStatus;
+  final String? teacherWorkType;
+  final List<String> teacherLevels;
+  final String date;
+  final bool isFullDay;
+  final String? leaveType;
+  final String? reason;
+  final String status;
+  final String? rejectionReason;
+  final String? reviewedAt;
+  final String? createdAt;
+  final int affectedCount;
+  final int reassignedCount;
+  final bool canApprove;
+  final List<ScheduleLeaveDto> ranges;
+  final List<LeaveAffectedBookingDto> affectedBookings;
+  final List<ScheduleLeaveDto> items;
+
+  bool get isOpen => status == 'pending' || status == 'reassignment_pending';
+
+  String get statusLabel => switch (status) {
+        'pending' => 'Pending',
+        'reassignment_pending' => 'Reassignment pending',
+        'approved' => 'Approved',
+        'rejected' => 'Rejected',
+        'cancelled' => 'Cancelled',
+        _ => status,
+      };
+
+  String get callNumber {
+    final phone = teacherPhone?.trim() ?? '';
+    if (phone.isNotEmpty) return phone;
+    return teacherWhatsapp?.trim() ?? '';
+  }
+
+  String get levelsLabel =>
+      teacherLevels.isEmpty ? 'No levels' : teacherLevels.join(', ');
+
+  String get workTypeLabel => switch (teacherWorkType) {
+        'full_time' => 'Full time',
+        'part_time' => 'Part time',
+        _ => teacherWorkType ?? '',
+      };
+
+  String get teacherStatusLabel {
+    final raw = teacherStatus?.trim() ?? '';
+    if (raw.isEmpty) return '';
+    return raw[0].toUpperCase() + raw.substring(1);
+  }
+
+  String get primaryLeaveId =>
+      items.isNotEmpty ? items.first.id : (ranges.isNotEmpty ? ranges.first.id : requestGroupId);
+}
+
+class LeaveAffectedBookingDto {
+  const LeaveAffectedBookingDto({
+    required this.bookingId,
+    required this.date,
+    required this.start,
+    required this.end,
+    required this.sessionType,
+    required this.assignmentStatus,
+    this.studentId,
+    this.studentName,
+    this.sessionTypeLabel,
+    this.currentTeacherId,
+    this.currentTeacherName,
+    this.bookingStatus,
+    this.replacementTeacherId,
+    this.replacementTeacherName,
+    this.availableReplacements = const [],
+  });
+
+  factory LeaveAffectedBookingDto.fromJson(Map<String, dynamic> json) {
+    return LeaveAffectedBookingDto(
+      bookingId: json['booking_id'] as String? ?? '',
+      date: json['date'] as String? ?? '',
+      start: json['start'] as String? ?? '',
+      end: json['end'] as String? ?? '',
+      studentId: json['student_id'] as String?,
+      studentName: json['student_name'] as String?,
+      sessionType: json['session_type'] as String? ?? '',
+      sessionTypeLabel: json['session_type_label'] as String?,
+      currentTeacherId: json['current_teacher_id'] as String?,
+      currentTeacherName: json['current_teacher_name'] as String?,
+      bookingStatus: json['booking_status'] as String?,
+      replacementTeacherId: json['replacement_teacher_id'] as String?,
+      replacementTeacherName: json['replacement_teacher_name'] as String?,
+      assignmentStatus: json['assignment_status'] as String? ?? 'unassigned',
+      availableReplacements: (json['available_replacements'] as List<dynamic>? ??
+              const [])
+          .whereType<Map>()
+          .map(
+            (item) => LeaveReplacementTeacherDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  final String bookingId;
+  final String date;
+  final String start;
+  final String end;
+  final String? studentId;
+  final String? studentName;
+  final String sessionType;
+  final String? sessionTypeLabel;
+  final String? currentTeacherId;
+  final String? currentTeacherName;
+  final String? bookingStatus;
+  final String? replacementTeacherId;
+  final String? replacementTeacherName;
+  final String assignmentStatus;
+  final List<LeaveReplacementTeacherDto> availableReplacements;
+}
+
+class LeaveReplacementTeacherDto {
+  const LeaveReplacementTeacherDto({
+    required this.id,
+    required this.fullName,
+    this.photoUrl,
+    this.phone,
+    this.whatsappNumber,
+  });
+
+  factory LeaveReplacementTeacherDto.fromJson(Map<String, dynamic> json) {
+    return LeaveReplacementTeacherDto(
+      id: json['id'] as String? ?? '',
+      fullName: json['full_name'] as String? ?? '',
+      photoUrl: json['photo_url'] as String?,
+      phone: json['phone'] as String?,
+      whatsappNumber: json['whatsapp_number'] as String?,
+    );
+  }
+
+  final String id;
+  final String fullName;
+  final String? photoUrl;
+  final String? phone;
+  final String? whatsappNumber;
+
+  String get callNumber {
+    final p = phone?.trim() ?? '';
+    if (p.isNotEmpty) return p;
+    return whatsappNumber?.trim() ?? '';
+  }
 }
 
 class SessionBookingDto {
@@ -231,6 +481,9 @@ class SessionBookingDto {
     this.startsAtIso,
     this.endsAtIso,
     this.attendance,
+    this.wasReassigned = false,
+    this.reassignedAt,
+    this.previousTeacherName,
   });
 
   factory SessionBookingDto.fromJson(Map<String, dynamic> json) {
@@ -253,6 +506,9 @@ class SessionBookingDto {
       attendance: json['attendance'] is Map
           ? BookingAttendanceDto.fromJson(Map<String, dynamic>.from(json['attendance'] as Map))
           : null,
+      wasReassigned: json['was_reassigned'] as bool? ?? false,
+      reassignedAt: json['reassigned_at'] as String?,
+      previousTeacherName: json['previous_teacher_name'] as String?,
     );
   }
 
@@ -272,6 +528,9 @@ class SessionBookingDto {
   final String? startsAtIso;
   final String? endsAtIso;
   final BookingAttendanceDto? attendance;
+  final bool wasReassigned;
+  final String? reassignedAt;
+  final String? previousTeacherName;
 
   String get typeLabel => sessionTypeLabel(type);
 
