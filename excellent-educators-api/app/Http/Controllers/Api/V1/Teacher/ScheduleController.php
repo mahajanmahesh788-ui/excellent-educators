@@ -58,6 +58,23 @@ class ScheduleController extends Controller
         return ApiResponse::success('Month schedule fetched successfully.', $this->availability->month($teacher, $year, $month));
     }
 
+    public function bookings(Request $request): JsonResponse
+    {
+        $teacher = $this->teacherFrom($request);
+        $bookings = SessionBooking::query()
+            ->with(['student', 'teacher', 'reassignedFromTeacher'])
+            ->where('teacher_id', $teacher->id)
+            ->where('status', '!=', SessionBookingStatus::Cancelled->value)
+            ->orderByDesc('starts_at')
+            ->limit(500)
+            ->get()
+            ->map(fn (SessionBooking $booking) => $this->availability->bookingPayload($booking, 'teacher'))
+            ->values()
+            ->all();
+
+        return ApiResponse::success('Bookings fetched successfully.', $bookings);
+    }
+
     public function breaks(Request $request): JsonResponse
     {
         $teacher = $this->teacherFrom($request);

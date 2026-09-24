@@ -163,6 +163,7 @@ abstract final class ApiEndpoints {
   static const teacherScheduleDay = '/api/v1/teacher/schedule/day';
   static const teacherScheduleWeek = '/api/v1/teacher/schedule/week';
   static const teacherScheduleMonth = '/api/v1/teacher/schedule/month';
+  static const teacherScheduleBookings = '/api/v1/teacher/schedule/bookings';
   static const teacherScheduleBreaks = '/api/v1/teacher/schedule/breaks';
   static const teacherScheduleLeaves = '/api/v1/teacher/schedule/leaves';
   static String teacherScheduleLeave(String id) =>

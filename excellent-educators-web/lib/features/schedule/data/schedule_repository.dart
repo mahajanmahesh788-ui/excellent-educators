@@ -16,6 +16,16 @@ class ScheduleRepository with MapsApiFailures {
     });
   }
 
+  Future<List<SessionBookingDto>> teacherBookingsHistory() {
+    return runApi(() async {
+      final items = await _client.getList(ApiEndpoints.teacherScheduleBookings);
+      return items
+          .whereType<Map>()
+          .map((item) => SessionBookingDto.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+    });
+  }
+
   Future<List<ScheduleDayDto>> teacherWeek(String start) {
     return runApi(() async {
       final json = await _client.get(ApiEndpoints.teacherScheduleWeek, query: {'start': start});

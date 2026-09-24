@@ -378,4 +378,22 @@ class SchedulingTest extends TestCase
         ])
             ->assertStatus(409);
     }
+
+    public function test_teacher_can_fetch_all_booking_history_across_dates(): void
+    {
+        [$student, $teacher] = $this->makeStudentWithTeacher();
+        $intro = $this->book($student, $teacher, 'introduction_call', '2026-09-16', '10:00');
+        $intro->update(['status' => 'completed']);
+        $this->book($student, $teacher, 'master_class', '2026-09-18', '11:00');
+
+        $token = $this->tokenFor($teacher->user);
+        $payload = $this->withToken($token)->getJson('/api/v1/teacher/schedule/bookings')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertCount(2, $payload);
+        $dates = collect($payload)->pluck('date')->all();
+        $this->assertContains('2026-09-16', $dates);
+        $this->assertContains('2026-09-18', $dates);
+    }
 }

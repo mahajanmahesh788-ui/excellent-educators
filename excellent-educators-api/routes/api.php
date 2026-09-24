@@ -192,6 +192,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:common_teacher|master_teacher
     Route::get('teacher/schedule/day', [TeacherScheduleController::class, 'day']);
     Route::get('teacher/schedule/week', [TeacherScheduleController::class, 'week']);
     Route::get('teacher/schedule/month', [TeacherScheduleController::class, 'month']);
+    Route::get('teacher/schedule/bookings', [TeacherScheduleController::class, 'bookings']);
     Route::get('teacher/schedule/breaks', [TeacherScheduleController::class, 'breaks']);
     Route::put('teacher/schedule/breaks', [TeacherScheduleController::class, 'upsertBreaks']);
     Route::get('teacher/schedule/leaves', [TeacherScheduleController::class, 'leaves']);

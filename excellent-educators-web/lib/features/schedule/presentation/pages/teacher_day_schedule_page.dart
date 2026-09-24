@@ -59,22 +59,163 @@ class TeacherDaySchedulePage extends ConsumerStatefulWidget {
 
 class _TeacherDaySchedulePageState extends ConsumerState<TeacherDaySchedulePage> {
   int _selectedTab = 0;
+  bool _showAllHistory = false;
+
+  int _compareByStartsAt(SessionBookingDto a, SessionBookingDto b, {required bool descending}) {
+    final aStart = a.startsAt ?? DateTime.tryParse('${a.date}T${a.start}');
+    final bStart = b.startsAt ?? DateTime.tryParse('${b.date}T${b.start}');
+    if (aStart == null && bStart == null) {
+      final byDate = a.date.compareTo(b.date);
+      if (byDate != 0) {
+        return descending ? -byDate : byDate;
+      }
+      return descending ? b.start.compareTo(a.start) : a.start.compareTo(b.start);
+    }
+    if (aStart == null) {
+      return 1;
+    }
+    if (bStart == null) {
+      return -1;
+    }
+    return descending ? bStart.compareTo(aStart) : aStart.compareTo(bStart);
+  }
+
+  Widget _buildSessionFeed({
+    required List<SessionBookingDto> sourceBookings,
+    required bool isToday,
+    required String date,
+    required DateTime tomorrow,
+    required VoidCallback onRefresh,
+    required VoidCallback onCheckTomorrow,
+  }) {
+    final now = DateTime.now();
+    final bookings = [...sourceBookings]..sort((a, b) {
+      final rank = _sessionLane(a, now).compareTo(_sessionLane(b, now));
+      if (rank != 0) {
+        return rank;
+      }
+      return _compareByStartsAt(a, b, descending: false);
+    });
+
+    final current = bookings.where((item) {
+      if (item.isCancelled) {
+        return false;
+      }
+      return !_teacherSessionIsPast(item, now);
+    }).toList();
+    final past = bookings.where((item) => _teacherSessionIsPast(item, now)).toList()
+      ..sort((a, b) => _compareByStartsAt(a, b, descending: true));
+    final activeList = _selectedTab == 0 ? current : past;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 620;
+            final sectionTitle = Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 4,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: Brand.gold,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _selectedTab == 0 ? AppStrings.current3 : AppStrings.pastSessions,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Brand.navy,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Brand.navy.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${activeList.length}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Brand.navy,
+                    ),
+                  ),
+                ),
+              ],
+            );
+            final switcher = _TeacherSessionSwitcher(
+              selectedIndex: _selectedTab,
+              currentCount: current.length,
+              pastCount: past.length,
+              onTap: (index) => setState(() => _selectedTab = index),
+            );
+            if (isNarrow) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  sectionTitle,
+                  const SizedBox(height: 12),
+                  switcher,
+                ],
+              );
+            }
+            return Row(
+              children: [
+                sectionTitle,
+                const Spacer(),
+                switcher,
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 14),
+        if (activeList.isEmpty)
+          _EmptyScheduleCard(
+            isToday: isToday,
+            isPastTab: _selectedTab == 1,
+            showAllHistory: _showAllHistory,
+            date: date,
+            onCheckTomorrow: onCheckTomorrow,
+          )
+        else
+          for (int i = 0; i < activeList.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: _ExecutiveBookingCard(
+                booking: activeList[i],
+                index: i,
+                isPast: _selectedTab == 1,
+                onRefresh: onRefresh,
+              ),
+            ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final isMobile = Breakpoints.isMobile(context);
     final date = ref.watch(teacherDayScheduleDateProvider);
-    final day = ref.watch(teacherDayScheduleProvider);
     final today = scheduleToday();
     final tomorrow = today.add(const Duration(days: 1));
     final selected = DateTime.tryParse(date);
-    final isToday = selected != null && scheduleDateOnly(selected) == today;
-    final isTomorrow = selected != null && scheduleDateOnly(selected) == tomorrow;
+    final isToday = !_showAllHistory && selected != null && scheduleDateOnly(selected) == today;
+    final isTomorrow = !_showAllHistory && selected != null && scheduleDateOnly(selected) == tomorrow;
 
     void setDate(DateTime target) {
       final only = scheduleDateOnly(target);
       ref.read(teacherDayScheduleDateProvider.notifier).state = formatScheduleDate(target);
       setState(() {
+        _showAllHistory = false;
         _selectedTab = only.isBefore(today) ? 1 : 0;
       });
     }
@@ -82,6 +223,14 @@ class _TeacherDaySchedulePageState extends ConsumerState<TeacherDaySchedulePage>
     void stepDay(int delta) {
       final current = selected ?? today;
       setDate(current.add(Duration(days: delta)));
+    }
+
+    void showAllHistory() {
+      setState(() {
+        _showAllHistory = true;
+        _selectedTab = 0;
+      });
+      ref.invalidate(teacherBookingsHistoryProvider);
     }
 
     return AppScaffold(
@@ -93,16 +242,17 @@ class _TeacherDaySchedulePageState extends ConsumerState<TeacherDaySchedulePage>
             vertical: isMobile ? 12 : 16,
           ),
           children: [
-            // 1. Hero Date Navigator Header
             _TeacherDayHero(
               date: date,
               selected: selected,
               isToday: isToday,
               isTomorrow: isTomorrow,
+              showAllHistory: _showAllHistory,
               today: today,
               tomorrow: tomorrow,
               onSelectToday: () => setDate(today),
               onSelectTomorrow: () => setDate(tomorrow),
+              onShowAllHistory: showAllHistory,
               onPreviousDay: () => stepDay(-1),
               onNextDay: () => stepDay(1),
               onPickDate: () async {
@@ -133,128 +283,36 @@ class _TeacherDaySchedulePageState extends ConsumerState<TeacherDaySchedulePage>
                 }
               },
             ),
-
             const SizedBox(height: 18),
-
-            // 2. Schedule Feed (Metrics Bar + Animated Session Cards)
-            AsyncBody(
-              value: day,
-              onRetry: () => ref.invalidate(teacherDayScheduleProvider),
-              builder: (schedule) {
-                final now = DateTime.now();
-                final bookings = [...schedule.bookings]..sort((a, b) {
-                  final rank = _sessionLane(a, now).compareTo(_sessionLane(b, now));
-                  if (rank != 0) {
-                    return rank;
-                  }
-                  return a.start.compareTo(b.start);
-                });
-
-                final current = bookings.where((item) {
-                  if (item.isCancelled) {
-                    return false;
-                  }
-                  return !_teacherSessionIsPast(item, now);
-                }).toList();
-                final past = bookings.where((item) => _teacherSessionIsPast(item, now)).toList()
-                  ..sort((a, b) => b.start.compareTo(a.start));
-                final activeList = _selectedTab == 0 ? current : past;
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isNarrow = constraints.maxWidth < 620;
-                        final sectionTitle = Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                color: Brand.gold,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _selectedTab == 0 ? AppStrings.current3 : AppStrings.pastSessions,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: Brand.navy,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Brand.navy.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                '${activeList.length}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: Brand.navy,
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                        final switcher = _TeacherSessionSwitcher(
-                          selectedIndex: _selectedTab,
-                          currentCount: current.length,
-                          pastCount: past.length,
-                          onTap: (index) => setState(() => _selectedTab = index),
-                        );
-                        if (isNarrow) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              sectionTitle,
-                              const SizedBox(height: 12),
-                              switcher,
-                            ],
-                          );
-                        }
-                        return Row(
-                          children: [
-                            sectionTitle,
-                            const Spacer(),
-                            switcher,
-                          ],
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    if (activeList.isEmpty)
-                      _EmptyScheduleCard(
-                        isToday: isToday,
-                        isPastTab: _selectedTab == 1,
-                        date: date,
-                        onCheckTomorrow: () => setDate(tomorrow),
-                      )
-                    else
-                      for (int i = 0; i < activeList.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: _ExecutiveBookingCard(
-                            booking: activeList[i],
-                            index: i,
-                            isPast: _selectedTab == 1,
-                            onRefresh: () => ref.invalidate(teacherDayScheduleProvider),
-                          ),
-                        ),
-                  ],
-                );
-              },
-            ),
+            if (_showAllHistory)
+              AsyncBody(
+                value: ref.watch(teacherBookingsHistoryProvider),
+                onRetry: () => ref.invalidate(teacherBookingsHistoryProvider),
+                builder: (bookings) => _buildSessionFeed(
+                  sourceBookings: bookings,
+                  isToday: false,
+                  date: date,
+                  tomorrow: tomorrow,
+                  onRefresh: () {
+                    ref.invalidate(teacherBookingsHistoryProvider);
+                    ref.invalidate(teacherDayScheduleProvider);
+                  },
+                  onCheckTomorrow: () => setDate(tomorrow),
+                ),
+              )
+            else
+              AsyncBody(
+                value: ref.watch(teacherDayScheduleProvider),
+                onRetry: () => ref.invalidate(teacherDayScheduleProvider),
+                builder: (schedule) => _buildSessionFeed(
+                  sourceBookings: schedule.bookings,
+                  isToday: isToday,
+                  date: date,
+                  tomorrow: tomorrow,
+                  onRefresh: () => ref.invalidate(teacherDayScheduleProvider),
+                  onCheckTomorrow: () => setDate(tomorrow),
+                ),
+              ),
           ],
         ),
       ),
@@ -271,10 +329,12 @@ class _TeacherDayHero extends StatelessWidget {
     required this.selected,
     required this.isToday,
     required this.isTomorrow,
+    required this.showAllHistory,
     required this.today,
     required this.tomorrow,
     required this.onSelectToday,
     required this.onSelectTomorrow,
+    required this.onShowAllHistory,
     required this.onPreviousDay,
     required this.onNextDay,
     required this.onPickDate,
@@ -284,10 +344,12 @@ class _TeacherDayHero extends StatelessWidget {
   final DateTime? selected;
   final bool isToday;
   final bool isTomorrow;
+  final bool showAllHistory;
   final DateTime today;
   final DateTime tomorrow;
   final VoidCallback onSelectToday;
   final VoidCallback onSelectTomorrow;
+  final VoidCallback onShowAllHistory;
   final VoidCallback onPreviousDay;
   final VoidCallback onNextDay;
   final VoidCallback onPickDate;
@@ -297,7 +359,29 @@ class _TeacherDayHero extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 600;
-        final pretty = formatPrettyDate(date);
+        final pretty = showAllHistory ? AppStrings.allSessions : formatPrettyDate(date);
+        final badgeLabel = showAllHistory
+            ? AppStrings.allSessionHistory
+            : (isToday
+                ? AppStrings.todaySSchedule
+                : (isTomorrow ? AppStrings.tomorrowSAgenda : AppStrings.scheduleCalendar));
+        final badgeColor = showAllHistory
+            ? const Color(0xFFF59E0B)
+            : (isToday
+                ? const Color(0xFF10B981)
+                : (isTomorrow ? const Color(0xFF60A5FA) : Colors.white24));
+        final badgeBg = showAllHistory
+            ? const Color(0xFFD97706).withValues(alpha: 0.25)
+            : (isToday
+                ? const Color(0xFF059669).withValues(alpha: 0.25)
+                : (isTomorrow
+                    ? const Color(0xFF2563EB).withValues(alpha: 0.25)
+                    : Colors.white.withValues(alpha: 0.12)));
+        final badgeTextColor = showAllHistory
+            ? const Color(0xFFFCD34D)
+            : (isToday
+                ? const Color(0xFF6EE7B7)
+                : (isTomorrow ? const Color(0xFF93C5FD) : Colors.white));
 
         return Container(
           width: double.infinity,
@@ -325,7 +409,6 @@ class _TeacherDayHero extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Row: Status badge + Gold Accent
               Row(
                 children: [
                   Container(
@@ -342,17 +425,9 @@ class _TeacherDayHero extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                     decoration: BoxDecoration(
-                      color: isToday
-                          ? const Color(0xFF059669).withValues(alpha: 0.25)
-                          : (isTomorrow
-                              ? const Color(0xFF2563EB).withValues(alpha: 0.25)
-                              : Colors.white.withValues(alpha: 0.12)),
+                      color: badgeBg,
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: isToday
-                            ? const Color(0xFF10B981)
-                            : (isTomorrow ? const Color(0xFF60A5FA) : Colors.white24),
-                      ),
+                      border: Border.all(color: badgeColor),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -362,13 +437,9 @@ class _TeacherDayHero extends StatelessWidget {
                           const SizedBox(width: 5),
                         ],
                         Text(
-                          isToday
-                              ? AppStrings.todaySSchedule
-                              : (isTomorrow ? AppStrings.tomorrowSAgenda : AppStrings.scheduleCalendar),
+                          badgeLabel,
                           style: TextStyle(
-                            color: isToday
-                                ? const Color(0xFF6EE7B7)
-                                : (isTomorrow ? const Color(0xFF93C5FD) : Colors.white),
+                            color: badgeTextColor,
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.8,
@@ -379,10 +450,7 @@ class _TeacherDayHero extends StatelessWidget {
                   ),
                 ],
               ),
-
               SizedBox(height: isNarrow ? 10 : 14),
-
-              // Date Headline
               Text(
                 pretty,
                 style: TextStyle(
@@ -401,10 +469,7 @@ class _TeacherDayHero extends StatelessWidget {
                   height: 1.35,
                 ),
               ),
-
               SizedBox(height: isNarrow ? 12 : 16),
-
-              // Segmented Date Bar
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
@@ -417,44 +482,47 @@ class _TeacherDayHero extends StatelessWidget {
                   runSpacing: 4,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    // Previous Day
                     IconButton(
-                      onPressed: onPreviousDay,
-                      icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
+                      onPressed: showAllHistory ? null : onPreviousDay,
+                      icon: Icon(
+                        Icons.chevron_left_rounded,
+                        color: showAllHistory ? Colors.white38 : Colors.white,
+                      ),
                       tooltip: AppStrings.previousDay,
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                     ),
-
-                    // Today Pill
                     _DateSelectorPill(
                       label: AppStrings.today,
                       isSelected: isToday,
                       icon: Icons.today_rounded,
                       onTap: onSelectToday,
                     ),
-
-                    // Tomorrow Pill
                     _DateSelectorPill(
                       label: AppStrings.tomorrow,
                       isSelected: isTomorrow,
                       icon: Icons.event_rounded,
                       onTap: onSelectTomorrow,
                     ),
-
-                    // Date Picker Button
                     _DateSelectorPill(
                       label: date,
-                      isSelected: !isToday && !isTomorrow,
+                      isSelected: !showAllHistory && !isToday && !isTomorrow,
                       icon: Icons.calendar_month_rounded,
                       onTap: onPickDate,
                     ),
-
-                    // Next Day
+                    _DateSelectorPill(
+                      label: AppStrings.showAllHistory,
+                      isSelected: showAllHistory,
+                      icon: Icons.history_rounded,
+                      onTap: onShowAllHistory,
+                    ),
                     IconButton(
-                      onPressed: onNextDay,
-                      icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                      onPressed: showAllHistory ? null : onNextDay,
+                      icon: Icon(
+                        Icons.chevron_right_rounded,
+                        color: showAllHistory ? Colors.white38 : Colors.white,
+                      ),
                       tooltip: AppStrings.nextDay,
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
@@ -1357,10 +1425,12 @@ class _EmptyScheduleCard extends StatelessWidget {
     required this.date,
     required this.onCheckTomorrow,
     this.isPastTab = false,
+    this.showAllHistory = false,
   });
 
   final bool isToday;
   final bool isPastTab;
+  final bool showAllHistory;
   final String date;
   final VoidCallback onCheckTomorrow;
 
@@ -1382,48 +1452,45 @@ class _EmptyScheduleCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Brand.navy.withValues(alpha: 0.05),
-              border: Border.all(color: Brand.gold.withValues(alpha: 0.4), width: 1.5),
-            ),
-            child: const Icon(Icons.event_busy_rounded, size: 34, color: Brand.navy),
+          Icon(
+            showAllHistory
+                ? Icons.history_rounded
+                : (isPastTab ? Icons.event_busy_rounded : Icons.event_available_rounded),
+            size: 42,
+            color: Brand.navy.withValues(alpha: 0.35),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
           Text(
-            isPastTab
-                ? AppStrings.pastSessions
-                : (isToday ? AppStrings.noSessionBookingsToday : AppStrings.noBookingsOnThisDate),
+            showAllHistory
+                ? AppStrings.noSessionsInYourHistory
+                : (isPastTab
+                    ? AppStrings.pastSessions
+                    : (isToday ? AppStrings.noSessionBookingsToday : AppStrings.noBookingsOnThisDate)),
+            textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
               color: Brand.navy,
             ),
           ),
-          const SizedBox(height: 6),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Text(
-              isPastTab
-                  ? AppStrings.noPastSessionsYet
-                  : isToday
-                  ? AppStrings.thereAreNoStudentSessionsBookedOnYourCalendarToday
-                  : 'There are no sessions booked for ${formatPrettyDate(date)}. Use the date navigator above to check other days.',
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF64748B),
-                height: 1.45,
-              ),
-              textAlign: TextAlign.center,
+          const SizedBox(height: 8),
+          Text(
+            showAllHistory
+                ? AppStrings.noSessionsHaveBeenBookedOnYourCalendarYet
+                : isPastTab
+                    ? AppStrings.noPastSessionsYet
+                    : isToday
+                        ? AppStrings.thereAreNoStudentSessionsBookedOnYourCalendarToday
+                        : 'There are no sessions booked for ${formatPrettyDate(date)}. Use the date navigator above to check other days.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Brand.navy.withValues(alpha: 0.55),
+              height: 1.4,
             ),
           ),
-          if (isToday && !isPastTab) ...[
-            const SizedBox(height: 20),
+          if (isToday && !isPastTab && !showAllHistory) ...[
+            const SizedBox(height: 18),
             FilledButton.icon(
               style: FilledButton.styleFrom(
                 backgroundColor: Brand.navy,

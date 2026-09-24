@@ -28,6 +28,10 @@ final teacherDayScheduleProvider = FutureProvider.autoDispose<ScheduleDayDto>((r
   return ref.watch(scheduleRepositoryProvider).teacherDay(date);
 });
 
+final teacherBookingsHistoryProvider = FutureProvider.autoDispose<List<SessionBookingDto>>((ref) {
+  return ref.watch(scheduleRepositoryProvider).teacherBookingsHistory();
+});
+
 final teacherLeavesProvider = FutureProvider.autoDispose<List<LeaveRequestDto>>((ref) {
   return ref.watch(scheduleRepositoryProvider).teacherLeaves();
 });

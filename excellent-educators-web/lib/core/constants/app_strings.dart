@@ -60,6 +60,8 @@ abstract final class AppStrings {
   static const allOverview = 'All overview';
   static const allRecordedLeavesWithDurationAppliedDateAndStatus = 'All recorded leaves with duration, applied date, and status.';
   static const allStudents = 'All students';
+  static const allSessionHistory = 'ALL SESSION HISTORY';
+  static const allSessions = 'All sessions';
   static const allTime = 'All Time';
   static const allTime2 = 'All time';
   static const allTimeSummary = 'All time summary';
@@ -596,6 +598,8 @@ abstract final class AppStrings {
   static const noRequestsYetTapBelowToSendYourFirstRequest = 'No requests yet. Tap below to send your first request to admin.';
   static const noScoreYet = 'No score yet';
   static const noSessionBookingsToday = 'No Session Bookings Today';
+  static const noSessionsInYourHistory = 'No Sessions in Your History';
+  static const noSessionsHaveBeenBookedOnYourCalendarYet = 'No sessions have been booked on your calendar yet.';
   static const noStandoutStudentsYet = 'No standout students yet';
   static const noStudentsAssigned = 'No students assigned';
   static const noStudentsCurrentlyInThisBatch = 'No students currently in this batch.';
@@ -813,6 +817,7 @@ abstract final class AppStrings {
   static const setTheHoursThisTeacherCanBeBookedStudentsOnly = 'Set the hours this teacher can be booked. Students only see available 30-minute slots inside these ranges.';
   static const settings = 'Settings';
   static const settingsSaved = 'Settings saved';
+  static const showAllHistory = 'Show all history';
   static const signIn = 'Sign in';
   static const signInForm = 'Sign-in form';
   static const signOut = 'Sign out';
