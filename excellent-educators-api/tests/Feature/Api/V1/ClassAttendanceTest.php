@@ -149,6 +149,10 @@ class ClassAttendanceTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-09-16 08:00:00', 'Asia/Kolkata'));
         $intro = $this->book($student, $teacher, '10:00');
         $intro->update(['status' => SessionBookingStatus::Completed->value]);
+        \App\Models\StudentLevelJourney::query()
+            ->where('student_id', $student->id)
+            ->whereNull('ended_at')
+            ->update(['started_at' => Carbon::parse('2026-08-01 00:00:00', 'Asia/Kolkata')]);
         $booking = $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
             'teacher_id' => $teacher->id,
             'type' => 'master_class',
@@ -211,6 +215,10 @@ class ClassAttendanceTest extends TestCase
         $this->assertNull($introDay['monthly_feedback_id']);
 
         $intro->update(['status' => SessionBookingStatus::Completed->value]);
+        \App\Models\StudentLevelJourney::query()
+            ->where('student_id', $student->id)
+            ->whereNull('ended_at')
+            ->update(['started_at' => Carbon::parse('2026-08-01 00:00:00', 'Asia/Kolkata')]);
         $masterId = $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
             'teacher_id' => $teacher->id,
             'type' => 'master_class',
@@ -421,6 +429,10 @@ class ClassAttendanceTest extends TestCase
         $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings/'.$intro->id.'/join')->assertOk();
         Carbon::setTestNow(Carbon::parse('2026-09-16 10:31:00', 'Asia/Kolkata'));
         $intro->update(['status' => SessionBookingStatus::Completed->value]);
+        \App\Models\StudentLevelJourney::query()
+            ->where('student_id', $student->id)
+            ->whereNull('ended_at')
+            ->update(['started_at' => Carbon::parse('2026-08-01 00:00:00', 'Asia/Kolkata')]);
 
         $masterId = $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
             'teacher_id' => $teacher->id,

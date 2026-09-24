@@ -100,7 +100,13 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     TextFormField(
                       controller: _confirm,
                       obscureText: _obscure,
-                      decoration: const InputDecoration(labelText: AppStrings.confirmPassword),
+                      decoration: InputDecoration(
+                        labelText: AppStrings.confirmPassword,
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                          icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                        ),
+                      ),
                       validator: (value) {
                         if (value != _password.text) {
                           return AppStrings.passwordsDoNotMatch;

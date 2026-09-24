@@ -145,34 +145,13 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
             SizedBox(height: isMobile ? 12 : 16),
 
             // Password field
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  AppStrings.password,
-                  style: TextStyle(
-                    fontSize: isMobile ? 12.5 : 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary.withValues(alpha: 0.85),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => context.go(RoutePaths.forgotPassword),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    AppStrings.forgotPassword,
-                    style: TextStyle(
-                      fontSize: isMobile ? 12 : 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryMid,
-                    ),
-                  ),
-                ),
-              ],
+            Text(
+              AppStrings.password,
+              style: TextStyle(
+                fontSize: isMobile ? 12.5 : 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary.withValues(alpha: 0.85),
+              ),
             ),
             const SizedBox(height: 5),
             TextFormField(
@@ -221,6 +200,26 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
                 return null;
               },
               onFieldSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => context.go(RoutePaths.forgotPassword),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  AppStrings.forgotPassword,
+                  style: TextStyle(
+                    fontSize: isMobile ? 12 : 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryMid,
+                  ),
+                ),
+              ),
             ),
 
             // Error display

@@ -836,6 +836,9 @@ class BookingEligibilityDto {
     this.masterClassRemaining = 0,
     this.masterClassAttemptsMax = 1,
     this.masterClassAttemptsUsed = 0,
+    this.masterClassOpensNextMonth = false,
+    this.journeyMonth = 1,
+    this.masterClassUnlocksOn,
     this.levelStartedOn,
   });
 
@@ -849,6 +852,9 @@ class BookingEligibilityDto {
       masterClassRemaining: (json['master_class_remaining'] as num?)?.toInt() ?? 0,
       masterClassAttemptsMax: (json['master_class_attempts_max'] as num?)?.toInt() ?? 1,
       masterClassAttemptsUsed: (json['master_class_attempts_used'] as num?)?.toInt() ?? 0,
+      masterClassOpensNextMonth: json['master_class_opens_next_month'] == true,
+      journeyMonth: (json['journey_month'] as num?)?.toInt() ?? 1,
+      masterClassUnlocksOn: json['master_class_unlocks_on'] as String?,
       levelStartedOn: json['level_started_on'] as String?,
     );
   }
@@ -861,6 +867,9 @@ class BookingEligibilityDto {
   final int masterClassRemaining;
   final int masterClassAttemptsMax;
   final int masterClassAttemptsUsed;
+  final bool masterClassOpensNextMonth;
+  final int journeyMonth;
+  final String? masterClassUnlocksOn;
   final String? levelStartedOn;
 }
 

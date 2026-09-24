@@ -28,6 +28,7 @@ class StudentJourneySnapshot {
     this.joinableSession,
     this.masterClassRemaining = 0,
     this.masterClassAllotment = 1,
+    this.masterClassOpensNextMonth = false,
   });
 
   final SessionBookingDto? nextSession;
@@ -41,6 +42,7 @@ class StudentJourneySnapshot {
   final bool canBookMasterClass;
   final int masterClassRemaining;
   final int masterClassAllotment;
+  final bool masterClassOpensNextMonth;
 
   bool get hasExtraMasterClasses => masterClassAllotment > 1;
 
@@ -191,6 +193,12 @@ StudentJourneySnapshot buildStudentJourney({
           : 'Ready to book',
       phase: JourneyPhase.current,
     );
+  } else if (eligibility.masterClassOpensNextMonth) {
+    master = const JourneyNode(
+      title: AppStrings.masterClass,
+      detail: AppStrings.masterClassOpensNextMonthTitle,
+      phase: JourneyPhase.upcoming,
+    );
   } else if (masterCompleted) {
     master = const JourneyNode(
       title: AppStrings.masterClass,
@@ -228,6 +236,7 @@ StudentJourneySnapshot buildStudentJourney({
         !masterScheduled,
     masterClassRemaining: eligibility.masterClassRemaining,
     masterClassAllotment: eligibility.masterClassAttemptsMax,
+    masterClassOpensNextMonth: eligibility.masterClassOpensNextMonth,
   );
 }
 

@@ -245,7 +245,7 @@ class AcademicCoreTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.counts.active_students', 1)
             ->assertJsonPath('data.counts.total_students', 1)
-            ->assertJsonPath('data.counts.active_batches', $initialActiveBatches + 1)
+            ->assertJsonPath('data.counts.active_batches', $initialActiveBatches)
             ->assertJsonStructure([
                 'data' => [
                     'by_level',

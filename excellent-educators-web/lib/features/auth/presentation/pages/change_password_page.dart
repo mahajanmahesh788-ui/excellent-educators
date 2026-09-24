@@ -119,7 +119,13 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   TextFormField(
                     controller: _password,
                     obscureText: _obscure,
-                    decoration: const InputDecoration(labelText: AppStrings.newPassword),
+                    decoration: InputDecoration(
+                      labelText: AppStrings.newPassword,
+                      suffixIcon: IconButton(
+                        onPressed: () => setState(() => _obscure = !_obscure),
+                        icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                      ),
+                    ),
                     validator: (value) {
                       if (value == null || value.length < 8) {
                         return AppStrings.useAtLeast8Characters;
@@ -131,7 +137,13 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   TextFormField(
                     controller: _confirm,
                     obscureText: _obscure,
-                    decoration: const InputDecoration(labelText: AppStrings.confirmNewPassword),
+                    decoration: InputDecoration(
+                      labelText: AppStrings.confirmNewPassword,
+                      suffixIcon: IconButton(
+                        onPressed: () => setState(() => _obscure = !_obscure),
+                        icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                      ),
+                    ),
                     validator: (value) {
                       if (value != _password.text) {
                         return AppStrings.passwordsDoNotMatch;

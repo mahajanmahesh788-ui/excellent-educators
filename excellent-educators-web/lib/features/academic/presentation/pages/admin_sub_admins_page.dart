@@ -146,6 +146,7 @@ class _SubAdminFormPageState extends ConsumerState<_SubAdminFormPage> {
   var _type = 'admin';
   var _active = true;
   var _saving = false;
+  var _obscurePassword = true;
   final _toggles = <String, bool>{};
   String? _boundId;
 
@@ -353,9 +354,17 @@ class _SubAdminFormPageState extends ConsumerState<_SubAdminFormPage> {
           const SizedBox(height: 12),
           TextFormField(
             controller: _password,
-            obscureText: true,
+            obscureText: _obscurePassword,
             decoration: InputDecoration(
-              labelText: _editing ? AppStrings.password : AppStrings.password,
+              labelText: AppStrings.password,
+              suffixIcon: IconButton(
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+              ),
             ),
             validator: (value) {
               if (_editing) {

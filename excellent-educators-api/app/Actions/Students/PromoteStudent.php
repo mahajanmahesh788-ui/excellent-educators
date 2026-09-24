@@ -34,7 +34,7 @@ class PromoteStudent
             $from = $student->academicLevel?->name;
             $student->update(['level_id' => $level->id]);
             $this->allocateBatchForStudent->execute($level, $student->fresh(), $actor);
-            $this->startStudentLevelJourney->execute($student->fresh(), $level);
+            $this->startStudentLevelJourney->executeIfBatchActive($student->fresh(), $level);
             StudentActivity::record(
                 $student->fresh(),
                 'level_changed',

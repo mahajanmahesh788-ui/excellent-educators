@@ -176,6 +176,17 @@ class CreateSessionBooking
             );
         }
 
+        if ($this->eligibility->masterClassOpensNextMonth($student)) {
+            $unlocksOn = $this->eligibility->masterClassUnlocksOn($student);
+            throw new ApiException(
+                ErrorCode::MASTER_CLASS_OPENS_NEXT_MONTH,
+                $unlocksOn !== null
+                    ? "Master Class booking opens next month (from {$unlocksOn}). Complete your weekly learning this month so your Master Teacher can review your progress."
+                    : 'Master Class booking opens next month. Complete your weekly learning this month so your Master Teacher can review your progress.',
+                422,
+            );
+        }
+
         if (! $this->eligibility->canBookMasterClass($student)) {
             $balance = $this->masterClassBalance->snapshot($student);
             throw new ApiException(

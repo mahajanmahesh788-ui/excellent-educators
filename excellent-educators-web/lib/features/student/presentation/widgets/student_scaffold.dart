@@ -1,6 +1,7 @@
-import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/widgets/notification_bell_button.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
@@ -9,7 +10,7 @@ import 'package:excellent_educators_web/features/student/presentation/widgets/st
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/app/router/route_paths.dart';
 
 class StudentScaffold extends ConsumerWidget {
   const StudentScaffold({
@@ -34,6 +35,10 @@ class StudentScaffold extends ConsumerWidget {
       data: (payload) => payload.available && payload.assessment != null,
       orElse: () => false,
     );
+    final journeyWaiting = ref.watch(studentProfileProvider).maybeWhen(
+          data: (student) => student.isBatchWaitingToStart,
+          orElse: () => false,
+        );
     final location = GoRouterState.of(context).uri.path;
 
     return Scaffold(
@@ -53,6 +58,7 @@ class StudentScaffold extends ConsumerWidget {
             _AcademyNav(
               location: location,
               pending: pending,
+              journeyWaiting: journeyWaiting,
               extraActions: actions,
             ),
             Expanded(
@@ -94,11 +100,13 @@ class _AcademyNav extends ConsumerWidget {
   const _AcademyNav({
     required this.location,
     required this.pending,
+    required this.journeyWaiting,
     this.extraActions,
   });
 
   final String location;
   final bool pending;
+  final bool journeyWaiting;
   final List<Widget>? extraActions;
 
   static const _links = [
@@ -136,7 +144,32 @@ class _AcademyNav extends ConsumerWidget {
 
   static bool _isLockedLink(String path) {
     return path != RoutePaths.studentDashboard &&
-        path != RoutePaths.studentProfile;
+        path != RoutePaths.studentProfile &&
+        path != RoutePaths.studentRequests;
+  }
+
+  bool _blocksLink(String path) {
+    if (!_isLockedLink(path)) {
+      return false;
+    }
+    return pending || journeyWaiting;
+  }
+
+  void _onNavTap(BuildContext context, String path, String label) {
+    dismissOverlayRoutes(context);
+    if (!_isLockedLink(path)) {
+      context.go(path);
+      return;
+    }
+    if (journeyWaiting) {
+      JourneyNotStartedDialog.show(context);
+      return;
+    }
+    if (pending) {
+      LockedFeatureNoticeDialog.show(context, featureName: label);
+      return;
+    }
+    context.go(path);
   }
 
   bool _selected(String path) {
@@ -150,8 +183,8 @@ class _AcademyNav extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < 920;
-        final isTight = constraints.maxWidth < 1120;
+        final compact = constraints.maxWidth < 960;
+        final isTight = constraints.maxWidth < 1140;
 
         return Material(
           color: Colors.white,
@@ -211,8 +244,7 @@ class _AcademyNav extends ConsumerWidget {
                   const SizedBox(width: 16),
                   Container(height: 20, width: 1, color: StudentColors.border),
                   const SizedBox(width: 12),
-                  Flexible(
-                    fit: FlexFit.loose,
+                  Expanded(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -226,19 +258,9 @@ class _AcademyNav extends ConsumerWidget {
                                 icon: link.icon,
                                 selected: _selected(link.path),
                                 disabled: false,
-                                isLocked: pending && _isLockedLink(link.path),
+                                isLocked: _blocksLink(link.path),
                                 tight: isTight,
-                                onTap: () {
-                                  dismissOverlayRoutes(context);
-                                  if (pending && _isLockedLink(link.path)) {
-                                    LockedFeatureNoticeDialog.show(
-                                      context,
-                                      featureName: link.label,
-                                    );
-                                  } else {
-                                    context.go(link.path);
-                                  }
-                                },
+                                onTap: () => _onNavTap(context, link.path, link.label),
                               ),
                             ),
                         ],
@@ -247,11 +269,12 @@ class _AcademyNav extends ConsumerWidget {
                   ),
                 ],
 
-                // Push actions to the far right
-                const Spacer(),
+                // Push actions to the far right on compact screens
+                if (compact) const Spacer(),
 
                 // Divider before actions on desktop
                 if (!compact) ...[
+                  const SizedBox(width: 12),
                   Container(height: 20, width: 1, color: StudentColors.border),
                   const SizedBox(width: 6),
                 ],
@@ -287,19 +310,11 @@ class _AcademyNav extends ConsumerWidget {
                       color: StudentColors.textSecondary,
                     ),
                     onSelected: (path) {
-                      dismissOverlayRoutes(context);
                       final link = _links.firstWhere(
                         (l) => l.path == path,
                         orElse: () => _links.first,
                       );
-                      if (pending && _isLockedLink(path)) {
-                        LockedFeatureNoticeDialog.show(
-                          context,
-                          featureName: link.label,
-                        );
-                      } else {
-                        context.go(path);
-                      }
+                      _onNavTap(context, path, link.label);
                     },
                     itemBuilder: (context) => [
                       for (final link in _links)
@@ -328,7 +343,7 @@ class _AcademyNav extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-                              if (pending && _isLockedLink(link.path)) ...[
+                              if (_blocksLink(link.path)) ...[
                                 const SizedBox(width: 6),
                                 const Icon(
                                   Icons.lock_rounded,

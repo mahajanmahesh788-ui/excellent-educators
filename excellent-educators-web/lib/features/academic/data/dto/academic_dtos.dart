@@ -56,6 +56,9 @@ class StudentDto {
     this.masterClassRemaining = 0,
     this.masterClassUsed = 0,
     this.masterClassOverride,
+    this.batchStatus,
+    this.batchStartsOn,
+    this.journeyStarted = false,
   });
 
   factory StudentDto.fromJson(Map<String, dynamic> json) {
@@ -64,6 +67,9 @@ class StudentDto {
         : null;
     final feedback = json['feedback'] is Map
         ? Map<String, dynamic>.from(json['feedback'] as Map)
+        : null;
+    final batchJson = json['batch'] is Map
+        ? Map<String, dynamic>.from(json['batch'] as Map)
         : null;
 
     return StudentDto(
@@ -85,12 +91,12 @@ class StudentDto {
               labelKey: 'name',
             )
           : null,
-      batch: json['batch'] is Map
-          ? NamedRef.fromJson(
-              Map<String, dynamic>.from(json['batch'] as Map),
-              labelKey: 'name',
-            )
+      batch: batchJson != null
+          ? NamedRef.fromJson(batchJson, labelKey: 'name')
           : null,
+      batchStatus: batchJson?['status'] as String?,
+      batchStartsOn: batchJson?['starts_on'] as String?,
+      journeyStarted: json['journey_started'] == true,
       masterTeacher: json['master_teacher'] is Map
           ? NamedRef.fromJson(
               Map<String, dynamic>.from(json['master_teacher'] as Map),
@@ -173,10 +179,15 @@ class StudentDto {
   final int masterClassRemaining;
   final int masterClassUsed;
   final int? masterClassOverride;
+  final String? batchStatus;
+  final String? batchStartsOn;
+  final bool journeyStarted;
 
   bool get hasSubmittedAptitudeAssessment =>
       aptitudeAssessmentStatus == 'submitted';
 
+  bool get isBatchWaitingToStart =>
+      batch != null && !batch!.isEmpty && batchStatus != 'active';
   bool get hasMasterTeacher =>
       masterTeachers.isNotEmpty ||
       (masterTeacher != null && !masterTeacher!.isEmpty);

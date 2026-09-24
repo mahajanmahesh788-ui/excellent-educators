@@ -25,6 +25,7 @@ class ProfileController extends Controller
             'activeEnrollment.batch.level.masterTeachers.user',
             'activeEnrollment.batch.activeTeacherAssignment.teacher',
             'activeMasterTeacherAssignment.teacher',
+            'currentLevelJourney',
         ]);
         $student->loadCount([
             'monthlyFeedbacks as feedback_total_sessions',

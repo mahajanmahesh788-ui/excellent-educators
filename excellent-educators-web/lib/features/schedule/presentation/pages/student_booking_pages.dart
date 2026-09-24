@@ -2017,6 +2017,7 @@ class _StudentBookingWizardPageState
   String? _start;
   bool _saving = false;
   bool _typeLocked = false;
+  bool _shownMasterClassLockDialog = false;
 
   bool get _reschedule => widget.bookingId != null;
 
@@ -2097,6 +2098,36 @@ class _StudentBookingWizardPageState
           onRetry: () => ref.invalidate(studentEligibilityProvider),
         ),
         data: (state) {
+          if (!_reschedule &&
+              widget.type == 'master_class' &&
+              state.masterClassOpensNextMonth) {
+            if (!_shownMasterClassLockDialog) {
+              _shownMasterClassLockDialog = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (!mounted) {
+                  return;
+                }
+                final nav = GoRouter.of(context);
+                await MasterClassOpensNextMonthDialog.show(context);
+                if (!mounted) {
+                  return;
+                }
+                nav.go(RoutePaths.studentBookings);
+              });
+            }
+            return const AcademySurface(
+              child: Text(
+                AppStrings.masterClassOpensNextMonthBody,
+                style: TextStyle(
+                  color: Academy.ink,
+                  fontSize: 16,
+                  height: 1.45,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            );
+          }
+
           final canMaster =
               state.canBookMasterClass && state.masterClassRemaining > 0;
           final canIntro = state.canBookIntroduction;
@@ -2105,10 +2136,12 @@ class _StudentBookingWizardPageState
               !_reschedule && canIntro && canMaster && !_typeLocked;
           final isMobile = MediaQuery.sizeOf(context).width < 768;
           if (!_reschedule && !canIntro && !canMaster) {
-            return const AcademySurface(
+            return AcademySurface(
               child: Text(
-                AppStrings.noSessionsLeftToBookThisMonth,
-                style: TextStyle(
+                state.masterClassOpensNextMonth
+                    ? AppStrings.masterClassOpensNextMonthBody
+                    : AppStrings.noSessionsLeftToBookThisMonth,
+                style: const TextStyle(
                   color: Academy.ink,
                   fontSize: 16,
                   height: 1.45,

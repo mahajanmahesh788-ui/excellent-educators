@@ -126,6 +126,32 @@ class SchedulingTest extends TestCase
             'date' => '2026-09-10',
         ]);
 
+        // Journey started this month → Master Class opens next month
+        $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.master_class_opens_next_month', true)
+            ->assertJsonPath('data.can_book_master_class', false);
+
+        $this->withToken($token)->postJson('/api/v1/student/bookings', [
+            'teacher_id' => $teacher->id,
+            'type' => 'master_class',
+            'date' => '2026-09-18',
+            'start' => '11:00',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('error.code', 'MASTER_CLASS_OPENS_NEXT_MONTH');
+
+        // Simulate batch activated previous month so Master Class is unlocked
+        \App\Models\StudentLevelJourney::query()
+            ->where('student_id', $student->id)
+            ->whereNull('ended_at')
+            ->update(['started_at' => Carbon::parse('2026-08-01 00:00:00', 'Asia/Kolkata')]);
+
+        $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.master_class_opens_next_month', false)
+            ->assertJsonPath('data.can_book_master_class', true);
+
         $first = $this->withToken($token)->postJson('/api/v1/student/bookings', [
             'teacher_id' => $teacher->id,
             'type' => 'master_class',
@@ -134,7 +160,6 @@ class SchedulingTest extends TestCase
         ])->assertCreated();
 
         $this->assertSame(1, $first->json('data.attempt_number'));
-        $this->assertSame(1, $first->json('data.learning_week'));
 
         $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
             ->assertOk()
@@ -178,6 +203,10 @@ class SchedulingTest extends TestCase
 
         $intro = $this->book($student, $teacher, 'introduction_call', '2026-09-16', '11:00');
         $intro->update(['status' => 'completed']);
+        \App\Models\StudentLevelJourney::query()
+            ->where('student_id', $student->id)
+            ->whereNull('ended_at')
+            ->update(['started_at' => Carbon::parse('2026-08-01 00:00:00', 'Asia/Kolkata')]);
 
         $this->book($student, $teacher, 'master_class', '2026-09-18', '11:00');
         SessionBooking::query()->where('type', 'master_class')->latest('starts_at')->first()?->update(['status' => 'completed']);
@@ -384,6 +413,10 @@ class SchedulingTest extends TestCase
         [$student, $teacher] = $this->makeStudentWithTeacher();
         $intro = $this->book($student, $teacher, 'introduction_call', '2026-09-16', '10:00');
         $intro->update(['status' => 'completed']);
+        \App\Models\StudentLevelJourney::query()
+            ->where('student_id', $student->id)
+            ->whereNull('ended_at')
+            ->update(['started_at' => Carbon::parse('2026-08-01 00:00:00', 'Asia/Kolkata')]);
         $this->book($student, $teacher, 'master_class', '2026-09-18', '11:00');
 
         $token = $this->tokenFor($teacher->user);

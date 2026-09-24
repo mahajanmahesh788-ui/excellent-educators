@@ -20,6 +20,7 @@ import 'package:excellent_educators_web/features/student/presentation/widgets/st
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_motivational_card.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/upcoming_classes_timeline.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/weekly_journey.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/weekly_learning_section.dart';
@@ -58,6 +59,10 @@ class StudentDashboardPage extends ConsumerWidget {
         error: (_, _) =>
             AcademyError(onRetry: () => ref.invalidate(studentProfileProvider)),
         data: (student) {
+          if (student.isBatchWaitingToStart) {
+            return const _JourneyNotStartedView();
+          }
+
           if (assessmentPending) {
             return _FreshStudentOnboardingView(student: student);
           }
@@ -503,6 +508,79 @@ class _FreshStudentOnboardingViewState
         const SizedBox(height: 24),
         const FreshStudentRoadmapCard(),
       ],
+    );
+  }
+}
+
+class _JourneyNotStartedView extends StatelessWidget {
+  const _JourneyNotStartedView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: StudentColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: StudentColors.indigoPrimary.withValues(alpha: 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: StudentColors.amberLight,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: StudentColors.amberBorder, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.hourglass_top_rounded,
+                      color: StudentColors.amberDeep,
+                      size: 34,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    AppStrings.yourJourneyHasNotStartedYet,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: StudentColors.textPrimary,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    AppStrings.yourBatchIsStillBeingPreparedYouWillBeAbleToStartLearning,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.45,
+                      color: StudentColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

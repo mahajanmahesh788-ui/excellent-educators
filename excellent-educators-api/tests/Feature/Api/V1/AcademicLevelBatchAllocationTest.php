@@ -99,7 +99,7 @@ class AcademicLevelBatchAllocationTest extends TestCase
         $this->assertEquals(1, $batch2->enrolled_watermark);
     }
 
-    public function test_inactive_batch_is_skipped_and_batch_status_toggle(): void
+    public function test_inactive_batch_still_receives_students_until_full_or_admin_activates(): void
     {
         $admin = $this->makeAdmin();
         $token = $this->tokenFor($admin);
@@ -107,7 +107,7 @@ class AcademicLevelBatchAllocationTest extends TestCase
         $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
         $batch1 = Batch::query()->where('level_id', $level1->id)->where('name', 'Batch 1')->firstOrFail();
 
-        // Toggle Batch 1 to inactive
+        // Toggle Batch 1 to inactive (still open for enrollment)
         $this->withToken($token)->patchJson("/api/v1/admin/batches/{$batch1->id}/status")
             ->assertOk()
             ->assertJsonPath('data.status', 'inactive');
@@ -115,7 +115,7 @@ class AcademicLevelBatchAllocationTest extends TestCase
         $batch1->refresh();
         $this->assertEquals('inactive', $batch1->status->value ?? $batch1->status);
 
-        // Add a student -> Batch 1 is inactive, so auto-allocator creates Batch 2
+        // New student must go into inactive Batch 1 — not skip to a new Batch 2
         $response = $this->withToken($token)->postJson('/api/v1/admin/students', [
             'name' => 'Student With Inactive Batch 1',
             'email' => 'inactive_test@test.com',
@@ -125,13 +125,66 @@ class AcademicLevelBatchAllocationTest extends TestCase
             'gender' => 'male',
         ])->assertCreated();
 
-        $student = StudentProfile::query()->findOrFail($response->json('data.id'));
-        $this->assertEquals('Batch 2', $student->activeEnrollment->batch->name);
+        $student = StudentProfile::query()->with('currentLevelJourney')->findOrFail($response->json('data.id'));
+        $this->assertEquals('Batch 1', $student->activeEnrollment->batch->name);
+        $this->assertNull($student->currentLevelJourney);
 
-        // Admin can toggle Batch 1 back to active
+        // Admin activates Batch 1 → journey starts from batch starts_on
         $this->withToken($token)->patchJson("/api/v1/admin/batches/{$batch1->id}/status")
             ->assertOk()
             ->assertJsonPath('data.status', 'active');
+
+        $student->refresh()->load('currentLevelJourney');
+        $this->assertNotNull($student->currentLevelJourney);
+        $batch1->refresh();
+        $this->assertNotNull($batch1->starts_on);
+    }
+
+    public function test_new_auto_batch_is_inactive_and_activates_when_full(): void
+    {
+        $admin = $this->makeAdmin();
+        $token = $this->tokenFor($admin);
+
+        $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+        $batch1 = Batch::query()->where('level_id', $level1->id)->where('name', 'Batch 1')->firstOrFail();
+        $batch1->update(['enrolled_watermark' => 50, 'status' => 'active']);
+
+        $response = $this->withToken($token)->postJson('/api/v1/admin/students', [
+            'name' => 'First In Batch 2',
+            'email' => 'batch2first@test.com',
+            'password' => 'StudentPass1!',
+            'phone' => '9800000088',
+            'class_grade' => 6,
+            'gender' => 'male',
+        ])->assertCreated();
+
+        $student = StudentProfile::query()->with(['activeEnrollment.batch', 'currentLevelJourney'])
+            ->findOrFail($response->json('data.id'));
+        $batch2 = $student->activeEnrollment->batch;
+
+        $this->assertEquals('Batch 2', $batch2->name);
+        $this->assertEquals('inactive', $batch2->status->value ?? $batch2->status);
+        $this->assertNull($student->currentLevelJourney);
+
+        // Fill to capacity → auto-activate and start journeys
+        $batch2->update(['enrolled_watermark' => 49]);
+        $responseFull = $this->withToken($token)->postJson('/api/v1/admin/students', [
+            'name' => 'Fills Batch 2',
+            'email' => 'batch2full@test.com',
+            'password' => 'StudentPass1!',
+            'phone' => '9800000089',
+            'class_grade' => 6,
+            'gender' => 'male',
+        ])->assertCreated();
+
+        $batch2->refresh();
+        $this->assertEquals(50, $batch2->enrolled_watermark);
+        $this->assertEquals('active', $batch2->status->value ?? $batch2->status);
+
+        $filled = StudentProfile::query()->with('currentLevelJourney')->findOrFail($responseFull->json('data.id'));
+        $this->assertNotNull($filled->currentLevelJourney);
+        $student->refresh()->load('currentLevelJourney');
+        $this->assertNotNull($student->currentLevelJourney);
     }
 
     public function test_admin_can_manage_levels_and_level_batches(): void

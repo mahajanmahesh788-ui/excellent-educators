@@ -484,6 +484,8 @@ abstract final class AppStrings {
   static const masterClassesHeldTotal = 'Master Classes (Held / Total)';
   static const masterClassesPerMonth = 'Master Classes per month';
   static const masterClassesThisMonth = 'Master Classes this month';
+  static const masterClassOpensNextMonthTitle = 'Master Class opens next month';
+  static const masterClassOpensNextMonthBody = 'Your Introduction Call is complete. Master Classes begin in the month after your batch starts, so your Master Teacher can review your weekly learning and discuss meaningful progress with you. Keep completing your weekly tasks — booking unlocks next month.';
   static const masterTeacher = 'Master Teacher';
   static const masterTeacher2 = 'Master teacher';
   static const masterTeacherRatings = 'Master Teacher ratings';
@@ -1028,7 +1030,10 @@ abstract final class AppStrings {
   static const yourLearningJourney = 'Your learning journey';
   static const yourLearningJourneyIsMovingForward = 'Your learning journey is moving forward.';
   static const yourLearningJourneyIsWaitingForYou = 'Your learning journey is waiting for you.';
+  static const yourJourneyHasNotStartedYet = 'Your journey has not started yet';
   static const yourLearningJourneyWillAppearOnceALevelJourneyStarts = 'Your learning journey will appear once a level journey starts.';
+  static const yourBatchIsStillBeingPreparedYouWillBeAbleToStartLearning = 'Your batch is still being prepared. You will be able to start learning once an admin activates your batch or it reaches full capacity.';
+
   static const yourLevel = 'Your level';
   static const yourMasterClassIsBookedJoinWhenItStarts = 'Your Master Class is booked. Join when it starts.';
   static const yourMasterClassIsLiveJoinNowSoYouDon = 'Your Master Class is live — join now so you don’t miss it.';

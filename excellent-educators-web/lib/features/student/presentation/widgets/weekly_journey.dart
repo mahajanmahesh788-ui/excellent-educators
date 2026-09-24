@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/fresh_student_onboarding.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
 
@@ -87,6 +88,8 @@ class WeeklyJourneyWidget extends StatelessWidget {
         onTap: () {
           if (isMasterScheduled || isMasterCompleted) {
             context.go(RoutePaths.studentBookings);
+          } else if (snapshot.masterClassOpensNextMonth) {
+            MasterClassOpensNextMonthDialog.show(context);
           } else {
             context.go('${RoutePaths.studentBookNew}?type=master_class');
           }

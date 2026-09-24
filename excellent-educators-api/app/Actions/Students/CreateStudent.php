@@ -101,7 +101,7 @@ class CreateStudent
             if ($academicLevel) {
                 $actor = auth()->user() ?? $user;
                 $this->allocateBatchForStudent->execute($academicLevel, $profile, $actor);
-                $this->startStudentLevelJourney->execute($profile, $academicLevel);
+                $this->startStudentLevelJourney->executeIfBatchActive($profile->fresh(), $academicLevel);
             }
 
             return $profile;

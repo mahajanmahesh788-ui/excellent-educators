@@ -48,7 +48,12 @@ class StudentResource extends JsonResource
             'batch' => $batch === null ? null : [
                 'id' => $batch->id,
                 'name' => $batch->name,
+                'status' => $batch->status?->value ?? $batch->status,
+                'starts_on' => $batch->starts_on?->toDateString(),
             ],
+            'journey_started' => $this->relationLoaded('currentLevelJourney')
+                ? $this->currentLevelJourney !== null
+                : $this->currentLevelJourney()->exists(),
             'master_teacher' => $master === null ? null : [
                 'id' => $master->id,
                 'full_name' => $master->full_name,

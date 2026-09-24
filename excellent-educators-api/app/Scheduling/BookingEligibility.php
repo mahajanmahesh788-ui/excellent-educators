@@ -28,6 +28,9 @@ class BookingEligibility
             ->unusedRebookingFor($student->id, SessionBookingType::IntroductionCall);
         $canBookIntro = ! $hasUpcomingIntro && ! $introCompleted && ($introCount < 2 || $introRebooking !== null);
         $balance = app(MasterClassBalance::class)->snapshot($student);
+        $journeyMonth = $this->journeyMonth($student);
+        $masterOpensNextMonth = $this->masterClassOpensNextMonth($student);
+        $canBookMaster = $this->canBookMasterClass($student);
 
         return [
             'introduction_completed' => $introCompleted,
@@ -35,14 +38,17 @@ class BookingEligibility
             'introduction_last_chance' => $canBookIntro && $introCount >= 1,
             'introduction_attempts_used' => $introCount,
             'introduction_attempts_max' => 2,
-            'can_book_master_class' => $this->canBookMasterClass($student),
+            'can_book_master_class' => $canBookMaster,
             'has_upcoming_introduction' => $hasUpcomingIntro,
-            'has_master_class_this_month' => ! $this->canBookMasterClass($student) && $introCompleted,
+            'has_master_class_this_month' => $introCompleted && ! $masterOpensNextMonth && ! $canBookMaster,
             'master_class_rebooking_available' => app(AttendanceService::class)
                 ->unusedRebookingFor($student->id, SessionBookingType::MasterClass) !== null,
             'master_class_attempts_used' => $balance['used'],
             'master_class_attempts_max' => $balance['allotment'],
             'master_class_remaining' => $balance['remaining'],
+            'master_class_opens_next_month' => $masterOpensNextMonth,
+            'journey_month' => $journeyMonth,
+            'master_class_unlocks_on' => $this->masterClassUnlocksOn($student),
             'level_started_on' => $this->levelStartedOn($student),
             'current_month' => AppClock::currentYearMonth(),
         ];
@@ -89,6 +95,9 @@ class BookingEligibility
         if (! $this->introductionCompleted($student)) {
             return false;
         }
+        if ($this->masterClassOpensNextMonth($student)) {
+            return false;
+        }
         if ($this->hasUpcoming($student, SessionBookingType::MasterClass, $ignoreBookingId)) {
             return false;
         }
@@ -97,6 +106,68 @@ class BookingEligibility
         }
 
         return app(MasterClassBalance::class)->remaining($student) > 0;
+    }
+
+    /**
+     * Master Class unlocks from the calendar month after the journey/batch start month.
+     */
+    public function masterClassOpensNextMonth(StudentProfile $student): bool
+    {
+        if (! $this->introductionCompleted($student)) {
+            return false;
+        }
+
+        return $this->journeyMonth($student) < 2;
+    }
+
+    public function journeyMonth(StudentProfile $student): int
+    {
+        $started = \App\Models\StudentLevelJourney::query()
+            ->where('student_id', $student->id)
+            ->whereNull('ended_at')
+            ->value('started_at');
+
+        if ($started === null) {
+            $student->loadMissing('activeEnrollment.batch');
+            $started = $student->activeEnrollment?->batch?->starts_on;
+        }
+
+        if ($started === null) {
+            // No journey/batch start yet — do not permanently block Master Class.
+            return 2;
+        }
+
+        $startedAt = $started instanceof \Illuminate\Support\Carbon
+            ? $started->copy()
+            : \Illuminate\Support\Carbon::parse($started);
+
+        $at = AppClock::now()->copy()->startOfMonth();
+        $start = $startedAt->timezone(config('app.timezone'))->startOfMonth();
+
+        return max(1, ((int) $start->diffInMonths($at)) + 1);
+    }
+
+    public function masterClassUnlocksOn(StudentProfile $student): ?string
+    {
+        $started = \App\Models\StudentLevelJourney::query()
+            ->where('student_id', $student->id)
+            ->whereNull('ended_at')
+            ->value('started_at');
+
+        if ($started === null) {
+            $student->loadMissing('activeEnrollment.batch');
+            $started = $student->activeEnrollment?->batch?->starts_on;
+        }
+
+        if ($started === null) {
+            return null;
+        }
+
+        $startedAt = $started instanceof \Illuminate\Support\Carbon
+            ? $started->copy()
+            : \Illuminate\Support\Carbon::parse($started);
+
+        return $startedAt->timezone(config('app.timezone'))->startOfMonth()->addMonth()->toDateString();
     }
 
     /**
@@ -263,6 +334,26 @@ class BookingEligibility
 
     public function levelStartedOn(StudentProfile $student): ?string
     {
+        $started = \App\Models\StudentLevelJourney::query()
+            ->where('student_id', $student->id)
+            ->whereNull('ended_at')
+            ->value('started_at');
+
+        if ($started !== null) {
+            $startedAt = $started instanceof \Illuminate\Support\Carbon
+                ? $started->copy()
+                : \Illuminate\Support\Carbon::parse($started);
+
+            return $startedAt->timezone(config('app.timezone'))->toDateString();
+        }
+
+        $student->loadMissing('activeEnrollment.batch');
+        if ($student->activeEnrollment?->batch?->starts_on !== null) {
+            return $student->activeEnrollment->batch->starts_on
+                ->timezone(config('app.timezone'))
+                ->toDateString();
+        }
+
         $enrollment = $student->activeEnrollment;
         if ($enrollment?->enrolled_at !== null) {
             return $enrollment->enrolled_at->timezone(config('app.timezone'))->toDateString();

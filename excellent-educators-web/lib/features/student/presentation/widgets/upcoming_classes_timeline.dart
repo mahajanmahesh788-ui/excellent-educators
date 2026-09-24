@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/fresh_student_onboarding.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
 
@@ -170,8 +171,13 @@ class UpcomingClassesTimeline extends StatelessWidget {
             ),
           ),
           FilledButton(
-            onPressed: () =>
-                context.go('${RoutePaths.studentBookNew}?type=master_class'),
+            onPressed: () {
+              if (snapshot.masterClassOpensNextMonth) {
+                MasterClassOpensNextMonthDialog.show(context);
+                return;
+              }
+              context.go('${RoutePaths.studentBookNew}?type=master_class');
+            },
             style: FilledButton.styleFrom(
               backgroundColor: StudentColors.indigoPrimary,
               foregroundColor: Colors.white,
