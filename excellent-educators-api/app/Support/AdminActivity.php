@@ -147,7 +147,7 @@ class AdminActivity
             return ['level.manage', self::verb($method).' '.$name, $level ?? $batch];
         }
 
-        if (Str::is('admin/settings*', $path) || Str::is('admin/login-page*', $path) || Str::is('admin/google*', $path)) {
+        if (Str::is('admin/settings*', $path) || Str::is('admin/login-page*', $path) || Str::is('admin/site-pages*', $path) || Str::is('admin/google*', $path)) {
             return ['settings.manage', 'Updated academy settings', null];
         }
 

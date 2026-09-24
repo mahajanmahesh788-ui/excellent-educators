@@ -84,6 +84,7 @@ final class AdminPermissionMap
 
             [$all, 'admin/settings*', [PermissionName::SettingsManage]],
             [$all, 'admin/login-page*', [PermissionName::SettingsManage]],
+            [$all, 'admin/site-pages*', [PermissionName::SettingsManage]],
             [$all, 'admin/google*', [PermissionName::SettingsManage]],
         ];
     }

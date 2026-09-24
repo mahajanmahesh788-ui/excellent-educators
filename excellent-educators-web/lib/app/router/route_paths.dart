@@ -4,6 +4,10 @@ abstract final class RoutePaths {
   static const resetPassword = '/reset-password';
   static const changePassword = '/change-password';
   static const session = '/session';
+  static const privacyPolicy = '/privacy-policy';
+  static const termsAndConditions = '/terms-and-conditions';
+  static const refundPolicy = '/refund-policy';
+  static const contact = '/contact';
   static const adminDashboard = '/admin/dashboard';
   static const adminSubAdmins = '/admin/sub-admins';
   static const adminSubAdminNew = '/admin/sub-admins/new';

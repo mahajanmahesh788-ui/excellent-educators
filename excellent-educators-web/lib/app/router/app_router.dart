@@ -29,6 +29,8 @@ import 'package:excellent_educators_web/features/notifications/presentation/page
 import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_attendance_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_schedule_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/teacher_availability_editor.dart';
+import 'package:excellent_educators_web/features/content/data/dto/site_page_dto.dart';
+import 'package:excellent_educators_web/features/content/presentation/pages/public_site_page.dart';
 import 'package:excellent_educators_web/features/settings/presentation/pages/admin_settings_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/student_booking_pages.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/teacher_day_schedule_page.dart';
@@ -63,6 +65,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         RoutePaths.login,
         RoutePaths.forgotPassword,
         RoutePaths.resetPassword,
+        RoutePaths.privacyPolicy,
+        RoutePaths.termsAndConditions,
+        RoutePaths.refundPolicy,
+        RoutePaths.contact,
       };
       if (!auth.isAuthenticated && !publicPaths.contains(location)) {
         return RoutePaths.login;
@@ -162,6 +168,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.login,
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.privacyPolicy,
+        builder: (context, state) =>
+            const PublicSitePage(slug: SitePageSlugs.privacy),
+      ),
+      GoRoute(
+        path: RoutePaths.termsAndConditions,
+        builder: (context, state) =>
+            const PublicSitePage(slug: SitePageSlugs.terms),
+      ),
+      GoRoute(
+        path: RoutePaths.refundPolicy,
+        builder: (context, state) =>
+            const PublicSitePage(slug: SitePageSlugs.refund),
+      ),
+      GoRoute(
+        path: RoutePaths.contact,
+        builder: (context, state) =>
+            const PublicSitePage(slug: SitePageSlugs.contact),
       ),
       GoRoute(
         path: RoutePaths.forgotPassword,

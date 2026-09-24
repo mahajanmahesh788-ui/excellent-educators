@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\GoogleMeetController as AdminGoogleMeetCon
 use App\Http\Controllers\Api\V1\Admin\LoginPageContentController as AdminLoginPageContentController;
 use App\Http\Controllers\Api\V1\Admin\ScheduleController as AdminScheduleController;
 use App\Http\Controllers\Api\V1\Admin\SettingsController as AdminSettingsController;
+use App\Http\Controllers\Api\V1\Admin\SitePageController as AdminSitePageController;
 use App\Http\Controllers\Api\V1\Admin\StudentController as AdminStudentController;
 use App\Http\Controllers\Api\V1\Admin\StudentLearningController as AdminStudentLearningController;
 use App\Http\Controllers\Api\V1\Admin\StudentMentorController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Api\V1\Admin\TeacherController as AdminTeacherControlle
 use App\Http\Controllers\Api\V1\Admin\WeeklyLearningController as AdminWeeklyLearningController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\LoginPageController;
+use App\Http\Controllers\Api\V1\Public\SitePageController;
 use App\Http\Controllers\Api\V1\MasterTeacher\DashboardController as MasterTeacherDashboardController;
 use App\Http\Controllers\Api\V1\MasterTeacher\FeedbackController as MasterTeacherFeedbackController;
 use App\Http\Controllers\Api\V1\MasterTeacher\StudentController as MasterTeacherStudentController;
@@ -50,6 +52,9 @@ Route::prefix('auth')->group(function (): void {
         Route::put('password', [AuthController::class, 'changePassword']);
     });
 });
+
+Route::get('site-pages', [SitePageController::class, 'index']);
+Route::get('site-pages/{slug}', [SitePageController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('notifications', [NotificationController::class, 'index']);
@@ -143,6 +148,9 @@ Route::middleware(['auth:sanctum', 'admin', 'admin.permission', 'subadmin.activi
 
     Route::get('login-page', [AdminLoginPageContentController::class, 'show']);
     Route::put('login-page', [AdminLoginPageContentController::class, 'update']);
+    Route::get('site-pages', [AdminSitePageController::class, 'index']);
+    Route::get('site-pages/{slug}', [AdminSitePageController::class, 'show']);
+    Route::put('site-pages/{slug}', [AdminSitePageController::class, 'update']);
     Route::get('settings', [AdminSettingsController::class, 'show']);
     Route::put('settings', [AdminSettingsController::class, 'update']);
 

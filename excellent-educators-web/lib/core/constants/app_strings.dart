@@ -182,8 +182,16 @@ abstract final class AppStrings {
   static const connectGoogleMeet = 'Connect Google Meet';
   static const connected = 'Connected';
   static const contactDetails = 'Contact details';
+  static const contactUs = 'Contact Us';
   static const content = 'Content';
   static const contentSaved = 'Content saved.';
+  static const legalPages = 'Legal pages';
+  static const privacyPolicy = 'Privacy Policy';
+  static const refundPolicy = 'Refund Policy';
+  static const termsAndConditions = 'Terms & Conditions';
+  static const unableToLoadThisPage = 'Unable to load this page.';
+  static const pageContentSaved = 'Page content saved.';
+
   static const continueYourJourney = 'Continue your journey';
   static const correct = 'Correct';
   static const correctAnswer = 'Correct answer';

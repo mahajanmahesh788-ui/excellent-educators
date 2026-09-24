@@ -1,9 +1,12 @@
 import 'package:excellent_educators_web/app/theme/app_colors.dart';
 import 'package:excellent_educators_web/app/theme/breakpoints.dart';
+import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
 import 'package:excellent_educators_web/features/auth/data/dto/login_page_dtos.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/login_page_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 /// Below-the-fold landing experience sections for Excellent Educators.
 /// Fully responsive across Desktop, Tablet, and Mobile screens.
@@ -1322,6 +1325,30 @@ class _LandingFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width < Breakpoints.mobile;
 
+    Widget links = Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      alignment: isMobile ? WrapAlignment.center : WrapAlignment.end,
+      children: [
+        TextButton(
+          onPressed: () => context.go(RoutePaths.privacyPolicy),
+          child: const Text(AppStrings.privacyPolicy, style: TextStyle(fontSize: 12)),
+        ),
+        TextButton(
+          onPressed: () => context.go(RoutePaths.termsAndConditions),
+          child: const Text(AppStrings.termsAndConditions, style: TextStyle(fontSize: 12)),
+        ),
+        TextButton(
+          onPressed: () => context.go(RoutePaths.refundPolicy),
+          child: const Text(AppStrings.refundPolicy, style: TextStyle(fontSize: 12)),
+        ),
+        TextButton(
+          onPressed: () => context.go(RoutePaths.contact),
+          child: const Text(AppStrings.contactUs, style: TextStyle(fontSize: 12)),
+        ),
+      ],
+    );
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -1341,15 +1368,17 @@ class _LandingFooter extends StatelessWidget {
                   children: [
                     const AppLogo(height: 28),
                     const SizedBox(height: 8),
-                    Text(
+                    const Text(
                       'Building Careers. Creating Leaders.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    links,
                     const SizedBox(height: 12),
                     Text(
                       '© ${DateTime.now().year} Excellent Educators. All rights reserved.',
@@ -1361,28 +1390,37 @@ class _LandingFooter extends StatelessWidget {
                     ),
                   ],
                 )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              : Column(
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const AppLogo(height: 32),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Building Careers. Creating Leaders.',
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        const Row(
+                          children: [
+                            AppLogo(height: 32),
+                            SizedBox(width: 12),
+                            Text(
+                              'Building Careers. Creating Leaders.',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
+                        links,
                       ],
                     ),
-                    Text(
-                      '© ${DateTime.now().year} Excellent Educators. All rights reserved.',
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 12.5,
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '© ${DateTime.now().year} Excellent Educators. All rights reserved.',
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 12.5,
+                        ),
                       ),
                     ),
                   ],

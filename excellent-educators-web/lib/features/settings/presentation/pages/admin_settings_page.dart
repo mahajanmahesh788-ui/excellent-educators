@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/auth/presentation/pages/admin_login_page_editor.dart';
+import 'package:excellent_educators_web/features/content/presentation/pages/admin_site_pages_editor.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_google_meet_page.dart';
 import 'package:excellent_educators_web/features/settings/data/dto/app_settings_dto.dart';
 import 'package:excellent_educators_web/features/settings/presentation/providers/settings_providers.dart';
@@ -75,7 +76,7 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
     return AppScaffold(
       title: AppStrings.settings,
       body: DefaultTabController(
-        length: 3,
+        length: 4,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -88,6 +89,7 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
               tabs: [
                 Tab(text: AppStrings.organisation),
                 Tab(text: AppStrings.content),
+                Tab(text: AppStrings.legalPages),
                 Tab(text: AppStrings.meet),
               ],
             ),
@@ -110,6 +112,7 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
                     },
                   ),
                   const AdminLoginPageEditor(embedded: true),
+                  const AdminSitePagesEditor(),
                   const AdminGoogleMeetConnectPanel(),
                 ],
               ),

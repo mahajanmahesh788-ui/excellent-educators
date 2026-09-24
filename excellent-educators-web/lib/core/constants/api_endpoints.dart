@@ -6,6 +6,10 @@ abstract final class ApiEndpoints {
   static const forgotPassword = '/api/v1/auth/forgot-password';
   static const resetPassword = '/api/v1/auth/reset-password';
   static const loginPageContent = '/api/v1/auth/login-page';
+  static const sitePages = '/api/v1/site-pages';
+  static String sitePage(String slug) => '/api/v1/site-pages/$slug';
+  static const adminSitePages = '/api/v1/admin/site-pages';
+  static String adminSitePage(String slug) => '/api/v1/admin/site-pages/$slug';
 
   static const adminDashboard = '/api/v1/admin/dashboard';
   static const adminStudents = '/api/v1/admin/students';

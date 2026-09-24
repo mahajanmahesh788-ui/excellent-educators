@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             DimensionSeeder::class,
             LoginPageContentSeeder::class,
+            SitePageSeeder::class,
             LevelSeeder::class,
             DemoTeacherSeeder::class,
             DemoWeeklyLearningSeeder::class,
