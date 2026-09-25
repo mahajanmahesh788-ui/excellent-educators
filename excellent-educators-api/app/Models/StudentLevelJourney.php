@@ -55,4 +55,15 @@ class StudentLevelJourney extends Model
 
         return min(52, 1 + intdiv($days, 7));
     }
+
+    /**
+     * Calendar months since journey start (1 = activation month).
+     */
+    public function monthNumberAt(?Carbon $asOf = null): int
+    {
+        $at = ($asOf ?? now())->copy()->startOfMonth();
+        $start = $this->started_at->copy()->startOfMonth();
+
+        return max(1, ((int) $start->diffInMonths($at)) + 1);
+    }
 }

@@ -24,7 +24,7 @@ class CreateBatch
             'academic_year' => $input['academic_year'],
             'starts_on' => $input['starts_on'] ?? null,
             'ends_on' => $input['ends_on'] ?? null,
-            'status' => BatchStatus::Active,
+            'status' => BatchStatus::Inactive,
         ]);
     }
 }

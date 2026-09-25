@@ -115,10 +115,18 @@ class BatchController extends Controller
         return ApiResponse::success('Student removed from batch.', BatchResource::make($batch)->resolve());
     }
 
-    public function toggleStatus(Batch $batch): JsonResponse
+    public function toggleStatus(Batch $batch, \App\Actions\Batches\ActivateBatch $activateBatch): JsonResponse
     {
-        $newStatus = ($batch->status === BatchStatus::Active || $batch->status === 'active') ? 'inactive' : 'active';
-        $batch->update(['status' => $newStatus]);
+        $isActive = $batch->status === BatchStatus::Active || $batch->status === 'active';
+
+        if ($isActive) {
+            $batch->update(['status' => BatchStatus::Inactive]);
+            $newStatus = 'inactive';
+        } else {
+            $batch = $activateBatch->execute($batch);
+            $newStatus = 'active';
+        }
+
         $batch->load(['level', 'activeTeacherAssignment.teacher'])->loadCount('activeEnrollments');
 
         return ApiResponse::success(
@@ -151,7 +159,7 @@ class BatchController extends Controller
             'academic_year' => $year,
             'year' => $year,
             'month' => $month,
-            'status' => 'active',
+            'status' => 'inactive',
             'enrolled_watermark' => 0,
         ]);
 

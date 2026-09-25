@@ -81,10 +81,11 @@ class EnrollStudent
 
             if ($batch->level_id && $student->level_id !== $batch->level_id) {
                 $student->update(['level_id' => $batch->level_id]);
-                $level = $batch->level ?? AcademicLevel::query()->find($batch->level_id);
-                if ($level !== null) {
-                    $this->startStudentLevelJourney->execute($student->fresh(), $level);
-                }
+            }
+
+            $level = $batch->level ?? AcademicLevel::query()->find($batch->level_id);
+            if ($level !== null) {
+                $this->startStudentLevelJourney->executeIfBatchActive($student->fresh(), $level);
             }
 
             return $enrollment;
