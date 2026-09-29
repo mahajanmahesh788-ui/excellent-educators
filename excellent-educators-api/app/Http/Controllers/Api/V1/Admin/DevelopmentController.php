@@ -7,6 +7,7 @@ use App\Actions\Feedback\BuildFeedbackSummary;
 use App\Actions\Feedback\CreateMonthlyFeedback;
 use App\Actions\Feedback\DeleteMonthlyFeedback;
 use App\Actions\Feedback\UpdateMonthlyFeedback;
+use App\Http\Controllers\Api\V1\Concerns\EnsuresAgentOwnsStudent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\MasterTeacher\StoreMonthlyFeedbackRequest;
 use App\Http\Requests\Api\V1\MasterTeacher\UpdateMonthlyFeedbackRequest;
@@ -22,9 +23,12 @@ use App\Models\StudentProfile;
 use App\Support\ApiResponse;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class DevelopmentController extends Controller
 {
+    use EnsuresAgentOwnsStudent;
+
     public function feedbackCatalog(): JsonResponse
     {
         $this->authorize('viewAny', AptitudeAssessment::class);
@@ -39,8 +43,9 @@ class DevelopmentController extends Controller
         );
     }
 
-    public function studentResults(StudentProfile $student): JsonResponse
+    public function studentResults(Request $request, StudentProfile $student): JsonResponse
     {
+        $this->ensureAgentOwnsStudent($request, $student);
         $this->authorize('viewAny', AptitudeAssessment::class);
 
         $results = AptitudeAssessmentResult::query()
@@ -55,8 +60,9 @@ class DevelopmentController extends Controller
         );
     }
 
-    public function studentFeedback(StudentProfile $student): JsonResponse
+    public function studentFeedback(Request $request, StudentProfile $student): JsonResponse
     {
+        $this->ensureAgentOwnsStudent($request, $student);
         $this->authorize('viewAnyForStudent', [MonthlyFeedback::class, $student]);
 
         $feedback = MonthlyFeedback::query()
@@ -72,8 +78,9 @@ class DevelopmentController extends Controller
         );
     }
 
-    public function studentFeedbackSummary(StudentProfile $student, BuildFeedbackSummary $buildFeedbackSummary): JsonResponse
+    public function studentFeedbackSummary(Request $request, StudentProfile $student, BuildFeedbackSummary $buildFeedbackSummary): JsonResponse
     {
+        $this->ensureAgentOwnsStudent($request, $student);
         $this->authorize('viewAnyForStudent', [MonthlyFeedback::class, $student]);
 
         return ApiResponse::success(

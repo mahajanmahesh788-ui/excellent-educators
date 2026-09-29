@@ -93,11 +93,15 @@ final class AdminPermissionMap
             [$all, 'admin/site-pages*', [PermissionName::SettingsManage]],
             [$all, 'admin/google*', [PermissionName::SettingsManage]],
 
-            [$get, 'admin/payments*', [PermissionName::PaymentsView, PermissionName::PaymentsManage, PermissionName::PaymentsRecord, PermissionName::StudentsView]],
+            [$get, 'admin/payments*', [PermissionName::PaymentsView, PermissionName::PaymentsManage, PermissionName::PaymentsRecord]],
             [['POST'], 'admin/payments/students/*/payments', [PermissionName::PaymentsRecord, PermissionName::PaymentsManage]],
+            [['POST'], 'admin/payments/students/*/payments/*/receipt', [PermissionName::PaymentsRecord, PermissionName::PaymentsManage]],
+            [['PATCH'], 'admin/payments/students/*/payments/*', [PermissionName::PaymentsRecord, PermissionName::PaymentsManage]],
+            [['POST'], 'admin/payments/students/*/payments/*/void', [PermissionName::PaymentsRecord, PermissionName::PaymentsManage]],
             [['POST'], 'admin/payments/students/*/plan', [PermissionName::PaymentsManage, PermissionName::StudentsCreate, PermissionName::StudentsEdit]],
             [['POST'], 'admin/payments/students/*/reminder', [PermissionName::PaymentsView, PermissionName::PaymentsManage]],
-            [$get, 'admin/students/*/payments*', [PermissionName::PaymentsView, PermissionName::PaymentsManage, PermissionName::StudentsView]],
+            [$get, 'admin/students/*/payments*', [PermissionName::PaymentsView, PermissionName::PaymentsManage, PermissionName::PaymentsRecord]],
+            [['POST'], 'admin/notifications/broadcast', [PermissionName::SettingsManage]],
         ];
     }
 }

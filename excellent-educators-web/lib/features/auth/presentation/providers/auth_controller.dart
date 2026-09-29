@@ -121,6 +121,30 @@ class AuthController extends StateNotifier<AuthState> {
     state = const AuthState(isReady: true);
   }
 
+  Future<bool> acceptTerms() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final user = await _repository.acceptTerms();
+      state = AuthState(user: user, isReady: true);
+      return true;
+    } on Failure catch (error) {
+      state = state.copyWith(
+        isReady: true,
+        isLoading: false,
+        error: error.message,
+        errorCode: error.code,
+      );
+      return false;
+    } catch (_) {
+      state = state.copyWith(
+        isReady: true,
+        isLoading: false,
+        error: AppStrings.unableToAcceptTerms,
+      );
+      return false;
+    }
+  }
+
   void handleAccountDisabled() {
     state = const AuthState(isReady: true, accountDisabled: true);
   }

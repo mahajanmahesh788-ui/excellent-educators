@@ -9,6 +9,7 @@ use App\Models\Batch;
 use App\Models\BatchStudent;
 use App\Models\StudentProfile;
 use App\Support\ErrorCode;
+use App\Support\StudentActivity;
 
 class UnenrollStudent
 {
@@ -16,7 +17,7 @@ class UnenrollStudent
         private readonly DispatchAssignmentNotifications $dispatchAssignmentNotifications,
     ) {}
 
-    public function execute(Batch $batch, StudentProfile $student): BatchStudent
+    public function execute(Batch $batch, StudentProfile $student, ?\App\Models\User $actor = null): BatchStudent
     {
         $enrollment = BatchStudent::query()
             ->where('batch_id', $batch->id)
@@ -39,6 +40,15 @@ class UnenrollStudent
         ]);
 
         $enrollment = $enrollment->refresh();
+
+        StudentActivity::record(
+            $student,
+            'batch_unenrolled',
+            "Removed from batch {$batch->name}.",
+            $actor,
+            $enrollment,
+            ['batch_id' => $batch->id, 'batch_name' => $batch->name],
+        );
 
         $this->dispatchAssignmentNotifications->studentUnenrolled($batch, $student);
 

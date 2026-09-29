@@ -13,14 +13,32 @@ use Illuminate\Database\Eloquent\Builder;
 class PaymentOverviewService
 {
     /**
-     * @return array<string, int>
+     * @return array<string, float|int>
      */
-    public function summaryCards(): array
+    public function summaryCards(?string $createdByUserId = null): array
     {
         $monthStart = AppClock::now()->copy()->startOfMonth();
         $monthEnd = AppClock::now()->copy()->endOfMonth();
 
-        $active = StudentPaymentPlan::query()->where('is_active', true);
+        $active = StudentPaymentPlan::query()
+            ->where('is_active', true)
+            ->where('status', '!=', PaymentPlanStatus::Withdrawn->value)
+            ->when(
+                $createdByUserId !== null,
+                fn (Builder $q) => $q->whereHas(
+                    'student',
+                    fn (Builder $s) => $s->where('created_by_user_id', $createdByUserId),
+                ),
+            );
+
+        $ownedPayments = StudentPayment::query()
+            ->when(
+                $createdByUserId !== null,
+                fn (Builder $q) => $q->whereHas(
+                    'student',
+                    fn (Builder $s) => $s->where('created_by_user_id', $createdByUserId),
+                ),
+            );
 
         return [
             'all_pending' => (clone $active)->where('pending_amount', '>', 0)->count(),
@@ -29,19 +47,35 @@ class PaymentOverviewService
                 ->whereBetween('next_due_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
                 ->count(),
             'overdue' => (clone $active)->where('status', PaymentPlanStatus::Overdue->value)->count(),
-            'paid_this_month' => StudentPayment::query()
+            'paid_this_month' => (clone $ownedPayments)
                 ->where('status', PaymentTransactionStatus::Successful->value)
                 ->whereBetween('payment_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
                 ->distinct('student_id')
                 ->count('student_id'),
-            'collected_this_month' => (float) StudentPayment::query()
+            'collected_this_month' => (float) (clone $ownedPayments)
                 ->where('status', PaymentTransactionStatus::Successful->value)
                 ->whereBetween('payment_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
                 ->sum('amount'),
+            // Expected / pending only for live plans.
             'total_expected' => (float) (clone $active)->sum('total_amount'),
-            'total_collected' => (float) (clone $active)->sum('paid_amount'),
+            // Collected forever — includes payments from deleted/withdrawn students.
+            'total_collected' => (float) (clone $ownedPayments)
+                ->where('status', PaymentTransactionStatus::Successful->value)
+                ->sum('amount'),
             'total_pending' => (float) (clone $active)->sum('pending_amount'),
-            'total_overdue' => (float) (clone $active)->where('status', PaymentPlanStatus::Overdue->value)->sum('overdue_amount'),
+            'total_overdue' => (float) (clone $active)
+                ->where('status', PaymentPlanStatus::Overdue->value)
+                ->sum('overdue_amount'),
+            // Written-off pending when students were deleted.
+            'total_dead' => (float) StudentPaymentPlan::query()
+                ->when(
+                    $createdByUserId !== null,
+                    fn (Builder $q) => $q->whereHas(
+                        'student',
+                        fn (Builder $s) => $s->where('created_by_user_id', $createdByUserId),
+                    ),
+                )
+                ->sum('dead_amount'),
         ];
     }
 
@@ -52,6 +86,7 @@ class PaymentOverviewService
     {
         $query = StudentPaymentPlan::query()
             ->where('is_active', true)
+            ->where('status', '!=', PaymentPlanStatus::Withdrawn->value)
             ->with([
                 'student.user',
                 'student.academicLevel',
@@ -104,6 +139,13 @@ class PaymentOverviewService
                     ->orWhere('student_code', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%");
             });
+        }
+
+        if (! empty($filters['created_by_user_id'])) {
+            $query->whereHas(
+                'student',
+                fn (Builder $q) => $q->where('created_by_user_id', $filters['created_by_user_id']),
+            );
         }
 
         return $query

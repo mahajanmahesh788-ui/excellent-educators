@@ -47,6 +47,10 @@ class AssessmentRepository with MapsApiFailures {
     });
   }
 
+  Future<void> deleteAssessment(String id) {
+    return runApiSimple(() => _client.delete(ApiEndpoints.adminAssessment(id)));
+  }
+
   Future<List<AssessmentResultDto>> adminAttempts(String id) {
     return runApiSimple(() async {
       final items = await _client.getList(ApiEndpoints.adminAssessmentAttempts(id));

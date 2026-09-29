@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PermissionName;
 use App\Enums\RoleName;
 use App\Enums\UserStatus;
+use App\Support\PolicyTerms;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -17,7 +18,17 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'status', 'last_login_at'])]
+#[Fillable([
+    'name',
+    'email',
+    'password',
+    'status',
+    'last_login_at',
+    'terms_accepted_at',
+    'terms_accepted_version',
+    'terms_accepted_ip',
+    'terms_accepted_user_agent',
+])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -31,6 +42,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'password' => 'hashed',
             'status' => UserStatus::class,
         ];
@@ -39,6 +51,15 @@ class User extends Authenticatable
     public function isActive(): bool
     {
         return $this->status === UserStatus::Active;
+    }
+
+    public function mustAcceptTerms(): bool
+    {
+        if (! $this->hasRole(RoleName::Student->value)) {
+            return false;
+        }
+
+        return $this->terms_accepted_version !== PolicyTerms::currentVersion();
     }
 
     public function studentProfile(): HasOne
@@ -76,6 +97,11 @@ class User extends Authenticatable
     public function isAgent(): bool
     {
         return $this->isSubAdmin() && ($this->adminProfile?->isAgent() ?? false);
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->hasRole(RoleName::Student->value);
     }
 
     public function canAdmin(PermissionName $permission): bool

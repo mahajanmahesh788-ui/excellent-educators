@@ -5,6 +5,8 @@ abstract interface class AuthRepository {
 
   Future<AppUser> me();
 
+  Future<AppUser> acceptTerms();
+
   Future<void> logout();
 
   Future<String?> readToken();

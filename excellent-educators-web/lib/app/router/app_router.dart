@@ -38,9 +38,11 @@ import 'package:excellent_educators_web/features/content/data/dto/site_page_dto.
 import 'package:excellent_educators_web/features/content/presentation/pages/public_site_page.dart';
 import 'package:excellent_educators_web/features/settings/presentation/pages/admin_settings_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/student_booking_pages.dart';
+import 'package:excellent_educators_web/features/student/presentation/pages/student_site_content_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/teacher_day_schedule_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/teacher_student_briefing_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/teacher_schedule_page.dart';
+import 'package:excellent_educators_web/features/student/presentation/pages/student_accept_terms_page.dart';
 import 'package:excellent_educators_web/features/student/presentation/pages/student_dashboard_page.dart';
 import 'package:excellent_educators_web/features/student/presentation/pages/student_mentor_profile_page.dart';
 import 'package:excellent_educators_web/features/student/presentation/pages/student_teachers_page.dart';
@@ -77,6 +79,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         RoutePaths.termsAndConditions,
         RoutePaths.refundPolicy,
         RoutePaths.contact,
+        RoutePaths.aboutUs,
+        RoutePaths.faq,
+        RoutePaths.childParentalConsent,
       };
       if (!auth.isAuthenticated && !publicPaths.contains(location)) {
         return RoutePaths.login;
@@ -100,7 +105,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             location == '/' ||
             location == RoutePaths.forgotPassword ||
             location == RoutePaths.resetPassword) {
+          if (user.isStudent && user.mustAcceptTerms) {
+            return RoutePaths.studentAcceptTerms;
+          }
           return home;
+        }
+        if (user.isStudent && user.mustAcceptTerms) {
+          const allowedWhileGated = {
+            RoutePaths.studentAcceptTerms,
+            RoutePaths.privacyPolicy,
+            RoutePaths.termsAndConditions,
+            RoutePaths.refundPolicy,
+            RoutePaths.contact,
+            RoutePaths.aboutUs,
+            RoutePaths.faq,
+            RoutePaths.childParentalConsent,
+          };
+          if (!allowedWhileGated.contains(location)) {
+            return RoutePaths.studentAcceptTerms;
+          }
+        }
+        if (user.isStudent &&
+            !user.mustAcceptTerms &&
+            location == RoutePaths.studentAcceptTerms) {
+          return RoutePaths.studentDashboard;
         }
         if (location == '/notifications') {
           return RoutePaths.notificationsFor(
@@ -198,6 +226,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.contact,
         builder: (context, state) =>
             const PublicSitePage(slug: SitePageSlugs.contact),
+      ),
+      GoRoute(
+        path: RoutePaths.aboutUs,
+        builder: (context, state) =>
+            const PublicSitePage(slug: SitePageSlugs.about),
+      ),
+      GoRoute(
+        path: RoutePaths.faq,
+        builder: (context, state) =>
+            const PublicSitePage(slug: SitePageSlugs.faq),
+      ),
+      GoRoute(
+        path: RoutePaths.childParentalConsent,
+        builder: (context, state) =>
+            const PublicSitePage(slug: SitePageSlugs.childConsent),
       ),
       GoRoute(
         path: RoutePaths.forgotPassword,
@@ -595,6 +638,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const StudentDashboardPage(),
       ),
       GoRoute(
+        path: RoutePaths.studentAcceptTerms,
+        builder: (context, state) => const StudentAcceptTermsPage(),
+      ),
+      GoRoute(
         path: RoutePaths.studentJournal,
         builder: (context, state) => const StudentLearningJournalPage(),
       ),
@@ -612,6 +659,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.studentPayments,
         builder: (context, state) => const StudentPaymentsPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.studentPrivacy,
+        builder: (context, state) => const StudentSiteContentPage(
+          slug: SitePageSlugs.privacy,
+          title: AppStrings.privacyPolicy,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.studentAbout,
+        builder: (context, state) => const StudentSiteContentPage(
+          slug: SitePageSlugs.about,
+          title: AppStrings.aboutUs,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.studentFaq,
+        builder: (context, state) => const StudentSiteContentPage(
+          slug: SitePageSlugs.faq,
+          title: AppStrings.faq,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.studentChildConsent,
+        builder: (context, state) => const StudentSiteContentPage(
+          slug: SitePageSlugs.childConsent,
+          title: AppStrings.childSafetyParentalConsent,
+        ),
       ),
       GoRoute(
         path: RoutePaths.studentFeedback,

@@ -30,6 +30,7 @@ class StudentPaymentPlanResource extends JsonResource
             'paid_amount' => (float) $this->paid_amount,
             'pending_amount' => (float) $this->pending_amount,
             'advance_amount' => (float) $this->advance_amount,
+            'dead_amount' => (float) ($this->dead_amount ?? 0),
             'due_day' => $this->due_day,
             'start_date' => $this->start_date?->toDateString(),
             'next_due_date' => $this->next_due_date?->toDateString(),
@@ -42,7 +43,22 @@ class StudentPaymentPlanResource extends JsonResource
             'status' => $this->status?->value ?? $this->status,
             'status_label' => $this->status?->label(),
             'is_active' => (bool) $this->is_active,
-            'student' => $student === null ? null : [
+            'student' => $student === null
+                ? (
+                    ($this->student_name_snapshot || $this->student_code_snapshot)
+                        ? [
+                            'id' => $this->student_id,
+                            'full_name' => $this->student_name_snapshot ?? 'Deleted student',
+                            'student_code' => $this->student_code_snapshot,
+                            'email' => null,
+                            'phone' => null,
+                            'whatsapp_number' => null,
+                            'level' => null,
+                            'batch' => null,
+                        ]
+                        : null
+                )
+                : [
                 'id' => $student->id,
                 'full_name' => $student->full_name,
                 'student_code' => $student->student_code,

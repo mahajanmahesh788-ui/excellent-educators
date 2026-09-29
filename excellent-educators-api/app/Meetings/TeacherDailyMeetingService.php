@@ -65,12 +65,64 @@ class TeacherDailyMeetingService
             $existing->update([
                 'google_event_id' => $created->googleEventId,
                 'google_meeting_space_id' => $created->googleMeetingSpaceId,
-                'meet_url' => $created->meetUrl,
+                'meet_url' => ($existing->meet_url_source === 'manual' && filled($existing->meet_url))
+                    ? $existing->meet_url
+                    : $created->meetUrl,
+                'google_meet_url' => $created->meetUrl,
+                'meet_url_source' => ($existing->meet_url_source === 'manual' && filled($existing->meet_url))
+                    ? 'manual'
+                    : 'google',
                 'status' => TeacherDailyMeetingStatus::Ready->value,
             ]);
 
             return $existing->fresh() ?? $existing;
         });
+    }
+
+    public function setManualUrl(TeacherProfile $teacher, string $date, string $url): TeacherDailyMeeting
+    {
+        $meeting = $this->findOrCreateRow($teacher, $date);
+        $meeting->update([
+            'meet_url' => $url,
+            'meet_url_source' => 'manual',
+            'status' => TeacherDailyMeetingStatus::Ready->value,
+        ]);
+
+        return $meeting->fresh() ?? $meeting;
+    }
+
+    public function clearManualUrl(TeacherProfile $teacher, string $date): TeacherDailyMeeting
+    {
+        $meeting = $this->findOrCreateRow($teacher, $date);
+        $googleUrl = $meeting->google_meet_url;
+        $meeting->update([
+            'meet_url' => $googleUrl,
+            'meet_url_source' => 'google',
+            'status' => filled($googleUrl)
+                ? TeacherDailyMeetingStatus::Ready->value
+                : TeacherDailyMeetingStatus::Pending->value,
+        ]);
+
+        return $meeting->fresh() ?? $meeting;
+    }
+
+    private function findOrCreateRow(TeacherProfile $teacher, string $date): TeacherDailyMeeting
+    {
+        $existing = TeacherDailyMeeting::query()
+            ->where('teacher_id', $teacher->id)
+            ->whereDate('date', $date)
+            ->first();
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        return TeacherDailyMeeting::query()->create([
+            'teacher_id' => $teacher->id,
+            'date' => $date,
+            'status' => TeacherDailyMeetingStatus::Pending->value,
+            'meet_url_source' => 'google',
+        ]);
     }
 
     public function urlFor(string $teacherId, string $date): ?string

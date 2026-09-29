@@ -2,6 +2,8 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
+import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
+import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:flutter/material.dart';
@@ -227,6 +229,10 @@ class _DetailPaneState extends ConsumerState<_DetailPane> {
   @override
   Widget build(BuildContext context) {
     final issue = widget.issue;
+    final canResolve = ref.watch(authControllerProvider).user?.canAdmin(
+              AdminPermission.queriesResolve,
+            ) ??
+        false;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -261,7 +267,7 @@ class _DetailPaneState extends ConsumerState<_DetailPane> {
             Text(AppStrings.aMissingTeacherClickDoesNotMeanTheTeacherWas),
             if (issue.meetingUrl != null) Text('Meet: ${issue.meetingUrl}'),
             const SizedBox(height: 12),
-            if (issue.status == 'pending') ...[
+            if (issue.status == 'pending' && canResolve) ...[
               FilledButton(
                 onPressed: _saving ? null : () => _resolve('resolved'),
                 child: Text(_saving ? AppStrings.saving : AppStrings.markAsResolved),
@@ -275,6 +281,11 @@ class _DetailPaneState extends ConsumerState<_DetailPane> {
               Text(
                 AppStrings.giveOneMoreChanceLetsTheStudentBookAgainAfter,
                 style: TextStyle(color: Brand.muted.withValues(alpha: 0.95), fontSize: 12, height: 1.35),
+              ),
+            ] else if (issue.status == 'pending' && !canResolve) ...[
+              const Text(
+                AppStrings.youCanViewThisIssueButNeedResolvePermission,
+                style: TextStyle(color: Brand.muted),
               ),
             ] else ...[
               Text(

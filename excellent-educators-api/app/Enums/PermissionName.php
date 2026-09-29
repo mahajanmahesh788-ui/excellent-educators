@@ -102,6 +102,8 @@ enum PermissionName: string
         return [
             self::StudentsView,
             self::StudentsCreate,
+            self::PaymentsView,
+            self::PaymentsRecord,
         ];
     }
 

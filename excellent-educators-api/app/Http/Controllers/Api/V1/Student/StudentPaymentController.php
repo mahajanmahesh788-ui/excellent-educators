@@ -15,6 +15,7 @@ use App\Support\AppClock;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class StudentPaymentController extends Controller
@@ -143,5 +144,36 @@ class StudentPaymentController extends Controller
             'payment' => (new StudentPaymentResource($payment->fresh()))->resolve(),
             'plan' => (new StudentPaymentPlanResource($fresh))->resolve(),
         ]);
+    }
+
+    public function storeReceipt(Request $request, StudentPayment $payment): JsonResponse
+    {
+        $student = $request->user()?->studentProfile;
+        if ($student === null) {
+            return ApiResponse::error('Student profile not found.', ErrorCode::NOT_FOUND, null, 404);
+        }
+
+        if ($payment->student_id !== $student->id) {
+            return ApiResponse::error('Payment not found.', ErrorCode::NOT_FOUND, null, 404);
+        }
+
+        $data = $request->validate([
+            'receipt' => ['required', 'file', 'max:5120', 'mimes:pdf'],
+        ]);
+
+        if ($payment->receipt_path) {
+            Storage::disk('public')->delete($payment->receipt_path);
+        }
+
+        $path = $data['receipt']->store(
+            'payment-receipts/'.$student->id,
+            'public',
+        );
+        $payment->update(['receipt_path' => $path]);
+
+        return ApiResponse::success(
+            'Receipt saved.',
+            ['payment' => (new StudentPaymentResource($payment->fresh()))->resolve()],
+        );
     }
 }

@@ -16,6 +16,23 @@ class ScheduleRepository with MapsApiFailures {
     });
   }
 
+  Future<void> saveTeacherMeetingLink({
+    required String date,
+    required String meetUrl,
+  }) {
+    return runApi(() => _client.put(
+          ApiEndpoints.teacherScheduleMeeting,
+          data: {'date': date, 'meet_url': meetUrl},
+        ));
+  }
+
+  Future<void> clearTeacherMeetingLink({required String date}) {
+    return runApi(() => _client.post(
+          ApiEndpoints.teacherScheduleMeetingClear,
+          data: {'date': date},
+        ));
+  }
+
   Future<List<SessionBookingDto>> teacherBookingsHistory() {
     return runApi(() async {
       final items = await _client.getList(ApiEndpoints.teacherScheduleBookings);
@@ -362,6 +379,14 @@ class ScheduleRepository with MapsApiFailures {
         ApiEndpoints.adminLeaveRequestReject(groupId),
         data: {if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim()},
       );
+      return LeaveRequestDto.fromJson(json!);
+    });
+  }
+
+  Future<LeaveRequestDto> adminCancelLeaveRequest(String groupId) {
+    return runApi(() async {
+      final json =
+          await _client.post(ApiEndpoints.adminLeaveRequestCancel(groupId));
       return LeaveRequestDto.fromJson(json!);
     });
   }

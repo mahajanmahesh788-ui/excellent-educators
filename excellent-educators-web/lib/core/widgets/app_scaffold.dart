@@ -299,7 +299,7 @@ class AppScaffold extends ConsumerWidget {
           const _NavItem(AppStrings.levels, Icons.layers_outlined, RoutePaths.adminBatches),
         if (!user.isAgent && user.canAnyAdmin(const [AdminPermission.queriesView, AdminPermission.queriesResolve]))
           _NavItem(
-            AppStrings.conflicts,
+            AppStrings.attendance,
             Icons.report_outlined,
             RoutePaths.adminAttendance,
             badgeCount: pendingConflicts > 0 ? pendingConflicts : null,
@@ -311,7 +311,7 @@ class AppScaffold extends ConsumerWidget {
           const _NavItem(AppStrings.leaves, Icons.event_busy_outlined, RoutePaths.adminLeaves),
         if (!user.isAgent && user.canAnyAdmin(const [AdminPermission.assessmentsView, AdminPermission.assessmentsManage]))
           const _NavItem(AppStrings.assessments, Icons.quiz_outlined, RoutePaths.adminAssessments),
-        if (!user.isAgent && user.canAnyAdmin(const [
+        if (user.canAnyAdmin(const [
           AdminPermission.paymentsView,
           AdminPermission.paymentsManage,
           AdminPermission.paymentsRecord,

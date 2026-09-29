@@ -1,3 +1,5 @@
+import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
@@ -6,11 +8,9 @@ import 'package:excellent_educators_web/features/assessments/presentation/provid
 import 'package:excellent_educators_web/features/notifications/presentation/widgets/notification_bell_button.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/fresh_student_onboarding.dart';
-import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:excellent_educators_web/app/router/route_paths.dart';
 
 class StudentScaffold extends ConsumerWidget {
   const StudentScaffold({
@@ -159,11 +159,6 @@ class _AcademyNav extends ConsumerWidget {
       path: RoutePaths.studentFeedback,
     ),
     (
-      label: AppStrings.payments,
-      icon: Icons.payments_outlined,
-      path: RoutePaths.studentPayments,
-    ),
-    (
       label: AppStrings.requests,
       icon: Icons.support_agent_outlined,
       path: RoutePaths.studentRequests,
@@ -178,8 +173,7 @@ class _AcademyNav extends ConsumerWidget {
   static bool _isLockedLink(String path) {
     return path != RoutePaths.studentDashboard &&
         path != RoutePaths.studentProfile &&
-        path != RoutePaths.studentRequests &&
-        path != RoutePaths.studentPayments;
+        path != RoutePaths.studentRequests;
   }
 
   bool _blocksLink(String path) {
@@ -342,6 +336,13 @@ class _AcademyNav extends ConsumerWidget {
                                   ),
                                 ),
                               ),
+                            Padding(
+                              padding: EdgeInsets.only(left: isTight ? 2 : 4),
+                              child: _SettingsFloatingMenu(
+                                location: location,
+                                tight: isTight,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -355,6 +356,14 @@ class _AcademyNav extends ConsumerWidget {
                   Container(height: 20, width: 1, color: StudentColors.border),
                   const SizedBox(width: 6),
                 ],
+
+                // Mobile: Settings in the action strip
+                if (compact && backTo == null)
+                  _SettingsFloatingMenu(
+                    location: location,
+                    tight: true,
+                    iconOnly: true,
+                  ),
 
                 // Action buttons
                 ...?extraActions,
@@ -422,11 +431,7 @@ class _StudentBottomNav extends StatelessWidget {
   }
 
   static final _links = _AcademyNav._links
-      .where(
-        (link) =>
-            link.path != RoutePaths.studentRequests &&
-            link.path != RoutePaths.studentPayments,
-      )
+      .where((link) => link.path != RoutePaths.studentRequests)
       .toList(growable: false);
 
   @override
@@ -473,6 +478,229 @@ class _StudentBottomNav extends StatelessWidget {
                 label: link.label,
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsFloatingMenu extends StatefulWidget {
+  const _SettingsFloatingMenu({
+    required this.location,
+    this.tight = false,
+    this.iconOnly = false,
+  });
+
+  final String location;
+  final bool tight;
+  final bool iconOnly;
+
+  static const _items = [
+    (
+      label: AppStrings.payment,
+      icon: Icons.payments_outlined,
+      path: RoutePaths.studentPayments,
+    ),
+    (
+      label: AppStrings.privacyPolicy,
+      icon: Icons.privacy_tip_outlined,
+      path: RoutePaths.studentPrivacy,
+    ),
+    (
+      label: AppStrings.childSafetyParentalConsent,
+      icon: Icons.family_restroom_outlined,
+      path: RoutePaths.studentChildConsent,
+    ),
+    (
+      label: AppStrings.aboutUs,
+      icon: Icons.info_outline_rounded,
+      path: RoutePaths.studentAbout,
+    ),
+    (
+      label: AppStrings.faq,
+      icon: Icons.help_outline_rounded,
+      path: RoutePaths.studentFaq,
+    ),
+  ];
+
+  static bool isSettingsRoute(String location) {
+    return _items.any(
+      (item) =>
+          location == item.path || location.startsWith('${item.path}/'),
+    );
+  }
+
+  @override
+  State<_SettingsFloatingMenu> createState() => _SettingsFloatingMenuState();
+}
+
+class _SettingsFloatingMenuState extends State<_SettingsFloatingMenu> {
+  final _menuController = MenuController();
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = _SettingsFloatingMenu.isSettingsRoute(widget.location);
+
+    return MenuAnchor(
+      controller: _menuController,
+      alignmentOffset: const Offset(0, 6),
+      style: MenuStyle(
+        backgroundColor: const WidgetStatePropertyAll(Colors.white),
+        elevation: const WidgetStatePropertyAll(10),
+        shadowColor: WidgetStatePropertyAll(
+          Brand.navy.withValues(alpha: 0.18),
+        ),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: const BorderSide(color: Color(0xFFE5E7EB)),
+          ),
+        ),
+        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+      ),
+      builder: (context, controller, child) {
+        void toggle() {
+          if (controller.isOpen) {
+            controller.close();
+          } else {
+            controller.open();
+          }
+        }
+
+        if (widget.iconOnly) {
+          return IconButton(
+            tooltip: AppStrings.settings,
+            iconSize: 22,
+            onPressed: toggle,
+            icon: Icon(
+              Icons.settings_outlined,
+              color: selected || controller.isOpen
+                  ? StudentColors.indigoPrimary
+                  : StudentColors.textSecondary,
+            ),
+          );
+        }
+
+        return _NavItem(
+          label: AppStrings.settings,
+          icon: Icons.settings_outlined,
+          selected: selected || controller.isOpen,
+          tight: widget.tight,
+          onTap: toggle,
+        );
+      },
+      menuChildren: [
+        SizedBox(
+          width: 260,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppStrings.settings,
+                      style: TextStyle(
+                        color: Brand.navy,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(height: 2, color: Brand.navy),
+                  ],
+                ),
+              ),
+              for (var i = 0; i < _SettingsFloatingMenu._items.length; i++) ...[
+                if (i > 0)
+                  const Divider(height: 1, thickness: 1, color: Color(0xFFE8E6E0)),
+                _SettingsMenuRow(
+                  label: _SettingsFloatingMenu._items[i].label,
+                  icon: _SettingsFloatingMenu._items[i].icon,
+                  selected: widget.location ==
+                          _SettingsFloatingMenu._items[i].path ||
+                      widget.location.startsWith(
+                        '${_SettingsFloatingMenu._items[i].path}/',
+                      ),
+                  onTap: () {
+                    _menuController.close();
+                    dismissOverlayRoutes(context);
+                    context.go(_SettingsFloatingMenu._items[i].path);
+                  },
+                ),
+              ],
+              const SizedBox(height: 6),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SettingsMenuRow extends StatefulWidget {
+  const _SettingsMenuRow({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.selected = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool selected;
+
+  @override
+  State<_SettingsMenuRow> createState() => _SettingsMenuRowState();
+}
+
+class _SettingsMenuRowState extends State<_SettingsMenuRow> {
+  var _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: InkWell(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+          color: widget.selected || _hover
+              ? StudentColors.surfaceMuted
+              : Colors.transparent,
+          child: Row(
+            children: [
+              Icon(
+                widget.icon,
+                size: 18,
+                color: widget.selected
+                    ? Brand.navy
+                    : StudentColors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: widget.selected
+                        ? Brand.navy
+                        : StudentColors.textPrimary,
+                    fontWeight:
+                        widget.selected ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

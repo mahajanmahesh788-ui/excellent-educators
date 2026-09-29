@@ -769,9 +769,16 @@ class ScheduleDayDto {
     this.breaks = const [],
     this.leaves = const [],
     this.bookings = const [],
+    this.meetingUrl,
+    this.googleMeetUrl,
+    this.meetUrlSource = 'google',
+    this.isManualMeeting = false,
   });
 
   factory ScheduleDayDto.fromJson(Map<String, dynamic> json) {
+    final meeting = json['meeting'] is Map
+        ? Map<String, dynamic>.from(json['meeting'] as Map)
+        : null;
     return ScheduleDayDto(
       date: json['date'] as String? ?? '',
       slots: (json['slots'] as List<dynamic>? ?? const [])
@@ -790,6 +797,10 @@ class ScheduleDayDto {
           .whereType<Map>()
           .map((item) => SessionBookingDto.fromJson(Map<String, dynamic>.from(item)))
           .toList(),
+      meetingUrl: meeting?['meet_url'] as String?,
+      googleMeetUrl: meeting?['google_meet_url'] as String?,
+      meetUrlSource: meeting?['meet_url_source'] as String? ?? 'google',
+      isManualMeeting: meeting?['is_manual'] == true,
     );
   }
 
@@ -798,6 +809,10 @@ class ScheduleDayDto {
   final List<ScheduleBreakDto> breaks;
   final List<ScheduleLeaveDto> leaves;
   final List<SessionBookingDto> bookings;
+  final String? meetingUrl;
+  final String? googleMeetUrl;
+  final String meetUrlSource;
+  final bool isManualMeeting;
 }
 
 class ScheduleMonthDayDto {

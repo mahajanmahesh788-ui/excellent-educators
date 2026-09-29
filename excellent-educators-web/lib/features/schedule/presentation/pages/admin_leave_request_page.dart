@@ -119,6 +119,48 @@ class _AdminLeaveRequestPageState extends ConsumerState<AdminLeaveRequestPage> {
     }
   }
 
+  Future<void> _cancelLeave() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(AppStrings.cancelLeaveRequest),
+        content: const Text(AppStrings.cancelLeaveRequestHelp),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(AppStrings.keepRequest),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(AppStrings.cancelLeave),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(scheduleRepositoryProvider)
+          .adminCancelLeaveRequest(widget.groupId);
+      ref.invalidate(adminLeaveRequestProvider(widget.groupId));
+      ref.invalidate(adminAllLeavesProvider);
+      ref.invalidate(adminScheduleLeavesProvider);
+      ref.invalidate(adminTeacherLeavesProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.leaveCancelledSuccessfully)),
+        );
+      }
+    } catch (error) {
+      if (mounted) showFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final value = ref.watch(adminLeaveRequestProvider(widget.groupId));
@@ -196,13 +238,18 @@ class _AdminLeaveRequestPageState extends ConsumerState<AdminLeaveRequestPage> {
               ],
               if (open && canAccept) ...[
                 const SizedBox(height: 24),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 10,
                   children: [
+                    OutlinedButton(
+                      onPressed: _busy ? null : _cancelLeave,
+                      child: const Text(AppStrings.cancelLeave),
+                    ),
                     OutlinedButton(
                       onPressed: _busy ? null : _reject,
                       child: const Text(AppStrings.rejectLeave),
                     ),
-                    const SizedBox(width: 12),
                     FilledButton(
                       onPressed: _busy || !request.canApprove
                           ? null

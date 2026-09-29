@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Actions\Students\BuildStudentHistory;
 use App\Actions\Students\CreateStudent;
+use App\Actions\Students\DeleteStudent;
 use App\Actions\Students\UpdateStudent;
 use App\Feedback\StudentsDueForRating;
+use App\Http\Controllers\Api\V1\Concerns\EnsuresAgentOwnsStudent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Admin\StoreStudentRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateStudentRequest;
@@ -21,6 +23,8 @@ use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
+    use EnsuresAgentOwnsStudent;
+
     public function index(Request $request): JsonResponse
     {
         $search = trim($request->string('search')->toString());
@@ -132,13 +136,14 @@ class StudentController extends Controller
         return ApiResponse::success('Student updated successfully.', StudentResource::make($student)->resolve());
     }
 
-    public function destroy(Request $request, StudentProfile $student): JsonResponse
+    public function destroy(Request $request, StudentProfile $student, DeleteStudent $deleteStudent): JsonResponse
     {
         $this->ensureAgentOwnsStudent($request, $student);
-        $student->user?->delete();
-        $student->delete();
+        $result = $deleteStudent->execute($student, $request->user()?->id);
 
-        return ApiResponse::success('Student deleted successfully.');
+        return ApiResponse::success('Student deleted successfully.', [
+            'dead_amount' => $result['dead_amount'],
+        ]);
     }
 
     public function history(Request $request, StudentProfile $student, BuildStudentHistory $history): JsonResponse
@@ -149,18 +154,6 @@ class StudentController extends Controller
             'Student history fetched successfully.',
             $history->execute($student),
         );
-    }
-
-    private function ensureAgentOwnsStudent(Request $request, StudentProfile $student): void
-    {
-        $actor = $request->user();
-        if ($actor === null || ! $actor->isAgent()) {
-            return;
-        }
-
-        if ($student->created_by_user_id !== $actor->id) {
-            abort(404);
-        }
     }
 
     /**

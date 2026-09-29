@@ -160,6 +160,24 @@ class AdminActivity
             return ['level.manage', self::verb($method).' '.$name, $level ?? $batch, []];
         }
 
+        if (Str::is('admin/payments*', $path) || Str::is('admin/students/*/payments*', $path)) {
+            if (Str::contains($path, '/void')) {
+                return ['payment.void', "Voided a payment for {$studentName}", $student, []];
+            }
+            if ($method === 'POST' && Str::is('admin/payments/students/*/payments', $path)) {
+                return ['payment.record', "Recorded a payment for {$studentName}", $student, []];
+            }
+            if ($method === 'PATCH') {
+                return ['payment.edit', "Edited a payment for {$studentName}", $student, []];
+            }
+
+            return ['payment.manage', self::verb($method).' payment for '.$studentName, $student, []];
+        }
+
+        if (Str::is('admin/notifications/broadcast', $path)) {
+            return ['notification.broadcast', 'Broadcast an announcement', null, []];
+        }
+
         if (Str::is('admin/settings*', $path) || Str::is('admin/login-page*', $path) || Str::is('admin/site-pages*', $path) || Str::is('admin/google*', $path)) {
             return ['settings.manage', 'Updated academy settings', null, []];
         }

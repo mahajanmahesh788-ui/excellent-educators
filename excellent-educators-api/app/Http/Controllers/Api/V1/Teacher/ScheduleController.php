@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\Concerns\ResolvesTeacherProfile;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Scheduling\StoreLeaveRequest;
 use App\Http\Requests\Api\V1\Scheduling\UpsertBreaksRequest;
+use App\Meetings\TeacherDailyMeetingService;
 use App\Models\SessionBooking;
 use App\Models\TeacherLeave;
 use App\Scheduling\AvailabilityCalculator;
@@ -158,6 +159,43 @@ class ScheduleController extends Controller
             'Join recorded for this Meet. One click can cover back-to-back classes on the same day.',
             $this->availability->bookingPayload($booking->fresh(['student', 'teacher']), 'teacher'),
         );
+    }
+
+    public function upsertMeeting(Request $request, TeacherDailyMeetingService $meetings): JsonResponse
+    {
+        $teacher = $this->teacherFrom($request);
+        $data = $request->validate([
+            'date' => ['required', 'date'],
+            'meet_url' => ['required', 'url', 'max:2048'],
+        ]);
+
+        $meeting = $meetings->setManualUrl($teacher, $data['date'], $data['meet_url']);
+
+        return ApiResponse::success('Meeting link saved for this day.', [
+            'meet_url' => $meeting->meet_url,
+            'google_meet_url' => $meeting->google_meet_url,
+            'meet_url_source' => $meeting->meet_url_source,
+            'is_manual' => true,
+            'date' => $data['date'],
+        ]);
+    }
+
+    public function clearMeeting(Request $request, TeacherDailyMeetingService $meetings): JsonResponse
+    {
+        $teacher = $this->teacherFrom($request);
+        $data = $request->validate([
+            'date' => ['required', 'date'],
+        ]);
+
+        $meeting = $meetings->clearManualUrl($teacher, $data['date']);
+
+        return ApiResponse::success('Meeting link reset for this day.', [
+            'meet_url' => $meeting->meet_url,
+            'google_meet_url' => $meeting->google_meet_url,
+            'meet_url_source' => $meeting->meet_url_source,
+            'is_manual' => ($meeting->meet_url_source ?? 'google') === 'manual',
+            'date' => $data['date'],
+        ]);
     }
 
     public function reportStudent(StoreAttendanceReportRequest $request, SessionBooking $booking, AttendanceService $attendance): JsonResponse

@@ -37,4 +37,22 @@ class NotificationRepository with MapsApiFailures {
       await _client.post(ApiEndpoints.notificationsReadAll);
     });
   }
+
+  Future<int> broadcast({
+    required String title,
+    required String body,
+    required String audience,
+  }) {
+    return runApiSimple(() async {
+      final json = await _client.post(
+        ApiEndpoints.adminNotificationsBroadcast,
+        data: {
+          'title': title,
+          'body': body,
+          'audience': audience,
+        },
+      );
+      return (json?['sent'] as num?)?.toInt() ?? 0;
+    });
+  }
 }

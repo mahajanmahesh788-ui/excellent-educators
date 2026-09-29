@@ -405,6 +405,14 @@ class AcademicRepository with MapsApiFailures {
     });
   }
 
+  Future<void> deleteLevel(String id) {
+    return runApi(() => _client.delete(ApiEndpoints.adminLevel(id)));
+  }
+
+  Future<void> deleteBatch(String id) {
+    return runApi(() => _client.delete(ApiEndpoints.adminBatch(id)));
+  }
+
   Future<BatchDto> createLevelBatch(String levelId, Map<String, dynamic> data) {
     return runApi(() async {
       final json = await _client.post(

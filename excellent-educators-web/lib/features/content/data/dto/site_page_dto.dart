@@ -40,6 +40,17 @@ abstract final class SitePageSlugs {
   static const terms = 'terms-and-conditions';
   static const refund = 'refund-policy';
   static const contact = 'contact';
+  static const about = 'about-us';
+  static const faq = 'faq';
+  static const childConsent = 'child-parental-consent';
 
-  static const all = [privacy, terms, refund, contact];
+  static const all = [
+    privacy,
+    terms,
+    refund,
+    contact,
+    about,
+    faq,
+    childConsent,
+  ];
 }

@@ -153,6 +153,8 @@ class _SubAdminFormPageState extends ConsumerState<_SubAdminFormPage> {
   static const _agentKeys = {
     AdminPermission.studentsView,
     AdminPermission.studentsCreate,
+    AdminPermission.paymentsView,
+    AdminPermission.paymentsRecord,
   };
 
   bool get _editing => widget.subAdminId != null;
@@ -196,6 +198,8 @@ class _SubAdminFormPageState extends ConsumerState<_SubAdminFormPage> {
             _toggles[AdminPermission.studentsView] ?? true;
         _toggles[AdminPermission.studentsCreate] =
             _toggles[AdminPermission.studentsCreate] ?? true;
+        _toggles[AdminPermission.paymentsView] = false;
+        _toggles[AdminPermission.paymentsRecord] = false;
       }
     });
   }

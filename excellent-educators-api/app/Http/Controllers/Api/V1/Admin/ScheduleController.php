@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Actions\Notifications\NotifySessionCancelled;
 use App\Actions\Scheduling\CancelTeacherLeave;
 use App\Actions\Scheduling\CreateSessionBooking;
 use App\Actions\Scheduling\CreateTeacherLeave;
@@ -200,11 +201,11 @@ class ScheduleController extends Controller
         return ApiResponse::success('Booking updated.', $this->availability->bookingPayload($updated));
     }
 
-    public function destroyBooking(SessionBooking $booking): JsonResponse
+    public function destroyBooking(SessionBooking $booking, NotifySessionCancelled $notifyCancelled): JsonResponse
     {
         $wasScheduled = $booking->status === SessionBookingStatus::Scheduled;
         $booking->update(['status' => SessionBookingStatus::Cancelled->value]);
-        $booking->load('student');
+        $booking->load(['student', 'teacher']);
         if ($wasScheduled && ($booking->type?->value ?? $booking->type) === 'master_class' && $booking->student) {
             app(MasterClassBalance::class)->restore($booking->student);
             $remaining = app(MasterClassBalance::class)->remaining($booking->student);
@@ -216,6 +217,8 @@ class ScheduleController extends Controller
                 meta: ['remaining' => $remaining],
             );
         }
+
+        $notifyCancelled->execute($booking->fresh(['student.user', 'teacher.user']) ?? $booking);
 
         return ApiResponse::success('Booking cancelled.');
     }

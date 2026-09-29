@@ -14,6 +14,8 @@ class StudentPayment extends Model
 
     protected $fillable = [
         'student_id',
+        'student_name_snapshot',
+        'student_code_snapshot',
         'payment_plan_id',
         'amount',
         'payment_mode',

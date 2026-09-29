@@ -10,6 +10,10 @@ class UserDto {
     this.lastLoginAt,
     this.permissions = const [],
     this.adminType,
+    this.termsAcceptedAt,
+    this.termsAcceptedVersion,
+    this.termsCurrentVersion,
+    this.mustAcceptTerms = false,
   });
 
   factory UserDto.fromJson(Map<String, dynamic> json) {
@@ -26,6 +30,10 @@ class UserDto {
           .toList(),
       adminType: json['admin_type'] as String?,
       lastLoginAt: json['last_login_at'] as String?,
+      termsAcceptedAt: json['terms_accepted_at'] as String?,
+      termsAcceptedVersion: json['terms_accepted_version'] as String?,
+      termsCurrentVersion: json['terms_current_version'] as String?,
+      mustAcceptTerms: json['must_accept_terms'] == true,
     );
   }
 
@@ -37,6 +45,10 @@ class UserDto {
   final List<String> permissions;
   final String? adminType;
   final String? lastLoginAt;
+  final String? termsAcceptedAt;
+  final String? termsAcceptedVersion;
+  final String? termsCurrentVersion;
+  final bool mustAcceptTerms;
 
   AppUser toEntity() {
     return AppUser(
@@ -48,6 +60,10 @@ class UserDto {
       permissions: permissions,
       adminType: adminType,
       lastLoginAt: lastLoginAt,
+      termsAcceptedAt: termsAcceptedAt,
+      termsAcceptedVersion: termsAcceptedVersion,
+      termsCurrentVersion: termsCurrentVersion,
+      mustAcceptTerms: mustAcceptTerms,
     );
   }
 }

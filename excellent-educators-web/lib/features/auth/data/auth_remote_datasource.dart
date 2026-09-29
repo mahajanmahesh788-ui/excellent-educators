@@ -46,6 +46,17 @@ class AuthRemoteDatasource {
     return UserDto.fromJson(data).toEntity();
   }
 
+  Future<AppUser> acceptTerms() async {
+    final data = await _client.post(ApiEndpoints.studentAcceptTerms);
+    if (data == null) {
+      throw ApiException(
+        message: AppStrings.unableToAcceptTerms,
+        code: 'SERVER_ERROR',
+      );
+    }
+    return UserDto.fromJson(data).toEntity();
+  }
+
   Future<void> logout() async {
     await _client.post(ApiEndpoints.logout);
   }

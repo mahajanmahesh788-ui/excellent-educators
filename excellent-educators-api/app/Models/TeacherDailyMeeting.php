@@ -17,6 +17,8 @@ class TeacherDailyMeeting extends Model
         'google_event_id',
         'google_meeting_space_id',
         'meet_url',
+        'google_meet_url',
+        'meet_url_source',
         'status',
         'first_join_at',
         'last_join_at',

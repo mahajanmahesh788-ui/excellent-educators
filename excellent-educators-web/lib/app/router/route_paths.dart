@@ -8,6 +8,9 @@ abstract final class RoutePaths {
   static const termsAndConditions = '/terms-and-conditions';
   static const refundPolicy = '/refund-policy';
   static const contact = '/contact';
+  static const aboutUs = '/about-us';
+  static const faq = '/faq';
+  static const childParentalConsent = '/child-parental-consent';
   static const adminDashboard = '/admin/dashboard';
   static const adminSubAdmins = '/admin/sub-admins';
   static const adminSubAdminNew = '/admin/sub-admins/new';
@@ -62,6 +65,7 @@ abstract final class RoutePaths {
   static const teacherRequests = '/teacher/requests';
   static const teacherRequestNew = '/teacher/requests/new';
   static const studentDashboard = '/student/dashboard';
+  static const studentAcceptTerms = '/student/accept-terms';
   static const studentBookings = '/student/bookings';
   static const studentBookNew = '/student/bookings/new';
   static const studentTeachers = '/student/teachers';
@@ -70,6 +74,11 @@ abstract final class RoutePaths {
   static const studentJournal = '/student/journal';
   static const studentJournalWeek = '/student/journal/:journeyId/:week';
   static const studentProfile = '/student/profile';
+  static const studentPayments = '/student/payments';
+  static const studentPrivacy = '/student/privacy-policy';
+  static const studentAbout = '/student/about-us';
+  static const studentFaq = '/student/faq';
+  static const studentChildConsent = '/student/child-parental-consent';
   static const studentFeedback = '/student/feedback';
   static const studentRequests = '/student/requests';
   static const studentRequestNew = '/student/requests/new';
@@ -107,7 +116,6 @@ abstract final class RoutePaths {
   static const adminSettings = '/admin/settings';
   static const adminPayments = '/admin/payments';
   static const adminStudentPayments = '/admin/students/:id/payments';
-  static const studentPayments = '/student/payments';
   static const adminRequestDetail = '/admin/requests/:id';
   static const adminFeedbackNew = '/admin/students/:id/feedback/new';
   static const adminFeedbackEdit =

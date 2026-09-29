@@ -29,7 +29,7 @@ class StudentPaymentResource extends JsonResource
             'status_label' => $this->status?->label(),
             'notes' => $this->notes,
             'receipt_url' => $this->receipt_path
-                ? Storage::disk('public')->url($this->receipt_path)
+                ? url(Storage::disk('public')->url($this->receipt_path))
                 : null,
             'gateway' => $this->gateway,
             'created_at' => $this->created_at?->toIso8601String(),

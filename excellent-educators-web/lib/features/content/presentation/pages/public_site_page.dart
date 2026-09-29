@@ -2,7 +2,9 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
+import 'package:excellent_educators_web/features/content/data/dto/site_page_dto.dart';
 import 'package:excellent_educators_web/features/content/presentation/providers/site_page_providers.dart';
+import 'package:excellent_educators_web/features/content/presentation/widgets/faq_category_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -82,15 +84,18 @@ class PublicSitePage extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        SelectableText(
-                          data.body,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            height: 1.55,
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
+                        if (slug == SitePageSlugs.faq)
+                          FaqCategoryView(body: data.body)
+                        else
+                          SelectableText(
+                            data.body,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              height: 1.55,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
                         const SizedBox(height: 36),
                         Wrap(
                           spacing: 12,
@@ -114,6 +119,21 @@ class PublicSitePage extends ConsumerWidget {
                             _FooterLink(
                               label: AppStrings.contactUs,
                               path: RoutePaths.contact,
+                              current: slug,
+                            ),
+                            _FooterLink(
+                              label: AppStrings.aboutUs,
+                              path: RoutePaths.aboutUs,
+                              current: slug,
+                            ),
+                            _FooterLink(
+                              label: AppStrings.faq,
+                              path: RoutePaths.faq,
+                              current: slug,
+                            ),
+                            _FooterLink(
+                              label: AppStrings.childSafetyParentalConsent,
+                              path: RoutePaths.childParentalConsent,
                               current: slug,
                             ),
                           ],

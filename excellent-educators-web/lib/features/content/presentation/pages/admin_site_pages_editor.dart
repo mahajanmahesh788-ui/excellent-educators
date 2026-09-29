@@ -88,6 +88,9 @@ class _AdminSitePagesEditorState extends ConsumerState<AdminSitePagesEditor> {
       SitePageSlugs.terms => AppStrings.termsAndConditions,
       SitePageSlugs.refund => AppStrings.refundPolicy,
       SitePageSlugs.contact => AppStrings.contactUs,
+      SitePageSlugs.about => AppStrings.aboutUs,
+      SitePageSlugs.faq => AppStrings.faq,
+      SitePageSlugs.childConsent => AppStrings.childSafetyParentalConsent,
       _ => slug,
     };
   }
@@ -118,7 +121,7 @@ class _AdminSitePagesEditorState extends ConsumerState<AdminSitePagesEditor> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Edit Privacy Policy, Terms, Refund Policy, and Contact Us. These pages are public (no login).',
+              'Edit Privacy Policy, Terms, Refund Policy, Contact Us, About Us, FAQ, and Child Safety & Parental Consent. These pages are public (no login).',
               style: TextStyle(color: Brand.muted, fontSize: 13),
             ),
             const SizedBox(height: 16),

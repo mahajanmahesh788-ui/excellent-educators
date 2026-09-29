@@ -43,6 +43,15 @@ abstract final class AdminPermission {
       if (location.startsWith('/admin/notifications')) {
         return true;
       }
+      if (location.startsWith('/admin/payments') ||
+          (location.startsWith('/admin/students/') &&
+              location.endsWith('/payments'))) {
+        return user.canAnyAdmin(const [
+          paymentsView,
+          paymentsManage,
+          paymentsRecord,
+        ]);
+      }
       if (location.startsWith('/admin/students')) {
         return user.canAnyAdmin(const [
           studentsView,
@@ -130,7 +139,6 @@ abstract final class AdminPermission {
         paymentsView,
         paymentsManage,
         paymentsRecord,
-        studentsView,
       ]);
     }
     return user.isFullAdmin;

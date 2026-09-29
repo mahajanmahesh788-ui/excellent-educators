@@ -94,6 +94,7 @@ abstract final class ApiEndpoints {
       '/api/v1/master-teacher/students/$id';
 
   static const studentProfile = '/api/v1/student/profile';
+  static const studentAcceptTerms = '/api/v1/student/accept-terms';
   static const studentAssessment = '/api/v1/student/assessment';
   static String studentAssessmentSubmit(String id) =>
       '/api/v1/student/assessment/$id/submit';
@@ -240,12 +241,24 @@ abstract final class ApiEndpoints {
       '/api/v1/admin/payments/students/$studentId/plan';
   static String adminStudentRecordPayment(String studentId) =>
       '/api/v1/admin/payments/students/$studentId/payments';
+  static String adminStudentPaymentReceipt(String studentId, String paymentId) =>
+      '/api/v1/admin/payments/students/$studentId/payments/$paymentId/receipt';
+  static String adminStudentPaymentUpdate(String studentId, String paymentId) =>
+      '/api/v1/admin/payments/students/$studentId/payments/$paymentId';
+  static String adminStudentPaymentVoid(String studentId, String paymentId) =>
+      '/api/v1/admin/payments/students/$studentId/payments/$paymentId/void';
   static String adminStudentPaymentReminder(String studentId) =>
       '/api/v1/admin/payments/students/$studentId/reminder';
+  static const adminNotificationsBroadcast = '/api/v1/admin/notifications/broadcast';
+  static const teacherScheduleMeeting = '/api/v1/teacher/schedule/meeting';
+  static const teacherScheduleMeetingClear =
+      '/api/v1/teacher/schedule/meeting/clear';
 
   static const studentPayments = '/api/v1/student/payments';
   static const studentPaymentsOnlineInitiate =
       '/api/v1/student/payments/online/initiate';
   static const studentPaymentsOnlineConfirm =
       '/api/v1/student/payments/online/confirm';
+  static String studentPaymentReceipt(String paymentId) =>
+      '/api/v1/student/payments/$paymentId/receipt';
 }

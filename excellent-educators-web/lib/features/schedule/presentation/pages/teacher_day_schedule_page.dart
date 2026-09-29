@@ -301,15 +301,180 @@ class _TeacherDaySchedulePageState extends ConsumerState<TeacherDaySchedulePage>
               AsyncBody(
                 value: ref.watch(teacherDayScheduleProvider),
                 onRetry: () => ref.invalidate(teacherDayScheduleProvider),
-                builder: (schedule) => _buildSessionFeed(
-                  sourceBookings: schedule.bookings,
-                  isToday: isToday,
-                  date: date,
-                  tomorrow: tomorrow,
-                  onRefresh: () => ref.invalidate(teacherDayScheduleProvider),
-                  onCheckTomorrow: () => setDate(tomorrow),
+                builder: (schedule) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _TeacherMeetingLinkCard(
+                      date: date,
+                      meetingUrl: schedule.meetingUrl,
+                      isManual: schedule.isManualMeeting,
+                      onChanged: () =>
+                          ref.invalidate(teacherDayScheduleProvider),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSessionFeed(
+                      sourceBookings: schedule.bookings,
+                      isToday: isToday,
+                      date: date,
+                      tomorrow: tomorrow,
+                      onRefresh: () =>
+                          ref.invalidate(teacherDayScheduleProvider),
+                      onCheckTomorrow: () => setDate(tomorrow),
+                    ),
+                  ],
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TeacherMeetingLinkCard extends ConsumerStatefulWidget {
+  const _TeacherMeetingLinkCard({
+    required this.date,
+    required this.meetingUrl,
+    required this.isManual,
+    required this.onChanged,
+  });
+
+  final String date;
+  final String? meetingUrl;
+  final bool isManual;
+  final VoidCallback onChanged;
+
+  @override
+  ConsumerState<_TeacherMeetingLinkCard> createState() =>
+      _TeacherMeetingLinkCardState();
+}
+
+class _TeacherMeetingLinkCardState
+    extends ConsumerState<_TeacherMeetingLinkCard> {
+  late final TextEditingController _controller;
+  var _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.meetingUrl ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant _TeacherMeetingLinkCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.meetingUrl != widget.meetingUrl &&
+        _controller.text != (widget.meetingUrl ?? '')) {
+      _controller.text = widget.meetingUrl ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final url = _controller.text.trim();
+    if (url.isEmpty) {
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ref.read(scheduleRepositoryProvider).saveTeacherMeetingLink(
+            date: widget.date,
+            meetUrl: url,
+          );
+      widget.onChanged();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.meetingLinkSaved)),
+        );
+      }
+    } catch (error) {
+      if (mounted) showFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _clear() async {
+    setState(() => _saving = true);
+    try {
+      await ref
+          .read(scheduleRepositoryProvider)
+          .clearTeacherMeetingLink(date: widget.date);
+      widget.onChanged();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.meetingLinkCleared)),
+        );
+      }
+    } catch (error) {
+      if (mounted) showFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              AppStrings.meetingLinkForToday,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: Brand.navy,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              AppStrings.meetingLinkHelp,
+              style: TextStyle(color: Brand.muted, fontSize: 13, height: 1.4),
+            ),
+            if (widget.isManual) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Using your manual link for this day.',
+                style: TextStyle(
+                  color: Color(0xFFB45309),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            TextField(
+              controller: _controller,
+              decoration: const InputDecoration(
+                labelText: 'https://meet.google.com/...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: Text(
+                    _saving ? AppStrings.saving : AppStrings.saveMeetingLink,
+                  ),
+                ),
+                if (widget.isManual)
+                  OutlinedButton(
+                    onPressed: _saving ? null : _clear,
+                    child: const Text(AppStrings.clearManualMeetingLink),
+                  ),
+              ],
+            ),
           ],
         ),
       ),

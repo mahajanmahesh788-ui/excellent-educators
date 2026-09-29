@@ -8,6 +8,7 @@ import 'package:excellent_educators_web/features/payments/presentation/providers
 import 'package:excellent_educators_web/features/payments/presentation/widgets/add_payment_modal.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_history.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_plan_form.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_receipt.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_reminder_actions.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_summary.dart';
 import 'package:flutter/material.dart';
@@ -170,6 +171,28 @@ class _AdminStudentPaymentsPageState
                 PaymentHistoryList(
                   payments: plan.payments,
                   pendingAmount: plan.pendingAmount,
+                  totalAmount: plan.totalAmount,
+                  paidAmount: plan.paidAmount,
+                  paymentTypeLabel: plan.paymentTypeLabel,
+                  receiptStudent: studentValue.maybeWhen(
+                    data: (s) => PaymentReceiptStudent.fromStudent(
+                      fullName: s.fullName,
+                      studentCode: s.studentCode,
+                      phone: s.phone,
+                      email: s.email,
+                      whatsappNumber: s.whatsappNumber,
+                      levelName: s.level?.label,
+                      batchName: s.batch?.label,
+                    ),
+                    orElse: () =>
+                        PaymentReceiptStudent.fromPlanRef(plan.student),
+                  ),
+                  repository: ref.read(paymentRepositoryProvider),
+                  studentId: widget.studentId,
+                  persistAsAdmin: true,
+                  onReceiptUpdated: () => ref.invalidate(
+                    adminStudentPaymentPlanProvider(widget.studentId),
+                  ),
                 ),
               ] else ...[
                 const Text(

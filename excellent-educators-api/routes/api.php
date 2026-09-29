@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\DevelopmentController as AdminDevelopmentController;
 use App\Http\Controllers\Api\V1\Admin\GoogleMeetController as AdminGoogleMeetController;
 use App\Http\Controllers\Api\V1\Admin\LoginPageContentController as AdminLoginPageContentController;
+use App\Http\Controllers\Api\V1\Admin\NotificationBroadcastController;
 use App\Http\Controllers\Api\V1\Admin\ScheduleController as AdminScheduleController;
 use App\Http\Controllers\Api\V1\Admin\LeaveRequestController as AdminLeaveRequestController;
 use App\Http\Controllers\Api\V1\Admin\SettingsController as AdminSettingsController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Api\V1\MasterTeacher\FeedbackController as MasterTeache
 use App\Http\Controllers\Api\V1\MasterTeacher\StudentController as MasterTeacherStudentController;
 use App\Http\Controllers\Api\V1\MasterTeacher\StudentLearningController as MasterTeacherStudentLearningController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\Student\AcceptTermsController;
 use App\Http\Controllers\Api\V1\Student\AdminRequestController as StudentAdminRequestController;
 use App\Http\Controllers\Api\V1\Student\AssessmentController as StudentAssessmentController;
 use App\Http\Controllers\Api\V1\Student\BookingController as StudentBookingController;
@@ -94,8 +96,12 @@ Route::middleware(['auth:sanctum', 'active', 'admin', 'admin.permission', 'subad
     Route::get('payments/students/{student}', [AdminStudentPaymentController::class, 'show']);
     Route::post('payments/students/{student}/plan', [AdminStudentPaymentController::class, 'storePlan']);
     Route::post('payments/students/{student}/payments', [AdminStudentPaymentController::class, 'storePayment']);
+    Route::patch('payments/students/{student}/payments/{payment}', [AdminStudentPaymentController::class, 'updatePayment']);
+    Route::post('payments/students/{student}/payments/{payment}/void', [AdminStudentPaymentController::class, 'voidPayment']);
+    Route::post('payments/students/{student}/payments/{payment}/receipt', [AdminStudentPaymentController::class, 'storeReceipt']);
     Route::post('payments/students/{student}/reminder', [AdminStudentPaymentController::class, 'reminderMessage']);
     Route::get('students/{student}/payments', [AdminStudentPaymentController::class, 'show']);
+    Route::post('notifications/broadcast', [NotificationBroadcastController::class, 'store']);
 
     Route::get('teachers', [AdminTeacherController::class, 'index']);
     Route::post('teachers', [AdminTeacherController::class, 'store']);
@@ -110,6 +116,7 @@ Route::middleware(['auth:sanctum', 'active', 'admin', 'admin.permission', 'subad
     Route::post('batches', [AdminBatchController::class, 'store']);
     Route::get('batches/{batch}', [AdminBatchController::class, 'show']);
     Route::put('batches/{batch}', [AdminBatchController::class, 'update']);
+    Route::delete('batches/{batch}', [AdminBatchController::class, 'destroy']);
     Route::patch('batches/{batch}/status', [AdminBatchController::class, 'toggleStatus']);
     Route::get('batches/{batch}/students', [AdminBatchController::class, 'students']);
     Route::post('batches/{batch}/students', [AdminBatchController::class, 'enroll']);
@@ -210,6 +217,8 @@ Route::middleware(['auth:sanctum', 'active', 'role:common_teacher|master_teacher
     Route::delete('teacher/schedule/leaves/{leave}', [TeacherScheduleController::class, 'destroyLeave']);
     Route::post('teacher/schedule/bookings/{booking}/complete', [TeacherScheduleController::class, 'completeBooking']);
     Route::post('teacher/schedule/bookings/{booking}/join', [TeacherScheduleController::class, 'joinBooking']);
+    Route::put('teacher/schedule/meeting', [TeacherScheduleController::class, 'upsertMeeting']);
+    Route::post('teacher/schedule/meeting/clear', [TeacherScheduleController::class, 'clearMeeting']);
     Route::post('teacher/schedule/bookings/{booking}/attendance-reports', [TeacherScheduleController::class, 'reportStudent']);
     Route::post('teacher/schedule/bookings/{booking}/whatsapp', [TeacherScheduleController::class, 'whatsappStudent']);
 });
@@ -241,6 +250,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:master_teacher'])->prefix('ma
 
 Route::middleware(['auth:sanctum', 'active', 'role:student'])->prefix('student')->group(function (): void {
     Route::get('profile', [ProfileController::class, 'show']);
+    Route::post('accept-terms', [AcceptTermsController::class, 'store']);
     Route::get('assessment', [StudentAssessmentController::class, 'show']);
     Route::post('assessment/{aptitudeAssessment}/submit', [StudentAssessmentController::class, 'submit']);
     Route::get('results', [StudentAssessmentController::class, 'results']);
@@ -265,4 +275,5 @@ Route::middleware(['auth:sanctum', 'active', 'role:student'])->prefix('student')
     Route::get('payments', [StudentSelfPaymentController::class, 'show']);
     Route::post('payments/online/initiate', [StudentSelfPaymentController::class, 'initiateOnline']);
     Route::post('payments/online/confirm', [StudentSelfPaymentController::class, 'confirmOnline']);
+    Route::post('payments/{payment}/receipt', [StudentSelfPaymentController::class, 'storeReceipt']);
 });

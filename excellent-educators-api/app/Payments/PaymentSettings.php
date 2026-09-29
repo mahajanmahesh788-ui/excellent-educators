@@ -72,7 +72,8 @@ class PaymentSettings
 
     public function onlineEnabled(): bool
     {
-        return true;
+        // Disabled until a real payment gateway + webhook verification is wired.
+        return false;
     }
 
     public function offlineEnabled(): bool

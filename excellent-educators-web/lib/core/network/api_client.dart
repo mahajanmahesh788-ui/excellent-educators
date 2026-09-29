@@ -68,7 +68,7 @@ class ApiClient {
 
   Future<Map<String, dynamic>?> post(
     String path, {
-    Map<String, dynamic>? data,
+    Object? data,
   }) {
     return _map(() => _envelope('POST', path, data: data));
   }
@@ -89,14 +89,14 @@ class ApiClient {
 
   Future<Map<String, dynamic>?> put(
     String path, {
-    Map<String, dynamic>? data,
+    Object? data,
   }) {
     return _map(() => _envelope('PUT', path, data: data));
   }
 
   Future<Map<String, dynamic>?> patch(
     String path, {
-    Map<String, dynamic>? data,
+    Object? data,
   }) {
     return _map(() => _envelope('PATCH', path, data: data));
   }
@@ -146,7 +146,7 @@ class ApiClient {
   Future<ApiEnvelope> _envelope(
     String method,
     String path, {
-    Map<String, dynamic>? data,
+    Object? data,
     Map<String, dynamic>? query,
   }) async {
     try {
@@ -154,7 +154,12 @@ class ApiClient {
         path,
         data: data,
         queryParameters: query,
-        options: Options(method: method),
+        options: Options(
+          method: method,
+          contentType: data is FormData
+              ? null
+              : Headers.jsonContentType,
+        ),
       );
       final body = response.data;
       if (body == null) {

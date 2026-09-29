@@ -13,6 +13,11 @@ class MonthlyFeedbackPolicy
 {
     public function viewAnyForStudent(User $user, StudentProfile $student): bool
     {
+        if ($user->isAgent()) {
+            return ($user->canAdmin(PermissionName::StudentsView) || $user->canAdmin(PermissionName::StudentsRating))
+                && $student->created_by_user_id === $user->id;
+        }
+
         if ($user->isAdmin() && (
             $user->canAdmin(PermissionName::StudentsView)
             || $user->canAdmin(PermissionName::StudentsRating)

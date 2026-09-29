@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:excellent_educators_web/core/constants/api_endpoints.dart';
 import 'package:excellent_educators_web/core/network/api_client.dart';
 import 'package:excellent_educators_web/core/network/maps_api_failures.dart';
@@ -115,6 +118,93 @@ class PaymentRepository with MapsApiFailures {
     });
   }
 
+  Future<StudentSelfPaymentDto> updatePayment(
+    String studentId,
+    String paymentId,
+    Map<String, dynamic> data,
+  ) {
+    return runApiSimple(() async {
+      final json = await _client.patch(
+        ApiEndpoints.adminStudentPaymentUpdate(studentId, paymentId),
+        data: data,
+      );
+      return StudentSelfPaymentDto(
+        plan: json?['plan'] is Map
+            ? StudentPaymentPlanDto.fromJson(
+                Map<String, dynamic>.from(json!['plan'] as Map),
+              )
+            : null,
+        onlineEnabled: false,
+      );
+    });
+  }
+
+  Future<StudentSelfPaymentDto> voidPayment(
+    String studentId,
+    String paymentId, {
+    String? reason,
+  }) {
+    return runApiSimple(() async {
+      final json = await _client.post(
+        ApiEndpoints.adminStudentPaymentVoid(studentId, paymentId),
+        data: {if (reason != null && reason.trim().isNotEmpty) 'reason': reason},
+      );
+      return StudentSelfPaymentDto(
+        plan: json?['plan'] is Map
+            ? StudentPaymentPlanDto.fromJson(
+                Map<String, dynamic>.from(json!['plan'] as Map),
+              )
+            : null,
+        onlineEnabled: false,
+      );
+    });
+  }
+
+  Future<StudentPaymentDto> uploadAdminPaymentReceipt({
+    required String studentId,
+    required String paymentId,
+    required Uint8List bytes,
+    required String filename,
+  }) {
+    return runApiSimple(() async {
+      final form = FormData.fromMap({
+        'receipt': MultipartFile.fromBytes(
+          bytes,
+          filename: filename,
+        ),
+      });
+      final json = await _client.post(
+        ApiEndpoints.adminStudentPaymentReceipt(studentId, paymentId),
+        data: form,
+      );
+      return StudentPaymentDto.fromJson(
+        Map<String, dynamic>.from(json?['payment'] as Map? ?? const {}),
+      );
+    });
+  }
+
+  Future<StudentPaymentDto> uploadOwnPaymentReceipt({
+    required String paymentId,
+    required Uint8List bytes,
+    required String filename,
+  }) {
+    return runApiSimple(() async {
+      final form = FormData.fromMap({
+        'receipt': MultipartFile.fromBytes(
+          bytes,
+          filename: filename,
+        ),
+      });
+      final json = await _client.post(
+        ApiEndpoints.studentPaymentReceipt(paymentId),
+        data: form,
+      );
+      return StudentPaymentDto.fromJson(
+        Map<String, dynamic>.from(json?['payment'] as Map? ?? const {}),
+      );
+    });
+  }
+
   Future<PaymentReminderDto> reminder(String studentId) {
     return runApiSimple(() async {
       final json = await _client.post(
@@ -161,7 +251,7 @@ class PaymentRepository with MapsApiFailures {
                 Map<String, dynamic>.from(json!['plan'] as Map),
               )
             : null,
-        onlineEnabled: true,
+        onlineEnabled: json?['online_enabled'] == true,
       );
     });
   }

@@ -2,6 +2,8 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/payments/presentation/providers/payment_providers.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_receipt.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_receipt_actions.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -137,15 +139,33 @@ Future<bool> showAddPaymentModal(
                         }
                         setState(() => saving = true);
                         try {
-                          final result = await ref
-                              .read(paymentRepositoryProvider)
-                              .recordPayment(studentId, {
+                          final repo = ref.read(paymentRepositoryProvider);
+                          final result = await repo.recordPayment(studentId, {
                             'amount': parsed,
                             'payment_mode': mode,
                             'notes': notes.text.trim().isEmpty
                                 ? null
                                 : notes.text.trim(),
                           });
+                          try {
+                            await persistPaymentReceipt(
+                              repository: repo,
+                              studentId: studentId,
+                              persistAsAdmin: true,
+                              data: PaymentReceiptData(
+                                payment: result.payment,
+                                student: PaymentReceiptStudent.fromPlanRef(
+                                  result.plan.student,
+                                ),
+                                totalAmount: result.plan.totalAmount,
+                                paidAmount: result.plan.paidAmount,
+                                pendingAmount: result.plan.pendingAmount,
+                                paymentTypeLabel: result.plan.paymentTypeLabel,
+                              ),
+                            );
+                          } catch (_) {
+                            // Payment already saved; receipt can be stored later from history.
+                          }
                           setState(() {
                             deltaMessage =
                                 '${AppStrings.previousPending}: ${formatRupee(result.previousPending)}\n'

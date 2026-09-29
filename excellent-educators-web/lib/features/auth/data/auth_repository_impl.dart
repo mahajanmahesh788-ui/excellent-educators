@@ -35,6 +35,15 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<AppUser> acceptTerms() async {
+    try {
+      return await _remote.acceptTerms();
+    } on ApiException catch (error) {
+      throw Failure(error.message, code: error.code);
+    }
+  }
+
+  @override
   Future<void> logout() async {
     try {
       await _remote.logout();

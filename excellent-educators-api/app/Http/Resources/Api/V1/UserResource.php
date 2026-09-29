@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api\V1;
 
 use App\Enums\PermissionName;
 use App\Models\User;
+use App\Support\PolicyTerms;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -26,6 +27,10 @@ class UserResource extends JsonResource
             'permissions' => $this->permissionKeys(),
             'admin_type' => $this->adminProfile?->type?->value,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
+            'terms_accepted_at' => $this->terms_accepted_at?->toIso8601String(),
+            'terms_accepted_version' => $this->terms_accepted_version,
+            'terms_current_version' => PolicyTerms::currentVersion(),
+            'must_accept_terms' => $this->mustAcceptTerms(),
         ];
     }
 

@@ -334,10 +334,60 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
                 onPressed: _saving ? null : _toggleStatus,
                 child: Text(_status == 'active' ? AppStrings.deactivate : AppStrings.activate),
               ),
+            if (widget.assessmentId != null)
+              OutlinedButton(
+                onPressed: _saving ? null : _deleteAssessment,
+                style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFB42318)),
+                child: const Text(AppStrings.deleteAssessment),
+              ),
           ],
         ),
       ],
     );
+  }
+
+  Future<void> _deleteAssessment() async {
+    final id = widget.assessmentId;
+    if (id == null) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(AppStrings.deleteAssessment),
+        content: const Text(AppStrings.deleteAssessmentHelp),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(AppStrings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB42318)),
+            child: const Text(AppStrings.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ref.read(assessmentRepositoryProvider).deleteAssessment(id);
+      ref.invalidate(adminAssessmentsProvider);
+      if (mounted) {
+        context.go(RoutePaths.adminAssessments);
+      }
+    } catch (error) {
+      if (mounted) {
+        showFailure(context, error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
   }
 
   Widget _questionEditor(int index) {

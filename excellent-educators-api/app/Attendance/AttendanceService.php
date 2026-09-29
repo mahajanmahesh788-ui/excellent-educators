@@ -2,10 +2,12 @@
 
 namespace App\Attendance;
 
+use App\Actions\Notifications\NotifyOperationalAdmins;
 use App\Enums\AttendanceDecision;
 use App\Enums\AttendanceIssueType;
 use App\Enums\AttendanceVerificationStatus;
 use App\Enums\JoinActorType;
+use App\Enums\NotificationType;
 use App\Enums\RoleName;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
@@ -17,6 +19,7 @@ use App\Models\MonthlyFeedback;
 use App\Models\SessionBooking;
 use App\Models\TeacherDailyMeeting;
 use App\Models\User;
+use App\Actions\Notifications\CreateUserNotification;
 use App\Scheduling\BookingEligibility;
 use App\Scheduling\MasterClassBalance;
 use App\Support\AppClock;
@@ -24,10 +27,17 @@ use App\Support\ErrorCode;
 use App\Support\PhoneNumber;
 use App\Support\StudentActivity;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class AttendanceService
 {
+    public function __construct(
+        private readonly CreateUserNotification $notifications,
+        private readonly NotifyOperationalAdmins $notifyAdmins,
+    ) {}
+
     public function recordJoin(SessionBooking $booking, JoinActorType $actor, string $actorId): ClassAttendance
     {
         $now = AppClock::now();
@@ -185,7 +195,7 @@ class AttendanceService
         }
 
         try {
-            return AttendanceIssue::query()->create([
+            $issue = AttendanceIssue::query()->create([
                 'booking_id' => $booking->id,
                 'reporter_user_id' => $reporter->id,
                 'reporter_role' => $role,
@@ -200,6 +210,10 @@ class AttendanceService
                 409,
             );
         }
+
+        $this->notifyAdminsOfReport($issue->fresh(['booking.student', 'booking.teacher']) ?? $issue, $reporter, $type);
+
+        return $issue;
     }
 
     public function resolve(AttendanceIssue $issue, User $admin, AttendanceDecision $decision, ?string $notes): AttendanceIssue
@@ -252,7 +266,10 @@ class AttendanceService
                 $issue->booking?->update(['status' => SessionBookingStatus::Completed->value]);
             }
 
-            return $issue->fresh(['booking.student', 'booking.teacher', 'reporter', 'verifier']) ?? $issue;
+            $resolved = $issue->fresh(['booking.student', 'booking.teacher', 'reporter', 'verifier']) ?? $issue;
+            $this->notifyReporterOfResolution($resolved, $decision);
+
+            return $resolved;
         });
     }
 
@@ -618,5 +635,75 @@ class AttendanceService
         }
 
         return 'This is your last Master Class chance for this month. If this slot is missed, another session cannot be booked until next month.';
+    }
+
+    private function notifyAdminsOfReport(
+        AttendanceIssue $issue,
+        User $reporter,
+        AttendanceIssueType $type,
+    ): void {
+        try {
+            $issue->loadMissing(['booking.student', 'booking.teacher']);
+            $booking = $issue->booking;
+            $date = $booking?->date?->toDateString();
+            $displayDate = $date !== null ? Carbon::parse($date)->format('d-M-Y') : 'a class';
+            $studentName = $booking?->student?->full_name ?? 'student';
+            $teacherName = $booking?->teacher?->full_name ?? 'teacher';
+            $reporterName = $reporter->name ?: 'Someone';
+            $issueLabel = match ($type) {
+                AttendanceIssueType::TeacherDidNotJoin => 'teacher did not join',
+                AttendanceIssueType::StudentDidNotJoin => 'student did not join',
+                default => 'attendance issue',
+            };
+
+            $this->notifyAdmins->execute(
+                NotificationType::AttendanceConflictReported,
+                'Class conflict reported',
+                "{$reporterName} reported {$issueLabel} for {$studentName} / {$teacherName} on {$displayDate}.",
+                [
+                    'issue_id' => $issue->id,
+                    'booking_id' => $issue->booking_id,
+                    'issue_type' => $type->value,
+                    'reporter_role' => $issue->reporter_role,
+                    'link' => '/admin/attendance/'.$issue->id,
+                ],
+            );
+        } catch (Throwable) {
+            // Report must succeed even if notify fails.
+        }
+    }
+
+    private function notifyReporterOfResolution(
+        AttendanceIssue $issue,
+        AttendanceDecision $decision,
+    ): void {
+        try {
+            $issue->loadMissing(['reporter', 'booking']);
+            $reporter = $issue->reporter;
+            if ($reporter === null) {
+                return;
+            }
+
+            $date = $issue->booking?->date?->toDateString();
+            $displayDate = $date !== null ? Carbon::parse($date)->format('d-M-Y') : 'your class';
+            $decisionLabel = str_replace('_', ' ', $decision->value);
+
+            $this->notifications->execute(
+                $reporter,
+                NotificationType::AttendanceConflictResolved,
+                'Class conflict reviewed',
+                "Your attendance report for {$displayDate} was reviewed ({$decisionLabel}).",
+                [
+                    'issue_id' => $issue->id,
+                    'booking_id' => $issue->booking_id,
+                    'decision' => $decision->value,
+                    'link' => $issue->reporter_role === 'student'
+                        ? '/student/bookings'
+                        : '/teacher/schedule/day',
+                ],
+            );
+        } catch (Throwable) {
+            // Resolve must succeed even if notify fails.
+        }
     }
 }

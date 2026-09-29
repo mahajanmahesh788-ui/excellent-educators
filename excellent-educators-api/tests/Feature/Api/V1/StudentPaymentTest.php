@@ -58,7 +58,7 @@ class StudentPaymentTest extends TestCase
 
         $response = $this->withToken($this->tokenFor($admin))->postJson("/api/v1/admin/payments/students/{$student->id}/plan", [
             'payment_type' => 'full',
-            'preferred_mode' => 'online',
+            'preferred_mode' => 'offline',
             'total_amount' => 6000,
             'payment_amount' => 6000,
         ])->assertCreated();
@@ -187,7 +187,7 @@ class StudentPaymentTest extends TestCase
         // Changing mode/type without an explicit new total must keep 6000.
         $changed = app(PaymentPlanService::class)->changePlan($plan, [
             'payment_type' => 'partial',
-            'preferred_mode' => 'online',
+            'preferred_mode' => 'offline',
         ], $admin->id);
         $this->assertSame(6000.0, (float) $changed->total_amount);
 
@@ -199,6 +199,89 @@ class StudentPaymentTest extends TestCase
             'initial_amount' => 0,
         ], $admin->id);
         $this->assertSame(7000.0, (float) $newPlan->total_amount);
+    }
+
+    public function test_deleting_student_keeps_collected_and_writes_off_pending_as_dead_amount(): void
+    {
+        [$admin, $student] = $this->makeStudent();
+
+        $this->withToken($this->tokenFor($admin))->postJson("/api/v1/admin/payments/students/{$student->id}/plan", [
+            'payment_type' => 'partial',
+            'preferred_mode' => 'offline',
+            'total_amount' => 3000,
+            'initial_amount' => 1000,
+        ])->assertCreated();
+
+        $overviewBefore = $this->withToken($this->tokenFor($admin))
+            ->getJson('/api/v1/admin/payments/overview')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertGreaterThanOrEqual(1000, (float) $overviewBefore['total_collected']);
+
+        $delete = $this->withToken($this->tokenFor($admin))
+            ->deleteJson("/api/v1/admin/students/{$student->id}")
+            ->assertOk();
+
+        $this->assertSame(2000, (int) $delete->json('data.dead_amount'));
+        $this->assertNull(StudentProfile::query()->find($student->id));
+        $this->assertNull(StudentProfile::withTrashed()->find($student->id));
+
+        $plan = StudentPaymentPlan::query()
+            ->whereNull('student_id')
+            ->where('student_name_snapshot', $student->full_name)
+            ->firstOrFail();
+
+        $this->assertSame(PaymentPlanStatus::Withdrawn, $plan->status);
+        $this->assertFalse((bool) $plan->is_active);
+        $this->assertSame(1000.0, (float) $plan->paid_amount);
+        $this->assertSame(0.0, (float) $plan->pending_amount);
+        $this->assertSame(2000.0, (float) $plan->dead_amount);
+        $this->assertSame(1, $plan->payments()->count());
+
+        $overviewAfter = $this->withToken($this->tokenFor($admin))
+            ->getJson('/api/v1/admin/payments/overview')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertGreaterThanOrEqual(
+            (float) $overviewBefore['total_collected'],
+            (float) $overviewAfter['total_collected'],
+        );
+        $this->assertGreaterThanOrEqual(2000, (float) $overviewAfter['total_dead']);
+    }
+
+    public function test_admin_can_store_payment_receipt_pdf(): void
+    {
+        [$admin, $student] = $this->makeStudent();
+
+        $this->withToken($this->tokenFor($admin))->postJson("/api/v1/admin/payments/students/{$student->id}/plan", [
+            'payment_type' => 'full',
+            'preferred_mode' => 'offline',
+            'total_amount' => 5000,
+            'initial_amount' => 2000,
+        ])->assertCreated();
+
+        $paymentId = StudentPaymentPlan::query()
+            ->where('student_id', $student->id)
+            ->where('is_active', true)
+            ->firstOrFail()
+            ->payments()
+            ->firstOrFail()
+            ->id;
+
+        $file = \Illuminate\Http\UploadedFile::fake()->create('receipt.pdf', 120, 'application/pdf');
+
+        $response = $this->withToken($this->tokenFor($admin))->post(
+            "/api/v1/admin/payments/students/{$student->id}/payments/{$paymentId}/receipt",
+            ['receipt' => $file],
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('data.payment.id', $paymentId);
+
+        $this->assertNotEmpty($response->json('data.payment.receipt_url'));
+        $this->assertStringContainsString('/storage/', (string) $response->json('data.payment.receipt_url'));
     }
 
     /**

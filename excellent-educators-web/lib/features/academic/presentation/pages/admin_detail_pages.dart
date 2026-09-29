@@ -20,6 +20,7 @@ import 'package:excellent_educators_web/features/learning/presentation/providers
 import 'package:excellent_educators_web/features/payments/presentation/providers/payment_providers.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/add_payment_modal.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_history.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_receipt.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_reminder_actions.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/teacher_availability_editor.dart';
@@ -94,7 +95,7 @@ class AdminStudentDetailPage extends ConsumerWidget {
                           final confirmed = await showAppConfirmDialog(
                             context,
                             title: AppStrings.deleteStudent,
-                            message: AppStrings.delete,
+                            message: AppStrings.deleteStudentPaymentWarning,
                             confirmLabel: AppStrings.delete,
                             cancelLabel: AppStrings.cancel,
                             destructive: true,
@@ -152,6 +153,17 @@ class AdminStudentDetailPage extends ConsumerWidget {
                     DetailRow(label: AppStrings.level, value: student.level!.label),
                   if (student.batch != null && !student.batch!.isEmpty)
                     DetailRow(label: AppStrings.batch, value: student.batch!.label),
+                  if (user?.canAdmin(AdminPermission.levelsManage) ?? false) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _moveStudentBatch(context, ref, student),
+                        icon: const Icon(Icons.swap_horiz, size: 18),
+                        label: const Text(AppStrings.moveToBatch),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 12),
@@ -159,12 +171,12 @@ class AdminStudentDetailPage extends ConsumerWidget {
                     AdminPermission.paymentsView,
                     AdminPermission.paymentsManage,
                     AdminPermission.paymentsRecord,
-                    AdminPermission.studentsView,
                   ]) ??
                   false) ...[
                 _AdminStudentPaymentSection(
                   studentId: student.id,
                   phone: student.phone,
+                  student: student,
                 ),
                 const SizedBox(height: 12),
               ],
@@ -239,6 +251,60 @@ class AdminStudentDetailPage extends ConsumerWidget {
         },
       ),
     );
+  }
+}
+
+Future<void> _moveStudentBatch(
+  BuildContext context,
+  WidgetRef ref,
+  StudentDto student,
+) async {
+  try {
+    final levels = await ref.read(academicRepositoryProvider).adminLevels();
+    final batches = <BatchDto>[
+      for (final level in levels) ...level.batches,
+    ];
+    if (!context.mounted) {
+      return;
+    }
+    if (batches.isEmpty) {
+      showFailure(context, AppStrings.noBatchesAvailable);
+      return;
+    }
+    final selectedId = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text(AppStrings.moveToBatch),
+        children: [
+          for (final batch in batches)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(ctx, batch.id),
+              child: Text(
+                batch.name +
+                    (student.batch?.id == batch.id ? ' (current)' : ''),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (selectedId == null || selectedId == student.batch?.id) {
+      return;
+    }
+    await ref.read(academicRepositoryProvider).enrollStudent(
+          batchId: selectedId,
+          studentId: student.id,
+        );
+    ref.invalidate(adminStudentProvider(student.id));
+    ref.invalidate(adminStudentHistoryProvider(student.id));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.studentMovedToBatch)),
+      );
+    }
+  } catch (error) {
+    if (context.mounted) {
+      showFailure(context, error);
+    }
   }
 }
 
@@ -348,10 +414,12 @@ class _MasterClassQuotaDialogState extends ConsumerState<_MasterClassQuotaDialog
 class _AdminStudentPaymentSection extends ConsumerWidget {
   const _AdminStudentPaymentSection({
     required this.studentId,
+    required this.student,
     this.phone,
   });
 
   final String studentId;
+  final StudentDto student;
   final String? phone;
 
   @override
@@ -492,6 +560,23 @@ class _AdminStudentPaymentSection extends ConsumerWidget {
             PaymentHistoryList(
               payments: plan.payments,
               pendingAmount: plan.pendingAmount,
+              totalAmount: plan.totalAmount,
+              paidAmount: plan.paidAmount,
+              paymentTypeLabel: plan.paymentTypeLabel,
+              receiptStudent: PaymentReceiptStudent.fromStudent(
+                fullName: student.fullName,
+                studentCode: student.studentCode,
+                phone: student.phone,
+                email: student.email,
+                whatsappNumber: student.whatsappNumber,
+                levelName: student.level?.label,
+                batchName: student.batch?.label,
+              ),
+              repository: ref.read(paymentRepositoryProvider),
+              studentId: studentId,
+              persistAsAdmin: true,
+              onReceiptUpdated: () =>
+                  ref.invalidate(adminStudentPaymentPlanProvider(studentId)),
             ),
           ],
         );

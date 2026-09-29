@@ -9,6 +9,7 @@ class PaymentOverviewDto {
     this.totalCollected = 0,
     this.totalPending = 0,
     this.totalOverdue = 0,
+    this.totalDead = 0,
   });
 
   factory PaymentOverviewDto.fromJson(Map<String, dynamic> json) {
@@ -22,6 +23,7 @@ class PaymentOverviewDto {
       totalCollected: (json['total_collected'] as num?)?.toDouble() ?? 0,
       totalPending: (json['total_pending'] as num?)?.toDouble() ?? 0,
       totalOverdue: (json['total_overdue'] as num?)?.toDouble() ?? 0,
+      totalDead: (json['total_dead'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -34,6 +36,7 @@ class PaymentOverviewDto {
   final double totalCollected;
   final double totalPending;
   final double totalOverdue;
+  final double totalDead;
 }
 
 class PaymentPlanStudentRef {
@@ -130,6 +133,34 @@ class StudentPaymentDto {
   final String? statusLabel;
   final String? notes;
   final String? receiptUrl;
+
+  StudentPaymentDto copyWith({
+    String? id,
+    double? amount,
+    String? paymentMode,
+    String? paymentDate,
+    String? createdAt,
+    String? transactionId,
+    String? referenceNumber,
+    String? status,
+    String? statusLabel,
+    String? notes,
+    String? receiptUrl,
+  }) {
+    return StudentPaymentDto(
+      id: id ?? this.id,
+      amount: amount ?? this.amount,
+      paymentMode: paymentMode ?? this.paymentMode,
+      paymentDate: paymentDate ?? this.paymentDate,
+      createdAt: createdAt ?? this.createdAt,
+      transactionId: transactionId ?? this.transactionId,
+      referenceNumber: referenceNumber ?? this.referenceNumber,
+      status: status ?? this.status,
+      statusLabel: statusLabel ?? this.statusLabel,
+      notes: notes ?? this.notes,
+      receiptUrl: receiptUrl ?? this.receiptUrl,
+    );
+  }
 }
 
 class StudentPaymentPlanDto {

@@ -7,8 +7,10 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:excellent_educators_web/features/payments/data/dto/payment_dtos.dart';
 import 'package:excellent_educators_web/features/payments/presentation/providers/payment_providers.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_history.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_receipt.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_status_badge.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
+import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,9 +21,11 @@ class StudentPaymentsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final payments = ref.watch(studentOwnPaymentsProvider);
+    final profile = ref.watch(studentProfileProvider);
 
     return StudentScaffold(
       title: AppStrings.payments,
+      backTo: RoutePaths.studentProfile,
       body: AsyncBody(
         value: payments,
         onRetry: () => ref.invalidate(studentOwnPaymentsProvider),
@@ -35,6 +39,18 @@ class StudentPaymentsPage extends ConsumerWidget {
               ),
             );
           }
+          final profileStudent = profile.asData?.value;
+          final receiptStudent = profileStudent != null
+              ? PaymentReceiptStudent.fromStudent(
+                  fullName: profileStudent.fullName,
+                  studentCode: profileStudent.studentCode,
+                  phone: profileStudent.phone,
+                  email: profileStudent.email,
+                  whatsappNumber: profileStudent.whatsappNumber,
+                  levelName: profileStudent.level?.label,
+                  batchName: profileStudent.batch?.label,
+                )
+              : PaymentReceiptStudent.fromPlanRef(plan.student);
           return ListView(
             padding: const EdgeInsets.only(bottom: 32),
             children: [
@@ -49,6 +65,14 @@ class StudentPaymentsPage extends ConsumerWidget {
               PaymentHistoryList(
                 payments: plan.payments,
                 pendingAmount: plan.pendingAmount,
+                totalAmount: plan.totalAmount,
+                paidAmount: plan.paidAmount,
+                paymentTypeLabel: plan.paymentTypeLabel,
+                receiptStudent: receiptStudent,
+                repository: ref.read(paymentRepositoryProvider),
+                persistAsAdmin: false,
+                onReceiptUpdated: () =>
+                    ref.invalidate(studentOwnPaymentsProvider),
               ),
             ],
           );
@@ -220,6 +244,16 @@ class StudentPaymentStatusCard extends StatelessWidget {
                 FilledButton(
                   onPressed: onPayNow,
                   child: const Text(AppStrings.payNow),
+                ),
+              ] else if (plan.pendingAmount > 0) ...[
+                const SizedBox(height: 12),
+                Text(
+                  AppStrings.contactInstituteToPay,
+                  style: const TextStyle(
+                    color: Brand.muted,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ],

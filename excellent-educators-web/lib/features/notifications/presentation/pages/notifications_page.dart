@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
+import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/notifications/data/dto/notification_dtos.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/providers/notification_feature_providers.dart';
@@ -66,6 +67,20 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     );
 
     final actions = [
+      if ((user?.isAdmin ?? false) &&
+          !user!.isAgent &&
+          user.canAdmin(AdminPermission.settingsManage))
+        TextButton(
+          onPressed: () => _composeBroadcast(context, ref),
+          child: Text(
+            AppStrings.broadcastAnnouncement,
+            style: TextStyle(
+              color: (user.isStudent)
+                  ? StudentColors.indigoPrimary
+                  : Colors.white,
+            ),
+          ),
+        ),
       TextButton(
         onPressed: () => _markAllRead(context, ref),
         child: Text(
@@ -111,7 +126,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     if (!context.mounted) return;
 
     final groupId = notification.data?['leave_request_group_id'] as String?;
-    if (notification.type == 'teacher_leave_submitted' &&
+    if ((notification.type == 'teacher_leave_submitted' ||
+            notification.type == 'teacher_leave_cancelled') &&
         groupId != null &&
         groupId.isNotEmpty) {
       context.go(RoutePaths.adminLeaveRequest(groupId));
@@ -119,19 +135,87 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     }
 
     final link = notification.data?['link'] as String?;
-    if (link != null &&
-        (link.startsWith('/admin/leaves/') ||
-            link.startsWith('/admin/schedule/leave-requests/'))) {
-      final leaveGroupId = link.split('/').last;
-      if (leaveGroupId.isNotEmpty) {
-        context.go(RoutePaths.adminLeaveRequest(leaveGroupId));
+    if (link != null && link.isNotEmpty) {
+      if (link.startsWith('/admin/leaves/') ||
+          link.startsWith('/admin/schedule/leave-requests/')) {
+        final leaveGroupId = link.split('/').last;
+        if (leaveGroupId.isNotEmpty) {
+          context.go(RoutePaths.adminLeaveRequest(leaveGroupId));
+        }
+        return;
+      }
+      if (link.startsWith('/admin/attendance/')) {
+        final issueId = link.split('/').last;
+        if (issueId.isNotEmpty) {
+          context.go(RoutePaths.adminAttendanceIssue(issueId));
+        } else {
+          context.go(RoutePaths.adminAttendance);
+        }
+        return;
+      }
+      if (link == '/student/payments') {
+        context.go(RoutePaths.studentPayments);
+        return;
+      }
+      if (link == '/student/bookings') {
+        context.go(RoutePaths.studentBookings);
+        return;
+      }
+      if (link == '/student/dashboard') {
+        context.go(RoutePaths.studentDashboard);
+        return;
+      }
+      if (link.startsWith('/teacher/schedule')) {
+        context.go(RoutePaths.teacherDaySchedule);
+        return;
+      }
+    }
+
+    if (notification.type == 'session_booked' ||
+        notification.type == 'session_rescheduled' ||
+        notification.type == 'session_cancelled' ||
+        notification.type == 'teacher_leave_approved' ||
+        notification.type == 'teacher_leave_rejected' ||
+        notification.type == 'teacher_leave_cancelled') {
+      final user = ref.read(authControllerProvider).user;
+      if ((user?.isCommonTeacher ?? false) || (user?.isMasterTeacher ?? false)) {
+        context.go(RoutePaths.teacherDaySchedule);
+      } else if (user?.isStudent ?? false) {
+        context.go(RoutePaths.studentBookings);
       }
       return;
     }
 
-    if (notification.type == 'session_booked' ||
-        notification.type == 'session_rescheduled') {
-      context.go(RoutePaths.teacherDaySchedule);
+    if (notification.type == 'payment_recorded' ||
+        notification.type == 'payment_voided') {
+      context.go(RoutePaths.studentPayments);
+      return;
+    }
+
+    if (notification.type == 'attendance_conflict_reported') {
+      final issueId = notification.data?['issue_id'] as String?;
+      if (issueId != null && issueId.isNotEmpty) {
+        context.go(RoutePaths.adminAttendanceIssue(issueId));
+      } else {
+        context.go(RoutePaths.adminAttendance);
+      }
+      return;
+    }
+
+    if (notification.type == 'attendance_conflict_resolved') {
+      final user = ref.read(authControllerProvider).user;
+      if (user?.isStudent ?? false) {
+        context.go(RoutePaths.studentBookings);
+      } else if ((user?.isCommonTeacher ?? false) ||
+          (user?.isMasterTeacher ?? false)) {
+        context.go(RoutePaths.teacherDaySchedule);
+      }
+      return;
+    }
+
+    if (notification.type == 'student_promoted' ||
+        notification.type == 'aptitude_assessment_available') {
+      context.go(RoutePaths.studentDashboard);
     }
   }
 
@@ -155,6 +239,93 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       await ref.read(notificationRepositoryProvider).markAllRead();
       ref.invalidate(notificationsProvider);
       ref.invalidate(unreadNotificationCountProvider);
+    } catch (error) {
+      if (context.mounted) {
+        showFailure(context, error);
+      }
+    }
+  }
+
+  Future<void> _composeBroadcast(BuildContext context, WidgetRef ref) async {
+    final titleCtrl = TextEditingController();
+    final bodyCtrl = TextEditingController();
+    var audience = 'students';
+    final sent = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text(AppStrings.broadcastAnnouncement),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(labelText: AppStrings.title),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: bodyCtrl,
+                  maxLines: 4,
+                  decoration: const InputDecoration(labelText: AppStrings.description),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: audience,
+                  decoration: const InputDecoration(
+                    labelText: AppStrings.announcementAudience,
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'students',
+                      child: Text(AppStrings.audienceStudents),
+                    ),
+                    DropdownMenuItem(
+                      value: 'teachers',
+                      child: Text(AppStrings.audienceTeachers),
+                    ),
+                    DropdownMenuItem(
+                      value: 'all_users',
+                      child: Text(AppStrings.audienceAllUsers),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => audience = value);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text(AppStrings.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text(AppStrings.sendAnnouncement),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (sent != true) {
+      return;
+    }
+    try {
+      final count = await ref.read(notificationRepositoryProvider).broadcast(
+            title: titleCtrl.text.trim(),
+            body: bodyCtrl.text.trim(),
+            audience: audience,
+          );
+      ref.invalidate(notificationsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sent to $count recipient(s).')),
+        );
+      }
     } catch (error) {
       if (context.mounted) {
         showFailure(context, error);
@@ -206,15 +377,32 @@ class _NotificationTile extends StatelessWidget {
 
   IconData _iconFor(String type) {
     return switch (type) {
-      'master_teacher_assigned' || 'master_teacher_changed' => Icons.psychology_alt_rounded,
-      'common_teacher_assigned' || 'common_teacher_changed' => Icons.person_outline,
-      'student_enrolled_in_batch' || 'student_unenrolled_from_batch' => Icons.groups_rounded,
+      'master_teacher_assigned' ||
+      'master_teacher_changed' ||
+      'master_teacher_removed' =>
+        Icons.psychology_alt_rounded,
+      'common_teacher_assigned' ||
+      'common_teacher_changed' ||
+      'common_teacher_removed' =>
+        Icons.person_outline,
+      'student_enrolled_in_batch' || 'student_unenrolled_from_batch' =>
+        Icons.groups_rounded,
       'student_booking_failed' => Icons.warning_amber_rounded,
       'session_booked' => Icons.event_available_rounded,
-      'session_rescheduled' => Icons.event_repeat_rounded,
-      'teacher_leave_submitted' => Icons.event_busy_rounded,
-      'teacher_leave_rejected' => Icons.event_busy_rounded,
-      'session_mentor_updated' => Icons.swap_horiz_rounded,
+      'session_rescheduled' || 'session_mentor_updated' =>
+        Icons.event_repeat_rounded,
+      'session_cancelled' => Icons.event_busy_rounded,
+      'teacher_leave_submitted' ||
+      'teacher_leave_approved' ||
+      'teacher_leave_rejected' ||
+      'teacher_leave_cancelled' =>
+        Icons.event_busy_rounded,
+      'payment_recorded' || 'payment_voided' => Icons.payments_outlined,
+      'attendance_conflict_reported' || 'attendance_conflict_resolved' =>
+        Icons.report_outlined,
+      'student_promoted' => Icons.school_outlined,
+      'aptitude_assessment_available' => Icons.quiz_outlined,
+      'admin_announcement' => Icons.campaign_outlined,
       _ => Icons.notifications_outlined,
     };
   }

@@ -22,7 +22,7 @@ class SitePageTest extends TestCase
     {
         $this->getJson('/api/v1/site-pages')
             ->assertOk()
-            ->assertJsonCount(4, 'data')
+            ->assertJsonCount(7, 'data')
             ->assertJsonPath('data.0.slug', 'privacy-policy');
 
         $this->getJson('/api/v1/site-pages/privacy-policy')

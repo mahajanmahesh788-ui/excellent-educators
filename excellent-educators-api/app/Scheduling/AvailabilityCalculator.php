@@ -190,6 +190,29 @@ class AvailabilityCalculator
             ])->values()->all(),
             'leaves' => $leaves->map(fn (TeacherLeave $leave) => $leave->toScheduleArray())->values()->all(),
             'bookings' => $bookings->map(fn (SessionBooking $booking) => $this->bookingPayload($booking, $viewer))->values()->all(),
+            'meeting' => $this->meetingPayload($teacher->id, $date),
+        ];
+    }
+
+    /**
+     * @return array{meet_url: ?string, google_meet_url: ?string, meet_url_source: string, is_manual: bool}|null
+     */
+    private function meetingPayload(string $teacherId, string $date): ?array
+    {
+        $meeting = TeacherDailyMeeting::query()
+            ->where('teacher_id', $teacherId)
+            ->whereDate('date', $date)
+            ->first();
+
+        if ($meeting === null) {
+            return null;
+        }
+
+        return [
+            'meet_url' => $meeting->meet_url,
+            'google_meet_url' => $meeting->google_meet_url,
+            'meet_url_source' => $meeting->meet_url_source ?? 'google',
+            'is_manual' => ($meeting->meet_url_source ?? 'google') === 'manual',
         ];
     }
 

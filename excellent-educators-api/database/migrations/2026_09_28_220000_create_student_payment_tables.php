@@ -10,7 +10,9 @@ return new class extends Migration
     {
         Schema::create('student_payment_plans', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->foreignUlid('student_id')->constrained('student_profiles')->cascadeOnDelete();
+            $table->foreignUlid('student_id')->nullable()->constrained('student_profiles')->nullOnDelete();
+            $table->string('student_name_snapshot', 160)->nullable();
+            $table->string('student_code_snapshot', 40)->nullable();
             $table->string('payment_type', 20); // full | partial
             $table->decimal('total_amount', 12, 2);
             $table->decimal('paid_amount', 12, 2)->default(0);
@@ -22,10 +24,12 @@ return new class extends Migration
             $table->date('next_due_date')->nullable();
             $table->decimal('next_due_amount', 12, 2)->nullable();
             $table->decimal('overdue_amount', 12, 2)->default(0);
+            $table->decimal('dead_amount', 12, 2)->default(0);
             $table->date('last_payment_date')->nullable();
             $table->string('preferred_mode', 20)->nullable(); // online | offline
-            $table->string('status', 20)->default('pending'); // pending | partial | paid | overdue
+            $table->string('status', 20)->default('pending'); // pending | partial | paid | overdue | withdrawn
             $table->boolean('is_active')->default(true);
+            $table->timestamp('withdrawn_at')->nullable();
             $table->foreignUlid('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignUlid('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
@@ -36,7 +40,9 @@ return new class extends Migration
 
         Schema::create('student_payments', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->foreignUlid('student_id')->constrained('student_profiles')->cascadeOnDelete();
+            $table->foreignUlid('student_id')->nullable()->constrained('student_profiles')->nullOnDelete();
+            $table->string('student_name_snapshot', 160)->nullable();
+            $table->string('student_code_snapshot', 40)->nullable();
             $table->foreignUlid('payment_plan_id')->constrained('student_payment_plans')->cascadeOnDelete();
             $table->decimal('amount', 12, 2);
             $table->string('payment_mode', 20); // online | offline
@@ -61,7 +67,7 @@ return new class extends Migration
 
         Schema::create('student_payment_plan_audits', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->foreignUlid('student_id')->constrained('student_profiles')->cascadeOnDelete();
+            $table->foreignUlid('student_id')->nullable()->constrained('student_profiles')->nullOnDelete();
             $table->foreignUlid('payment_plan_id')->nullable()->constrained('student_payment_plans')->nullOnDelete();
             $table->string('previous_plan')->nullable();
             $table->string('new_plan')->nullable();

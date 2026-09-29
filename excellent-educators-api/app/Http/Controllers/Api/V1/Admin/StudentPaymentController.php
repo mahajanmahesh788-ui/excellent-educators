@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Concerns\EnsuresAgentOwnsStudent;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\StudentPaymentPlanResource;
 use App\Http\Resources\Api\V1\StudentPaymentResource;
+use App\Models\StudentPayment;
 use App\Models\StudentProfile;
 use App\Payments\PaymentOverviewService;
 use App\Payments\PaymentPlanService;
@@ -12,18 +14,23 @@ use App\Support\ApiResponse;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class StudentPaymentController extends Controller
 {
+    use EnsuresAgentOwnsStudent;
+
     public function __construct(
         private readonly PaymentPlanService $plans,
         private readonly PaymentOverviewService $overview,
     ) {}
 
-    public function overview(): JsonResponse
+    public function overview(Request $request): JsonResponse
     {
-        return ApiResponse::success('Payment overview fetched.', $this->overview->summaryCards());
+        $actorId = $request->user()?->isAgent() ? $request->user()->id : null;
+
+        return ApiResponse::success('Payment overview fetched.', $this->overview->summaryCards($actorId));
     }
 
     public function index(Request $request): JsonResponse
@@ -41,13 +48,18 @@ class StudentPaymentController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
+        if ($request->user()?->isAgent()) {
+            $filters['created_by_user_id'] = $request->user()->id;
+        }
+
         $page = $this->overview->listPlans($filters, (int) ($filters['per_page'] ?? 20));
+        $actorId = $request->user()?->isAgent() ? $request->user()->id : null;
 
         return ApiResponse::success(
             'Payment plans fetched.',
             [
                 'items' => StudentPaymentPlanResource::collection($page->items())->resolve(),
-                'summary' => $this->overview->summaryCards(),
+                'summary' => $this->overview->summaryCards($actorId),
             ],
             [
                 'current_page' => $page->currentPage(),
@@ -58,8 +70,9 @@ class StudentPaymentController extends Controller
         );
     }
 
-    public function show(StudentProfile $student): JsonResponse
+    public function show(Request $request, StudentProfile $student): JsonResponse
     {
+        $this->ensureAgentOwnsStudent($request, $student);
         $plan = $this->plans->activePlanFor($student);
         if ($plan === null) {
             return ApiResponse::success('No payment plan.', ['plan' => null]);
@@ -73,6 +86,7 @@ class StudentPaymentController extends Controller
 
     public function storePlan(Request $request, StudentProfile $student): JsonResponse
     {
+        $this->ensureAgentOwnsStudent($request, $student);
         $data = $request->validate([
             'payment_type' => ['required', Rule::in(['full', 'partial'])],
             'preferred_mode' => ['nullable', Rule::in(['online', 'offline'])],
@@ -101,6 +115,7 @@ class StudentPaymentController extends Controller
 
     public function storePayment(Request $request, StudentProfile $student): JsonResponse
     {
+        $this->ensureAgentOwnsStudent($request, $student);
         $plan = $this->plans->activePlanFor($student);
         if ($plan === null) {
             return ApiResponse::error(
@@ -151,8 +166,9 @@ class StudentPaymentController extends Controller
         );
     }
 
-    public function reminderMessage(StudentProfile $student): JsonResponse
+    public function reminderMessage(Request $request, StudentProfile $student): JsonResponse
     {
+        $this->ensureAgentOwnsStudent($request, $student);
         $plan = $this->plans->activePlanFor($student);
         if ($plan === null || (float) $plan->pending_amount <= 0) {
             return ApiResponse::error(
@@ -195,6 +211,85 @@ class StudentPaymentController extends Controller
             'whatsapp_url' => $waUrl,
             'phone' => $student->phone,
             'tel_url' => $student->phone ? 'tel:'.$student->phone : null,
+        ]);
+    }
+
+    public function storeReceipt(
+        Request $request,
+        StudentProfile $student,
+        StudentPayment $payment,
+    ): JsonResponse {
+        $this->ensureAgentOwnsStudent($request, $student);
+        if ($payment->student_id !== $student->id) {
+            return ApiResponse::error('Payment not found.', ErrorCode::NOT_FOUND, null, 404);
+        }
+
+        $data = $request->validate([
+            'receipt' => ['required', 'file', 'max:5120', 'mimes:pdf'],
+        ]);
+
+        if ($payment->receipt_path) {
+            Storage::disk('public')->delete($payment->receipt_path);
+        }
+
+        $path = $data['receipt']->store(
+            'payment-receipts/'.$student->id,
+            'public',
+        );
+        $payment->update(['receipt_path' => $path]);
+
+        return ApiResponse::success(
+            'Receipt saved.',
+            ['payment' => (new StudentPaymentResource($payment->fresh()))->resolve()],
+        );
+    }
+
+    public function updatePayment(
+        Request $request,
+        StudentProfile $student,
+        StudentPayment $payment,
+    ): JsonResponse {
+        $this->ensureAgentOwnsStudent($request, $student);
+        if ($payment->student_id !== $student->id) {
+            return ApiResponse::error('Payment not found.', ErrorCode::NOT_FOUND, null, 404);
+        }
+
+        $data = $request->validate([
+            'amount' => ['sometimes', 'numeric', 'min:0.01'],
+            'payment_mode' => ['sometimes', Rule::in(['online', 'offline'])],
+            'payment_date' => ['sometimes', 'nullable', 'date'],
+            'notes' => ['sometimes', 'nullable', 'string', 'max:2000'],
+        ]);
+
+        $updated = $this->plans->updatePayment($payment, $data, $request->user()?->id);
+        $fresh = $this->plans->activePlanFor($student);
+
+        return ApiResponse::success('Payment updated.', [
+            'payment' => (new StudentPaymentResource($updated))->resolve(),
+            'plan' => $fresh === null ? null : (new StudentPaymentPlanResource($fresh))->resolve(),
+        ]);
+    }
+
+    public function voidPayment(
+        Request $request,
+        StudentProfile $student,
+        StudentPayment $payment,
+    ): JsonResponse {
+        $this->ensureAgentOwnsStudent($request, $student);
+        if ($payment->student_id !== $student->id) {
+            return ApiResponse::error('Payment not found.', ErrorCode::NOT_FOUND, null, 404);
+        }
+
+        $data = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $voided = $this->plans->voidPayment($payment, $request->user()?->id, $data['reason'] ?? null);
+        $fresh = $this->plans->activePlanFor($student);
+
+        return ApiResponse::success('Payment voided.', [
+            'payment' => (new StudentPaymentResource($voided))->resolve(),
+            'plan' => $fresh === null ? null : (new StudentPaymentPlanResource($fresh))->resolve(),
         ]);
     }
 }

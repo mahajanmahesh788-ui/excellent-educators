@@ -21,6 +21,7 @@ class StudentPaymentPlan extends Model
         'paid_amount',
         'pending_amount',
         'advance_amount',
+        'dead_amount',
         'installment_amount',
         'due_day',
         'start_date',
@@ -31,6 +32,9 @@ class StudentPaymentPlan extends Model
         'preferred_mode',
         'status',
         'is_active',
+        'withdrawn_at',
+        'student_name_snapshot',
+        'student_code_snapshot',
         'created_by',
         'updated_by',
     ];
@@ -45,6 +49,7 @@ class StudentPaymentPlan extends Model
             'paid_amount' => 'decimal:2',
             'pending_amount' => 'decimal:2',
             'advance_amount' => 'decimal:2',
+            'dead_amount' => 'decimal:2',
             'installment_amount' => 'decimal:2',
             'next_due_amount' => 'decimal:2',
             'overdue_amount' => 'decimal:2',
@@ -52,6 +57,7 @@ class StudentPaymentPlan extends Model
             'start_date' => 'date',
             'next_due_date' => 'date',
             'last_payment_date' => 'date',
+            'withdrawn_at' => 'datetime',
             'is_active' => 'boolean',
         ];
     }

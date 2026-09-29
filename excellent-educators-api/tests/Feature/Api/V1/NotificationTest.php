@@ -59,7 +59,12 @@ class NotificationTest extends TestCase
         $this->withToken($this->tokenFor($studentUser))
             ->getJson('/api/v1/notifications/unread-count')
             ->assertOk()
-            ->assertJsonPath('data.unread_count', 1);
+            ->assertJsonPath('data.unread_count', 2);
+
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $studentUserId,
+            'type' => NotificationType::StudentEnrolledInBatch->value,
+        ]);
 
         $this->app['auth']->forgetGuards();
         $this->withToken($this->tokenFor($mentor->user))

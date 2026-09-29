@@ -307,9 +307,24 @@ class BuildTeacherHistory
             ? 'Full day'
             : substr((string) $leave->start_time, 0, 5).'–'.substr((string) $leave->end_time, 0, 5);
         $reason = filled($leave->reason) ? $leave->reason : 'Leave';
+        $status = $leave->status?->value ?? 'approved';
+        $statusLabel = match ($status) {
+            'pending' => 'Pending',
+            'reassignment_pending' => 'Reassignment pending',
+            'approved' => 'Approved',
+            'rejected' => 'Rejected',
+            'cancelled' => 'Cancelled',
+            default => ucfirst(str_replace('_', ' ', $status)),
+        };
+        $statusTone = match ($status) {
+            'approved' => 'success',
+            'rejected', 'cancelled' => 'danger',
+            default => 'muted',
+        };
         $facts = [
             $this->fact('Duration', $when),
             $this->fact('Reason', $reason),
+            $this->fact('Status', $statusLabel),
         ];
 
         return $this->event(
@@ -318,11 +333,12 @@ class BuildTeacherHistory
             date: $leave->date?->toDateString(),
             time: $leave->is_full_day ? null : substr((string) $leave->start_time, 0, 5),
             endTime: $leave->is_full_day ? null : substr((string) $leave->end_time, 0, 5),
-            title: 'Leave',
-            status: 'leave',
+            title: 'Leave · '.$statusLabel,
+            status: $status,
             tags: [
                 $this->tag('Leave', 'muted'),
                 $this->tag($leave->is_full_day ? 'Full day' : 'Partial', 'muted'),
+                $this->tag($statusLabel, $statusTone),
             ],
             facts: $facts,
             sortAt: ($leave->date?->toDateString() ?? '1970-01-01').' '.($leave->is_full_day ? '00:00' : substr((string) $leave->start_time, 0, 5)),

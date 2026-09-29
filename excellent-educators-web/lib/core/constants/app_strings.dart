@@ -37,13 +37,16 @@ abstract final class AppStrings {
   static const addStudent = 'Add student';
   static const addSubAdmin = 'Add sub admin';
   static const accountDisabledByAdmin =
-      'Admin has disabled your ID. Kindly connect with them.';
-  static const contactSupport = 'Contact';
-  static const accountDisabledTitle = 'Account disabled';
+      'Your account access has been paused by the institute. Sign-in is unavailable until an authorised admin restores your account.';
+  static const contactSupport = 'Contact support';
+  static const accountDisabledTitle = 'Account access paused';
+  static const accountDisabledHint =
+      'If you believe this is a mistake, please contact Excellent Educators with your registered email or phone number.';
+  static const accountDisabledUnderstood = 'Understood';
   static const accountType = 'Account type';
   static const agent = 'Agent';
   static const agentPermissionsHint =
-      'Agents can only view students and create student logins.';
+      'Agents can view/create their own students. Optionally enable View payments and Record payments for those students.';
   static const addStudentToALevelLevelsEnrollStudent = 'Add student to a level (Levels → Enroll student)';
   static const addStudentToBatch = 'Add student to batch';
   static const addTeacher = 'Add teacher';
@@ -251,7 +254,14 @@ abstract final class AppStrings {
   static const deleteRating2 = 'Delete rating?';
   static const deleteThisMonth = 'Delete this month';
   static const deleteSubAdmin = 'Delete sub admin';
+  static const deleteLevel = 'Delete level';
+  static const deleteBatch = 'Delete batch';
+  static const deleteAssessment = 'Delete assessment';
+  static const deleteAssessmentHelp =
+      'Permanently delete this assessment. If students have attempts, deactivate it instead.';
   static const deleteStudent = 'Delete student';
+  static const deleteStudentPaymentWarning =
+      'Paid amount stays in totals forever. Any pending balance becomes Ded Amount.';
   static const deleteTeacher = 'Delete teacher';
   static const description = 'Description';
   static const descriptionOptional = 'Description (optional)';
@@ -431,6 +441,16 @@ abstract final class AppStrings {
   static const leaveRequest = 'Leave Request';
   static const leaveApprovedSuccessfully = 'Leave approved successfully.';
   static const leaveRejected = 'Leave rejected.';
+  static const cancelLeave = 'Cancel leave';
+  static const cancelLeaveRequest = 'Cancel leave request?';
+  static const cancelLeaveRequestHelp =
+      'This withdraws the pending leave request without approving or rejecting it.';
+  static const keepRequest = 'Keep request';
+  static const leaveCancelledSuccessfully = 'Leave request cancelled.';
+  static const youCanViewThisIssueButNeedResolvePermission =
+      'You can view this issue but need resolve permission to take action.';
+  static const youCanViewThisRequestButNeedResolvePermission =
+      'You can view this request but need resolve permission to take action.';
   static const rejectLeaveRequest = 'Reject leave request';
   static const rejectLeave = 'Reject Leave';
   static const approveLeave = 'Approve Leave';
@@ -821,6 +841,35 @@ abstract final class AppStrings {
   static const setTheHoursThisTeacherCanBeBookedStudentsOnly = 'Set the hours this teacher can be booked. Students only see available 30-minute slots inside these ranges.';
   static const settings = 'Settings';
   static const settingsSaved = 'Settings saved';
+  static const aboutUs = 'About Us';
+  static const faq = 'FAQ';
+  static const childSafetyParentalConsent = 'Child Safety & Parental Consent';
+  static const acceptTermsTitle = 'Before you continue';
+  static const acceptTermsSubtitle =
+      'Please review our policies. You need to accept them once to open your student dashboard.';
+  static const acceptTermsBulletAccounts =
+      '• You are responsible for activity under your login. Do not share your password.';
+  static const acceptTermsBulletFees =
+      '• Programme fees appear on your payment plan. Offline payments are recorded by the institute; online gateway checkout applies only when enabled.';
+  static const acceptTermsBulletRefunds =
+      '• Refunds follow our Refund & Cancellation Policy (limited eligibility — not a blanket “non-refundable” rule).';
+  static const acceptTermsBulletPrivacy =
+      '• We process personal data as described in the Privacy Policy, with safeguards such as HTTPS and hashed passwords.';
+  static const acceptTermsBulletParents =
+      '• Parents/guardians should supervise minor students. This acceptance is not a substitute for parental consent under DPDP.';
+  static const acceptTermsCheckbox =
+      'I have read and agree to the Terms & Conditions, Privacy Policy, and Refund & Cancellation Policy.';
+  static const acceptAndContinue = 'Accept and continue';
+  static const unableToAcceptTerms =
+      'Unable to save your acceptance. Please try again.';
+  static const onlinePaymentUnavailable =
+      'Online Pay Now is not available yet. Please pay using the institute’s accepted offline methods and ask staff to record your payment. Contact support if you need help.';
+  static const contactInstituteToPay =
+      'Contact the institute to complete pending fees. Your payment history and receipts stay available below.';
+  static const payment = 'Payment';
+  static const howWeProtectYourData = 'How we protect your data';
+  static const learnAboutExcellentEducators = 'Learn about Excellent Educators';
+  static const answersToCommonQuestions = 'Answers to common questions';
   static const showAllHistory = 'Show all history';
   static const showLess = 'Show less';
   static const signIn = 'Sign in';
@@ -1088,7 +1137,17 @@ abstract final class AppStrings {
   static const due = 'Due';
   static const addPayment = 'Add Payment';
   static const payNow = 'Pay Now';
+  static const receipt = 'Receipt';
+  static const receiptSaved = 'Saved receipt';
   static const viewReceipt = 'View receipt';
+  static const downloadReceipt = 'Download receipt';
+  static const sendReceiptOnWhatsapp = 'Send on WhatsApp';
+  static const paymentReceipt = 'Payment Receipt';
+  static const receiptNo = 'Receipt No';
+  static const pleaseFindAttachedReceipt =
+      'Please find the payment receipt attached.';
+  static const whatsappReceiptDownloadHint =
+      'To download your receipt, please log in to the Excellent Educators website, open Settings → Payment, then open Receipt and download.';
   static const viewPaymentHistory = 'View payment history';
   static const noPaymentHistoryYet = 'No payment history yet.';
   static const noPaymentPlanYet = 'No payment plan yet.';
@@ -1097,6 +1156,26 @@ abstract final class AppStrings {
   static const noPaymentRecordsMatchFilters = 'No payment records match these filters.';
   static const transactionIdOptional = 'Transaction ID (optional)';
   static const referenceNumberOptional = 'Reference number (optional)';
+  static const moveToBatch = 'Move to batch';
+  static const studentMovedToBatch = 'Student moved to the selected batch.';
+  static const noBatchesAvailable = 'No batches available yet.';
+  static const meetingLinkForToday = 'Class meeting link';
+  static const saveMeetingLink = 'Save meeting link';
+  static const clearManualMeetingLink = 'Use Google Meet link';
+  static const meetingLinkHelp =
+      'If Google Meet fails, paste your own link. Students open this link for classes on this day.';
+  static const meetingLinkSaved = 'Meeting link saved for this day.';
+  static const meetingLinkCleared = 'Meeting link reset.';
+  static const editPayment = 'Edit payment';
+  static const voidPayment = 'Void payment';
+  static const voidPaymentHelp =
+      'This marks the payment as failed and recalculates the student’s pending balance.';
+  static const broadcastAnnouncement = 'Broadcast announcement';
+  static const sendAnnouncement = 'Send announcement';
+  static const announcementAudience = 'Audience';
+  static const audienceStudents = 'All students';
+  static const audienceTeachers = 'All teachers';
+  static const audienceAllUsers = 'Everyone';
   static const notesOptional = 'Notes (optional)';
   static const paymentPlanAndModeHelp =
       'Choose a payment plan (full or partial) and a payment mode (online or offline).';
@@ -1124,6 +1203,7 @@ abstract final class AppStrings {
   static const totalCollected = 'Total Collected';
   static const totalPending = 'Total Pending';
   static const totalOverdue = 'Total Overdue';
+  static const dedAmount = 'Ded Amount';
   static const collectedThisMonth = 'Collected This Month';
   static const dueThisMonth = 'Due This Month';
   static const paidThisMonth = 'Paid This Month';

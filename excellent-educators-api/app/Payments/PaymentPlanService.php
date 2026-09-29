@@ -11,14 +11,22 @@ use App\Models\StudentPayment;
 use App\Models\StudentPaymentPlan;
 use App\Models\StudentPaymentPlanAudit;
 use App\Models\StudentProfile;
+use App\Models\User;
+use App\Actions\Notifications\CreateUserNotification;
+use App\Enums\NotificationType;
 use App\Support\AppClock;
 use App\Support\ErrorCode;
+use App\Support\StudentActivity;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class PaymentPlanService
 {
-    public function __construct(private readonly PaymentSettings $settings) {}
+    public function __construct(
+        private readonly PaymentSettings $settings,
+        private readonly CreateUserNotification $notifications,
+    ) {}
 
     /**
      * @param  array{
@@ -149,6 +157,13 @@ class PaymentPlanService
 
         return DB::transaction(function () use ($plan, $input, $amount, $mode, $actorId, $paymentDate): StudentPayment {
             $plan = StudentPaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
+            if ($plan->status === PaymentPlanStatus::Withdrawn || ! $plan->is_active) {
+                throw new ApiException(
+                    ErrorCode::VALIDATION_ERROR,
+                    'This payment plan is withdrawn. New payments cannot be recorded.',
+                    422,
+                );
+            }
             $pending = round((float) $plan->pending_amount, 2);
             if ($amount > $pending + 0.001) {
                 $left = rtrim(rtrim(number_format($pending, 2, '.', ''), '0'), '.');
@@ -178,13 +193,228 @@ class PaymentPlanService
 
             $this->recalculate($plan->fresh() ?? $plan, $actorId);
 
+            $this->recordPaymentActivity(
+                $plan->student_id,
+                'payment_recorded',
+                'Payment of ₹'.number_format((float) $payment->amount, 0).' recorded.',
+                $actorId,
+                $payment,
+                ['amount' => (float) $payment->amount, 'payment_mode' => $mode->value],
+            );
+
+            $this->notifyStudentPayment(
+                $plan->student_id,
+                NotificationType::PaymentRecorded,
+                'Payment received',
+                'Payment of ₹'.number_format((float) $payment->amount, 0).' was recorded on your account.',
+                [
+                    'payment_id' => $payment->id,
+                    'amount' => (float) $payment->amount,
+                    'payment_mode' => $mode->value,
+                    'link' => '/student/payments',
+                ],
+            );
+
             return $payment;
         });
+    }
+
+    /**
+     * @param  array{
+     *     amount?: float|int|string,
+     *     payment_mode?: string,
+     *     payment_date?: string|null,
+     *     notes?: string|null,
+     * }  $input
+     */
+    public function updatePayment(StudentPayment $payment, array $input, ?string $actorId = null): StudentPayment
+    {
+        return DB::transaction(function () use ($payment, $input, $actorId): StudentPayment {
+            $payment = StudentPayment::query()->lockForUpdate()->findOrFail($payment->id);
+            if ($payment->status !== PaymentTransactionStatus::Successful) {
+                throw new ApiException(
+                    ErrorCode::VALIDATION_ERROR,
+                    'Only successful payments can be edited.',
+                    422,
+                );
+            }
+
+            $plan = StudentPaymentPlan::query()->lockForUpdate()->findOrFail($payment->payment_plan_id);
+            if ($plan->status === PaymentPlanStatus::Withdrawn || ! $plan->is_active) {
+                throw new ApiException(
+                    ErrorCode::VALIDATION_ERROR,
+                    'This payment plan is withdrawn.',
+                    422,
+                );
+            }
+
+            $before = [
+                'amount' => (float) $payment->amount,
+                'payment_mode' => $payment->payment_mode?->value,
+                'payment_date' => $payment->payment_date?->toDateString(),
+                'notes' => $payment->notes,
+            ];
+
+            if (array_key_exists('payment_mode', $input) && $input['payment_mode'] !== null) {
+                $mode = PaymentMode::from((string) $input['payment_mode']);
+                $this->assertModeEnabled($mode);
+                $payment->payment_mode = $mode;
+            }
+
+            if (array_key_exists('payment_date', $input) && filled($input['payment_date'])) {
+                $payment->payment_date = Carbon::parse((string) $input['payment_date'])->toDateString();
+            }
+
+            if (array_key_exists('notes', $input)) {
+                $payment->notes = $input['notes'];
+            }
+
+            if (array_key_exists('amount', $input) && $input['amount'] !== null) {
+                $newAmount = round((float) $input['amount'], 2);
+                if ($newAmount <= 0) {
+                    throw new ApiException(ErrorCode::VALIDATION_ERROR, 'Payment amount must be greater than zero.', 422);
+                }
+                $otherPaid = (float) $plan->payments()
+                    ->where('status', PaymentTransactionStatus::Successful->value)
+                    ->where('id', '!=', $payment->id)
+                    ->sum('amount');
+                $max = round((float) $plan->total_amount - $otherPaid, 2);
+                if ($newAmount > $max + 0.001) {
+                    $left = rtrim(rtrim(number_format($max, 2, '.', ''), '0'), '.');
+                    throw new ApiException(
+                        ErrorCode::VALIDATION_ERROR,
+                        "Amount cannot exceed ₹{$left} remaining on this plan.",
+                        422,
+                    );
+                }
+                $payment->amount = $newAmount;
+            }
+
+            $payment->save();
+            $this->recalculate($plan->fresh() ?? $plan, $actorId);
+
+            $fresh = $payment->fresh() ?? $payment;
+            $this->recordPaymentActivity(
+                $plan->student_id,
+                'payment_updated',
+                'Payment updated to ₹'.number_format((float) $fresh->amount, 0).'.',
+                $actorId,
+                $fresh,
+                [
+                    'before' => $before,
+                    'after' => [
+                        'amount' => (float) $fresh->amount,
+                        'payment_mode' => $fresh->payment_mode?->value,
+                        'payment_date' => $fresh->payment_date?->toDateString(),
+                        'notes' => $fresh->notes,
+                    ],
+                ],
+            );
+
+            return $fresh;
+        });
+    }
+
+    public function voidPayment(StudentPayment $payment, ?string $actorId = null, ?string $reason = null): StudentPayment
+    {
+        return DB::transaction(function () use ($payment, $actorId, $reason): StudentPayment {
+            $payment = StudentPayment::query()->lockForUpdate()->findOrFail($payment->id);
+            if ($payment->status !== PaymentTransactionStatus::Successful) {
+                throw new ApiException(
+                    ErrorCode::VALIDATION_ERROR,
+                    'Only successful payments can be voided.',
+                    422,
+                );
+            }
+
+            $plan = StudentPaymentPlan::query()->lockForUpdate()->findOrFail($payment->payment_plan_id);
+            $amount = (float) $payment->amount;
+            $note = trim((string) ($payment->notes ?? ''));
+            $voidNote = 'Voided'.($reason ? ': '.$reason : '');
+            $payment->forceFill([
+                'status' => PaymentTransactionStatus::Failed,
+                'notes' => $note === '' ? $voidNote : $note.' | '.$voidNote,
+            ])->save();
+
+            $this->recalculate($plan->fresh() ?? $plan, $actorId);
+
+            $fresh = $payment->fresh() ?? $payment;
+            $this->recordPaymentActivity(
+                $plan->student_id,
+                'payment_voided',
+                'Payment of ₹'.number_format($amount, 0).' voided.'.($reason ? " Reason: {$reason}" : ''),
+                $actorId,
+                $fresh,
+                ['amount' => $amount, 'reason' => $reason],
+            );
+
+            $this->notifyStudentPayment(
+                $plan->student_id,
+                NotificationType::PaymentVoided,
+                'Payment voided',
+                'A payment of ₹'.number_format($amount, 0).' was voided on your account.'
+                    .($reason ? " Reason: {$reason}" : ''),
+                [
+                    'payment_id' => $fresh->id,
+                    'amount' => $amount,
+                    'reason' => $reason,
+                    'link' => '/student/payments',
+                ],
+            );
+
+            return $fresh;
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     */
+    private function recordPaymentActivity(
+        string $studentId,
+        string $type,
+        string $message,
+        ?string $actorId,
+        StudentPayment $payment,
+        array $meta = [],
+    ): void {
+        $student = StudentProfile::query()->find($studentId);
+        if ($student === null) {
+            return;
+        }
+
+        $actor = $actorId !== null ? User::query()->find($actorId) : null;
+        StudentActivity::record($student, $type, $message, $actor, $payment, $meta);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function notifyStudentPayment(
+        string $studentId,
+        NotificationType $type,
+        string $title,
+        string $body,
+        array $data = [],
+    ): void {
+        try {
+            $student = StudentProfile::query()->with('user')->find($studentId);
+            $user = $student?->user;
+            if ($user === null) {
+                return;
+            }
+            $this->notifications->execute($user, $type, $title, $body, $data);
+        } catch (Throwable) {
+            // Payment must succeed even if notify fails.
+        }
     }
 
     public function recalculate(StudentPaymentPlan $plan, ?string $actorId = null): StudentPaymentPlan
     {
         $plan = StudentPaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
+        if ($plan->status === PaymentPlanStatus::Withdrawn) {
+            return $plan;
+        }
+
         $paid = (float) $plan->payments()
             ->where('status', PaymentTransactionStatus::Successful->value)
             ->sum('amount');
@@ -344,8 +574,72 @@ class PaymentPlanService
         return StudentPaymentPlan::query()
             ->where('student_id', $student->id)
             ->where('is_active', true)
-            ->with(['payments' => fn ($q) => $q->orderByDesc('payment_date')->orderByDesc('created_at')])
+            ->with([
+                'payments' => fn ($q) => $q->orderByDesc('payment_date')->orderByDesc('created_at'),
+                'student.user',
+                'student.academicLevel',
+                'student.activeEnrollment.batch',
+            ])
             ->first();
+    }
+
+    /**
+     * Keep collected money forever and convert remaining pending into dead amount
+     * before a student is hard-deleted.
+     *
+     * @return float Total pending that was written off as dead amount
+     */
+    public function writeOffOnStudentDelete(StudentProfile $student, ?string $actorId = null): float
+    {
+        return (float) DB::transaction(function () use ($student, $actorId): float {
+            $plans = StudentPaymentPlan::query()
+                ->where('student_id', $student->id)
+                ->lockForUpdate()
+                ->get();
+
+            $totalDead = 0.0;
+            $name = $student->full_name;
+            $code = $student->student_code;
+
+            foreach ($plans as $plan) {
+                $pending = max(0, round((float) $plan->pending_amount, 2));
+                $dead = max(0, round((float) $plan->dead_amount + $pending, 2));
+                $totalDead += $pending;
+
+                StudentPayment::query()
+                    ->where('payment_plan_id', $plan->id)
+                    ->update([
+                        'student_name_snapshot' => $name,
+                        'student_code_snapshot' => $code,
+                        'student_id' => null,
+                    ]);
+
+                StudentPaymentPlanAudit::query()
+                    ->where(function ($query) use ($plan, $student): void {
+                        $query->where('payment_plan_id', $plan->id)
+                            ->orWhere('student_id', $student->id);
+                    })
+                    ->update(['student_id' => null]);
+
+                $plan->fill([
+                    'student_name_snapshot' => $name,
+                    'student_code_snapshot' => $code,
+                    'dead_amount' => $dead,
+                    'pending_amount' => 0,
+                    'next_due_date' => null,
+                    'next_due_amount' => null,
+                    'overdue_amount' => 0,
+                    'status' => PaymentPlanStatus::Withdrawn,
+                    'is_active' => false,
+                    'withdrawn_at' => AppClock::now(),
+                    'updated_by' => $actorId ?? $plan->updated_by,
+                    'student_id' => null,
+                ]);
+                $plan->save();
+            }
+
+            return round($totalDead, 2);
+        });
     }
 
     private function assertModeEnabled(PaymentMode $mode): void

@@ -4,6 +4,8 @@ import 'package:excellent_educators_web/core/network/api_client.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/admin_list_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
+import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
+import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/requests/data/dto/request_dtos.dart';
 import 'package:excellent_educators_web/features/requests/presentation/providers/request_feature_providers.dart';
 import 'package:excellent_educators_web/features/requests/presentation/widgets/request_list_card.dart';
@@ -610,6 +612,10 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
         value: request,
         onRetry: () => ref.invalidate(adminRequestDetailProvider(widget.requestId)),
         builder: (item) {
+          final canResolve = ref.watch(authControllerProvider).user?.canAdmin(
+                    AdminPermission.requestsResolve,
+                  ) ??
+              false;
           return ListView(
             children: [
               RequestListCard(
@@ -643,7 +649,12 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                   ),
                 ],
                 const SizedBox(height: 28),
-                if (item.isActionable) ...[
+                if (!canResolve)
+                  const Text(
+                    AppStrings.youCanViewThisRequestButNeedResolvePermission,
+                    style: TextStyle(color: Brand.muted),
+                  )
+                else if (item.isActionable) ...[
                   FilledButton.icon(
                     onPressed: _resolving ? null : () => _resolve(applyAction: true),
                     icon: _resolving

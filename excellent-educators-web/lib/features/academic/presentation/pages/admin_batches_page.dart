@@ -344,6 +344,16 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                                 icon: const Icon(Icons.add, size: 18),
                                 label: const Text(AppStrings.addBatch),
                               ),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(0, 38),
+                                  foregroundColor: const Color(0xFFB42318),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                                ),
+                                onPressed: () => _deleteLevel(context, level),
+                                icon: const Icon(Icons.delete_outline, size: 18),
+                                label: const Text(AppStrings.deleteLevel),
+                              ),
                             ],
                           ),
                         ],
@@ -412,6 +422,43 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
         },
       ),
     );
+  }
+
+  Future<void> _deleteLevel(BuildContext context, AcademicLevelDto level) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text(AppStrings.deleteLevel),
+        content: Text(
+          'Delete ${level.name}? Remove or move its batches first if delete fails.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text(AppStrings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB42318)),
+            child: const Text(AppStrings.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    try {
+      await ref.read(academicRepositoryProvider).deleteLevel(level.id);
+      ref.invalidate(adminLevelsProvider);
+      if (context.mounted) {
+        context.go(RoutePaths.adminBatches);
+      }
+    } catch (error) {
+      if (context.mounted) {
+        showFailure(context, error);
+      }
+    }
   }
 
   Future<void> _assignMasterTeacher(BuildContext context, AcademicLevelDto level) async {
@@ -683,6 +730,39 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
     }
   }
 
+  Future<void> _deleteBatch() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text(AppStrings.deleteBatch),
+        content: Text(
+          'Delete ${widget.batch.name}? Active enrollments must be moved or removed first.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text(AppStrings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB42318)),
+            child: const Text(AppStrings.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    try {
+      await ref.read(academicRepositoryProvider).deleteBatch(widget.batch.id);
+      ref.invalidate(adminLevelProvider(widget.levelId));
+      ref.invalidate(adminLevelsProvider);
+    } catch (e) {
+      if (mounted) showFailure(context, e);
+    }
+  }
+
   Future<void> _editBatchDialog() async {
   final nameCtrl = TextEditingController(text: widget.batch.name);
   final formKey = GlobalKey<FormState>();
@@ -922,6 +1002,12 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
                       visualDensity: VisualDensity.compact,
                       onPressed: _editBatchDialog,
                       icon: const Icon(Icons.edit_outlined, size: 18),
+                    ),
+                    IconButton(
+                      tooltip: AppStrings.deleteBatch,
+                      visualDensity: VisualDensity.compact,
+                      onPressed: _deleteBatch,
+                      icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFB42318)),
                     ),
                     IconButton(
                       tooltip: _expanded ? AppStrings.hideStudents : AppStrings.viewStudents,

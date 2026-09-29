@@ -197,6 +197,7 @@ class _SummaryStrip extends StatelessWidget {
         _MiniStat(AppStrings.totalCollected, formatRupee(summary.totalCollected)),
         _MiniStat(AppStrings.totalPending, formatRupee(summary.totalPending)),
         _MiniStat(AppStrings.totalOverdue, formatRupee(summary.totalOverdue)),
+        _MiniStat(AppStrings.dedAmount, formatRupee(summary.totalDead)),
         _MiniStat(
           AppStrings.collectedThisMonth,
           formatRupee(summary.collectedThisMonth),

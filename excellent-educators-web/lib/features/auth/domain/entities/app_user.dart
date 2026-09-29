@@ -8,6 +8,10 @@ class AppUser {
     this.permissions = const [],
     this.adminType,
     this.lastLoginAt,
+    this.termsAcceptedAt,
+    this.termsAcceptedVersion,
+    this.termsCurrentVersion,
+    this.mustAcceptTerms = false,
   });
 
   final String id;
@@ -18,6 +22,10 @@ class AppUser {
   final List<String> permissions;
   final String? adminType;
   final String? lastLoginAt;
+  final String? termsAcceptedAt;
+  final String? termsAcceptedVersion;
+  final String? termsCurrentVersion;
+  final bool mustAcceptTerms;
 
   bool get isFullAdmin =>
       roles.contains('super_admin') || roles.contains('operational_admin');

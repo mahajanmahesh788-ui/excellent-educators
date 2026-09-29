@@ -149,6 +149,25 @@ class ApproveTeacherLeave
                 ],
             );
 
+            $teacher->loadMissing('user');
+            $user = $teacher->user;
+            if ($user !== null) {
+                $date = $primary->date?->toDateString() ?? '';
+                $displayDate = $date !== '' ? Carbon::parse($date)->format('d-M-Y') : 'the requested date';
+                $this->notifications->execute(
+                    $user,
+                    NotificationType::TeacherLeaveApproved,
+                    'Leave request approved',
+                    "Your leave request for {$displayDate} was approved.",
+                    [
+                        'leave_request_group_id' => $groupId,
+                        'date' => $date,
+                        'affected_count' => $affected->count(),
+                        'link' => '/teacher/schedule',
+                    ],
+                );
+            }
+
             $fresh = $this->assembler->leavesForGroup($groupId);
 
             return $this->assembler->serializeGroup($fresh);

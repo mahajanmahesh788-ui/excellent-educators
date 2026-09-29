@@ -12,6 +12,11 @@ class LearningJournalPolicy
 {
     public function view(User $user, StudentProfile $student): bool
     {
+        if ($user->isAgent()) {
+            return $user->canAdmin(PermissionName::StudentsView)
+                && $student->created_by_user_id === $user->id;
+        }
+
         if ($user->canAdmin(PermissionName::StudentsView)) {
             return true;
         }
@@ -44,6 +49,11 @@ class LearningJournalPolicy
 
     public function promoteStudent(User $user, StudentProfile $student): bool
     {
+        if ($user->isAgent()) {
+            return $user->canAdmin(PermissionName::StudentsPromote)
+                && $student->created_by_user_id === $user->id;
+        }
+
         if ($user->canAdmin(PermissionName::StudentsPromote)) {
             return true;
         }
