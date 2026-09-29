@@ -2,6 +2,7 @@
 
 namespace App\Actions\Batches;
 
+use App\Actions\Notifications\DispatchAssignmentNotifications;
 use App\Enums\BatchStatus;
 use App\Enums\ProfileStatus;
 use App\Models\AcademicLevel;
@@ -10,15 +11,22 @@ use App\Models\BatchStudent;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Support\AppSettings;
+use App\Support\StudentActivity;
 use Illuminate\Support\Facades\DB;
 
 class AllocateBatchForStudent
 {
-    public function __construct(private readonly ActivateBatch $activateBatch) {}
+    public function __construct(
+        private readonly ActivateBatch $activateBatch,
+        private readonly DispatchAssignmentNotifications $dispatchAssignmentNotifications,
+    ) {}
 
     public function execute(AcademicLevel $level, StudentProfile $student, User $actor): Batch
     {
-        return DB::transaction(function () use ($level, $student, $actor) {
+        $previousBatch = null;
+        $createdEnrollment = false;
+
+        $batch = DB::transaction(function () use ($level, $student, $actor, &$previousBatch, &$createdEnrollment) {
             $maxActive = app(AppSettings::class)->maxActiveStudents();
 
             // Fill the oldest open batch (active or inactive) that still has room.
@@ -63,14 +71,20 @@ class AllocateBatchForStudent
                 ->exists();
 
             if (! $alreadyActive) {
-                BatchStudent::query()
+                $activeElsewhere = BatchStudent::query()
+                    ->with('batch')
                     ->where('student_id', $student->id)
                     ->whereNull('left_at')
                     ->where('status', ProfileStatus::Active->value)
-                    ->update([
+                    ->first();
+
+                if ($activeElsewhere !== null) {
+                    $previousBatch = $activeElsewhere->batch;
+                    $activeElsewhere->update([
                         'left_at' => now(),
                         'status' => ProfileStatus::Inactive->value,
                     ]);
+                }
 
                 BatchStudent::query()->create([
                     'batch_id' => $batch->id,
@@ -82,6 +96,7 @@ class AllocateBatchForStudent
 
                 $batch->increment('enrolled_watermark');
                 $batch->refresh();
+                $createdEnrollment = true;
             }
 
             // Batch becomes active when it is full (or when an admin activates it).
@@ -94,5 +109,30 @@ class AllocateBatchForStudent
 
             return $batch->fresh() ?? $batch;
         });
+
+        if ($createdEnrollment) {
+            if ($previousBatch !== null) {
+                $this->dispatchAssignmentNotifications->studentUnenrolled($previousBatch, $student);
+            }
+            $this->dispatchAssignmentNotifications->studentEnrolled($batch, $student);
+
+            StudentActivity::record(
+                $student->fresh() ?? $student,
+                $previousBatch ? 'batch_changed' : 'batch_enrolled',
+                $previousBatch
+                    ? "Moved from {$previousBatch->name} to {$batch->name}."
+                    : "Enrolled in batch {$batch->name}.",
+                $actor,
+                $batch,
+                [
+                    'batch_id' => $batch->id,
+                    'batch_name' => $batch->name,
+                    'previous_batch_id' => $previousBatch?->id,
+                    'previous_batch_name' => $previousBatch?->name,
+                ],
+            );
+        }
+
+        return $batch;
     }
 }

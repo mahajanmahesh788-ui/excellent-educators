@@ -12,6 +12,7 @@ use App\Models\BatchStudent;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Support\ErrorCode;
+use App\Support\StudentActivity;
 use Illuminate\Support\Facades\DB;
 
 class EnrollStudent
@@ -90,6 +91,31 @@ class EnrollStudent
 
             return $enrollment;
         });
+
+        $fromBatch = BatchStudent::query()
+            ->with('batch')
+            ->where('student_id', $student->id)
+            ->whereNotNull('left_at')
+            ->orderByDesc('left_at')
+            ->first();
+
+        $message = $fromBatch?->batch
+            ? "Moved from {$fromBatch->batch->name} to {$batch->name}."
+            : "Enrolled in batch {$batch->name}.";
+
+        StudentActivity::record(
+            $student->fresh() ?? $student,
+            $fromBatch ? 'batch_changed' : 'batch_enrolled',
+            $message,
+            $actor,
+            $enrollment,
+            [
+                'batch_id' => $batch->id,
+                'batch_name' => $batch->name,
+                'previous_batch_id' => $fromBatch?->batch_id,
+                'previous_batch_name' => $fromBatch?->batch?->name,
+            ],
+        );
 
         $this->dispatchAssignmentNotifications->studentEnrolled($batch, $student);
 

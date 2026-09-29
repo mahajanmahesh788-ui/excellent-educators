@@ -81,6 +81,23 @@ class BatchController extends Controller
         return ApiResponse::success('Batch updated successfully.', BatchResource::make($batch)->resolve());
     }
 
+    public function destroy(Batch $batch): JsonResponse
+    {
+        $active = $batch->activeEnrollments()->count();
+        if ($active > 0) {
+            return ApiResponse::error(
+                "Cannot delete batch while {$active} student(s) are still enrolled. Move or unenroll them first.",
+                \App\Support\ErrorCode::VALIDATION_ERROR,
+                null,
+                422,
+            );
+        }
+
+        $batch->delete();
+
+        return ApiResponse::success('Batch deleted successfully.');
+    }
+
     public function students(Batch $batch): JsonResponse
     {
         $students = $batch->activeEnrollments()
@@ -107,9 +124,9 @@ class BatchController extends Controller
         return ApiResponse::success('Student enrolled successfully.', BatchResource::make($batch)->resolve());
     }
 
-    public function unenroll(Batch $batch, StudentProfile $student, UnenrollStudent $unenrollStudent): JsonResponse
+    public function unenroll(Request $request, Batch $batch, StudentProfile $student, UnenrollStudent $unenrollStudent): JsonResponse
     {
-        $unenrollStudent->execute($batch, $student);
+        $unenrollStudent->execute($batch, $student, $request->user());
         $batch->load(['activeTeacherAssignment.teacher'])->loadCount('activeEnrollments');
 
         return ApiResponse::success('Student removed from batch.', BatchResource::make($batch)->resolve());
