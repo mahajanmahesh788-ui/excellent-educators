@@ -228,7 +228,19 @@ class LearningJournalTest extends TestCase
             ->assertOk()
             ->json('data.levels.0');
 
-        $this->assertNull($journal['weeks'][0]['result']);
+        $this->assertSame('Level 1 · Week 1', $journal['weeks'][0]['result']['assessment']['title']);
+        $this->assertWeekDimensionResult($journal['weeks'][0]['result'], [
+            'P' => 1,
+            'I' => 1,
+            'L' => 1,
+            'CM' => 1,
+        ]);
+
+        $studentJournal = $this->withToken($this->tokenFor($student->user))
+            ->getJson('/api/v1/student/learning/journal')
+            ->assertOk()
+            ->json('data.levels.0');
+        $this->assertNull($studentJournal['weeks'][0]['result']);
 
         $studentWeek = $this->withToken($this->tokenFor($student->user))
             ->getJson("/api/v1/student/learning/journal/{$journal['journey_id']}/1")
@@ -317,6 +329,24 @@ class LearningJournalTest extends TestCase
         $this->assertSame($student->full_name, $journal['student']['full_name']);
         $this->assertSame('January', $journal['levels'][0]['weeks'][0]['month']);
         $this->assertArrayNotHasKey('rating', $journal['levels'][0]['weeks'][0]);
+    }
+
+    public function test_journal_weeks_are_ordered_latest_first(): void
+    {
+        [$admin, $student] = $this->makeStudent();
+        $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+        $this->seedWeek($admin, $level1, 1, 'https://video.test/l1w1');
+        $this->seedWeek($admin, $level1, 2, 'https://video.test/l1w2');
+        $this->seedWeek($admin, $level1, 3, 'https://video.test/l1w3');
+
+        Carbon::setTestNow(Carbon::parse('2026-07-29 10:00:00', 'Asia/Kolkata'));
+
+        $weeks = $this->withToken($this->tokenFor($student->user))
+            ->getJson('/api/v1/student/learning/journal')
+            ->assertOk()
+            ->json('data.levels.0.weeks');
+
+        $this->assertSame([3, 2, 1], array_column($weeks, 'week_number'));
     }
 
     /**

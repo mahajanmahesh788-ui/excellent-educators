@@ -40,56 +40,80 @@ class StudentScaffold extends ConsumerWidget {
           orElse: () => false,
         );
     final location = GoRouterState.of(context).uri.path;
+    final isInternal = backTo != null;
+    final showBottomNav =
+        !isInternal && MediaQuery.sizeOf(context).width < 960;
 
-    return Scaffold(
-      backgroundColor: StudentColors.canvas,
-      floatingActionButton: floatingActionButton,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: StudentColors.canvasGradient,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _AcademyNav(
-              location: location,
-              pending: pending,
-              journeyWaiting: journeyWaiting,
-              extraActions: actions,
+    return PopScope(
+      canPop: !isInternal,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || !isInternal) {
+          return;
+        }
+        navigateBack(context, backTo);
+      },
+      child: Scaffold(
+        backgroundColor: StudentColors.canvas,
+        floatingActionButton: floatingActionButton,
+        bottomNavigationBar: showBottomNav
+            ? _StudentBottomNav(
+                location: location,
+                pending: pending,
+                journeyWaiting: journeyWaiting,
+              )
+            : null,
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: StudentColors.canvasGradient,
             ),
-            Expanded(
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  progressIndicatorTheme: const ProgressIndicatorThemeData(
-                    color: StudentColors.indigoPrimary,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _AcademyNav(
+                location: location,
+                pending: pending,
+                journeyWaiting: journeyWaiting,
+                extraActions: actions,
+                title: title,
+                backTo: backTo,
+              ),
+              Expanded(
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    progressIndicatorTheme: const ProgressIndicatorThemeData(
+                      color: StudentColors.indigoPrimary,
+                    ),
+                  ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final insets = Academy.pageInsets(constraints.maxWidth);
+                      return Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          insets.left,
+                          insets.top,
+                          insets.right,
+                          insets.bottom,
+                        ),
+                        child: SizedBox(
+                          width: constraints.maxWidth -
+                              insets.left -
+                              insets.right,
+                          height: constraints.maxHeight -
+                              insets.top -
+                              insets.bottom,
+                          child: body,
+                        ),
+                      );
+                    },
                   ),
                 ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final insets = Academy.pageInsets(constraints.maxWidth);
-                    return Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        insets.left,
-                        insets.top,
-                        insets.right,
-                        0,
-                      ),
-                      child: SizedBox(
-                        width:
-                            constraints.maxWidth - insets.left - insets.right,
-                        height: constraints.maxHeight - insets.top,
-                        child: body,
-                      ),
-                    );
-                  },
-                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -102,12 +126,16 @@ class _AcademyNav extends ConsumerWidget {
     required this.pending,
     required this.journeyWaiting,
     this.extraActions,
+    this.title,
+    this.backTo,
   });
 
   final String location;
   final bool pending;
   final bool journeyWaiting;
   final List<Widget>? extraActions;
+  final String? title;
+  final String? backTo;
 
   static const _links = [
     (
@@ -131,6 +159,11 @@ class _AcademyNav extends ConsumerWidget {
       path: RoutePaths.studentFeedback,
     ),
     (
+      label: AppStrings.payments,
+      icon: Icons.payments_outlined,
+      path: RoutePaths.studentPayments,
+    ),
+    (
       label: AppStrings.requests,
       icon: Icons.support_agent_outlined,
       path: RoutePaths.studentRequests,
@@ -145,7 +178,8 @@ class _AcademyNav extends ConsumerWidget {
   static bool _isLockedLink(String path) {
     return path != RoutePaths.studentDashboard &&
         path != RoutePaths.studentProfile &&
-        path != RoutePaths.studentRequests;
+        path != RoutePaths.studentRequests &&
+        path != RoutePaths.studentPayments;
   }
 
   bool _blocksLink(String path) {
@@ -206,74 +240,117 @@ class _AcademyNav extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Brand: Logo + Title
-                InkWell(
-                  onTap: () {
-                    dismissOverlayRoutes(context);
-                    context.go(RoutePaths.studentDashboard);
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 4,
+                if (backTo != null) ...[
+                  IconButton(
+                    tooltip: AppStrings.back,
+                    iconSize: 22,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const AppLogo(height: 26),
-                        if (constraints.maxWidth >= 480) ...[
-                          const SizedBox(width: 10),
-                          const Text(
-                            AppStrings.excellentEducators,
-                            style: TextStyle(
-                              color: StudentColors.textPrimary,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                        ],
-                      ],
+                    onPressed: () => navigateBack(context, backTo),
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: StudentColors.textPrimary,
                     ),
                   ),
-                ),
-
-                // Desktop Navigation Items
-                if (!compact) ...[
-                  const SizedBox(width: 16),
-                  Container(height: 20, width: 1, color: StudentColors.border),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 4),
                   Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (final link in _links)
-                            Padding(
-                              padding: EdgeInsets.only(left: isTight ? 2 : 4),
-                              child: _NavItem(
-                                label: link.label,
-                                icon: link.icon,
-                                selected: _selected(link.path),
-                                disabled: false,
-                                isLocked: _blocksLink(link.path),
-                                tight: isTight,
-                                onTap: () => _onNavTap(context, link.path, link.label),
-                              ),
-                            ),
-                        ],
+                    child: Text(
+                      title ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: StudentColors.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        letterSpacing: -0.2,
                       ),
                     ),
                   ),
+                ] else ...[
+                  // Brand: Logo + Title
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        dismissOverlayRoutes(context);
+                        context.go(RoutePaths.studentDashboard);
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 4,
+                        ),
+                        child: Row(
+                          children: [
+                            const AppLogo(height: 26),
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                AppStrings.excellentEducators,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: StudentColors.textPrimary,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize:
+                                      constraints.maxWidth < 360 ? 14 : 16,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Desktop Navigation Items
+                  if (!compact) ...[
+                    const SizedBox(width: 16),
+                    Container(
+                      height: 20,
+                      width: 1,
+                      color: StudentColors.border,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 3,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (final link in _links)
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  left: isTight ? 2 : 4,
+                                ),
+                                child: _NavItem(
+                                  label: link.label,
+                                  icon: link.icon,
+                                  selected: _selected(link.path),
+                                  disabled: false,
+                                  isLocked: _blocksLink(link.path),
+                                  tight: isTight,
+                                  onTap: () => _onNavTap(
+                                    context,
+                                    link.path,
+                                    link.label,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
 
-                // Push actions to the far right on compact screens
-                if (compact) const Spacer(),
-
-                // Divider before actions on desktop
-                if (!compact) ...[
+                // Divider before actions on desktop (top-level only)
+                if (!compact && backTo == null) ...[
                   const SizedBox(width: 12),
                   Container(height: 20, width: 1, color: StudentColors.border),
                   const SizedBox(width: 6),
@@ -293,75 +370,111 @@ class _AcademyNav extends ConsumerWidget {
                     color: StudentColors.textSecondary,
                   ),
                 ),
-
-                // Menu button in compact mode
-                if (compact) ...[
-                  const SizedBox(width: 2),
-                  PopupMenuButton<String>(
-                    tooltip: AppStrings.menu,
-                    color: Colors.white,
-                    elevation: 8,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(color: StudentColors.border),
-                    ),
-                    icon: const Icon(
-                      Icons.menu_rounded,
-                      color: StudentColors.textSecondary,
-                    ),
-                    onSelected: (path) {
-                      final link = _links.firstWhere(
-                        (l) => l.path == path,
-                        orElse: () => _links.first,
-                      );
-                      _onNavTap(context, path, link.label);
-                    },
-                    itemBuilder: (context) => [
-                      for (final link in _links)
-                        PopupMenuItem(
-                          value: link.path,
-                          child: Row(
-                            children: [
-                              Icon(
-                                link.icon,
-                                size: 18,
-                                color: _selected(link.path)
-                                    ? StudentColors.indigoPrimary
-                                    : StudentColors.textSecondary,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  link.label,
-                                  style: TextStyle(
-                                    color: _selected(link.path)
-                                        ? StudentColors.indigoPrimary
-                                        : StudentColors.textPrimary,
-                                    fontWeight: _selected(link.path)
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              if (_blocksLink(link.path)) ...[
-                                const SizedBox(width: 6),
-                                const Icon(
-                                  Icons.lock_rounded,
-                                  size: 13,
-                                  color: StudentColors.textMuted,
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
               ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _StudentBottomNav extends StatelessWidget {
+  const _StudentBottomNav({
+    required this.location,
+    required this.pending,
+    required this.journeyWaiting,
+  });
+
+  final String location;
+  final bool pending;
+  final bool journeyWaiting;
+
+  bool _selected(String path) {
+    if (path == RoutePaths.studentDashboard) {
+      return location == path;
+    }
+    return location == path || location.startsWith('$path/');
+  }
+
+  bool _blocksLink(String path) {
+    if (!_AcademyNav._isLockedLink(path)) {
+      return false;
+    }
+    return pending || journeyWaiting;
+  }
+
+  void _onNavTap(BuildContext context, String path, String label) {
+    dismissOverlayRoutes(context);
+    if (!_AcademyNav._isLockedLink(path)) {
+      context.go(path);
+      return;
+    }
+    if (journeyWaiting) {
+      JourneyNotStartedDialog.show(context);
+      return;
+    }
+    if (pending) {
+      LockedFeatureNoticeDialog.show(context, featureName: label);
+      return;
+    }
+    context.go(path);
+  }
+
+  static final _links = _AcademyNav._links
+      .where(
+        (link) =>
+            link.path != RoutePaths.studentRequests &&
+            link.path != RoutePaths.studentPayments,
+      )
+      .toList(growable: false);
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedIndex = () {
+      for (var i = 0; i < _links.length; i++) {
+        if (_selected(_links[i].path)) {
+          return i;
+        }
+      }
+      return 0;
+    }();
+
+    return Material(
+      elevation: 8,
+      color: Colors.white,
+      child: SafeArea(
+        top: false,
+        child: NavigationBar(
+          height: 64,
+          backgroundColor: Colors.white,
+          indicatorColor: StudentColors.indigoLight,
+          selectedIndex: selectedIndex,
+          labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+          onDestinationSelected: (index) {
+            final link = _links[index];
+            _onNavTap(context, link.path, link.label);
+          },
+          destinations: [
+            for (final link in _links)
+              NavigationDestination(
+                icon: Icon(
+                  link.icon,
+                  size: 22,
+                  color: _blocksLink(link.path)
+                      ? StudentColors.textMuted
+                      : StudentColors.textSecondary,
+                ),
+                selectedIcon: Icon(
+                  link.icon,
+                  size: 22,
+                  color: StudentColors.indigoPrimary,
+                ),
+                label: link.label,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

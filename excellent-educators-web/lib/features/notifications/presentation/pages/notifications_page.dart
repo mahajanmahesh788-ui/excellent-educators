@@ -68,15 +68,38 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     final actions = [
       TextButton(
         onPressed: () => _markAllRead(context, ref),
-        child: const Text(AppStrings.markAllRead, style: TextStyle(color: Colors.white)),
+        child: Text(
+          AppStrings.markAllRead,
+          style: TextStyle(
+            color: (user?.isStudent ?? false)
+                ? StudentColors.indigoPrimary
+                : Colors.white,
+          ),
+        ),
       ),
     ];
 
     if (user?.isStudent ?? false) {
-      return StudentScaffold(title: AppStrings.notifications, body: body, actions: actions);
+      return StudentScaffold(
+        title: AppStrings.notifications,
+        body: body,
+        actions: actions,
+        backTo: RoutePaths.studentDashboard,
+      );
     }
 
-    return AppScaffold(title: AppStrings.notifications, body: body, actions: actions);
+    final backTo = (user?.isMasterTeacher ?? false)
+        ? RoutePaths.masterTeacherDashboard
+        : (user?.isCommonTeacher ?? false)
+            ? RoutePaths.teacherDaySchedule
+            : RoutePaths.adminDashboard;
+
+    return AppScaffold(
+      title: AppStrings.notifications,
+      body: body,
+      actions: actions,
+      backTo: backTo,
+    );
   }
 
   Future<void> _openNotification(

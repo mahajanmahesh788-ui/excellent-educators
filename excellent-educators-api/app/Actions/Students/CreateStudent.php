@@ -12,6 +12,7 @@ use App\Exceptions\ApiException;
 use App\Models\AcademicLevel;
 use App\Models\StudentProfile;
 use App\Models\User;
+use App\Payments\PaymentPlanService;
 use App\Support\ErrorCode;
 use Illuminate\Support\Facades\DB;
 
@@ -21,6 +22,7 @@ class CreateStudent
         private readonly GenerateStudentCode $generateStudentCode,
         private readonly AllocateBatchForStudent $allocateBatchForStudent,
         private readonly StartStudentLevelJourney $startStudentLevelJourney,
+        private readonly PaymentPlanService $paymentPlanService,
     ) {}
 
     /**
@@ -36,7 +38,8 @@ class CreateStudent
      *     address?: string|null,
      *     academic_year?: int,
      *     guardian_name?: string|null,
-     *     guardian_phone?: string|null
+     *     guardian_phone?: string|null,
+     *     payment?: array<string, mixed>|null
      * }  $input
      */
     public function execute(array $input): StudentProfile
@@ -104,7 +107,15 @@ class CreateStudent
                 $this->startStudentLevelJourney->executeIfBatchActive($profile->fresh(), $academicLevel);
             }
 
-            return $profile;
+            if (is_array($input['payment'] ?? null) && ! empty($input['payment']['payment_type'])) {
+                $this->paymentPlanService->createForStudent(
+                    $profile,
+                    $input['payment'],
+                    auth()->id(),
+                );
+            }
+
+            return $profile->fresh() ?? $profile;
         });
     }
 }

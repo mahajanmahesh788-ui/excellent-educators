@@ -294,15 +294,20 @@ class _DirectoryCard extends StatelessWidget {
                             children: [
                               Text(
                                 title,
+                                maxLines: isMobile ? 2 : 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   color: Brand.navy,
                                   fontWeight: FontWeight.w700,
                                   fontSize: isMobile ? 14.5 : 16,
+                                  height: 1.25,
                                 ),
                               ),
                               if (subtitle != null)
                                 Text(
                                   subtitle!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(color: Brand.muted, fontSize: isMobile ? 12 : 13),
                                 ),
                             ],
@@ -435,18 +440,25 @@ class _FactView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: '${fact.label}: ',
-            style: const TextStyle(color: Brand.muted, fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-          TextSpan(
-            text: fact.value,
-            style: const TextStyle(color: Brand.navy, fontSize: 12, fontWeight: FontWeight.w700),
-          ),
-        ],
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final size = isMobile ? 11.5 : 12.0;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: isMobile ? 220 : 320),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '${fact.label}: ',
+              style: TextStyle(color: Brand.muted, fontSize: size, fontWeight: FontWeight.w600),
+            ),
+            TextSpan(
+              text: fact.value,
+              style: TextStyle(color: Brand.navy, fontSize: size, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        maxLines: isMobile ? 2 : 3,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

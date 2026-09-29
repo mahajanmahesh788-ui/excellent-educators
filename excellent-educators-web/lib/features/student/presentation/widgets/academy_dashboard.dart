@@ -998,15 +998,6 @@ class _FacultyPortraitState extends State<_FacultyPortrait> {
                         size: 14,
                         color: Brand.navy,
                       ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        AppStrings.selected,
-                        style: TextStyle(
-                          color: Brand.navy,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 11.5,
-                        ),
-                      ),
                     ] else ...[
                       Text(
                         AppStrings.select,

@@ -65,6 +65,38 @@ class StudentResource extends JsonResource
             ),
             'feedback' => $this->feedbackSummary(),
             'master_class' => $this->masterClassSummary(),
+            'payment' => $this->paymentSummary(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function paymentSummary(): ?array
+    {
+        $plan = $this->relationLoaded('activePaymentPlan')
+            ? $this->activePaymentPlan
+            : $this->activePaymentPlan()->first();
+
+        if ($plan === null) {
+            return null;
+        }
+
+        return [
+            'plan_id' => $plan->id,
+            'payment_type' => $plan->payment_type?->value ?? $plan->payment_type,
+            'status' => $plan->status?->value ?? $plan->status,
+            'total_amount' => (float) $plan->total_amount,
+            'paid_amount' => (float) $plan->paid_amount,
+            'pending_amount' => (float) $plan->pending_amount,
+            'advance_amount' => (float) $plan->advance_amount,
+            'next_due_date' => $plan->next_due_date?->toDateString(),
+            'next_due_amount' => $plan->next_due_amount !== null ? (float) $plan->next_due_amount : null,
+            'overdue_amount' => (float) $plan->overdue_amount,
+            'last_payment_date' => $plan->relationLoaded('payments') && $plan->payments->isNotEmpty()
+                ? ($plan->payments->sortByDesc('created_at')->first()?->created_at?->toIso8601String()
+                    ?? $plan->last_payment_date?->toDateString())
+                : ($plan->last_payment_date?->toDateString()),
         ];
     }
 

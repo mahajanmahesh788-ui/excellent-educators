@@ -1451,24 +1451,13 @@ class _SessionTimelineCardState extends ConsumerState<_SessionTimelineCard> {
                   color: StudentColors.emeraldLight,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.check_circle_rounded,
-                      size: 12,
-                      color: StudentColors.emeraldDark,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'Completed',
-                      style: TextStyle(
-                        color: StudentColors.emeraldDark,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
+                child: const Text(
+                  'Completed',
+                  style: TextStyle(
+                    color: StudentColors.emeraldDark,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                  ),
                 ),
               )
             else if (booking.isCancelled)
@@ -2071,6 +2060,7 @@ class _StudentBookingWizardPageState
     if (assessmentPending) {
       return StudentScaffold(
         title: _reschedule ? AppStrings.reschedule : AppStrings.bookSession,
+        backTo: RoutePaths.studentBookings,
         body: const BookingQuestionnaireGuardCard(),
       );
     }
@@ -2091,6 +2081,7 @@ class _StudentBookingWizardPageState
 
     return StudentScaffold(
       title: _reschedule ? AppStrings.reschedule : AppStrings.bookSession,
+      backTo: RoutePaths.studentBookings,
       body: eligibility.when(
         skipLoadingOnReload: true,
         loading: () => const AcademySkeleton(height: 220),

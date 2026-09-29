@@ -700,6 +700,10 @@ class AdminDashboardCountsDto {
     this.interviews = 0,
     this.masterClasses = 0,
     this.promotedStudents = 0,
+    this.paymentsAllPending = 0,
+    this.paymentsDueThisMonth = 0,
+    this.paymentsOverdue = 0,
+    this.paymentsPaidThisMonth = 0,
   });
 
   factory AdminDashboardCountsDto.fromJson(Map<String, dynamic> json) {
@@ -734,6 +738,13 @@ class AdminDashboardCountsDto {
       interviews: (json['interviews'] as num?)?.toInt() ?? 0,
       masterClasses: (json['master_classes'] as num?)?.toInt() ?? 0,
       promotedStudents: (json['promoted_students'] as num?)?.toInt() ?? 0,
+      paymentsAllPending:
+          (json['payments_all_pending'] as num?)?.toInt() ?? 0,
+      paymentsDueThisMonth:
+          (json['payments_due_this_month'] as num?)?.toInt() ?? 0,
+      paymentsOverdue: (json['payments_overdue'] as num?)?.toInt() ?? 0,
+      paymentsPaidThisMonth:
+          (json['payments_paid_this_month'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -759,6 +770,10 @@ class AdminDashboardCountsDto {
   final int interviews;
   final int masterClasses;
   final int promotedStudents;
+  final int paymentsAllPending;
+  final int paymentsDueThisMonth;
+  final int paymentsOverdue;
+  final int paymentsPaidThisMonth;
 }
 
 class AdminLevelSnapshotDto {

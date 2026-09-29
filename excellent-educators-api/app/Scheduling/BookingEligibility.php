@@ -5,7 +5,6 @@ namespace App\Scheduling;
 use App\Attendance\AttendanceService;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
-use App\Models\ClassAttendance;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
@@ -171,45 +170,9 @@ class BookingEligibility
     }
 
     /**
-     * @param  Collection<int, SessionBooking>  $items
-     * @return list<string>
-     */
-    private function heldMasterClassIds(Collection $items): array
-    {
-        if ($items->isEmpty()) {
-            return [];
-        }
-
-        $joinedIds = ClassAttendance::query()
-            ->whereIn('booking_id', $items->pluck('id'))
-            ->where('student_join_count', '>', 0)
-            ->pluck('booking_id')
-            ->all();
-        $now = AppClock::now();
-        $held = [];
-
-        foreach ($items as $booking) {
-            $status = $booking->status instanceof SessionBookingStatus
-                ? $booking->status
-                : SessionBookingStatus::from((string) $booking->status);
-            $ended = $booking->ends_at !== null && $now->gte($booking->ends_at);
-            $joined = in_array($booking->id, $joinedIds, true);
-
-            if ($status === SessionBookingStatus::Completed || ($ended && $joined)) {
-                $held[] = $booking->id;
-                if ($status === SessionBookingStatus::Scheduled && $ended && $joined) {
-                    $booking->update(['status' => SessionBookingStatus::Completed->value]);
-                }
-            }
-        }
-
-        return $held;
-    }
-
-    /**
      * @return Collection<int, SessionBooking>
      */
-    public function masterClassesThisMonth(StudentProfile $student, ?string $ignoreBookingId = null): Collection
+    private function masterClassesThisMonth(StudentProfile $student, ?string $ignoreBookingId = null): Collection
     {
         $month = AppClock::currentYearMonth();
 
@@ -232,11 +195,6 @@ class BookingEligibility
                 return $local->year === $month['year'] && $local->month === $month['month'];
             })
             ->values();
-    }
-
-    public function hasMasterClassThisMonth(StudentProfile $student, ?string $ignoreBookingId = null): bool
-    {
-        return ! $this->canBookMasterClass($student, $ignoreBookingId);
     }
 
     public function attemptNumber(SessionBooking $booking): ?int
@@ -295,21 +253,6 @@ class BookingEligibility
                 ->first();
 
         return $journey?->weekNumberAt($at);
-    }
-
-    public static function ordinal(int $value): string
-    {
-        $mod100 = $value % 100;
-        if ($mod100 >= 11 && $mod100 <= 13) {
-            return $value.'th';
-        }
-
-        return $value.match ($value % 10) {
-            1 => 'st',
-            2 => 'nd',
-            3 => 'rd',
-            default => 'th',
-        };
     }
 
     /**

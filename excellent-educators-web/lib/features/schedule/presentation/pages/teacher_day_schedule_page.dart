@@ -244,12 +244,9 @@ class _TeacherDaySchedulePageState extends ConsumerState<TeacherDaySchedulePage>
           children: [
             _TeacherDayHero(
               date: date,
-              selected: selected,
               isToday: isToday,
               isTomorrow: isTomorrow,
               showAllHistory: _showAllHistory,
-              today: today,
-              tomorrow: tomorrow,
               onSelectToday: () => setDate(today),
               onSelectTomorrow: () => setDate(tomorrow),
               onShowAllHistory: showAllHistory,
@@ -326,12 +323,9 @@ class _TeacherDaySchedulePageState extends ConsumerState<TeacherDaySchedulePage>
 class _TeacherDayHero extends StatelessWidget {
   const _TeacherDayHero({
     required this.date,
-    required this.selected,
     required this.isToday,
     required this.isTomorrow,
     required this.showAllHistory,
-    required this.today,
-    required this.tomorrow,
     required this.onSelectToday,
     required this.onSelectTomorrow,
     required this.onShowAllHistory,
@@ -341,12 +335,9 @@ class _TeacherDayHero extends StatelessWidget {
   });
 
   final String date;
-  final DateTime? selected;
   final bool isToday;
   final bool isTomorrow;
   final bool showAllHistory;
-  final DateTime today;
-  final DateTime tomorrow;
   final VoidCallback onSelectToday;
   final VoidCallback onSelectTomorrow;
   final VoidCallback onShowAllHistory;
@@ -973,20 +964,13 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(color: const Color(0xFFCBD5E1)),
                                 ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF059669)),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      AppStrings.completed,
-                                      style: TextStyle(
-                                        color: Color(0xFF334155),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
+                                child: const Text(
+                                  AppStrings.completed,
+                                  style: TextStyle(
+                                    color: Color(0xFF334155),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               )
                             else if (isCancelled)

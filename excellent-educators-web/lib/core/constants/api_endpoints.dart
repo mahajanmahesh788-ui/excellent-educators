@@ -231,4 +231,21 @@ abstract final class ApiEndpoints {
 
   static const adminGoogleMeet = '/api/v1/admin/google/meet';
   static const adminGoogleMeetAuthorize = '/api/v1/admin/google/meet/authorize';
+
+  static const adminPayments = '/api/v1/admin/payments';
+  static const adminPaymentsOverview = '/api/v1/admin/payments/overview';
+  static String adminStudentPayments(String studentId) =>
+      '/api/v1/admin/payments/students/$studentId';
+  static String adminStudentPaymentPlan(String studentId) =>
+      '/api/v1/admin/payments/students/$studentId/plan';
+  static String adminStudentRecordPayment(String studentId) =>
+      '/api/v1/admin/payments/students/$studentId/payments';
+  static String adminStudentPaymentReminder(String studentId) =>
+      '/api/v1/admin/payments/students/$studentId/reminder';
+
+  static const studentPayments = '/api/v1/student/payments';
+  static const studentPaymentsOnlineInitiate =
+      '/api/v1/student/payments/online/initiate';
+  static const studentPaymentsOnlineConfirm =
+      '/api/v1/student/payments/online/confirm';
 }

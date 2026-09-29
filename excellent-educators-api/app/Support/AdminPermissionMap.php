@@ -92,6 +92,12 @@ final class AdminPermissionMap
             [$all, 'admin/login-page*', [PermissionName::SettingsManage]],
             [$all, 'admin/site-pages*', [PermissionName::SettingsManage]],
             [$all, 'admin/google*', [PermissionName::SettingsManage]],
+
+            [$get, 'admin/payments*', [PermissionName::PaymentsView, PermissionName::PaymentsManage, PermissionName::PaymentsRecord, PermissionName::StudentsView]],
+            [['POST'], 'admin/payments/students/*/payments', [PermissionName::PaymentsRecord, PermissionName::PaymentsManage]],
+            [['POST'], 'admin/payments/students/*/plan', [PermissionName::PaymentsManage, PermissionName::StudentsCreate, PermissionName::StudentsEdit]],
+            [['POST'], 'admin/payments/students/*/reminder', [PermissionName::PaymentsView, PermissionName::PaymentsManage]],
+            [$get, 'admin/students/*/payments*', [PermissionName::PaymentsView, PermissionName::PaymentsManage, PermissionName::StudentsView]],
         ];
     }
 }

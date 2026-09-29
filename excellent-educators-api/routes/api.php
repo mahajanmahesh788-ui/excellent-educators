@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\Admin\SitePageController as AdminSitePageControl
 use App\Http\Controllers\Api\V1\Admin\StudentController as AdminStudentController;
 use App\Http\Controllers\Api\V1\Admin\StudentLearningController as AdminStudentLearningController;
 use App\Http\Controllers\Api\V1\Admin\StudentMentorController;
+use App\Http\Controllers\Api\V1\Admin\StudentPaymentController as AdminStudentPaymentController;
 use App\Http\Controllers\Api\V1\Admin\SubAdminController;
 use App\Http\Controllers\Api\V1\Admin\TeacherController as AdminTeacherController;
 use App\Http\Controllers\Api\V1\Admin\WeeklyLearningController as AdminWeeklyLearningController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\Api\V1\Student\AssessmentController as StudentAssessmen
 use App\Http\Controllers\Api\V1\Student\BookingController as StudentBookingController;
 use App\Http\Controllers\Api\V1\Student\LearningJournalController as StudentLearningJournalController;
 use App\Http\Controllers\Api\V1\Student\ProfileController;
+use App\Http\Controllers\Api\V1\Student\StudentPaymentController as StudentSelfPaymentController;
 use App\Http\Controllers\Api\V1\Teacher\AdminRequestController as TeacherAdminRequestController;
 use App\Http\Controllers\Api\V1\Teacher\ProfileController as TeacherProfileController;
 use App\Http\Controllers\Api\V1\Teacher\ScheduleController as TeacherScheduleController;
@@ -86,6 +88,14 @@ Route::middleware(['auth:sanctum', 'active', 'admin', 'admin.permission', 'subad
     Route::get('students/{student}/learning-journal', [AdminStudentLearningController::class, 'journal']);
     Route::get('students/{student}/learning-journal/{journey}/{week}', [AdminStudentLearningController::class, 'week']);
     Route::post('students/{student}/promote', [AdminStudentLearningController::class, 'promote']);
+
+    Route::get('payments/overview', [AdminStudentPaymentController::class, 'overview']);
+    Route::get('payments', [AdminStudentPaymentController::class, 'index']);
+    Route::get('payments/students/{student}', [AdminStudentPaymentController::class, 'show']);
+    Route::post('payments/students/{student}/plan', [AdminStudentPaymentController::class, 'storePlan']);
+    Route::post('payments/students/{student}/payments', [AdminStudentPaymentController::class, 'storePayment']);
+    Route::post('payments/students/{student}/reminder', [AdminStudentPaymentController::class, 'reminderMessage']);
+    Route::get('students/{student}/payments', [AdminStudentPaymentController::class, 'show']);
 
     Route::get('teachers', [AdminTeacherController::class, 'index']);
     Route::post('teachers', [AdminTeacherController::class, 'store']);
@@ -252,4 +262,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:student'])->prefix('student')
     Route::get('learning/journal', [StudentLearningJournalController::class, 'index']);
     Route::get('learning/journal/{journey}/{week}', [StudentLearningJournalController::class, 'show']);
     Route::post('learning/journal/{journey}/{week}', [StudentLearningJournalController::class, 'submit']);
+    Route::get('payments', [StudentSelfPaymentController::class, 'show']);
+    Route::post('payments/online/initiate', [StudentSelfPaymentController::class, 'initiateOnline']);
+    Route::post('payments/online/confirm', [StudentSelfPaymentController::class, 'confirmOnline']);
 });

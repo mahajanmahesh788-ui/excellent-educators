@@ -90,32 +90,36 @@ class _FactorRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final band = dimensionBand(item.rating);
     final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final labelWidth = isMobile ? 88.0 : 130.0;
+    final fontSize = isMobile ? 12.0 : 14.0;
+    final statusWidth = isMobile ? 52.0 : 70.0;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: EdgeInsets.symmetric(vertical: isMobile ? 5 : 7),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: isMobile ? 110 : 135,
+            width: labelWidth,
             child: Text(
               item.name,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Brand.navy,
                 fontWeight: FontWeight.w700,
-                fontSize: 14,
+                fontSize: fontSize,
                 letterSpacing: -0.1,
               ),
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: isMobile ? 8 : 12),
           Expanded(
             child: readOnly
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(999),
                     child: SizedBox(
-                      height: 10,
+                      height: isMobile ? 8 : 10,
                       child: Stack(
                         children: [
                           Container(color: const Color(0xFFE8EEF5)),
@@ -152,16 +156,31 @@ class _FactorRow extends StatelessWidget {
                     ),
                   ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: isMobile ? 6 : 10),
           SizedBox(
-            width: isMobile ? 60 : 75,
+            width: isMobile ? 18 : 22,
+            child: Text(
+              '${item.rating}',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Brand.navy,
+                fontWeight: FontWeight.w800,
+                fontSize: fontSize,
+              ),
+            ),
+          ),
+          SizedBox(width: isMobile ? 4 : 8),
+          SizedBox(
+            width: statusWidth,
             child: Text(
               band.label,
               textAlign: TextAlign.start,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: band.color,
                 fontWeight: FontWeight.w700,
-                fontSize: 13,
+                fontSize: isMobile ? 11 : 13,
               ),
             ),
           ),

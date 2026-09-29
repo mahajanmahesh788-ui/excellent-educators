@@ -186,6 +186,8 @@ void main() {
 
     expect(snapshot.canBookMasterClass, isFalse);
     expect(snapshot.primaryType, isNull);
+    expect(snapshot.masterClass.phase, JourneyPhase.completed);
+    expect(snapshot.masterClass.detail, 'Completed');
   });
 
   test('allotment above one is treated as an extra master class perk', () {

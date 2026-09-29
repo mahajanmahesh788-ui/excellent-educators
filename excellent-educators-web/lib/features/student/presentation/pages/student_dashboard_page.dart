@@ -24,6 +24,7 @@ import 'package:excellent_educators_web/features/student/presentation/widgets/st
 import 'package:excellent_educators_web/features/student/presentation/widgets/upcoming_classes_timeline.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/weekly_journey.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/weekly_learning_section.dart';
+import 'package:excellent_educators_web/features/payments/presentation/pages/student_payments_page.dart';
 
 class StudentDashboardPage extends ConsumerWidget {
   const StudentDashboardPage({super.key});
@@ -245,6 +246,8 @@ class StudentDashboardPage extends ConsumerWidget {
                   // Next Class / Today Action Card
                   NextClassCard(snapshot: snapshot),
                   const SizedBox(height: 14),
+
+                  const StudentPaymentDashboardCard(),
 
                   // Circular Progress & Milestone Gauges
                   ProgressOverviewWidget(

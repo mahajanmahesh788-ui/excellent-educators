@@ -45,7 +45,10 @@ class MonthlyFeedbackDto {
     this.sessionBookingId,
     this.submittedAt,
     this.editableUntil,
+    this.masterTeacherId,
     this.masterTeacherName,
+    this.masterTeacherPhotoUrl,
+    this.masterTeacherTitle,
     this.overallRating,
     this.positivePoints,
     this.areasForImprovement,
@@ -53,6 +56,9 @@ class MonthlyFeedbackDto {
   });
 
   factory MonthlyFeedbackDto.fromJson(Map<String, dynamic> json) {
+    final master = json['master_teacher'] is Map
+        ? Map<String, dynamic>.from(json['master_teacher'] as Map)
+        : null;
     return MonthlyFeedbackDto(
       id: json['id'] as String,
       year: (json['year'] as num?)?.toInt() ?? 0,
@@ -63,9 +69,10 @@ class MonthlyFeedbackDto {
       editable: json['editable'] == true,
       deletable: json['deletable'] == true,
       editableUntil: json['editable_until'] as String?,
-      masterTeacherName: json['master_teacher'] is Map
-          ? (json['master_teacher'] as Map)['full_name'] as String?
-          : null,
+      masterTeacherId: master?['id'] as String?,
+      masterTeacherName: master?['full_name'] as String?,
+      masterTeacherPhotoUrl: master?['photo_url'] as String?,
+      masterTeacherTitle: master?['professional_title'] as String?,
       overallRating: (json['overall_rating'] as num?)?.toDouble(),
       positivePoints: json['positive_points'] as String?,
       areasForImprovement: json['areas_for_improvement'] as String?,
@@ -86,7 +93,10 @@ class MonthlyFeedbackDto {
   final bool editable;
   final bool deletable;
   final String? editableUntil;
+  final String? masterTeacherId;
   final String? masterTeacherName;
+  final String? masterTeacherPhotoUrl;
+  final String? masterTeacherTitle;
   final double? overallRating;
   final String? positivePoints;
   final String? areasForImprovement;

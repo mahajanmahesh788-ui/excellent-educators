@@ -24,7 +24,7 @@ class NotifyAdminsOfTeacherLeaveSubmitted
     ): void {
         $teacher->loadMissing('user');
         $teacherName = $teacher->full_name ?: ($teacher->user?->name ?? 'A teacher');
-        $displayDate = Carbon::parse($date)->format('d M Y');
+        $displayDate = Carbon::parse($date)->format('d-M-Y');
 
         $title = 'New leave request';
         $body = "New leave request from {$teacherName} for {$displayDate}.";

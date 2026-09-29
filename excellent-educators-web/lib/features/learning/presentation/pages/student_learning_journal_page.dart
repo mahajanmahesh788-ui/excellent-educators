@@ -59,7 +59,9 @@ class StudentLearningJournalPage extends ConsumerWidget {
                   levelName: current.level.name,
                   currentWeek: current.weeks.isEmpty
                       ? 1
-                      : current.weeks.last.weekNumber,
+                      : current.weeks
+                          .map((w) => w.weekNumber)
+                          .reduce((a, b) => a > b ? a : b),
                   weekCount: current.weekCount,
                 ),
               SizedBox(height: isMobile ? 12 : 22),

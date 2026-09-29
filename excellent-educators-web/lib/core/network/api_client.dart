@@ -80,6 +80,13 @@ class ApiClient {
     return _map(() => _envelope('GET', path, query: query));
   }
 
+  Future<ApiEnvelope> getRaw(
+    String path, {
+    Map<String, dynamic>? query,
+  }) {
+    return _envelope('GET', path, query: query);
+  }
+
   Future<Map<String, dynamic>?> put(
     String path, {
     Map<String, dynamic>? data,

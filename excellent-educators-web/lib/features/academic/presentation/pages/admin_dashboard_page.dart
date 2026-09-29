@@ -426,6 +426,68 @@ class AdminDashboardPage extends ConsumerWidget {
                 SizedBox(height: isMobile ? 14 : 24),
               ],
 
+              // 7b. Payment Overview
+              if (filter.category == AdminDashboardCategory.all ||
+                  filter.category == AdminDashboardCategory.academic) ...[
+                _buildSectionHeader(
+                  context: context,
+                  title: AppStrings.paymentOverview,
+                  subtitle: AppStrings.payments,
+                  actionLabel: AppStrings.payments,
+                  onAction: () => context.go(RoutePaths.adminPayments),
+                ),
+                SizedBox(height: isMobile ? 6 : 10),
+                StatGrid(
+                  children: [
+                    StatTile(
+                      label: AppStrings.allPending,
+                      value: '${counts.paymentsAllPending}',
+                      icon: Icons.pending_actions_outlined,
+                      accentColor: const Color(0xFFF9A825),
+                      onTap: () => context.go(
+                        RoutePaths.adminPaymentsFiltered(
+                          status: 'pending_balance',
+                        ),
+                      ),
+                    ),
+                    StatTile(
+                      label: AppStrings.dueThisMonth,
+                      value: '${counts.paymentsDueThisMonth}',
+                      icon: Icons.event_outlined,
+                      accentColor: const Color(0xFFEF6C00),
+                      onTap: () => context.go(
+                        RoutePaths.adminPaymentsFiltered(
+                          status: 'pending_balance',
+                          period: 'this_month',
+                        ),
+                      ),
+                    ),
+                    StatTile(
+                      label: AppStrings.overdueStudents,
+                      value: '${counts.paymentsOverdue}',
+                      icon: Icons.warning_amber_outlined,
+                      accentColor: const Color(0xFFC62828),
+                      onTap: () => context.go(
+                        RoutePaths.adminPaymentsFiltered(status: 'overdue'),
+                      ),
+                    ),
+                    StatTile(
+                      label: AppStrings.paidThisMonth,
+                      value: '${counts.paymentsPaidThisMonth}',
+                      icon: Icons.verified_outlined,
+                      accentColor: const Color(0xFF2E7D32),
+                      onTap: () => context.go(
+                        RoutePaths.adminPaymentsFiltered(
+                          status: 'paid',
+                          period: 'this_month',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: isMobile ? 14 : 24),
+              ],
+
               // 8. Google Meet Integration Banner
               _buildGoogleMeetBanner(context),
             ],

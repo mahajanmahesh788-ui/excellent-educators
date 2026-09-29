@@ -542,6 +542,7 @@ abstract final class AppStrings {
   static const name = 'Name';
   static const needSomethingFromOurTeam = 'Need something from our team?';
   static const needsAttention = 'Needs attention';
+  static const attention = 'Attention';
   static const needsImprovement = 'Needs Improvement';
   static const networkError = 'Network error.';
   static const newAssessment = 'New assessment';
@@ -636,6 +637,7 @@ abstract final class AppStrings {
   static const notSet = 'Not set';
   static const notSubmittedYet = 'Not submitted yet';
   static const notes = 'Notes';
+  static const note = 'Note';
   static const nothingWaitingForReviewRightNow = 'Nothing waiting for review right now.';
   static const notifications = 'Notifications';
   static const nov = 'NOV';
@@ -820,6 +822,7 @@ abstract final class AppStrings {
   static const settings = 'Settings';
   static const settingsSaved = 'Settings saved';
   static const showAllHistory = 'Show all history';
+  static const showLess = 'Show less';
   static const signIn = 'Sign in';
   static const signInForm = 'Sign-in form';
   static const signOut = 'Sign out';
@@ -1047,4 +1050,93 @@ abstract final class AppStrings {
   static const yourSessions = 'Your sessions';
   static const yourTeachers = 'Your teachers';
   static const yourTeachersWillShareMonthlyNotesHereAsYourJourney = 'Your teachers will share monthly notes here as your journey unfolds.';
+
+  // Payments
+  static const payments = 'Payments';
+  static const paymentSettings = 'Payment Settings';
+  static const paymentDetails = 'Payment Details';
+  static const paymentSummary = 'Payment Summary';
+  static const paymentHistory = 'Payment History';
+  static const paymentPlan = 'Payment Plan';
+  static const paymentMode = 'Payment Mode';
+  static const paymentStatus = 'Payment Status';
+  static const paymentAmount = 'Payment Amount';
+  static const paymentDate = 'Payment Date';
+  static const paymentCompleted = 'Payment Completed';
+  static const paymentPlanSaved = 'Payment plan saved';
+  static const paymentSuccessful = 'Payment successful';
+  static const fullPayment = 'Full Payment';
+  static const partialPayment = 'Partial Payment';
+  static const online = 'Online';
+  static const offline = 'Offline';
+  static const paid = 'Paid';
+  static const overdue = 'Overdue';
+  static const successful = 'Successful';
+  static const failed = 'Failed';
+  static const refunded = 'Refunded';
+  static const totalAmount = 'Total Amount';
+  static const totalPayableAmount = 'Total Payable Amount';
+  static const paidAmount = 'Paid Amount';
+  static const pendingAmount = 'Pending Amount';
+  static const initialPaymentAmount = 'Initial Payment Amount';
+  static const lastPaymentDate = 'Last Payment Date';
+  static const nextDueDate = 'Next Due Date';
+  static const nextDueAmount = 'Next Due Amount';
+  static const overdueAmount = 'Overdue Amount';
+  static const advanceBalance = 'Advance Balance';
+  static const nextPayment = 'Next Payment';
+  static const due = 'Due';
+  static const addPayment = 'Add Payment';
+  static const payNow = 'Pay Now';
+  static const viewReceipt = 'View receipt';
+  static const viewPaymentHistory = 'View payment history';
+  static const noPaymentHistoryYet = 'No payment history yet.';
+  static const noPaymentPlanYet = 'No payment plan yet.';
+  static const noPaymentPlanAssigned = 'No payment plan has been assigned yet.';
+  static const noPendingPayment = 'No pending payment';
+  static const noPaymentRecordsMatchFilters = 'No payment records match these filters.';
+  static const transactionIdOptional = 'Transaction ID (optional)';
+  static const referenceNumberOptional = 'Reference number (optional)';
+  static const notesOptional = 'Notes (optional)';
+  static const paymentPlanAndModeHelp =
+      'Choose a payment plan (full or partial) and a payment mode (online or offline).';
+  static const existingPlanAmountLockedHelp =
+      'This student’s total is locked from when the plan was created. Changing Admin Settings later does not change this amount.';
+  static const enterAValidAmount = 'Enter a valid amount';
+  static const amountCannotExceedTotal = 'Amount cannot exceed the total payable';
+  static String onlyAmountLeft(String amount) =>
+      'Only $amount left. Amount cannot exceed the pending amount.';
+  static const previousPending = 'Previous pending';
+  static const paymentReceived = 'Payment received';
+  static const paymentDone = 'Payment done';
+  static const upiId = 'UPI ID';
+  static const scanAndPayUsingAnyUpiApp = 'Scan and pay using any UPI app';
+  static const newPending = 'New pending';
+  static const whatsappReminder = 'WhatsApp reminder';
+  static const callStudent = 'Call student';
+  static const noWhatsappNumberAvailable = 'No WhatsApp number available';
+  static const noPhoneNumberAvailable = 'No phone number available';
+  static const allPending = 'All Pending';
+  static const anyPeriod = 'Any period';
+  static const lastMonth = 'Last Month';
+  static const searchStudents = 'Search students';
+  static const totalExpected = 'Total Expected';
+  static const totalCollected = 'Total Collected';
+  static const totalPending = 'Total Pending';
+  static const totalOverdue = 'Total Overdue';
+  static const collectedThisMonth = 'Collected This Month';
+  static const dueThisMonth = 'Due This Month';
+  static const paidThisMonth = 'Paid This Month';
+  static const overdueStudents = 'Overdue Students';
+  static const changePaymentPlan = 'Change payment plan';
+  static const savePaymentPlan = 'Save payment plan';
+  static const createPaymentPlan = 'Create payment plan';
+  static const managePaymentPlan = 'Manage payment plan';
+  static const selectAPaymentPlan = 'Select a payment plan';
+  static const confirmOnlinePayment = 'Confirm online payment';
+  static const confirmPayment = 'Confirm payment';
+  static const manualGatewayConfirmHelp =
+      'No payment gateway is configured yet. Confirm only after you have completed the transfer with the academy.';
+  static const unableToStartPayment = 'Unable to start payment';
+  static const paymentOverview = 'Payment Overview';
 }

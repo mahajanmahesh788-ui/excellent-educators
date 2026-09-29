@@ -31,6 +31,10 @@ abstract final class AdminPermission {
   static const settingsManage = 'settings.manage';
   static const subAdminsManage = 'sub_admins.manage';
 
+  static const paymentsView = 'payments.view';
+  static const paymentsManage = 'payments.manage';
+  static const paymentsRecord = 'payments.record';
+
   static bool canOpenPath(AppUser user, String location) {
     if (!location.startsWith('/admin')) {
       return true;
@@ -118,6 +122,16 @@ abstract final class AdminPermission {
         location.startsWith('/admin/login-page') ||
         location.startsWith('/admin/google-meet')) {
       return user.canAdmin(settingsManage);
+    }
+    if (location.startsWith('/admin/payments') ||
+        (location.startsWith('/admin/students/') &&
+            location.endsWith('/payments'))) {
+      return user.canAnyAdmin(const [
+        paymentsView,
+        paymentsManage,
+        paymentsRecord,
+        studentsView,
+      ]);
     }
     return user.isFullAdmin;
   }

@@ -119,7 +119,7 @@ class LearningJournalService
                 ->groupBy('weekly_learning_id');
 
             $weeks = [];
-            for ($week = 1; $week <= $maxWeek; $week++) {
+            for ($week = $maxWeek; $week >= 1; $week--) {
                 $unit = $units->get($week);
                 $attempts = $unit === null ? collect() : ($attemptsByUnit->get($unit->id) ?? collect());
                 $weeks[] = $this->weekPayload($student, $journey, $week, $unit, $attempts, $staffView, unlocked: true, compact: true);
@@ -283,6 +283,10 @@ class LearningJournalService
         $curriculum = $level !== null ? CurriculumCalendar::forWeek($weekNumber, $level) : null;
         $studyDate = $journey->started_at?->copy()->addWeeks($weekNumber - 1);
 
+        $latestResult = $staffView && $unit !== null && $attempts->isNotEmpty()
+            ? $this->attemptResult($unit, $attempts->last(), $weekNumber, $journey->level?->name)
+            : null;
+
         $payload = [
             'journey_id' => $journey->id,
             'level' => [
@@ -297,9 +301,7 @@ class LearningJournalService
             'video_url' => $videoUrl,
             'has_video' => is_string($videoUrl) && $videoUrl !== '',
             'score' => null,
-            'result' => $staffView && ! $compact && $unit !== null && $attempts->isNotEmpty()
-                ? $this->attemptResult($unit, $attempts->last(), $weekNumber, $journey->level?->name)
-                : null,
+            'result' => $latestResult,
         ];
 
         if ($staffView) {

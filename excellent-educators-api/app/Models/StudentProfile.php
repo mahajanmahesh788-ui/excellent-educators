@@ -114,6 +114,16 @@ class StudentProfile extends Model
         return $this->hasOne(StudentLevelJourney::class, 'student_id')->whereNull('ended_at');
     }
 
+    public function paymentPlans(): HasMany
+    {
+        return $this->hasMany(StudentPaymentPlan::class, 'student_id');
+    }
+
+    public function activePaymentPlan(): HasOne
+    {
+        return $this->hasOne(StudentPaymentPlan::class, 'student_id')->where('is_active', true);
+    }
+
     public function weeklyAssignmentAttempts(): HasMany
     {
         return $this->hasMany(WeeklyAssignmentAttempt::class, 'student_id');

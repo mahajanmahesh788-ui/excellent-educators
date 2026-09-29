@@ -19,6 +19,7 @@ class StudentTeachersPage extends ConsumerWidget {
 
     return StudentScaffold(
       title: AppStrings.teachers,
+      backTo: RoutePaths.studentBookings,
       body: profile.when(
         skipLoadingOnReload: true,
         loading: () => const AcademySkeleton(height: 280),

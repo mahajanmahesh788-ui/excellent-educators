@@ -21,6 +21,7 @@ class DirectoryToolbar extends StatefulWidget {
     this.selectedAttention,
     this.onAttentionChanged,
     this.attentionLabel = AppStrings.needsAttention,
+    this.countNoun,
     this.total,
     this.page,
     this.perPage,
@@ -41,6 +42,8 @@ class DirectoryToolbar extends StatefulWidget {
   final String? selectedAttention;
   final ValueChanged<String?>? onAttentionChanged;
   final String attentionLabel;
+  /// Singular noun for the total count, e.g. `student` → "50 students · Page 1/3".
+  final String? countNoun;
   final int? total;
   final int? page;
   final int? perPage;
@@ -92,6 +95,14 @@ class _DirectoryToolbarState extends State<DirectoryToolbar> {
         widget.onPageChanged != null &&
         widget.total! > widget.perPage!;
     final lastPage = showPagination ? (widget.total! / widget.perPage!).ceil() : 1;
+    final total = widget.total;
+    final countLabel = total == null
+        ? null
+        : widget.countNoun == null
+            ? '$total'
+            : total == 1
+                ? '1 ${widget.countNoun}'
+                : '$total ${widget.countNoun}s';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -99,63 +110,124 @@ class _DirectoryToolbarState extends State<DirectoryToolbar> {
         LayoutBuilder(
           builder: (context, constraints) {
             final fullWidth = constraints.maxWidth < 640;
-            return Wrap(
-          spacing: 8,
-          runSpacing: 10,
-          crossAxisAlignment: WrapCrossAlignment.end,
-          children: [
-            SizedBox(
-              width: fullWidth ? constraints.maxWidth : 280,
-              child: _ToolbarLabeledField(
-                label: AppStrings.search,
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _searchFocusNode,
-                  decoration: InputDecoration(
-                    hintText: widget.searchHint,
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            final pairStatusAttention = fullWidth &&
+                widget.statusItems != null &&
+                widget.onStatusChanged != null &&
+                widget.attentionItems != null &&
+                widget.onAttentionChanged != null;
+
+            final searchField = _ToolbarLabeledField(
+              label: AppStrings.search,
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                style: TextStyle(fontSize: fullWidth ? 13.5 : 14),
+                decoration: InputDecoration(
+                  hintText: fullWidth ? AppStrings.search : widget.searchHint,
+                  hintStyle: TextStyle(
+                    fontSize: fullWidth ? 13 : 14,
+                    color: Brand.muted.withValues(alpha: 0.85),
                   ),
-                  onChanged: _onSearchChanged,
-                  textInputAction: TextInputAction.search,
+                  prefixIcon: Icon(Icons.search, size: fullWidth ? 18 : 20),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: fullWidth ? 10 : 12,
+                    vertical: fullWidth ? 8 : 10,
+                  ),
                 ),
+                onChanged: _onSearchChanged,
+                textInputAction: TextInputAction.search,
               ),
-            ),
-            if (widget.levelItems != null && widget.onLevelChanged != null)
-              _ToolbarDropdown<String?>(
-                label: widget.levelLabel,
-                width: fullWidth ? constraints.maxWidth : 200,
-                value: widget.selectedLevelId,
-                items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text(AppStrings.allLevels)),
-                  ...widget.levelItems!,
+            );
+
+            final levelDropdown = widget.levelItems != null && widget.onLevelChanged != null
+                ? _ToolbarDropdown<String?>(
+                    label: widget.levelLabel,
+                    width: fullWidth ? null : 200,
+                    compact: fullWidth,
+                    value: widget.selectedLevelId,
+                    items: [
+                      const DropdownMenuItem<String?>(value: null, child: Text(AppStrings.allLevels)),
+                      ...widget.levelItems!,
+                    ],
+                    onChanged: widget.onLevelChanged,
+                  )
+                : null;
+
+            final statusDropdown = widget.statusItems != null && widget.onStatusChanged != null
+                ? _ToolbarDropdown<String?>(
+                    label: AppStrings.status2,
+                    width: pairStatusAttention || fullWidth ? null : 140,
+                    compact: fullWidth,
+                    value: widget.selectedStatus,
+                    items: [
+                      const DropdownMenuItem<String?>(value: null, child: Text(AppStrings.all)),
+                      ...widget.statusItems!,
+                    ],
+                    onChanged: widget.onStatusChanged,
+                  )
+                : null;
+
+            final attentionDropdown = widget.attentionItems != null && widget.onAttentionChanged != null
+                ? _ToolbarDropdown<String?>(
+                    label: pairStatusAttention ? AppStrings.attention : widget.attentionLabel,
+                    width: pairStatusAttention || fullWidth ? null : 220,
+                    compact: fullWidth,
+                    value: widget.selectedAttention,
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(pairStatusAttention ? AppStrings.all : AppStrings.allStudents),
+                      ),
+                      ...widget.attentionItems!,
+                    ],
+                    onChanged: widget.onAttentionChanged,
+                  )
+                : null;
+
+            if (fullWidth) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  searchField,
+                  if (levelDropdown != null) ...[
+                    const SizedBox(height: 10),
+                    levelDropdown,
+                  ],
+                  if (pairStatusAttention) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(flex: 2, child: statusDropdown!),
+                        const SizedBox(width: 8),
+                        Expanded(flex: 3, child: attentionDropdown!),
+                      ],
+                    ),
+                  ] else ...[
+                    if (statusDropdown != null) ...[
+                      const SizedBox(height: 10),
+                      statusDropdown,
+                    ],
+                    if (attentionDropdown != null) ...[
+                      const SizedBox(height: 10),
+                      attentionDropdown,
+                    ],
+                  ],
                 ],
-                onChanged: widget.onLevelChanged,
-              ),
-            if (widget.statusItems != null && widget.onStatusChanged != null)
-              _ToolbarDropdown<String?>(
-                label: AppStrings.status2,
-                width: fullWidth ? constraints.maxWidth : 140,
-                value: widget.selectedStatus,
-                items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text(AppStrings.all)),
-                  ...widget.statusItems!,
-                ],
-                onChanged: widget.onStatusChanged,
-              ),
-            if (widget.attentionItems != null && widget.onAttentionChanged != null)
-              _ToolbarDropdown<String?>(
-                label: widget.attentionLabel,
-                width: fullWidth ? constraints.maxWidth : 220,
-                value: widget.selectedAttention,
-                items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text(AppStrings.allStudents)),
-                  ...widget.attentionItems!,
-                ],
-                onChanged: widget.onAttentionChanged,
-              ),
-          ],
+              );
+            }
+
+            return Wrap(
+              spacing: 8,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.end,
+              children: [
+                SizedBox(width: 280, child: searchField),
+                if (levelDropdown != null) levelDropdown,
+                if (statusDropdown != null) statusDropdown,
+                if (attentionDropdown != null) attentionDropdown,
+              ],
             );
           },
         ),
@@ -163,11 +235,16 @@ class _DirectoryToolbarState extends State<DirectoryToolbar> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Text(
-                '${widget.total} total · page ${widget.page} of $lastPage',
-                style: const TextStyle(color: Brand.muted, fontSize: 12),
+              Flexible(
+                child: Text(
+                  countLabel == null
+                      ? 'Page ${widget.page}/$lastPage'
+                      : '$countLabel · Page ${widget.page}/$lastPage',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Brand.muted, fontSize: 12),
+                ),
               ),
-              const Spacer(),
               IconButton(
                 tooltip: AppStrings.previousPage,
                 onPressed: widget.page! > 1 ? () => widget.onPageChanged!(widget.page! - 1) : null,
@@ -192,10 +269,12 @@ class _ToolbarLabeledField extends StatelessWidget {
   const _ToolbarLabeledField({
     required this.label,
     required this.child,
+    this.compact = false,
   });
 
   final String label;
   final Widget child;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -205,14 +284,16 @@ class _ToolbarLabeledField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 11,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: compact ? 10.5 : 11,
             fontWeight: FontWeight.w700,
             color: Brand.muted,
             letterSpacing: 0.2,
           ),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: compact ? 3 : 4),
         child,
       ],
     );
@@ -222,37 +303,61 @@ class _ToolbarLabeledField extends StatelessWidget {
 class _ToolbarDropdown<T> extends StatelessWidget {
   const _ToolbarDropdown({
     required this.label,
-    required this.width,
+    this.width,
+    this.compact = false,
     required this.value,
     required this.items,
     required this.onChanged,
   });
 
   final String label;
-  final double width;
+  final double? width;
+  final bool compact;
   final T? value;
   final List<DropdownMenuItem<T>> items;
   final ValueChanged<T?>? onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: _ToolbarLabeledField(
-        label: label,
-        child: DropdownButtonFormField<T>(
-          key: ValueKey(value),
-          isExpanded: true,
-          initialValue: value,
-          decoration: const InputDecoration(
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          ),
-          items: items,
-          onChanged: onChanged,
+    final field = _ToolbarLabeledField(
+      label: label,
+      compact: compact,
+      child: DropdownButtonFormField<T>(
+        key: ValueKey(value),
+        isExpanded: true,
+        initialValue: value,
+        style: TextStyle(
+          color: Brand.navy,
+          fontSize: compact ? 13 : 14,
+          fontWeight: FontWeight.w500,
         ),
+        icon: Icon(Icons.keyboard_arrow_down, size: compact ? 18 : 20, color: Brand.muted),
+        decoration: InputDecoration(
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: compact ? 8 : 12,
+            vertical: compact ? 8 : 10,
+          ),
+        ),
+        selectedItemBuilder: (context) => [
+          for (final item in items)
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: DefaultTextStyle.merge(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                child: item.child,
+              ),
+            ),
+        ],
+        items: items,
+        onChanged: onChanged,
       ),
     );
+    if (width == null) {
+      return field;
+    }
+    return SizedBox(width: width, child: field);
   }
 }
 

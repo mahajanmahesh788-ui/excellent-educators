@@ -98,7 +98,6 @@ class _NextClassCardState extends ConsumerState<NextClassCard> {
         children: [
           // Header: Category label + Status Badge
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
@@ -126,32 +125,44 @@ class _NextClassCardState extends ConsumerState<NextClassCard> {
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: badgeBg,
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: badgeColor.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isLive) ...[
-                      const _PulsingLiveDot(),
-                      const SizedBox(width: 6),
-                    ],
-                    Text(
-                      countdownText,
-                      style: TextStyle(
-                        color: badgeColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11.5,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeBg,
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(
+                        color: badgeColor.withValues(alpha: 0.3),
                       ),
                     ),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isLive) ...[
+                          const _PulsingLiveDot(),
+                          const SizedBox(width: 6),
+                        ],
+                        Flexible(
+                          child: Text(
+                            countdownText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: badgeColor,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -377,8 +388,8 @@ class _NextClassCardState extends ConsumerState<NextClassCard> {
             ),
           ),
           const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerRight,
+          SizedBox(
+            width: double.infinity,
             child: FilledButton.icon(
               onPressed: () {
                 final type = snapshot.primaryType;

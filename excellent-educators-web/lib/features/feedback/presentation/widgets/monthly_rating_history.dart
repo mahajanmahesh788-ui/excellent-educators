@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
+import 'package:excellent_educators_web/features/academic/presentation/widgets/mentor_profile_view.dart';
 import 'package:excellent_educators_web/features/feedback/data/dto/feedback_dtos.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/dimension_factor_profile.dart';
 import 'package:flutter/material.dart';
@@ -107,9 +108,9 @@ class _MonthlyRatingHistoryTileState extends State<_MonthlyRatingHistoryTile> {
             onTap: () => setState(() => _expanded = !_expanded),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
                     width: 36,
@@ -121,41 +122,34 @@ class _MonthlyRatingHistoryTileState extends State<_MonthlyRatingHistoryTile> {
                     ),
                     child: const Icon(Icons.calendar_month_rounded, size: 18, color: Brand.goldDark),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           feedback.monthLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Brand.navy,
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
                           'Session · $sessionDate',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(color: Brand.muted, fontSize: 12),
                         ),
-                        if (feedback.items.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              for (final item in feedback.items)
-                                _RatingChip(label: item.targetName, rating: item.rating),
-                            ],
-                          ),
-                        ],
                       ],
                     ),
                   ),
                   const SizedBox(width: 8),
                   _AverageBadge(rating: average),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 2),
                   Icon(
                     _expanded ? Icons.expand_less : Icons.expand_more,
                     color: Brand.muted,
@@ -165,6 +159,51 @@ class _MonthlyRatingHistoryTileState extends State<_MonthlyRatingHistoryTile> {
               ),
             ),
           ),
+          if (feedback.items.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+              child: DimensionFactorProfile(
+                items: [
+                  for (final item in feedback.items) DimensionRatingValue.fromItem(item),
+                ],
+                readOnly: true,
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (feedback.masterTeacherName != null) ...[
+                  _TeacherProfileRow(
+                    name: feedback.masterTeacherName!,
+                    photoUrl: feedback.masterTeacherPhotoUrl,
+                    title: feedback.masterTeacherTitle,
+                    sessionDate: sessionDate,
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (feedback.positivePoints != null &&
+                    feedback.positivePoints!.trim().isNotEmpty)
+                  _FeedbackNoteCard(
+                    icon: Icons.thumb_up_alt_outlined,
+                    label: AppStrings.positivePoints,
+                    body: feedback.positivePoints!.trim(),
+                    tone: const Color(0xFF2E7D32),
+                  ),
+                if (feedback.areasForImprovement != null &&
+                    feedback.areasForImprovement!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _FeedbackNoteCard(
+                    icon: Icons.trending_up_rounded,
+                    label: AppStrings.areasForImprovement,
+                    body: feedback.areasForImprovement!.trim(),
+                    tone: const Color(0xFFC62828),
+                  ),
+                ],
+              ],
+            ),
+          ),
           if (_expanded) ...[
             const Divider(height: 1, color: Color(0xFFE6DCCB)),
             Padding(
@@ -172,31 +211,17 @@ class _MonthlyRatingHistoryTileState extends State<_MonthlyRatingHistoryTile> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (feedback.masterTeacherName != null)
-                    _DetailLine(
-                      label: AppStrings.masterTeacher,
-                      value: feedback.masterTeacherName!,
-                    ),
-                  const SizedBox(height: 12),
-                  DimensionFactorProfile(
-                    items: [
-                      for (final item in feedback.items) DimensionRatingValue.fromItem(item),
-                    ],
-                    readOnly: true,
-                  ),
-                  if (feedback.positivePoints != null && feedback.positivePoints!.trim().isNotEmpty)
-                    _DetailLine(label: AppStrings.positive, value: feedback.positivePoints!.trim()),
-                  if (feedback.areasForImprovement != null && feedback.areasForImprovement!.trim().isNotEmpty)
-                    _DetailLine(label: AppStrings.improve, value: feedback.areasForImprovement!.trim()),
                   if (widget.showStaffNotes &&
                       feedback.discussedInClass != null &&
                       feedback.discussedInClass!.trim().isNotEmpty)
-                    _DetailLine(
+                    _FeedbackNoteCard(
+                      icon: Icons.forum_outlined,
                       label: AppStrings.discussedInThisMasterClass,
-                      value: feedback.discussedInClass!.trim(),
+                      body: feedback.discussedInClass!.trim(),
+                      tone: Brand.navy,
                     ),
                   if (widget.onEdit != null || widget.onDelete != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       children: [
@@ -255,51 +280,130 @@ class _AverageBadge extends StatelessWidget {
   }
 }
 
-class _RatingChip extends StatelessWidget {
-  const _RatingChip({required this.label, required this.rating});
+class _TeacherProfileRow extends StatelessWidget {
+  const _TeacherProfileRow({
+    required this.name,
+    this.photoUrl,
+    this.title,
+    this.sessionDate,
+  });
 
-  final String label;
-  final int rating;
+  final String name;
+  final String? photoUrl;
+  final String? title;
+  final String? sessionDate;
 
   @override
   Widget build(BuildContext context) {
-    final color = _ratingColor(rating.toDouble());
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final subtitle = [
+      if (title != null && title!.trim().isNotEmpty) title!.trim(),
+      AppStrings.masterTeacher,
+      if (sessionDate != null && sessionDate!.isNotEmpty) sessionDate,
+    ].join(' · ');
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.all(isMobile ? 8 : 10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
+        color: const Color(0xFFFBF6EA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE6DCCB)),
       ),
-      child: Text(
-        '$label · $rating',
-        style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 11),
+      child: Row(
+        children: [
+          MentorAvatar(
+            name: name,
+            photoUrl: photoUrl,
+            size: isMobile ? 40 : 48,
+            borderRadius: 12,
+          ),
+          SizedBox(width: isMobile ? 10 : 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Brand.navy,
+                    fontWeight: FontWeight.w800,
+                    fontSize: isMobile ? 13.5 : 15,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Brand.muted,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isMobile ? 11 : 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _DetailLine extends StatelessWidget {
-  const _DetailLine({required this.label, required this.value});
+class _FeedbackNoteCard extends StatelessWidget {
+  const _FeedbackNoteCard({
+    required this.icon,
+    required this.label,
+    required this.body,
+    required this.tone,
+  });
 
+  final IconData icon;
   final String label;
-  final String value;
+  final String body;
+  final Color tone;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(color: Brand.navy, fontSize: 12, height: 1.4),
-          children: [
-            TextSpan(
-              text: '$label: ',
-              style: const TextStyle(color: Brand.muted, fontWeight: FontWeight.w600),
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 10 : 12),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: tone.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: isMobile ? 14 : 16, color: tone),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: tone,
+                  fontWeight: FontWeight.w800,
+                  fontSize: isMobile ? 11.5 : 12.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            body,
+            style: TextStyle(
+              color: Brand.navy,
+              fontSize: isMobile ? 12.5 : 13.5,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
             ),
-            TextSpan(text: value),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

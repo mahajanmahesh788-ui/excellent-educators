@@ -166,7 +166,7 @@ class ApproveTeacherLeave
         $teacherName = $booking->teacher?->full_name ?? 'your mentor';
         $typeLabel = SessionBookingType::fromMixed($booking->type)?->label() ?? 'session';
         $date = $booking->date?->toDateString() ?? '';
-        $displayDate = $date !== '' ? Carbon::parse($date)->format('d M Y') : '';
+        $displayDate = $date !== '' ? Carbon::parse($date)->format('d-M-Y') : '';
 
         $this->notifications->execute(
             $user,

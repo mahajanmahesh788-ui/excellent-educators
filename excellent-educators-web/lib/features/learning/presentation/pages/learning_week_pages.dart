@@ -75,6 +75,7 @@ class _StudentLearningWeekPageState
 
     return StudentScaffold(
       title: 'Week ${widget.week} Assignment',
+      backTo: RoutePaths.studentJournal,
       body: weekValue.when(
         loading: () => ListView(
           children: const [
@@ -140,65 +141,8 @@ class _StudentLearningWeekPageState
           return ListView(
             padding: const EdgeInsets.only(bottom: 48),
             children: [
-              // Header navigation breadcrumb & back
               Row(
-                children: [
-                  InkWell(
-                    onTap: () => context.go(RoutePaths.studentJournal),
-                    borderRadius: BorderRadius.circular(8),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.arrow_back_rounded,
-                            size: 18,
-                            color: Academy.muted,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            AppStrings.backToJourney,
-                            style: TextStyle(
-                              color: Academy.muted,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Brand.gold.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Brand.gold.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: Text(
-                      week.level.name.toUpperCase(),
-                      style: const TextStyle(
-                        color: Color(0xFF6B4D00),
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-
-              // Title and status banner
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Column(
@@ -228,6 +172,30 @@ class _StudentLearningWeekPageState
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Brand.gold.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Brand.gold.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Text(
+                      week.level.name.toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF6B4D00),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                        letterSpacing: 0.8,
+                      ),
                     ),
                   ),
                 ],
@@ -462,28 +430,15 @@ class _StudentLearningWeekPageState
                                     : Brand.gold.withValues(alpha: 0.5),
                               ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (answeredCount == totalQuestions) ...[
-                                  const Icon(
-                                    Icons.check_circle_rounded,
-                                    size: 13,
-                                    color: Color(0xFF2E7D32),
-                                  ),
-                                  const SizedBox(width: 4),
-                                ],
-                                Text(
-                                  '$answeredCount / $totalQuestions ${week.canSubmit ? 'answered' : 'selected'}',
-                                  style: TextStyle(
-                                    color: answeredCount == totalQuestions
-                                        ? const Color(0xFF1B5E20)
-                                        : const Color(0xFF6B4D00),
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              '$answeredCount / $totalQuestions',
+                              style: TextStyle(
+                                color: answeredCount == totalQuestions
+                                    ? const Color(0xFF1B5E20)
+                                    : const Color(0xFF6B4D00),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
@@ -644,7 +599,7 @@ class _StudentLearningWeekPageState
                   ),
                 ],
 
-                // Action Bar (Submit if open, or Back to Journey if closed/completed)
+                // Submit action when assignment is still open
                 if (week.canSubmit) ...[
                   Container(
                     padding: const EdgeInsets.all(18),
@@ -721,15 +676,6 @@ class _StudentLearningWeekPageState
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ] else ...[
-                  const SizedBox(height: 8),
-                  Center(
-                    child: AcademyButton(
-                      icon: Icons.arrow_back_rounded,
-                      label: AppStrings.backToJourney,
-                      onPressed: () => context.go(RoutePaths.studentJournal),
                     ),
                   ),
                 ],
@@ -1007,81 +953,6 @@ class _CompactQuestionCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (showResult && isAnswered) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 3.5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFA5D6A7)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle_rounded,
-                        size: 13,
-                        color: Color(0xFF2E7D32),
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        AppStrings.answered,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF1B5E20),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ] else if (showResult && !isAnswered) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Academy.line),
-                  ),
-                  child: const Text(
-                    AppStrings.notAnswered,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Academy.muted,
-                    ),
-                  ),
-                ),
-              ] else if (isAnswered) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFA5D6A7)),
-                  ),
-                  child: Text(
-                    isReadOnly ? AppStrings.selected : AppStrings.answered,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF2E7D32),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
           const SizedBox(height: 12),
@@ -1401,147 +1272,95 @@ class StaffLearningWeekPage extends ConsumerWidget {
         },
         builder: (weekData) {
           final hasAttempts = weekData.attempts.isNotEmpty;
-          final total = weekData.questions.length;
-          final answered = weekData.attempts.isEmpty
-              ? 0
-              : weekData.questions
-                    .where(
-                      (q) => weekData.attempts.last.hasAnswerFor(q),
-                    )
-                    .length;
+          final isMobile = MediaQuery.sizeOf(context).width < 600;
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
+            padding: EdgeInsets.fromLTRB(
+              isMobile ? 12 : 16,
+              isMobile ? 10 : 16,
+              isMobile ? 12 : 16,
+              48,
+            ),
             children: [
-              // Executive Header Card
               AcademySurface(
+                padding: EdgeInsets.all(isMobile ? 12 : 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Text(
+                      weekData.studentName ?? AppStrings.student,
+                      style: TextStyle(
+                        fontSize: isMobile ? 18 : 22,
+                        fontWeight: FontWeight.w800,
+                        color: Academy.ink,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    SizedBox(height: isMobile ? 8 : 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                weekData.studentName ?? AppStrings.student,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  color: Academy.ink,
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 6,
-                                children: [
-                                  _InfoBadge(
-                                    icon: Icons.layers_outlined,
-                                    label:
-                                        '${weekData.level.name} · Week ${weekData.weekNumber}',
-                                  ),
-                                  if (weekData.studyDate != null)
-                                    _InfoBadge(
-                                      icon: Icons.calendar_today_outlined,
-                                      label:
-                                          'Study date: ${formatDisplayDate(weekData.studyDate)}',
-                                    ),
-                                  _InfoBadge(
-                                    icon: Icons.history_rounded,
-                                    label:
-                                        'Attempts ${weekData.attemptsUsed}/${weekData.attemptsMax}',
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                        _InfoBadge(
+                          icon: Icons.layers_outlined,
+                          label:
+                              '${weekData.level.name} · Week ${weekData.weekNumber}',
+                          compact: isMobile,
                         ),
-                        // Overall Result Badge if attempts have been submitted
-                        if (hasAttempts) ...[
-                          const SizedBox(width: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFF81C784),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.verified_rounded,
-                                  size: 24,
-                                  color: Color(0xFF2E7D32),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  'Answered $answered / $total',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 14.5,
-                                    color: Color(0xFF1B5E20),
-                                  ),
-                                ),
-                              ],
-                            ),
+                        if (weekData.studyDate != null)
+                          _InfoBadge(
+                            icon: Icons.calendar_today_outlined,
+                            label: formatDisplayDate(weekData.studyDate),
+                            compact: isMobile,
                           ),
-                        ],
+                        _InfoBadge(
+                          icon: Icons.history_rounded,
+                          label:
+                              '${weekData.attemptsUsed}/${weekData.attemptsMax} attempts',
+                          compact: isMobile,
+                        ),
                       ],
                     ),
                     if (weekData.hasVideo && weekData.videoUrl != null) ...[
-                      const SizedBox(height: 14),
-                      const Divider(height: 1, color: Academy.line),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          FilledButton.icon(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Brand.navy,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
+                      SizedBox(height: isMobile ? 10 : 14),
+                      SizedBox(
+                        width: isMobile ? double.infinity : null,
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Brand.navy,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: isMobile ? 10 : 10,
                             ),
-                            onPressed: () => launchUrl(
-                              Uri.parse(weekData.videoUrl!),
-                              webOnlyWindowName: AppStrings.blank,
-                            ),
-                            icon: const Icon(
-                              Icons.play_circle_fill_rounded,
-                              color: Brand.gold,
-                              size: 18,
-                            ),
-                            label: const Text(
-                              AppStrings.openLessonVideo,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                              ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                        ],
+                          onPressed: () => launchUrl(
+                            Uri.parse(weekData.videoUrl!),
+                            webOnlyWindowName: AppStrings.blank,
+                          ),
+                          icon: const Icon(
+                            Icons.play_circle_fill_rounded,
+                            color: Brand.gold,
+                            size: 18,
+                          ),
+                          label: Text(
+                            AppStrings.openLessonVideo,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: isMobile ? 12.5 : 13,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              if (weekData.attempts.isEmpty)
+              SizedBox(height: isMobile ? 12 : 20),
+              if (!hasAttempts)
                 const AcademyEmpty(
                   icon: Icons.quiz_outlined,
                   title: AppStrings.noAttemptsSubmitted,
@@ -1562,15 +1381,23 @@ class StaffLearningWeekPage extends ConsumerWidget {
 enum StaffLearningAudience { admin, masterTeacher, teacher }
 
 class _InfoBadge extends StatelessWidget {
-  const _InfoBadge({required this.icon, required this.label});
+  const _InfoBadge({
+    required this.icon,
+    required this.label,
+    this.compact = false,
+  });
 
   final IconData icon;
   final String label;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 7 : 8,
+        vertical: compact ? 3 : 4,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFFF4F1EA),
         borderRadius: BorderRadius.circular(6),
@@ -1579,12 +1406,12 @@ class _InfoBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: Brand.navy),
-          const SizedBox(width: 5),
+          Icon(icon, size: compact ? 12 : 13, color: Brand.navy),
+          SizedBox(width: compact ? 4 : 5),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
+            style: TextStyle(
+              fontSize: compact ? 11 : 12,
               fontWeight: FontWeight.w600,
               color: Academy.ink,
             ),
@@ -1608,19 +1435,21 @@ class _AttemptReview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     final totalCount = week.questions.length;
     final answeredCount = week.questions
         .where((q) => attempt.hasAnswerFor(q))
         .length;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: EdgeInsets.only(bottom: isMobile ? 12 : 24),
       child: AcademySurface(
+        padding: EdgeInsets.all(isMobile ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Attempt Header with Title & Result Badge
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Column(
@@ -1628,18 +1457,18 @@ class _AttemptReview extends StatelessWidget {
                     children: [
                       Text(
                         'Attempt ${attempt.attemptNumber}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w800,
-                          fontSize: 18,
+                          fontSize: isMobile ? 15 : 18,
                           color: Academy.ink,
                         ),
                       ),
                       if (attempt.submittedAt != null) ...[
                         const SizedBox(height: 2),
                         Text(
-                          'Submitted on ${formatDisplayDateTime(attempt.submittedAt)}',
-                          style: const TextStyle(
-                            fontSize: 12,
+                          formatDisplayDateTime(attempt.submittedAt),
+                          style: TextStyle(
+                            fontSize: isMobile ? 11 : 12,
                             color: Academy.muted,
                           ),
                         ),
@@ -1648,62 +1477,57 @@ class _AttemptReview extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 8 : 12,
+                    vertical: isMobile ? 4 : 6,
                   ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFFA5D6A7)),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.check_circle_rounded,
-                        size: 15,
-                        color: Color(0xFF2E7D32),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Answered $answeredCount / $totalCount',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF1B5E20),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    '$answeredCount / $totalCount',
+                    style: TextStyle(
+                      fontSize: isMobile ? 11.5 : 13,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1B5E20),
+                    ),
                   ),
                 ),
               ],
             ),
             if (attempt.result != null &&
                 attempt.result!.dimensions.isNotEmpty) ...[
-              const SizedBox(height: 14),
+              SizedBox(height: isMobile ? 10 : 14),
               AssessmentResultView(
                 result: attempt.result!,
                 compact: true,
                 showCharts: false,
+                showTitle: false,
               ),
             ],
             if (attempt.videoUrl != null && attempt.videoUrl!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => launchUrl(
-                  Uri.parse(attempt.videoUrl!),
-                  webOnlyWindowName: AppStrings.blank,
-                ),
-                icon: const Icon(Icons.videocam_outlined, size: 16),
-                label: const Text(
-                  AppStrings.viewStudentSubmissionVideo,
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+              SizedBox(height: isMobile ? 8 : 12),
+              SizedBox(
+                width: isMobile ? double.infinity : null,
+                child: OutlinedButton.icon(
+                  onPressed: () => launchUrl(
+                    Uri.parse(attempt.videoUrl!),
+                    webOnlyWindowName: AppStrings.blank,
+                  ),
+                  icon: const Icon(Icons.videocam_outlined, size: 16),
+                  label: Text(
+                    AppStrings.viewStudentSubmissionVideo,
+                    style: TextStyle(
+                      fontSize: isMobile ? 11.5 : 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
             ],
-            const SizedBox(height: 16),
-            // Full Question & Answer UI using the exact same components!
+            SizedBox(height: isMobile ? 12 : 16),
             for (var i = 0; i < week.questions.length; i++)
               _CompactQuestionCard(
                 index: i,

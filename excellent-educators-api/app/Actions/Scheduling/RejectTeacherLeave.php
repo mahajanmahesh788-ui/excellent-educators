@@ -64,7 +64,7 @@ class RejectTeacherLeave
             $teacher = $primary->teacher;
             $user = $teacher?->user;
             $date = $primary->date?->toDateString() ?? '';
-            $displayDate = $date !== '' ? Carbon::parse($date)->format('d M Y') : 'the requested date';
+            $displayDate = $date !== '' ? Carbon::parse($date)->format('d-M-Y') : 'the requested date';
 
             if ($user !== null) {
                 $this->notifications->execute(

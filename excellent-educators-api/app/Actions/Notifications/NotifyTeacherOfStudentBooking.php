@@ -124,7 +124,7 @@ class NotifyTeacherOfStudentBooking
     private function whenLabel(SessionBooking $booking): string
     {
         $date = $booking->date?->toDateString();
-        $displayDate = $date !== null ? Carbon::parse($date)->format('d M Y') : '';
+        $displayDate = $date !== null ? Carbon::parse($date)->format('d-M-Y') : '';
         $time = AppClock::formatTime($booking->starts_at);
 
         return trim($displayDate.($time !== '' ? ' at '.$time : ''));

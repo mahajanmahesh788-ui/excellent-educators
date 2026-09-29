@@ -43,7 +43,7 @@ class RescheduleSessionBooking
         $previousTeacher = $booking->teacher;
         $previousDate = $booking->date?->toDateString();
         $previousWhen = trim(
-            ($previousDate !== null ? Carbon::parse($previousDate)->format('d M Y') : '')
+            ($previousDate !== null ? Carbon::parse($previousDate)->format('d-M-Y') : '')
             .' at '.AppClock::formatTime($booking->starts_at)
         );
 

@@ -109,6 +109,9 @@ class LearningWeekDto {
   final AssessmentResultDto? result;
 
   bool get completed => assignmentStatus == 'completed';
+
+  bool get hasDimensionResult =>
+      result != null && result!.dimensions.isNotEmpty;
 }
 
 class LearningWeekScoreDto {

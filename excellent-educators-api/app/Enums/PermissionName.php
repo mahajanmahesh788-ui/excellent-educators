@@ -33,8 +33,12 @@ enum PermissionName: string
     case RequestsView = 'requests.view';
     case RequestsResolve = 'requests.resolve';
 
-    case SettingsManage = 'settings.manage';
+        case SettingsManage = 'settings.manage';
     case SubAdminsManage = 'sub_admins.manage';
+
+    case PaymentsView = 'payments.view';
+    case PaymentsManage = 'payments.manage';
+    case PaymentsRecord = 'payments.record';
 
     public function group(): string
     {
@@ -48,6 +52,7 @@ enum PermissionName: string
             self::RequestsView, self::RequestsResolve => 'requests',
             self::AssessmentsView, self::AssessmentsManage => 'assessments',
             self::FeedbackView, self::FeedbackManage => 'ratings',
+            self::PaymentsView, self::PaymentsManage, self::PaymentsRecord => 'payments',
             self::SettingsManage => 'settings',
             self::SubAdminsManage => 'sub_admins',
         };
@@ -81,6 +86,9 @@ enum PermissionName: string
             self::FeedbackManage => 'Manage ratings',
             self::SettingsManage => 'Manage settings',
             self::SubAdminsManage => 'Manage sub admins',
+            self::PaymentsView => 'View payments',
+            self::PaymentsManage => 'Manage payment plans',
+            self::PaymentsRecord => 'Record offline payments',
         };
     }
 
@@ -126,6 +134,9 @@ enum PermissionName: string
             self::RequestsResolve,
             self::AssessmentsView,
             self::AssessmentsManage,
+            self::PaymentsView,
+            self::PaymentsManage,
+            self::PaymentsRecord,
             self::SettingsManage,
         ];
     }
@@ -150,6 +161,7 @@ enum PermissionName: string
             'queries' => 'Queries',
             'requests' => 'Requests',
             'assessments' => 'Assessments',
+            'payments' => 'Payments',
             'settings' => 'Settings',
         ];
 

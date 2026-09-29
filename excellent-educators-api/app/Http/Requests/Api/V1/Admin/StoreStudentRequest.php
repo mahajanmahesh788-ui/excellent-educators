@@ -48,6 +48,14 @@ class StoreStudentRequest extends FormRequest
             'guardian_name' => ['nullable', 'string', 'max:255'],
             'guardian_phone' => ['nullable', 'string', 'max:32'],
             'student_code' => ['prohibited'],
+            'payment' => ['nullable', 'array'],
+            'payment.payment_type' => ['required_with:payment', Rule::in(['full', 'partial'])],
+            'payment.preferred_mode' => ['nullable', Rule::in(['online', 'offline'])],
+            'payment.total_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment.initial_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment.payment_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment.notes' => ['nullable', 'string', 'max:2000'],
+            'payment.due_day' => ['nullable', 'integer', 'min:1', 'max:28'],
         ];
     }
 

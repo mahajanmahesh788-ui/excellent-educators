@@ -26,6 +26,9 @@ import 'package:excellent_educators_web/features/learning/presentation/pages/lea
 import 'package:excellent_educators_web/features/learning/presentation/pages/staff_learning_journal_page.dart';
 import 'package:excellent_educators_web/features/learning/presentation/pages/student_learning_journal_page.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/pages/notifications_page.dart';
+import 'package:excellent_educators_web/features/payments/presentation/pages/admin_payments_page.dart';
+import 'package:excellent_educators_web/features/payments/presentation/pages/admin_student_payments_page.dart';
+import 'package:excellent_educators_web/features/payments/presentation/pages/student_payments_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_attendance_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_leave_request_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_leaves_page.dart';
@@ -263,6 +266,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.adminStudentEdit,
         builder: (context, state) =>
             AdminEditStudentPage(studentId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: RoutePaths.adminStudentPayments,
+        builder: (context, state) => AdminStudentPaymentsPage(
+          studentId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.adminPayments,
+        builder: (context, state) => AdminPaymentsPage(
+          initialStatus: state.uri.queryParameters['status'],
+          initialPeriod: state.uri.queryParameters['period'],
+        ),
       ),
       GoRoute(
         path: RoutePaths.adminStudentJournal,
@@ -592,6 +608,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.studentProfile,
         builder: (context, state) => const StudentProfilePage(),
+      ),
+      GoRoute(
+        path: RoutePaths.studentPayments,
+        builder: (context, state) => const StudentPaymentsPage(),
       ),
       GoRoute(
         path: RoutePaths.studentFeedback,

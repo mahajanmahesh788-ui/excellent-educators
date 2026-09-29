@@ -15,6 +15,8 @@ import 'package:go_router/go_router.dart';
 import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_plan_form.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_qr_popup.dart';
 
 class AdminStudentsPage extends ConsumerStatefulWidget {
   const AdminStudentsPage({super.key});
@@ -58,6 +60,7 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
           context.go(RoutePaths.adminStudents);
         }
       },
+      countNoun: 'student',
       total: page?.total,
       page: page?.page ?? filter.page,
       perPage: page?.perPage,
@@ -124,15 +127,10 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
 
                 return ListView.separated(
                   padding: const EdgeInsets.only(bottom: 72),
-                  itemCount: items.length + 1,
+                  itemCount: items.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 6),
                   itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return DirectoryHeader(
-                        countLabel: page.total == 1 ? AppStrings.n1Student : '${page.total} students',
-                      );
-                    }
-                    final student = items[index - 1];
+                    final student = items[index];
                     return StudentCard(
                       student: student,
                       onTap: () => context.go(RoutePaths.adminStudent(student.id)),
@@ -157,6 +155,7 @@ class AdminCreateStudentPage extends ConsumerStatefulWidget {
 
 class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage> {
   final _formKey = GlobalKey<FormState>();
+  final _paymentForm = PaymentPlanFormController();
   final _name = TextEditingController();
   final _phone = TextEditingController();
   final _whatsapp = TextEditingController();
@@ -181,13 +180,42 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _classGrade == null || _gender == null) {
+  Future<void> _onCreatePressed() async {
+    if (!_formKey.currentState!.validate() ||
+        _classGrade == null ||
+        _gender == null) {
       return;
     }
 
+    final payment = _paymentForm.toPayload();
+    final amount = _paymentAmountFromPayload(payment);
+    final paid = await showEnrolmentPaymentQrPopup(
+      context,
+      amount: amount,
+    );
+    if (!paid || !mounted) {
+      return;
+    }
+    await _submit();
+  }
+
+  double? _paymentAmountFromPayload(Map<String, dynamic>? payment) {
+    if (payment == null) {
+      return null;
+    }
+    final raw = payment['payment_amount'] ??
+        payment['initial_amount'] ??
+        payment['total_amount'];
+    if (raw is num) {
+      return raw.toDouble();
+    }
+    return double.tryParse('$raw');
+  }
+
+  Future<void> _submit() async {
     setState(() => _saving = true);
     try {
+      final payment = _paymentForm.toPayload();
       await ref.read(academicRepositoryProvider).createStudent({
         'name': _name.text.trim(),
         'phone': _phone.text.trim(),
@@ -198,6 +226,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
         'class_grade': _classGrade,
         'gender': _gender,
         'guardian_name': _guardianName.text.trim().isEmpty ? null : _guardianName.text.trim(),
+        if (payment != null) 'payment': payment,
       });
       ref.invalidate(adminStudentsProvider);
       ref.invalidate(adminDashboardProvider);
@@ -388,8 +417,10 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                     decoration: const InputDecoration(labelText: AppStrings.guardianNameOptional),
                   ),
                   const SizedBox(height: 24),
+                  PaymentPlanFormFields(controller: _paymentForm),
+                  const SizedBox(height: 24),
                   FilledButton(
-                    onPressed: _saving ? null : _submit,
+                    onPressed: _saving ? null : _onCreatePressed,
                     child: _saving
                         ? const SizedBox(
                             width: 22,

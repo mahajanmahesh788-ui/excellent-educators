@@ -28,6 +28,7 @@ class AppSettings
                 'max' => 500,
                 'default' => (int) config('excellent_educators.batch.max_active_students', 50),
             ],
+            ...\App\Payments\PaymentSettings::catalogItems(),
         ];
     }
 

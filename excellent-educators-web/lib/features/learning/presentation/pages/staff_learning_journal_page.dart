@@ -50,7 +50,9 @@ class StaffLearningJournalPage extends ConsumerWidget {
               ),
             if (data.currentLevelName != null)
               Text('Current level: ${data.currentLevelName}'),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            WeekDimensionRatingsSection(journal: data),
+            const SizedBox(height: 8),
             LearningJournalTable(
               journal: data,
               staffView: true,

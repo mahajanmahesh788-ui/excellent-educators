@@ -133,7 +133,6 @@ class _QuestionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -154,35 +153,12 @@ class _QuestionCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const Spacer(),
                     if (isAnswered)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: StudentColors.emeraldLight,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle_rounded,
-                              size: 13,
-                              color: StudentColors.emeraldDark,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Answered',
-                              style: TextStyle(
-                                color: StudentColors.emeraldDark,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        size: 18,
+                        color: StudentColors.emeraldDark,
                       ),
                   ],
                 ),

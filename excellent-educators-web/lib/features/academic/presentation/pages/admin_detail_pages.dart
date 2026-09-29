@@ -17,6 +17,10 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/d
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
 import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
+import 'package:excellent_educators_web/features/payments/presentation/providers/payment_providers.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/add_payment_modal.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_history.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_reminder_actions.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/teacher_availability_editor.dart';
 import 'package:flutter/material.dart';
@@ -59,6 +63,19 @@ class AdminStudentDetailPage extends ConsumerWidget {
                       icon: const Icon(Icons.menu_book_outlined, size: 18),
                       label: const Text(AppStrings.learningJournal2),
                     ),
+                    if (user?.canAnyAdmin(const [
+                          AdminPermission.paymentsView,
+                          AdminPermission.paymentsManage,
+                          AdminPermission.paymentsRecord,
+                          AdminPermission.studentsView,
+                        ]) ??
+                        false)
+                      FilledButton.tonalIcon(
+                        onPressed: () =>
+                            context.go(RoutePaths.adminStudentPaymentsFor(student.id)),
+                        icon: const Icon(Icons.payments_outlined, size: 18),
+                        label: const Text(AppStrings.payments),
+                      ),
                     if (user?.canAdmin(AdminPermission.studentsEdit) ?? false)
                       FilledButton.tonalIcon(
                         onPressed: () => updateStudentMasterClassQuota(context, ref, student),
@@ -111,39 +128,6 @@ class AdminStudentDetailPage extends ConsumerWidget {
                     : null,
               ),
               const SizedBox(height: 12),
-              StatGrid(
-                children: [
-                  StatTile(
-                    label: AppStrings.status2,
-                    value: student.status == 'active' ? AppStrings.active : AppStrings.inactive,
-                  ),
-                  StatTile(
-                    label: AppStrings.classLevel,
-                    value: student.classGrade > 0
-                        ? 'Class ${student.classGrade}${student.level != null && !student.level!.isEmpty ? ' · ${student.level!.label}' : ''}'
-                        : (student.level != null && !student.level!.isEmpty ? student.level!.label : AppStrings.notAssigned),
-                  ),
-                  StatTile(
-                    label: AppStrings.aptitudeTest,
-                    value: student.hasSubmittedAptitudeAssessment ? AppStrings.submitted : AppStrings.pending,
-                  ),
-                  StatTile(
-                    label: AppStrings.overallRating,
-                    value: student.hasOverallRating
-                        ? '${student.feedbackOverallAverage!.toStringAsFixed(1)} ★'
-                        : AppStrings.notRated,
-                  ),
-                  StatTile(
-                    label: AppStrings.masterClassesThisMonth,
-                    value: '${student.masterClassRemaining} left',
-                    subtitle: '${student.masterClassUsed} used of ${student.masterClassAllotment}',
-                    onTap: (user?.canAdmin(AdminPermission.studentsEdit) ?? false)
-                        ? () => updateStudentMasterClassQuota(context, ref, student)
-                        : null,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
               DetailSection(
                 title: AppStrings.studentInformation,
                 children: [
@@ -171,6 +155,19 @@ class AdminStudentDetailPage extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 12),
+              if (user?.canAnyAdmin(const [
+                    AdminPermission.paymentsView,
+                    AdminPermission.paymentsManage,
+                    AdminPermission.paymentsRecord,
+                    AdminPermission.studentsView,
+                  ]) ??
+                  false) ...[
+                _AdminStudentPaymentSection(
+                  studentId: student.id,
+                  phone: student.phone,
+                ),
+                const SizedBox(height: 12),
+              ],
               _StudentHistorySection(studentId: student.id),
               const SizedBox(height: 12),
               DetailSection(
@@ -344,6 +341,161 @@ class _MasterClassQuotaDialogState extends ConsumerState<_MasterClassQuotaDialog
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AdminStudentPaymentSection extends ConsumerWidget {
+  const _AdminStudentPaymentSection({
+    required this.studentId,
+    this.phone,
+  });
+
+  final String studentId;
+  final String? phone;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planValue = ref.watch(adminStudentPaymentPlanProvider(studentId));
+    final user = ref.watch(authControllerProvider).user;
+    final canRecord = user?.canAnyAdmin(const [
+          AdminPermission.paymentsRecord,
+          AdminPermission.paymentsManage,
+        ]) ??
+        false;
+
+    return planValue.when(
+      loading: () => const DetailSection(
+        title: AppStrings.payments,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: LinearProgressIndicator(minHeight: 2),
+          ),
+        ],
+      ),
+      error: (error, _) => DetailSection(
+        title: AppStrings.payments,
+        children: [
+          Text(
+            error.toString(),
+            style: const TextStyle(color: Brand.muted, fontSize: 13),
+          ),
+          TextButton(
+            onPressed: () =>
+                ref.invalidate(adminStudentPaymentPlanProvider(studentId)),
+            child: const Text(AppStrings.retry),
+          ),
+        ],
+      ),
+      data: (plan) {
+        if (plan == null) {
+          return DetailSection(
+            title: AppStrings.payments,
+            children: [
+              const Text(
+                AppStrings.noPaymentPlanYet,
+                style: TextStyle(color: Brand.muted, fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.tonalIcon(
+                  onPressed: () =>
+                      context.go(RoutePaths.adminStudentPaymentsFor(studentId)),
+                  icon: const Icon(Icons.payments_outlined, size: 18),
+                  label: const Text(AppStrings.createPaymentPlan),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (plan.pendingAmount > 0)
+                    PaymentReminderActions(
+                      studentId: studentId,
+                      phone: phone,
+                      compact: true,
+                    ),
+                  if (canRecord && plan.pendingAmount > 0)
+                    FilledButton.icon(
+                      onPressed: () async {
+                        final ok = await showAddPaymentModal(
+                          context,
+                          ref,
+                          studentId: studentId,
+                          suggestedAmount:
+                              plan.nextDueAmount ?? plan.pendingAmount,
+                          totalAmount: plan.totalAmount,
+                          pendingAmount: plan.pendingAmount,
+                        );
+                        if (ok) {
+                          ref.invalidate(
+                            adminStudentPaymentPlanProvider(studentId),
+                          );
+                          ref.invalidate(adminStudentProvider(studentId));
+                        }
+                      },
+                      icon: const Icon(Icons.add_rounded, size: 16),
+                      label: const Text(AppStrings.addPayment),
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 9,
+                        ),
+                        textStyle: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        context.go(RoutePaths.adminStudentPaymentsFor(studentId)),
+                    icon: const Icon(Icons.tune_rounded, size: 16),
+                    label: const Text(AppStrings.managePaymentPlan),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Brand.navy,
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 9,
+                      ),
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            PaymentHistoryList(
+              payments: plan.payments,
+              pendingAmount: plan.pendingAmount,
+            ),
+          ],
+        );
+      },
     );
   }
 }

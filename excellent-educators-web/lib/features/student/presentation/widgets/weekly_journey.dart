@@ -25,7 +25,7 @@ class WeeklyJourneyWidget extends StatelessWidget {
         snapshot.masterClass.phase == JourneyPhase.current &&
         snapshot.nextSession != null;
 
-    // Define the 5 pedagogical milestones for this week
+    // Define the weekly pathway milestones
     final steps = [
       _JourneyStepData(
         day: 'STEP 1',
@@ -84,32 +84,23 @@ class WeeklyJourneyWidget extends StatelessWidget {
             : (isMasterScheduled || snapshot.canBookMasterClass
                   ? _StepStatus.current
                   : _StepStatus.upcoming),
-        actionLabel: isMasterScheduled ? 'View' : 'Book',
+        actionLabel: isMasterCompleted || isMasterScheduled
+            ? 'View'
+            : (snapshot.canBookMasterClass ? 'Book' : 'View'),
         onTap: () {
           if (isMasterScheduled || isMasterCompleted) {
             context.go(RoutePaths.studentBookings);
           } else if (snapshot.masterClassOpensNextMonth) {
             MasterClassOpensNextMonthDialog.show(context);
-          } else {
+          } else if (snapshot.canBookMasterClass) {
             context.go('${RoutePaths.studentBookNew}?type=master_class');
+          } else {
+            context.go(RoutePaths.studentBookings);
           }
         },
       ),
       _JourneyStepData(
         day: 'STEP 4',
-        title: 'Learning Journal',
-        subtitle: isAssignmentCompleted ? 'Reflected' : 'Reflect & Log',
-        icon: Icons.history_edu_rounded,
-        status: isAssignmentCompleted
-            ? _StepStatus.completed
-            : (isAssignmentCompleted
-                  ? _StepStatus.current
-                  : _StepStatus.upcoming),
-        actionLabel: 'Open Journal',
-        onTap: () => context.go(RoutePaths.studentJournal),
-      ),
-      _JourneyStepData(
-        day: 'STEP 5',
         title: 'Mentor Review',
         subtitle: 'Feedback & Level',
         icon: Icons.military_tech_rounded,
@@ -130,47 +121,53 @@ class WeeklyJourneyWidget extends StatelessWidget {
         children: [
           // Section Title & Header
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: StudentColors.indigoLight,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.route_rounded,
-                      size: 18,
-                      color: StudentColors.indigoPrimary,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'MY LEARNING JOURNEY',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.2,
-                          color: StudentColors.indigoPrimary,
-                        ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: StudentColors.indigoLight,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      Text(
-                        'Week $currentWeek Learning Pathway',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: StudentColors.textPrimary,
-                        ),
+                      child: const Icon(
+                        Icons.route_rounded,
+                        size: 18,
+                        color: StudentColors.indigoPrimary,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'MY LEARNING JOURNEY',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
+                              color: StudentColors.indigoPrimary,
+                            ),
+                          ),
+                          Text(
+                            'Week $currentWeek Learning Pathway',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: StudentColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -181,7 +178,7 @@ class WeeklyJourneyWidget extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '${steps.where((s) => s.status == _StepStatus.completed).length} / 5 Done',
+                  '${steps.where((s) => s.status == _StepStatus.completed).length}/${steps.length}',
                   style: const TextStyle(
                     color: StudentColors.indigoPrimary,
                     fontWeight: FontWeight.w700,
@@ -274,73 +271,31 @@ class _JourneyNodeCardState extends State<_JourneyNodeCard> {
     if (isCompleted) {
       statusColor = StudentColors.emeraldDark;
       iconBg = StudentColors.emeraldLight;
-      statusBadge = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: StudentColors.emeraldLight,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.check_circle_rounded,
-              size: 12,
-              color: StudentColors.emeraldDark,
-            ),
-            SizedBox(width: 3),
-            Text(
-              'Done',
-              style: TextStyle(
-                color: StudentColors.emeraldDark,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
+      statusBadge = const Icon(
+        Icons.check_circle_rounded,
+        size: 16,
+        color: StudentColors.emeraldDark,
       );
     } else if (isCurrent) {
       statusColor = StudentColors.indigoPrimary;
       iconBg = StudentColors.indigoLight;
       statusBadge = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: StudentColors.indigoLight,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.circle, size: 8, color: StudentColors.indigoPrimary),
-            SizedBox(width: 4),
-            Text(
-              'In Progress',
-              style: TextStyle(
-                color: StudentColors.indigoPrimary,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
+        width: 8,
+        height: 8,
+        decoration: const BoxDecoration(
+          color: StudentColors.indigoPrimary,
+          shape: BoxShape.circle,
         ),
       );
     } else {
       statusColor = StudentColors.textMuted;
       iconBg = StudentColors.surfaceMuted;
       statusBadge = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        width: 8,
+        height: 8,
         decoration: BoxDecoration(
-          color: StudentColors.surfaceMuted,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: const Text(
-          'Upcoming',
-          style: TextStyle(
-            color: StudentColors.textMuted,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-          ),
+          color: StudentColors.textMuted.withValues(alpha: 0.35),
+          shape: BoxShape.circle,
         ),
       );
     }

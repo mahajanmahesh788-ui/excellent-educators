@@ -193,17 +193,20 @@ StudentJourneySnapshot buildStudentJourney({
           : 'Ready to book',
       phase: JourneyPhase.current,
     );
+  } else if (masterCompleted ||
+      (eligibility.introductionCompleted &&
+          !eligibility.masterClassOpensNextMonth &&
+          eligibility.masterClassRemaining <= 0)) {
+    master = const JourneyNode(
+      title: AppStrings.masterClass,
+      detail: AppStrings.completed,
+      phase: JourneyPhase.completed,
+    );
   } else if (eligibility.masterClassOpensNextMonth) {
     master = const JourneyNode(
       title: AppStrings.masterClass,
       detail: AppStrings.masterClassOpensNextMonthTitle,
       phase: JourneyPhase.upcoming,
-    );
-  } else if (masterCompleted) {
-    master = const JourneyNode(
-      title: AppStrings.masterClass,
-      detail: AppStrings.completed,
-      phase: JourneyPhase.completed,
     );
   } else {
     master = const JourneyNode(

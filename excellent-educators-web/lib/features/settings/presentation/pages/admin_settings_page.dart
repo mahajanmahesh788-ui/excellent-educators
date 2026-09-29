@@ -38,7 +38,12 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
     }
     _bound = true;
     for (final item in data.items) {
-      _controllers[item.key] = TextEditingController(text: '${item.value ?? ''}');
+      final value = item.type == 'boolean'
+          ? ((item.value == true || item.value == 1 || item.value == '1')
+              ? '1'
+              : '0')
+          : '${item.value ?? ''}';
+      _controllers[item.key] = TextEditingController(text: value);
     }
   }
 
@@ -50,13 +55,20 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
     try {
       final values = <String, Object?>{};
       for (final item in data.items) {
+        if (item.type == 'boolean') {
+          final raw = _controllers[item.key]?.text.trim() ?? '0';
+          values[item.key] = raw == '1' || raw.toLowerCase() == 'true';
+          continue;
+        }
         final raw = _controllers[item.key]?.text.trim() ?? '';
         values[item.key] = item.type == 'integer' ? int.parse(raw) : raw;
       }
       await ref.read(settingsRepositoryProvider).save(values);
       ref.invalidate(adminSettingsProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.settingsSaved)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.settingsSaved)),
+        );
       }
     } catch (error) {
       if (mounted) {
@@ -108,6 +120,10 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
                         controllers: _controllers,
                         saving: _saving,
                         onSave: () => _save(data),
+                        onBooleanChanged: (key, enabled) {
+                          _controllers[key]?.text = enabled ? '1' : '0';
+                          setState(() {});
+                        },
                       );
                     },
                   ),
@@ -131,6 +147,7 @@ class _OrganisationSettingsForm extends StatelessWidget {
     required this.controllers,
     required this.saving,
     required this.onSave,
+    required this.onBooleanChanged,
   });
 
   final GlobalKey<FormState> formKey;
@@ -138,6 +155,7 @@ class _OrganisationSettingsForm extends StatelessWidget {
   final Map<String, TextEditingController> controllers;
   final bool saving;
   final VoidCallback onSave;
+  final void Function(String key, bool enabled) onBooleanChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +170,11 @@ class _OrganisationSettingsForm extends StatelessWidget {
         children: [
           const Text(
             AppStrings.organisationSettings,
-            style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 18),
+            style: TextStyle(
+              color: Brand.navy,
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            ),
           ),
           const SizedBox(height: 4),
           const Text(
@@ -163,40 +185,57 @@ class _OrganisationSettingsForm extends StatelessWidget {
           for (final entry in groups.entries) ...[
             Text(
               entry.key,
-              style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 15),
+              style: const TextStyle(
+                color: Brand.navy,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
             ),
             const SizedBox(height: 10),
             for (final item in entry.value) ...[
-              TextFormField(
-                controller: controllers[item.key],
-                keyboardType: item.type == 'integer' ? TextInputType.number : TextInputType.text,
-                inputFormatters: item.type == 'integer'
-                    ? [FilteringTextInputFormatter.digitsOnly]
-                    : const [],
-                decoration: InputDecoration(
-                  labelText: item.label,
-                  helperText: item.help,
-                  helperMaxLines: 3,
+              if (item.type == 'boolean')
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(item.label),
+                  subtitle: item.help == null ? null : Text(item.help!),
+                  value: (controllers[item.key]?.text.trim() == '1') ||
+                      (controllers[item.key]?.text.trim().toLowerCase() ==
+                          'true'),
+                  onChanged: (enabled) => onBooleanChanged(item.key, enabled),
+                )
+              else
+                TextFormField(
+                  controller: controllers[item.key],
+                  keyboardType: item.type == 'integer'
+                      ? TextInputType.number
+                      : TextInputType.text,
+                  inputFormatters: item.type == 'integer'
+                      ? [FilteringTextInputFormatter.digitsOnly]
+                      : const [],
+                  decoration: InputDecoration(
+                    labelText: item.label,
+                    helperText: item.help,
+                    helperMaxLines: 3,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return AppStrings.required;
+                    }
+                    if (item.type == 'integer') {
+                      final parsed = int.tryParse(value.trim());
+                      if (parsed == null) {
+                        return AppStrings.enterAWholeNumber;
+                      }
+                      if (item.min != null && parsed < item.min!) {
+                        return 'Minimum is ${item.min}';
+                      }
+                      if (item.max != null && parsed > item.max!) {
+                        return 'Maximum is ${item.max}';
+                      }
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return AppStrings.required;
-                  }
-                  if (item.type == 'integer') {
-                    final parsed = int.tryParse(value.trim());
-                    if (parsed == null) {
-                      return AppStrings.enterAWholeNumber;
-                    }
-                    if (item.min != null && parsed < item.min!) {
-                      return 'Minimum is ${item.min}';
-                    }
-                    if (item.max != null && parsed > item.max!) {
-                      return 'Maximum is ${item.max}';
-                    }
-                  }
-                  return null;
-                },
-              ),
               const SizedBox(height: 16),
             ],
           ],

@@ -20,6 +20,36 @@ void dismissOverlayRoutes(BuildContext context) {
   navigator.popUntil((route) => route is! PopupRoute);
 }
 
+/// Returns true if at least one dialog/bottom-sheet/popup was closed.
+bool dismissOverlayRoutesIfAny(BuildContext context) {
+  final navigator = Navigator.of(context, rootNavigator: true);
+  var closed = false;
+  navigator.popUntil((route) {
+    if (route is PopupRoute) {
+      closed = true;
+      return false;
+    }
+    return true;
+  });
+  return closed;
+}
+
+void navigateBack(BuildContext context, String? backTo) {
+  // Back should close an open dialog first, then leave the page on the next press.
+  if (dismissOverlayRoutesIfAny(context)) {
+    return;
+  }
+  // Prefer the explicit fallback route. With go_router `go()` navigations,
+  // `canPop()` is often misleading and can send users to the wrong screen.
+  if (backTo != null) {
+    context.go(backTo);
+    return;
+  }
+  if (context.canPop()) {
+    context.pop();
+  }
+}
+
 class _NavBrandFooter extends StatelessWidget {
   const _NavBrandFooter({required this.compact});
 
@@ -79,33 +109,43 @@ class AppScaffold extends ConsumerWidget {
     final location = GoRouterState.of(context).uri.path;
     final selected = _selectedNavIndex(destinations, location);
     final wide = MediaQuery.sizeOf(context).width >= Breakpoints.mobile;
+    final isTeacher =
+        user?.isMasterTeacher == true || user?.isCommonTeacher == true;
+    final useBottomNav = !wide && isTeacher && destinations.isNotEmpty;
+    final useDrawer = !wide && !useBottomNav && destinations.isNotEmpty;
 
-    final portal = user?.isMasterTeacher == true || user?.isCommonTeacher == true;
+    final portal = isTeacher;
     Widget content = Padding(
-      padding: EdgeInsets.fromLTRB(wide ? 16 : 10, wide ? 12 : 8, wide ? 16 : 10, wide ? 12 : 8),
+      padding: EdgeInsets.fromLTRB(
+        wide ? 16 : 10,
+        wide ? 12 : 8,
+        wide ? 16 : 10,
+        useBottomNav ? 4 : (wide ? 12 : 8),
+      ),
       child: body,
     );
     if (portal) {
       content = AnimatedPortalBackdrop(child: content);
     }
 
-    return Scaffold(
+    return PopScope(
+      canPop: backTo == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || backTo == null) {
+          return;
+        }
+        navigateBack(context, backTo);
+      },
+      child: Scaffold(
       appBar: AppBar(
         leading: backTo == null
             ? null
             : IconButton(
                 tooltip: AppStrings.back,
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  dismissOverlayRoutes(context);
-                  if (context.canPop()) {
-                    context.pop();
-                    return;
-                  }
-                  context.go(backTo!);
-                },
+                onPressed: () => navigateBack(context, backTo),
               ),
-        automaticallyImplyLeading: backTo == null,
+        automaticallyImplyLeading: backTo == null && useDrawer,
         title: Text(title, overflow: TextOverflow.ellipsis),
         actions: [
           ...?actions,
@@ -123,9 +163,8 @@ class AppScaffold extends ConsumerWidget {
             ),
         ],
       ),
-      drawer: wide || destinations.isEmpty
-          ? null
-          : Drawer(
+      drawer: useDrawer
+          ? Drawer(
               child: Column(
                 children: [
                   DrawerHeader(
@@ -170,7 +209,43 @@ class AppScaffold extends ConsumerWidget {
                   _NavBrandFooter(compact: true),
                 ],
               ),
-            ),
+            )
+          : null,
+      bottomNavigationBar: useBottomNav && backTo == null
+          ? NavigationBar(
+              height: 64,
+              selectedIndex: selected < 0 ? 0 : selected,
+              labelBehavior: destinations.length > 4
+                  ? NavigationDestinationLabelBehavior.onlyShowSelected
+                  : NavigationDestinationLabelBehavior.alwaysShow,
+              onDestinationSelected: (index) {
+                final item = destinations[index];
+                if (disabledNavPaths.contains(item.path)) {
+                  return;
+                }
+                dismissOverlayRoutes(context);
+                context.go(item.path);
+              },
+              destinations: [
+                for (final item in destinations)
+                  NavigationDestination(
+                    icon: Badge(
+                      isLabelVisible:
+                          item.badgeCount != null && item.badgeCount! > 0,
+                      label: Text('${item.badgeCount ?? 0}'),
+                      child: Icon(item.icon),
+                    ),
+                    selectedIcon: Badge(
+                      isLabelVisible:
+                          item.badgeCount != null && item.badgeCount! > 0,
+                      label: Text('${item.badgeCount ?? 0}'),
+                      child: Icon(item.icon),
+                    ),
+                    label: item.label,
+                  ),
+              ],
+            )
+          : null,
       floatingActionButton: floatingActionButton,
       body: destinations.isEmpty || !wide
           ? SelectionArea(child: content)
@@ -190,6 +265,7 @@ class AppScaffold extends ConsumerWidget {
                 Expanded(child: SelectionArea(child: content)),
               ],
             ),
+    ),
     );
   }
 
@@ -235,6 +311,12 @@ class AppScaffold extends ConsumerWidget {
           const _NavItem(AppStrings.leaves, Icons.event_busy_outlined, RoutePaths.adminLeaves),
         if (!user.isAgent && user.canAnyAdmin(const [AdminPermission.assessmentsView, AdminPermission.assessmentsManage]))
           const _NavItem(AppStrings.assessments, Icons.quiz_outlined, RoutePaths.adminAssessments),
+        if (!user.isAgent && user.canAnyAdmin(const [
+          AdminPermission.paymentsView,
+          AdminPermission.paymentsManage,
+          AdminPermission.paymentsRecord,
+        ]))
+          const _NavItem(AppStrings.payments, Icons.payments_outlined, RoutePaths.adminPayments),
         if (!user.isAgent && user.canAdmin(AdminPermission.settingsManage))
           const _NavItem(AppStrings.settings, Icons.settings_outlined, RoutePaths.adminSettings),
         if (!user.isAgent && user.canAnyAdmin(const [AdminPermission.requestsView, AdminPermission.requestsResolve]))

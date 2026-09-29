@@ -10,29 +10,39 @@ class AssessmentResultView extends StatelessWidget {
     required this.result,
     this.compact = false,
     this.showCharts = true,
+    this.showTitle = true,
   });
 
   final AssessmentResultDto result;
   final bool compact;
   final bool showCharts;
+  final bool showTitle;
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final title = result.assessmentTitle;
+    final showHeading = showTitle && title != null && title.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!compact && result.assessmentTitle != null)
+        if (showHeading && !compact)
           Text(
-            result.assessmentTitle!,
+            title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: Brand.navy,
                   fontWeight: FontWeight.w800,
                 ),
           ),
-        if (compact && result.assessmentTitle != null)
+        if (showHeading && compact)
           Text(
-            result.assessmentTitle!,
-            style: const TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: 14),
+            title,
+            style: TextStyle(
+              color: Brand.navy,
+              fontWeight: FontWeight.w700,
+              fontSize: isMobile ? 12.5 : 14,
+            ),
           ),
         if (result.submittedAt != null && !compact) ...[
           const SizedBox(height: 4),
@@ -41,13 +51,14 @@ class AssessmentResultView extends StatelessWidget {
             style: const TextStyle(color: Brand.muted, fontSize: 13),
           ),
         ],
-        SizedBox(height: compact ? 8 : 16),
+        if (showHeading || (result.submittedAt != null && !compact))
+          SizedBox(height: compact ? 8 : 16),
         if (showCharts && !compact && result.dimensions.isNotEmpty) ...[
           Center(child: DimensionRadarChart(dimensions: result.dimensions, size: 220)),
           const SizedBox(height: 20),
           DimensionBarChart(dimensions: result.dimensions),
         ] else if (compact)
-          _CompactDimensionGrid(dimensions: result.dimensions)
+          _CompactDimensionGrid(dimensions: result.dimensions, compact: isMobile)
         else
           for (final dimension in result.dimensions)
             Padding(
@@ -89,9 +100,13 @@ class AssessmentResultView extends StatelessWidget {
 }
 
 class _CompactDimensionGrid extends StatelessWidget {
-  const _CompactDimensionGrid({required this.dimensions});
+  const _CompactDimensionGrid({
+    required this.dimensions,
+    this.compact = false,
+  });
 
   final List<DimensionScoreDto> dimensions;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -99,16 +114,20 @@ class _CompactDimensionGrid extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final fontSize = compact ? 11.0 : 12.0;
+    final padH = compact ? 8.0 : 10.0;
+    final padV = compact ? 4.0 : 6.0;
+
     return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+      spacing: compact ? 5 : 6,
+      runSpacing: compact ? 5 : 6,
       children: [
         for (final dimension in dimensions)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
             decoration: BoxDecoration(
               color: const Color(0xFFFBF6EA),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(999),
               border: Border.all(color: const Color(0xFFE6DCCB)),
             ),
             child: Text.rich(
@@ -116,22 +135,22 @@ class _CompactDimensionGrid extends StatelessWidget {
                 children: [
                   TextSpan(
                     text: dimension.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Brand.navy,
                       fontWeight: FontWeight.w600,
-                      fontSize: 12,
+                      fontSize: fontSize,
                     ),
                   ),
-                  const TextSpan(
+                  TextSpan(
                     text: ' · ',
-                    style: TextStyle(color: Brand.muted, fontSize: 12),
+                    style: TextStyle(color: Brand.muted, fontSize: fontSize),
                   ),
                   TextSpan(
                     text: '${dimension.score}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Brand.goldDark,
                       fontWeight: FontWeight.w800,
-                      fontSize: 12,
+                      fontSize: fontSize,
                     ),
                   ),
                 ],

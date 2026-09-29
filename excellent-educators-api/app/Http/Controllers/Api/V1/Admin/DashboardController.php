@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
+use App\Payments\PaymentOverviewService;
 use App\Support\ApiResponse;
 use App\Support\AppClock;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +19,13 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function show(Request $request, AttendanceService $attendance, StudentsDueForRating $studentsDueForRating, BuildAdminAcademySnapshot $academySnapshot): JsonResponse
+    public function show(
+        Request $request,
+        AttendanceService $attendance,
+        StudentsDueForRating $studentsDueForRating,
+        BuildAdminAcademySnapshot $academySnapshot,
+        PaymentOverviewService $payments,
+    ): JsonResponse
     {
         $yearInput = $request->query('year');
         $monthInput = $request->query('month');
@@ -75,6 +82,7 @@ class DashboardController extends Controller
                 ->count();
 
         $snapshot = $academySnapshot->execute($filterYear, $filterMonth);
+        $paymentSummary = $payments->summaryCards();
 
         return ApiResponse::success('Admin dashboard fetched successfully.', [
             'counts' => [
@@ -86,9 +94,14 @@ class DashboardController extends Controller
                 'full_batches' => $fullBatches,
                 'students_assessment_pending' => $studentsAssessmentPending,
                 'students_without_rating_this_month' => $studentsWithoutRatingThisMonth,
+                'payments_all_pending' => $paymentSummary['all_pending'],
+                'payments_due_this_month' => $paymentSummary['due_this_month'],
+                'payments_overdue' => $paymentSummary['overdue'],
+                'payments_paid_this_month' => $paymentSummary['paid_this_month'],
                 ...$attendance->dashboardCounts($filterYear, $filterMonth),
                 ...$snapshot['counts'],
             ],
+            'payments' => $paymentSummary,
             'by_level' => $snapshot['by_level'],
             'top_students' => $snapshot['top_students'],
             'top_teachers' => $snapshot['top_teachers'],

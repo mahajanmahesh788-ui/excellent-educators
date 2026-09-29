@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/features/assessments/data/dto/assessment_dtos.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +21,8 @@ class JourneyRibbon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shown = List.generate(weekCount.clamp(1, 8), (index) => index + 1);
+    final shownCount = weekCount.clamp(1, 8);
+    final shown = List.generate(shownCount, (index) => weekCount - index);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
@@ -285,12 +287,20 @@ class LearningJournalTable extends StatelessWidget {
                                             ],
                                           ),
                                         )
-                                      : const Text(
-                                          '—',
-                                          style: TextStyle(
-                                            color: Academy.muted,
-                                          ),
-                                        ),
+                                      : week.hasDimensionResult
+                                          ? const Text(
+                                              AppStrings.rated,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w800,
+                                                color: Brand.navy,
+                                              ),
+                                            )
+                                          : const Text(
+                                              '—',
+                                              style: TextStyle(
+                                                color: Academy.muted,
+                                              ),
+                                            ),
                                 ),
                                 DataCell(
                                   Text(
@@ -457,52 +467,51 @@ class _StudentJourneyGrid extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    group.level.name,
-                    style: TextStyle(
-                      fontSize: isMobile ? 17 : 22,
-                      fontWeight: FontWeight.w800,
-                      color: Academy.ink,
+                  Flexible(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            group.level.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: isMobile ? 17 : 22,
+                              fontWeight: FontWeight.w800,
+                              color: Academy.ink,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (group.isCurrent)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Brand.gold.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: Brand.gold.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: const Text(
+                              AppStrings.current2,
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF6B4D00),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (group.isCurrent)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Brand.gold.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: Brand.gold.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.star_rounded,
-                            size: 11,
-                            color: Color(0xFF6B4D00),
-                          ),
-                          SizedBox(width: 3),
-                          Text(
-                            AppStrings.current2,
-                            style: TextStyle(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF6B4D00),
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  const Spacer(),
                   Text(
-                    '$completedCount / $totalCount (${(progressFraction * 100).toInt()}%)',
+                    '$completedCount / $totalCount',
                     style: TextStyle(
                       color: Academy.ink,
                       fontWeight: FontWeight.w700,
@@ -544,7 +553,8 @@ class _StudentJourneyGrid extends StatelessWidget {
               spacing: gap,
               runSpacing: gap,
               children: [
-                for (final week in group.weeks)
+                for (final week in (group.weeks.toList()
+                  ..sort((a, b) => b.weekNumber.compareTo(a.weekNumber))))
                   SizedBox(
                     width: itemWidth,
                     child: _StudentWeekCard(
@@ -750,28 +760,15 @@ class _StatusBadge extends StatelessWidget {
           color: completed ? const Color(0xFFBBE5C8) : const Color(0xFFFFDE9E),
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            completed ? Icons.check_circle_rounded : Icons.schedule_rounded,
-            size: 12,
-            color: completed
-                ? const Color(0xFF1F7A46)
-                : const Color(0xFF8A5A00),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            completed ? AppStrings.completed : AppStrings.pending,
-            style: TextStyle(
-              color: completed
-                  ? const Color(0xFF1F7A46)
-                  : const Color(0xFF8A5A00),
-              fontWeight: FontWeight.w800,
-              fontSize: 11,
-            ),
-          ),
-        ],
+      child: Text(
+        completed ? AppStrings.completed : AppStrings.pending,
+        style: TextStyle(
+          color: completed
+              ? const Color(0xFF1F7A46)
+              : const Color(0xFF8A5A00),
+          fontWeight: FontWeight.w800,
+          fontSize: 11,
+        ),
       ),
     );
   }
@@ -822,7 +819,10 @@ class _StaffMobileWeekCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final completed = week.completed;
+    final hasScore = week.score != null;
     final isPassing = (week.score?.percentage ?? 0) >= 70;
+    final hasDimensions = week.hasDimensionResult;
+    final scoreHighlight = hasScore || hasDimensions;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -911,48 +911,60 @@ class _StaffMobileWeekCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: week.score != null
-                          ? (isPassing
-                                ? StudentColors.successSoft
-                                : StudentColors.amberWash)
+                      color: scoreHighlight
+                          ? (hasScore
+                                ? (isPassing
+                                      ? StudentColors.successSoft
+                                      : StudentColors.amberWash)
+                                : StudentColors.successSoft)
                           : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: week.score != null
-                            ? (isPassing
-                                  ? StudentColors.successBorder
-                                  : StudentColors.amberBorder)
+                        color: scoreHighlight
+                            ? (hasScore
+                                  ? (isPassing
+                                        ? StudentColors.successBorder
+                                        : StudentColors.amberBorder)
+                                  : StudentColors.successBorder)
                             : StudentColors.border,
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          week.score != null
-                              ? (isPassing
-                                    ? Icons.check_circle_rounded
-                                    : Icons.info_outline_rounded)
+                          scoreHighlight
+                              ? (hasScore
+                                    ? (isPassing
+                                          ? Icons.check_circle_rounded
+                                          : Icons.info_outline_rounded)
+                                    : Icons.star_rounded)
                               : Icons.quiz_outlined,
                           size: 14,
-                          color: week.score != null
-                              ? (isPassing
-                                    ? StudentColors.live
-                                    : StudentColors.amberDark)
+                          color: scoreHighlight
+                              ? (hasScore
+                                    ? (isPassing
+                                          ? StudentColors.live
+                                          : StudentColors.amberDark)
+                                    : StudentColors.live)
                               : StudentColors.textMuted,
                         ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            week.score != null
+                            hasScore
                                 ? '${week.score!.correct} / ${week.score!.total} (${week.score!.percentage}%)'
-                                : AppStrings.noScoreYet,
+                                : hasDimensions
+                                    ? AppStrings.rated
+                                    : AppStrings.noScoreYet,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: week.score != null
-                                  ? (isPassing
-                                        ? StudentColors.liveDeep
-                                        : StudentColors.amberBrown)
+                              color: scoreHighlight
+                                  ? (hasScore
+                                        ? (isPassing
+                                              ? StudentColors.liveDeep
+                                              : StudentColors.amberBrown)
+                                        : StudentColors.liveDeep)
                                   : StudentColors.textSecondary,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -1064,6 +1076,144 @@ class _StaffMobileWeekCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Overall = sum of each dimension across completed weeks, shown as horizontal pills (highest first).
+class WeekDimensionRatingsSection extends StatelessWidget {
+  const WeekDimensionRatingsSection({super.key, required this.journal});
+
+  final LearningJournalDto journal;
+
+  @override
+  Widget build(BuildContext context) {
+    final weeks = <LearningWeekDto>[
+      for (final level in journal.levels)
+        for (final week in level.weeks)
+          if (week.hasDimensionResult) week,
+    ];
+
+    if (weeks.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final overallDimensions = _sumDimensionsAcrossWeeks(weeks)
+      ..sort((a, b) {
+        final byScore = b.score.compareTo(a.score);
+        if (byScore != 0) {
+          return byScore;
+        }
+        return a.name.compareTo(b.name);
+      });
+
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final gap = isMobile ? 5.0 : 8.0;
+    final pills = [
+      for (final dim in overallDimensions)
+        _OverallDimensionPill(
+          label: dim.name,
+          score: dim.score,
+          compact: isMobile,
+        ),
+    ];
+
+    if (isMobile) {
+      return Wrap(
+        spacing: gap,
+        runSpacing: gap,
+        children: pills,
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var i = 0; i < pills.length; i++) ...[
+            if (i > 0) SizedBox(width: gap),
+            pills[i],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+List<DimensionScoreDto> _sumDimensionsAcrossWeeks(List<LearningWeekDto> weeks) {
+  final totals = <String, int>{};
+  final order = <String>[];
+
+  for (final week in weeks) {
+    for (final dim in week.result!.dimensions) {
+      if (!totals.containsKey(dim.name)) {
+        order.add(dim.name);
+        totals[dim.name] = 0;
+      }
+      totals[dim.name] = totals[dim.name]! + dim.score;
+    }
+  }
+
+  return [
+    for (final name in order)
+      DimensionScoreDto(name: name, score: totals[name] ?? 0),
+  ];
+}
+
+class _OverallDimensionPill extends StatelessWidget {
+  const _OverallDimensionPill({
+    required this.label,
+    required this.score,
+    this.compact = false,
+  });
+
+  final String label;
+  final int score;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final fontSize = compact ? 11.0 : 13.0;
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 12,
+        vertical: compact ? 5 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBF6EA),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE6DCCB)),
+      ),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: label,
+              style: TextStyle(
+                color: Brand.navy,
+                fontWeight: FontWeight.w700,
+                fontSize: fontSize,
+              ),
+            ),
+            TextSpan(
+              text: ' · ',
+              style: TextStyle(
+                color: Brand.navy,
+                fontWeight: FontWeight.w700,
+                fontSize: fontSize,
+              ),
+            ),
+            TextSpan(
+              text: '$score',
+              style: TextStyle(
+                color: Brand.goldDark,
+                fontWeight: FontWeight.w800,
+                fontSize: fontSize,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

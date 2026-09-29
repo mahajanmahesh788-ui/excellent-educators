@@ -105,6 +105,9 @@ abstract final class RoutePaths {
       '/admin/batches/$levelId/learning';
   static const adminLoginPage = '/admin/login-page';
   static const adminSettings = '/admin/settings';
+  static const adminPayments = '/admin/payments';
+  static const adminStudentPayments = '/admin/students/:id/payments';
+  static const studentPayments = '/student/payments';
   static const adminRequestDetail = '/admin/requests/:id';
   static const adminFeedbackNew = '/admin/students/:id/feedback/new';
   static const adminFeedbackEdit =
@@ -116,8 +119,26 @@ abstract final class RoutePaths {
   static String adminSubAdminHistoryFor(String id) =>
       '/admin/sub-admins/$id/history';
   static String adminStudentEditFor(String id) => '/admin/students/$id/edit';
+  static String adminStudentPaymentsFor(String id) =>
+      '/admin/students/$id/payments';
   static String adminStudentResultsFor(String id) =>
       '/admin/students/$id/results';
+  static String adminPaymentsFiltered({
+    String? status,
+    String? period,
+  }) {
+    final params = <String>[];
+    if (status != null && status.isNotEmpty) {
+      params.add('status=$status');
+    }
+    if (period != null && period.isNotEmpty) {
+      params.add('period=$period');
+    }
+    if (params.isEmpty) {
+      return adminPayments;
+    }
+    return '$adminPayments?${params.join('&')}';
+  }
   static String adminTeacher(String id) => '/admin/teachers/$id';
   static String adminTeacherEditFor(String id) => '/admin/teachers/$id/edit';
   static String adminTeacherAvailabilityFor(String id) =>

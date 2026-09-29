@@ -209,45 +209,6 @@ class _StudentHeroSectionState extends ConsumerState<StudentHeroSection> {
                                   height: 1.35,
                                 ),
                               ),
-                              const SizedBox(height: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.10),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.15),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      hasLive
-                                          ? Icons.live_tv_rounded
-                                          : Icons.lightbulb_outline_rounded,
-                                      size: 16,
-                                      color: hasLive
-                                          ? StudentColors.emeraldPrimary
-                                          : StudentColors.amberWarm,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      child: Text(
-                                        snapshot.heroMessage,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: isMobile ? 12 : 13,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                             ],
                           ),
                         ),
@@ -264,7 +225,7 @@ class _StudentHeroSectionState extends ConsumerState<StudentHeroSection> {
                     ),
 
                     if (isMobile) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       _HeroRatingPanel(
                         rating: student.feedbackOverallAverage,
                         ratingCount: student.feedbackTotalSessions,
@@ -273,7 +234,7 @@ class _StudentHeroSectionState extends ConsumerState<StudentHeroSection> {
                       ),
                     ],
 
-                    SizedBox(height: isMobile ? 14 : 18),
+                    SizedBox(height: isMobile ? 10 : 18),
 
                     // Level Progress Bar
                     Container(
@@ -632,16 +593,16 @@ class _HeroRatingPanel extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () => context.go(RoutePaths.studentFeedback),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
-          width: fullWidth ? double.infinity : (compact ? 148 : 168),
+          width: fullWidth ? double.infinity : (compact ? 200 : 220),
           padding: EdgeInsets.symmetric(
             horizontal: compact ? 12 : 14,
-            vertical: compact ? 10 : 12,
+            vertical: compact ? 8 : 10,
           ),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.22),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
           ),
           child: Column(
@@ -657,60 +618,64 @@ class _HeroRatingPanel extends StatelessWidget {
                   letterSpacing: 0.3,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     hasRating ? rating!.toStringAsFixed(1) : '—',
                     style: TextStyle(
                       color: StudentColors.amberWarm,
                       fontWeight: FontWeight.w800,
-                      fontSize: compact ? 28 : 34,
+                      fontSize: compact ? 22 : 26,
                       height: 1,
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 4, bottom: 3),
-                    child: Text(
-                      '/ 10',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                  const Text(
+                    ' / 10',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      height: 1,
+                    ),
+                  ),
+                  SizedBox(width: compact ? 8 : 10),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var i = 1; i <= 5; i++)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 1),
+                              child: Icon(
+                                stars >= i
+                                    ? Icons.star_rounded
+                                    : stars >= i - 0.5
+                                    ? Icons.star_half_rounded
+                                    : Icons.star_outline_rounded,
+                                size: compact ? 14 : 16,
+                                color: StudentColors.amberWarm,
+                              ),
+                            ),
+                          const SizedBox(width: 6),
+                          Text(
+                            hasRating
+                                ? '$ratingCount rating${ratingCount == 1 ? '' : 's'}'
+                                : AppStrings.noRating,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.68),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  for (var i = 1; i <= 5; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 2),
-                      child: Icon(
-                        stars >= i
-                            ? Icons.star_rounded
-                            : stars >= i - 0.5
-                            ? Icons.star_half_rounded
-                            : Icons.star_outline_rounded,
-                        size: 16,
-                        color: StudentColors.amberWarm,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                hasRating
-                    ? '$ratingCount monthly rating${ratingCount == 1 ? '' : 's'}'
-                    : AppStrings.noRating,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.68),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11,
-                ),
               ),
             ],
           ),
