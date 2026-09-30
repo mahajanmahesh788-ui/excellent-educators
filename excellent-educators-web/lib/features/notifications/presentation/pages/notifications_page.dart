@@ -5,11 +5,11 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/notifications/data/dto/notification_dtos.dart';
+import 'package:excellent_educators_web/features/notifications/presentation/notification_navigation.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/providers/notification_feature_providers.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
@@ -124,99 +124,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   ) async {
     await _markRead(context, ref, notification);
     if (!context.mounted) return;
-
-    final groupId = notification.data?['leave_request_group_id'] as String?;
-    if ((notification.type == 'teacher_leave_submitted' ||
-            notification.type == 'teacher_leave_cancelled') &&
-        groupId != null &&
-        groupId.isNotEmpty) {
-      context.go(RoutePaths.adminLeaveRequest(groupId));
-      return;
-    }
-
-    final link = notification.data?['link'] as String?;
-    if (link != null && link.isNotEmpty) {
-      if (link.startsWith('/admin/leaves/') ||
-          link.startsWith('/admin/schedule/leave-requests/')) {
-        final leaveGroupId = link.split('/').last;
-        if (leaveGroupId.isNotEmpty) {
-          context.go(RoutePaths.adminLeaveRequest(leaveGroupId));
-        }
-        return;
-      }
-      if (link.startsWith('/admin/attendance/')) {
-        final issueId = link.split('/').last;
-        if (issueId.isNotEmpty) {
-          context.go(RoutePaths.adminAttendanceIssue(issueId));
-        } else {
-          context.go(RoutePaths.adminAttendance);
-        }
-        return;
-      }
-      if (link == '/student/payments') {
-        context.go(RoutePaths.studentPayments);
-        return;
-      }
-      if (link == '/student/bookings') {
-        context.go(RoutePaths.studentBookings);
-        return;
-      }
-      if (link == '/student/dashboard') {
-        context.go(RoutePaths.studentDashboard);
-        return;
-      }
-      if (link.startsWith('/teacher/schedule')) {
-        context.go(RoutePaths.teacherDaySchedule);
-        return;
-      }
-    }
-
-    if (notification.type == 'session_booked' ||
-        notification.type == 'session_rescheduled' ||
-        notification.type == 'session_cancelled' ||
-        notification.type == 'teacher_leave_approved' ||
-        notification.type == 'teacher_leave_rejected' ||
-        notification.type == 'teacher_leave_cancelled') {
-      final user = ref.read(authControllerProvider).user;
-      if ((user?.isCommonTeacher ?? false) || (user?.isMasterTeacher ?? false)) {
-        context.go(RoutePaths.teacherDaySchedule);
-      } else if (user?.isStudent ?? false) {
-        context.go(RoutePaths.studentBookings);
-      }
-      return;
-    }
-
-    if (notification.type == 'payment_recorded' ||
-        notification.type == 'payment_voided') {
-      context.go(RoutePaths.studentPayments);
-      return;
-    }
-
-    if (notification.type == 'attendance_conflict_reported') {
-      final issueId = notification.data?['issue_id'] as String?;
-      if (issueId != null && issueId.isNotEmpty) {
-        context.go(RoutePaths.adminAttendanceIssue(issueId));
-      } else {
-        context.go(RoutePaths.adminAttendance);
-      }
-      return;
-    }
-
-    if (notification.type == 'attendance_conflict_resolved') {
-      final user = ref.read(authControllerProvider).user;
-      if (user?.isStudent ?? false) {
-        context.go(RoutePaths.studentBookings);
-      } else if ((user?.isCommonTeacher ?? false) ||
-          (user?.isMasterTeacher ?? false)) {
-        context.go(RoutePaths.teacherDaySchedule);
-      }
-      return;
-    }
-
-    if (notification.type == 'student_promoted' ||
-        notification.type == 'aptitude_assessment_available') {
-      context.go(RoutePaths.studentDashboard);
-    }
+    openNotificationDeepLink(
+      context,
+      notification,
+      user: ref.read(authControllerProvider).user,
+    );
   }
 
   Future<void> _markRead(BuildContext context, WidgetRef ref, UserNotificationDto notification) async {

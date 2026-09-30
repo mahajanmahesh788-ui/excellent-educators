@@ -5,6 +5,8 @@ import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/network/account_inactive_signal.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/auth/presentation/widgets/account_disabled_dialog.dart';
+import 'package:excellent_educators_web/features/notifications/presentation/providers/notification_toast_controller.dart';
+import 'package:excellent_educators_web/features/notifications/presentation/widgets/notification_toast_host.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,6 +16,8 @@ class ExcellentEducatorsApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    // Keep the toast poller alive for the whole authenticated session.
+    ref.watch(notificationToastControllerProvider);
 
     ref.listen<bool>(accountInactiveSignalProvider, (previous, next) {
       if (next && previous != true) {
@@ -46,7 +50,7 @@ class ExcellentEducatorsApp extends ConsumerWidget {
         if (compact) {
           content = Theme(data: AppTheme.compact(Theme.of(context)), child: content);
         }
-        return content;
+        return NotificationToastHost(child: content);
       },
     );
   }
