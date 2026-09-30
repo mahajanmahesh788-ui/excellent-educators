@@ -2,9 +2,8 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
-use App\Enums\DimensionCode;
+use App\Support\OptionDimensionCodeRules;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreAptitudeQuestionRequest extends FormRequest
 {
@@ -23,8 +22,7 @@ class StoreAptitudeQuestionRequest extends FormRequest
             'display_order' => ['nullable', 'integer', 'min:1'],
             'options' => ['required', 'array', 'min:1'],
             'options.*.option_text' => ['required', 'string', 'max:1000'],
-            'options.*.dimension_codes' => ['required', 'array', 'min:1', 'max:3'],
-            'options.*.dimension_codes.*' => ['required', Rule::enum(DimensionCode::class)],
+            ...OptionDimensionCodeRules::forField('options.*.dimension_codes'),
             'options.*.display_order' => ['nullable', 'integer', 'min:1'],
         ];
     }
