@@ -210,9 +210,8 @@ class TeacherStudentBriefingPage extends ConsumerWidget {
                             }
                             return ListView(
                               children: [
-                                LearningJournalTable(
+                                StaffJournalAnalysisPanel(
                                   journal: data,
-                                  staffView: true,
                                   onOpenWeek: (group, week) {
                                     final path = isMaster
                                         ? RoutePaths.masterTeacherStudentWeekFor(

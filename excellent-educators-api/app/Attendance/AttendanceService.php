@@ -17,6 +17,7 @@ use App\Models\ClassAttendance;
 use App\Models\ClassJoinEvent;
 use App\Models\MonthlyFeedback;
 use App\Models\SessionBooking;
+use App\Models\StudentMasterClassBalance;
 use App\Models\TeacherDailyMeeting;
 use App\Models\User;
 use App\Actions\Notifications\CreateUserNotification;
@@ -177,7 +178,13 @@ class AttendanceService
         }
 
         if ($type === AttendanceIssueType::StudentDidNotJoin) {
-            if ($role !== 'teacher' || $booking->teacher_id !== $reporter->teacherProfile?->id) {
+            $isTeacherOfBooking = $role === 'teacher'
+                && $booking->teacher_id !== null
+                && $booking->teacher_id === $reporter->teacherProfile?->id;
+            $isStudentOfBooking = $role === 'student'
+                && $booking->student_id !== null
+                && $booking->student_id === $reporter->studentProfile?->id;
+            if (! $isTeacherOfBooking && ! $isStudentOfBooking) {
                 throw new ApiException(ErrorCode::FORBIDDEN, 'You can only report your own class.', 403);
             }
             if ((int) $attendance->student_join_count > 0) {
@@ -300,13 +307,145 @@ class AttendanceService
      */
     public function payloadFor(SessionBooking $booking, string $viewer): array
     {
+        return $this->payloadsFor(collect([$booking]), $viewer)[$booking->id]
+            ?? $this->emptyPayload();
+    }
+
+    /**
+     * Batch attendance payloads for booking lists (avoids N+1 per booking).
+     *
+     * @param  \Illuminate\Support\Collection<int, SessionBooking>  $bookings
+     * @return array<string, array<string, mixed>> keyed by booking id
+     */
+    public function payloadsFor($bookings, string $viewer): array
+    {
+        $bookings = collect($bookings)->filter(fn ($b) => $b instanceof SessionBooking && filled($b->id))->values();
+        if ($bookings->isEmpty()) {
+            return [];
+        }
+
+        $bookings = $bookings instanceof \Illuminate\Database\Eloquent\Collection
+            ? $bookings
+            : new \Illuminate\Database\Eloquent\Collection($bookings->all());
+
+        $bookings->loadMissing([
+            'student.academicLevel',
+            'student.activeEnrollment.batch.level',
+        ]);
+
+        $ids = $bookings->pluck('id')->all();
+        $attendances = ClassAttendance::query()
+            ->whereIn('booking_id', $ids)
+            ->get()
+            ->keyBy('booking_id');
+        $issuesByBooking = AttendanceIssue::query()
+            ->whereIn('booking_id', $ids)
+            ->orderBy('created_at')
+            ->get()
+            ->groupBy('booking_id');
+
+        $teacherIds = $bookings->pluck('teacher_id')->filter()->unique()->values()->all();
+        $dates = $bookings->map(fn (SessionBooking $b) => $this->dateKey($b->date))->filter()->unique()->values()->all();
+        $dayMeets = $this->dayMeetsKeyedByTeacherDate($teacherIds, $dates);
+
+        $feedbacks = MonthlyFeedback::query()
+            ->whereIn('session_booking_id', $ids)
+            ->get()
+            ->keyBy('session_booking_id');
+
         $now = AppClock::now();
-        $attendance = ClassAttendance::query()->where('booking_id', $booking->id)->first();
-        $dayMeet = TeacherDailyMeeting::query()
-            ->where('teacher_id', $booking->teacher_id)
-            ->whereDate('date', $booking->date?->toDateString())
-            ->first();
-        $issues = AttendanceIssue::query()->where('booking_id', $booking->id)->orderBy('created_at')->get();
+        $completeIds = [];
+        foreach ($bookings as $booking) {
+            $attendance = $attendances->get($booking->id);
+            $issues = $issuesByBooking->get($booking->id, collect());
+            $ends = $booking->ends_at?->timezone(config('app.timezone'));
+            $classEnded = $ends !== null && $now->gte($ends);
+            $studentJoined = (int) ($attendance?->student_join_count ?? 0) > 0;
+            $pending = $issues->first(fn (AttendanceIssue $issue) => $issue->isPending());
+            if ($classEnded && $studentJoined && $pending === null && $booking->status === SessionBookingStatus::Scheduled) {
+                $completeIds[] = $booking->id;
+            }
+        }
+        if ($completeIds !== []) {
+            SessionBooking::query()
+                ->whereIn('id', $completeIds)
+                ->update(['status' => SessionBookingStatus::Completed->value]);
+            foreach ($bookings as $booking) {
+                if (in_array($booking->id, $completeIds, true)) {
+                    $booking->status = SessionBookingStatus::Completed;
+                }
+            }
+        }
+
+        // Sibling bookings for attempt/last-chance (one query for the whole list).
+        $studentIds = $bookings->pluck('student_id')->filter()->unique()->values()->all();
+        $siblingsByStudentType = SessionBooking::query()
+            ->whereIn('student_id', $studentIds)
+            ->where('status', '!=', SessionBookingStatus::Cancelled->value)
+            ->orderBy('starts_at')
+            ->get(['id', 'student_id', 'type', 'starts_at', 'date', 'status'])
+            ->groupBy(fn (SessionBooking $b) => $b->student_id.'|'.($b->type?->value ?? $b->type));
+
+        $balances = $this->balanceHintsForStudents(
+            $bookings->map(fn (SessionBooking $b) => $b->student)->filter()->unique('id'),
+        );
+        $month = AppClock::currentYearMonth();
+
+        $out = [];
+        foreach ($bookings as $booking) {
+            $dateKey = $booking->teacher_id.'|'.$this->dateKey($booking->date);
+            $siblingKey = $booking->student_id.'|'.($booking->type?->value ?? $booking->type);
+            $siblings = $siblingsByStudentType->get($siblingKey, collect());
+            $type = $booking->type?->value ?? $booking->type;
+            if ($type === SessionBookingType::MasterClass->value) {
+                $siblings = $siblings->filter(function (SessionBooking $item) use ($month): bool {
+                    $local = $item->starts_at?->timezone(config('app.timezone'));
+                    if ($local === null && $item->date !== null) {
+                        $local = $item->date->timezone(config('app.timezone'));
+                    }
+                    if ($local === null) {
+                        return false;
+                    }
+
+                    return $local->year === $month['year'] && $local->month === $month['month'];
+                })->values();
+            }
+            $out[$booking->id] = $this->buildPayload(
+                $booking,
+                $viewer,
+                $attendances->get($booking->id),
+                $issuesByBooking->get($booking->id, collect()),
+                $dayMeets->get($dateKey),
+                $feedbacks->get($booking->id),
+                $siblings,
+                $balances[$booking->student_id] ?? null,
+            );
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, AttendanceIssue>  $issues
+     * @param  \Illuminate\Support\Collection<int, SessionBooking>  $siblings
+     * @return array<string, mixed>
+     */
+    /**
+     * @param  array{allotment: int, remaining: int}|null  $balance
+     */
+    private function buildPayload(
+        SessionBooking $booking,
+        string $viewer,
+        ?ClassAttendance $attendance,
+        $issues,
+        ?TeacherDailyMeeting $dayMeet,
+        ?MonthlyFeedback $existingRating,
+        $siblings,
+        ?array $balance = null,
+    ): array {
+        $now = AppClock::now();
+        $issues = collect($issues);
+        $siblings = collect($siblings);
         $starts = $booking->starts_at?->timezone(config('app.timezone'));
         $ends = $booking->ends_at?->timezone(config('app.timezone'));
         $joinLead = (int) config('excellent_educators.attendance.join_lead_minutes', 2);
@@ -317,10 +456,7 @@ class AttendanceService
         $classEnded = $ends !== null && $now->gte($ends);
         $studentJoined = (int) ($attendance?->student_join_count ?? 0) > 0;
         $pending = $issues->first(fn (AttendanceIssue $issue) => $issue->isPending());
-        if ($classEnded && $studentJoined && $pending === null && $booking->status === SessionBookingStatus::Scheduled) {
-            $booking->update(['status' => SessionBookingStatus::Completed->value]);
-            $booking->refresh();
-        }
+
         $canStudentJoin = $viewer === 'student' && $booking->status === SessionBookingStatus::Scheduled && $studentJoinOpen;
         $canTeacherJoin = $viewer === 'teacher' && $booking->status !== SessionBookingStatus::Cancelled;
         $canReportTeacher = $viewer === 'student'
@@ -328,19 +464,17 @@ class AttendanceService
             && ! $issues->contains(
                 fn (AttendanceIssue $issue) => $issue->issue_type === AttendanceIssueType::TeacherDidNotJoin,
             );
-        $canReportStudent = $viewer === 'teacher'
-            && $this->withinAbsenceReportWindow($ends, $now)
+        $canReportStudent = $this->withinAbsenceReportWindow($ends, $now)
             && ! $studentJoined
             && ! $issues->contains(
                 fn (AttendanceIssue $issue) => $issue->issue_type === AttendanceIssueType::StudentDidNotJoin,
+            )
+            && (
+                ($viewer === 'teacher' && $booking->status !== SessionBookingStatus::Cancelled)
+                || $viewer === 'student'
             );
-        $isMasterClass = $booking->type === SessionBookingType::MasterClass;
-        $existingRating = null;
-        if ($isMasterClass && $booking->student_id && $booking->teacher_id && $booking->date) {
-            $existingRating = MonthlyFeedback::query()
-                ->where('session_booking_id', $booking->id)
-                ->first();
-        }
+        $isMasterClass = $booking->type === SessionBookingType::MasterClass
+            || ($booking->type?->value ?? $booking->type) === SessionBookingType::MasterClass->value;
         $ratingEligible = $viewer === 'teacher'
             && $isMasterClass
             && $classEnded
@@ -372,6 +506,9 @@ class AttendanceService
             $whatsAppWindow = 'during';
         }
 
+        $attempt = $this->attemptFromSiblings($booking, $siblings);
+        $isLastChance = $this->isLastChanceFromAttempt($booking, $attempt, $balance);
+
         return [
             'student_first_join_at' => $attendance?->student_first_join_at?->timezone(config('app.timezone'))->toIso8601String(),
             'student_last_join_at' => $attendance?->student_last_join_at?->timezone(config('app.timezone'))->toIso8601String(),
@@ -380,6 +517,7 @@ class AttendanceService
             'teacher_booking_first_join_at' => $attendance?->teacher_first_join_at?->timezone(config('app.timezone'))->toIso8601String(),
             'teacher_day_join_at' => $dayMeet?->first_join_at?->timezone(config('app.timezone'))->toIso8601String(),
             'teacher_day_join_count' => (int) ($dayMeet?->join_count ?? 0),
+            'meeting_url' => $dayMeet?->meet_url,
             'join_opens_at' => $starts?->copy()->subMinutes($joinLead)->toIso8601String(),
             'can_join' => $canStudentJoin || $canTeacherJoin,
             'can_report_teacher_did_not_join' => $canReportTeacher,
@@ -395,8 +533,9 @@ class AttendanceService
             'pending_issue' => $pending !== null,
             'report_submitted' => $issues->isNotEmpty(),
             'rebooking_available' => (bool) ($attendance?->hasUnusedRebooking()),
-            'is_last_chance' => $this->isLastChance($booking),
-            'last_chance_message' => $this->lastChanceMessage($booking),
+            'is_last_chance' => $isLastChance,
+            'last_chance_message' => $isLastChance ? $this->lastChanceMessageForType($booking->type?->value ?? $booking->type) : null,
+            'attempt_number' => $attempt,
             'issues' => $issues->map(fn (AttendanceIssue $issue) => [
                 'id' => $issue->id,
                 'issue_type' => $issue->issue_type?->value ?? $issue->issue_type,
@@ -409,38 +548,164 @@ class AttendanceService
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function emptyPayload(): array
+    {
+        return [
+            'student_join_count' => 0,
+            'can_join' => false,
+            'can_report_teacher_did_not_join' => false,
+            'can_report_student_did_not_join' => false,
+            'class_completed' => false,
+            'report_submitted' => false,
+            'rebooking_available' => false,
+            'issues' => [],
+        ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, SessionBooking>  $siblings
+     */
+    private function attemptFromSiblings(SessionBooking $booking, $siblings): int
+    {
+        $siblings = collect($siblings)->values();
+        foreach ($siblings as $index => $item) {
+            if ($item->id === $booking->id) {
+                return $index + 1;
+            }
+        }
+
+        return max(1, $siblings->count());
+    }
+
+    /**
+     * @param  array{allotment: int, remaining: int}|null  $balance
+     */
+    private function isLastChanceFromAttempt(SessionBooking $booking, int $attempt, ?array $balance = null): bool
+    {
+        $type = $booking->type?->value ?? $booking->type;
+        if ($type === SessionBookingType::IntroductionCall->value) {
+            return $attempt >= 2;
+        }
+        if ($type === SessionBookingType::MasterClass->value) {
+            if ($balance === null) {
+                $student = $booking->student;
+                if ($student === null) {
+                    return false;
+                }
+                $balance = app(MasterClassBalance::class)->snapshot($student);
+            }
+            if ((int) $balance['allotment'] > 1 || (int) $balance['remaining'] > 0) {
+                return false;
+            }
+
+            return $attempt >= 2;
+        }
+
+        return false;
+    }
+
+    /**
+     * Read-only balance hints for list payloads (avoids ensure()/writes per row).
+     *
+     * @param  \Illuminate\Support\Collection<int, \App\Models\StudentProfile>  $students
+     * @return array<string, array{allotment: int, remaining: int}>
+     */
+    private function balanceHintsForStudents($students): array
+    {
+        $students = collect($students)->filter()->unique(fn ($s) => $s->id)->values();
+        if ($students->isEmpty()) {
+            return [];
+        }
+
+        ['year' => $year, 'month' => $month] = AppClock::currentYearMonth();
+        $rows = StudentMasterClassBalance::query()
+            ->whereIn('student_id', $students->pluck('id')->all())
+            ->where('year', $year)
+            ->where('month', $month)
+            ->get()
+            ->keyBy('student_id');
+
+        $balance = app(MasterClassBalance::class);
+        $out = [];
+        foreach ($students as $student) {
+            $row = $rows->get($student->id);
+            if ($row !== null) {
+                $out[$student->id] = [
+                    'allotment' => (int) $row->allotment,
+                    'remaining' => (int) $row->remaining,
+                ];
+
+                continue;
+            }
+
+            $allotment = $balance->allotmentFor($student);
+            $out[$student->id] = [
+                'allotment' => $allotment,
+                'remaining' => $allotment,
+            ];
+        }
+
+        return $out;
+    }
+
+    private function lastChanceMessageForType(mixed $type): string
+    {
+        if ($type === SessionBookingType::IntroductionCall->value || $type === SessionBookingType::IntroductionCall) {
+            return 'This is your last chance to attend the Introduction Call. If this slot is missed, another interview cannot be booked.';
+        }
+
+        return 'This is your last Master Class chance for this month. If this slot is missed, another session cannot be booked until next month.';
+    }
+
+    /**
      * @return array<string, int>
      */
     public function dashboardCounts(?int $year = null, ?int $month = null): array
     {
-        $bookingFilter = function ($query) use ($year, $month): void {
-            if ($year !== null && $month !== null) {
-                $query->whereYear('date', $year)->whereMonth('date', $month);
-            }
-        };
+        $bookings = SessionBooking::query()
+            ->where('status', '!=', SessionBookingStatus::Cancelled->value)
+            ->when($year !== null && $month !== null, fn ($q) => $q->whereYear('date', $year)->whereMonth('date', $month))
+            ->selectRaw('count(*) as total_classes')
+            ->selectRaw('sum(case when status = ? then 1 else 0 end) as completed_classes', [
+                SessionBookingStatus::Completed->value,
+            ])
+            ->first();
 
-        $issueFilter = function ($query) use ($year, $month): void {
-            if ($year !== null && $month !== null) {
-                $query->whereYear('created_at', $year)->whereMonth('created_at', $month);
-            }
-        };
+        $issues = AttendanceIssue::query()
+            ->when($year !== null && $month !== null, fn ($q) => $q->whereYear('created_at', $year)->whereMonth('created_at', $month))
+            ->selectRaw('sum(case when verification_status = ? then 1 else 0 end) as pending_verification', [
+                AttendanceVerificationStatus::Pending->value,
+            ])
+            ->selectRaw("sum(case when reporter_role = 'student' then 1 else 0 end) as student_attendance_reports")
+            ->selectRaw("sum(case when reporter_role = 'teacher' then 1 else 0 end) as teacher_attendance_reports")
+            ->selectRaw('sum(case when admin_decision = ? then 1 else 0 end) as verified_teacher_absence', [
+                AttendanceDecision::TeacherAbsent->value,
+            ])
+            ->selectRaw('sum(case when admin_decision = ? then 1 else 0 end) as verified_student_absence', [
+                AttendanceDecision::StudentAbsent->value,
+            ])
+            ->selectRaw('sum(case when admin_decision = ? then 1 else 0 end) as technical_issues', [
+                AttendanceDecision::TechnicalIssue->value,
+            ])
+            ->first();
 
-        $attendanceFilter = function ($query) use ($year, $month): void {
-            if ($year !== null && $month !== null) {
-                $query->whereYear('rebooking_granted_at', $year)->whereMonth('rebooking_granted_at', $month);
-            }
-        };
+        $rebookings = ClassAttendance::query()
+            ->where('rebooking_granted', true)
+            ->when($year !== null && $month !== null, fn ($q) => $q->whereYear('rebooking_granted_at', $year)->whereMonth('rebooking_granted_at', $month))
+            ->count();
 
         return [
-            'total_classes' => SessionBooking::query()->where('status', '!=', SessionBookingStatus::Cancelled->value)->where($bookingFilter)->count(),
-            'completed_classes' => SessionBooking::query()->where('status', SessionBookingStatus::Completed->value)->where($bookingFilter)->count(),
-            'pending_verification' => AttendanceIssue::query()->where('verification_status', AttendanceVerificationStatus::Pending->value)->where($issueFilter)->count(),
-            'student_attendance_reports' => AttendanceIssue::query()->where('reporter_role', 'student')->where($issueFilter)->count(),
-            'teacher_attendance_reports' => AttendanceIssue::query()->where('reporter_role', 'teacher')->where($issueFilter)->count(),
-            'verified_teacher_absence' => AttendanceIssue::query()->where('admin_decision', AttendanceDecision::TeacherAbsent->value)->where($issueFilter)->count(),
-            'verified_student_absence' => AttendanceIssue::query()->where('admin_decision', AttendanceDecision::StudentAbsent->value)->where($issueFilter)->count(),
-            'technical_issues' => AttendanceIssue::query()->where('admin_decision', AttendanceDecision::TechnicalIssue->value)->where($issueFilter)->count(),
-            'rebookings_given' => ClassAttendance::query()->where('rebooking_granted', true)->where($attendanceFilter)->count(),
+            'total_classes' => (int) ($bookings->total_classes ?? 0),
+            'completed_classes' => (int) ($bookings->completed_classes ?? 0),
+            'pending_verification' => (int) ($issues->pending_verification ?? 0),
+            'student_attendance_reports' => (int) ($issues->student_attendance_reports ?? 0),
+            'teacher_attendance_reports' => (int) ($issues->teacher_attendance_reports ?? 0),
+            'verified_teacher_absence' => (int) ($issues->verified_teacher_absence ?? 0),
+            'verified_student_absence' => (int) ($issues->verified_student_absence ?? 0),
+            'technical_issues' => (int) ($issues->technical_issues ?? 0),
+            'rebookings_given' => $rebookings,
         ];
     }
 
@@ -449,68 +714,171 @@ class AttendanceService
      */
     public function issueDetail(AttendanceIssue $issue): array
     {
-        $issue->loadMissing([
+        return $this->issueDetails(collect([$issue]))->first()
+            ?? [];
+    }
+
+    /**
+     * Batch attendance issue details for admin list (avoids N+1 per issue).
+     *
+     * @param  \Illuminate\Support\Collection<int, AttendanceIssue>  $issues
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    public function issueDetails($issues)
+    {
+        $issues = collect($issues)->filter(fn ($i) => $i instanceof AttendanceIssue)->values();
+        if ($issues->isEmpty()) {
+            return collect();
+        }
+
+        $issues = $issues instanceof \Illuminate\Database\Eloquent\Collection
+            ? $issues
+            : new \Illuminate\Database\Eloquent\Collection($issues->all());
+
+        $issues->loadMissing([
             'booking.student.academicLevel',
             'booking.student.activeEnrollment.batch.level',
+            'booking.student.currentLevelJourney',
+            'booking.student.levelJourneys',
             'booking.teacher',
             'reporter',
             'verifier',
         ]);
-        $booking = $issue->booking;
-        $attendance = $booking ? ClassAttendance::query()->where('booking_id', $booking->id)->first() : null;
-        $dayMeet = $booking ? TeacherDailyMeeting::query()
-            ->where('teacher_id', $booking->teacher_id)
-            ->whereDate('date', $booking->date?->toDateString())
-            ->first() : null;
-        $sibling = AttendanceIssue::query()->where('booking_id', $issue->booking_id)->orderBy('created_at')->get();
-        $type = $booking?->type?->value ?? $booking?->type;
-        $eligibility = $booking ? app(BookingEligibility::class) : null;
-        $student = $booking?->student;
-        $levelName = $student?->academicLevel?->name
-            ?? $student?->activeEnrollment?->batch?->level?->name;
 
-        return [
-            'id' => $issue->id,
-            'student_name' => $booking?->student?->full_name,
-            'teacher_name' => $booking?->teacher?->full_name,
-            'student_id' => $booking?->student_id,
-            'teacher_id' => $booking?->teacher_id,
-            'booking_id' => $issue->booking_id,
-            'booking_type' => $type,
-            'attempt_number' => $booking && $eligibility ? $eligibility->attemptNumber($booking) : null,
-            'learning_week' => $booking && $eligibility && $type === 'master_class'
-                ? $eligibility->learningWeekFor($booking)
-                : null,
-            'level_name' => $levelName,
-            'date' => $booking?->date?->toDateString(),
-            'start' => $booking?->starts_at?->timezone(config('app.timezone'))->format('H:i'),
-            'end' => $booking?->ends_at?->timezone(config('app.timezone'))->format('H:i'),
-            'issue_type' => $issue->issue_type?->value ?? $issue->issue_type,
-            'reporter_role' => $issue->reporter_role,
-            'message' => $issue->message,
-            'created_at' => $issue->created_at?->timezone(config('app.timezone'))->toIso8601String(),
-            'verification_status' => $issue->verification_status?->value ?? $issue->verification_status,
-            'admin_decision' => $issue->admin_decision?->value ?? $issue->admin_decision,
-            'admin_notes' => $issue->admin_notes,
-            'verified_at' => $issue->verified_at?->timezone(config('app.timezone'))->toIso8601String(),
-            'verified_by_name' => $issue->verifier?->name,
-            'meeting_url' => $dayMeet?->meet_url,
-            'student_first_join_at' => $attendance?->student_first_join_at?->timezone(config('app.timezone'))->toIso8601String(),
-            'student_last_join_at' => $attendance?->student_last_join_at?->timezone(config('app.timezone'))->toIso8601String(),
-            'student_join_count' => (int) ($attendance?->student_join_count ?? 0),
-            'teacher_booking_join_count' => (int) ($attendance?->teacher_join_count ?? 0),
-            'teacher_day_join_at' => $dayMeet?->first_join_at?->timezone(config('app.timezone'))->toIso8601String(),
-            'teacher_day_join_count' => (int) ($dayMeet?->join_count ?? 0),
-            'rebooking_granted' => (bool) ($attendance?->rebooking_granted),
-            'rebooking_used' => $attendance?->replacement_booking_id !== null,
-            'reports' => $sibling->map(fn (AttendanceIssue $item) => [
-                'id' => $item->id,
-                'issue_type' => $item->issue_type?->value ?? $item->issue_type,
-                'reporter_role' => $item->reporter_role,
-                'message' => $item->message,
-                'created_at' => $item->created_at?->timezone(config('app.timezone'))->toIso8601String(),
-            ])->values()->all(),
-        ];
+        $bookingIds = $issues->pluck('booking_id')->filter()->unique()->values()->all();
+        $attendances = ClassAttendance::query()
+            ->whereIn('booking_id', $bookingIds)
+            ->get()
+            ->keyBy('booking_id');
+
+        $bookings = $issues->map(fn (AttendanceIssue $i) => $i->booking)->filter();
+        $teacherIds = $bookings->pluck('teacher_id')->filter()->unique()->values()->all();
+        $dates = $bookings->map(fn (SessionBooking $b) => $this->dateKey($b->date))->filter()->unique()->values()->all();
+        $dayMeets = $this->dayMeetsKeyedByTeacherDate($teacherIds, $dates);
+
+        $siblingsByBooking = AttendanceIssue::query()
+            ->whereIn('booking_id', $bookingIds)
+            ->orderBy('created_at')
+            ->get()
+            ->groupBy('booking_id');
+
+        $studentIds = $bookings->pluck('student_id')->filter()->unique()->values()->all();
+        $attemptSiblings = SessionBooking::query()
+            ->whereIn('student_id', $studentIds)
+            ->where('status', '!=', SessionBookingStatus::Cancelled->value)
+            ->orderBy('starts_at')
+            ->get(['id', 'student_id', 'type', 'starts_at', 'date', 'status'])
+            ->groupBy(fn (SessionBooking $b) => $b->student_id.'|'.($b->type?->value ?? $b->type));
+        $month = AppClock::currentYearMonth();
+
+        return $issues->map(function (AttendanceIssue $issue) use (
+            $attendances,
+            $dayMeets,
+            $siblingsByBooking,
+            $attemptSiblings,
+            $month,
+        ): array {
+            $booking = $issue->booking;
+            $attendance = $booking ? $attendances->get($booking->id) : null;
+            $dayMeet = $booking
+                ? $dayMeets->get($booking->teacher_id.'|'.$this->dateKey($booking->date))
+                : null;
+            $sibling = $siblingsByBooking->get($issue->booking_id, collect());
+            $type = $booking?->type?->value ?? $booking?->type;
+            $student = $booking?->student;
+            $levelName = $student?->academicLevel?->name
+                ?? $student?->activeEnrollment?->batch?->level?->name;
+
+            $attempt = null;
+            $learningWeek = null;
+            if ($booking !== null) {
+                $siblingKey = $booking->student_id.'|'.$type;
+                $siblings = $attemptSiblings->get($siblingKey, collect());
+                if ($type === SessionBookingType::MasterClass->value) {
+                    $siblings = $siblings->filter(function (SessionBooking $item) use ($month): bool {
+                        $local = $item->starts_at?->timezone(config('app.timezone'));
+                        if ($local === null && $item->date !== null) {
+                            $local = $item->date->timezone(config('app.timezone'));
+                        }
+                        if ($local === null) {
+                            return false;
+                        }
+
+                        return $local->year === $month['year'] && $local->month === $month['month'];
+                    })->values();
+                }
+                $attempt = $this->attemptFromSiblings($booking, $siblings);
+                if ($type === 'master_class' || $type === SessionBookingType::MasterClass->value) {
+                    $learningWeek = $this->learningWeekFromLoaded($booking);
+                }
+            }
+
+            return [
+                'id' => $issue->id,
+                'student_name' => $booking?->student?->full_name,
+                'teacher_name' => $booking?->teacher?->full_name,
+                'student_id' => $booking?->student_id,
+                'teacher_id' => $booking?->teacher_id,
+                'booking_id' => $issue->booking_id,
+                'booking_type' => $type,
+                'attempt_number' => $attempt,
+                'learning_week' => $learningWeek,
+                'level_name' => $levelName,
+                'date' => $booking?->date?->toDateString(),
+                'start' => $booking?->starts_at?->timezone(config('app.timezone'))->format('H:i'),
+                'end' => $booking?->ends_at?->timezone(config('app.timezone'))->format('H:i'),
+                'issue_type' => $issue->issue_type?->value ?? $issue->issue_type,
+                'reporter_role' => $issue->reporter_role,
+                'message' => $issue->message,
+                'created_at' => $issue->created_at?->timezone(config('app.timezone'))->toIso8601String(),
+                'verification_status' => $issue->verification_status?->value ?? $issue->verification_status,
+                'admin_decision' => $issue->admin_decision?->value ?? $issue->admin_decision,
+                'admin_notes' => $issue->admin_notes,
+                'verified_at' => $issue->verified_at?->timezone(config('app.timezone'))->toIso8601String(),
+                'verified_by_name' => $issue->verifier?->name,
+                'meeting_url' => $dayMeet?->meet_url,
+                'student_first_join_at' => $attendance?->student_first_join_at?->timezone(config('app.timezone'))->toIso8601String(),
+                'student_last_join_at' => $attendance?->student_last_join_at?->timezone(config('app.timezone'))->toIso8601String(),
+                'student_join_count' => (int) ($attendance?->student_join_count ?? 0),
+                'teacher_booking_join_count' => (int) ($attendance?->teacher_join_count ?? 0),
+                'teacher_day_join_at' => $dayMeet?->first_join_at?->timezone(config('app.timezone'))->toIso8601String(),
+                'teacher_day_join_count' => (int) ($dayMeet?->join_count ?? 0),
+                'rebooking_granted' => (bool) ($attendance?->rebooking_granted),
+                'rebooking_used' => $attendance?->replacement_booking_id !== null,
+                'reports' => $sibling->map(fn (AttendanceIssue $item) => [
+                    'id' => $item->id,
+                    'issue_type' => $item->issue_type?->value ?? $item->issue_type,
+                    'reporter_role' => $item->reporter_role,
+                    'message' => $item->message,
+                    'created_at' => $item->created_at?->timezone(config('app.timezone'))->toIso8601String(),
+                ])->values()->all(),
+            ];
+        })->values();
+    }
+
+    private function learningWeekFromLoaded(SessionBooking $booking): ?int
+    {
+        $student = $booking->student;
+        $at = $booking->starts_at;
+        if ($student === null || $at === null) {
+            return null;
+        }
+
+        $journey = $student->currentLevelJourney;
+        if ($journey === null || ($journey->started_at !== null && $journey->started_at->gt($at))) {
+            $journeys = $student->relationLoaded('levelJourneys')
+                ? $student->levelJourneys
+                : collect();
+            $journey = $journeys->first(function ($row) use ($at): bool {
+                if ($row->started_at !== null && $row->started_at->gt($at)) {
+                    return false;
+                }
+
+                return $row->ended_at === null || $row->ended_at->gte($at);
+            });
+        }
+
+        return $journey?->weekNumberAt($at);
     }
 
     public function pruneJoinEvents(): int
@@ -588,7 +956,7 @@ class AttendanceService
     {
         $meet = TeacherDailyMeeting::query()
             ->where('teacher_id', $booking->teacher_id)
-            ->whereDate('date', $booking->date?->toDateString())
+            ->whereDate('date', $this->dateKey($booking->date))
             ->lockForUpdate()
             ->first();
         if ($meet === null) {
@@ -599,6 +967,41 @@ class AttendanceService
             'last_join_at' => $now,
             'join_count' => (int) $meet->join_count + 1,
         ]);
+    }
+
+    /**
+     * Batch-load teacher day meets. Prefer whereDate over whereIn('date'): the column
+     * is often stored as midnight datetime ("Y-m-d 00:00:00"), which whereIn with
+     * date-only strings fails to match on PostgreSQL.
+     *
+     * @param  list<string>  $teacherIds
+     * @param  list<string>  $dates  Y-m-d strings
+     * @return \Illuminate\Support\Collection<string, TeacherDailyMeeting>
+     */
+    private function dayMeetsKeyedByTeacherDate(array $teacherIds, array $dates)
+    {
+        if ($teacherIds === [] || $dates === []) {
+            return collect();
+        }
+
+        return TeacherDailyMeeting::query()
+            ->whereIn('teacher_id', $teacherIds)
+            ->where(function ($query) use ($dates): void {
+                foreach ($dates as $date) {
+                    $query->orWhereDate('date', $date);
+                }
+            })
+            ->get()
+            ->keyBy(fn (TeacherDailyMeeting $m) => $m->teacher_id.'|'.$this->dateKey($m->date));
+    }
+
+    private function dateKey(mixed $date): ?string
+    {
+        if ($date === null || $date === '') {
+            return null;
+        }
+
+        return Carbon::parse($date)->toDateString();
     }
 
     private function isLastChance(SessionBooking $booking): bool

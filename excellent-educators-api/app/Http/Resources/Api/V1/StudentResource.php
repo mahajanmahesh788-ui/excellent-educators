@@ -128,7 +128,11 @@ class StudentResource extends JsonResource
      */
     private function masterClassSummary(): array
     {
-        $balance = app(MasterClassBalance::class)->snapshot($this->resource);
+        if (isset($this->master_class_balance) && is_array($this->master_class_balance)) {
+            $balance = $this->master_class_balance;
+        } else {
+            $balance = app(MasterClassBalance::class)->snapshot($this->resource);
+        }
 
         return [
             'allotment' => $balance['allotment'],

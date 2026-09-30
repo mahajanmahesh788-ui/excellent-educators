@@ -33,6 +33,8 @@ class AvailabilityCalculator
         ?string $ignoreBookingId = null,
         bool $bookableOnly = false,
         string $viewer = 'teacher',
+        bool $includeBookingPayloads = true,
+        ?Collection $cachedBreaks = null,
     ): array {
         $source = $this->teacherAvailability->sourceForDate($teacher, $date);
         $ranges = $source['ranges'];
@@ -79,7 +81,7 @@ class AvailabilityCalculator
             }
         }
 
-        $breaks = TeacherBreak::query()
+        $breaks = $cachedBreaks ?? TeacherBreak::query()
             ->where('teacher_id', $teacher->id)
             ->get();
 
@@ -134,8 +136,18 @@ class AvailabilityCalculator
             }
         }
 
+        $bookingWith = $includeBookingPayloads
+            ? [
+                'student.currentLevelJourney',
+                'student.levelJourneys',
+                'student.academicLevel',
+                'student.activeEnrollment.batch.level',
+                'reassignedFromTeacher',
+            ]
+            : ['student'];
+
         $bookings = SessionBooking::query()
-            ->with('student')
+            ->with($bookingWith)
             ->where('teacher_id', $teacher->id)
             ->whereDate('date', $date)
             ->where('status', '!=', SessionBookingStatus::Cancelled->value)
@@ -189,8 +201,12 @@ class AvailabilityCalculator
                 'end_time' => $this->hm($break->end_time),
             ])->values()->all(),
             'leaves' => $leaves->map(fn (TeacherLeave $leave) => $leave->toScheduleArray())->values()->all(),
-            'bookings' => $bookings->map(fn (SessionBooking $booking) => $this->bookingPayload($booking, $viewer))->values()->all(),
-            'meeting' => $this->meetingPayload($teacher->id, $date),
+            'bookings' => $includeBookingPayloads
+                ? $this->bookingPayloads($bookings, $viewer)->all()
+                : [],
+            'meeting' => $includeBookingPayloads
+                ? $this->meetingPayload($teacher->id, $date)
+                : null,
         ];
     }
 
@@ -221,10 +237,17 @@ class AvailabilityCalculator
      */
     public function week(TeacherProfile $teacher, string $startDate): array
     {
+        $breaks = TeacherBreak::query()
+            ->where('teacher_id', $teacher->id)
+            ->get();
         $days = [];
         $cursor = SlotGrid::atDate($startDate, SlotGrid::dayStart());
         for ($i = 0; $i < 7; $i++) {
-            $days[] = $this->day($teacher, $cursor->copy()->addDays($i)->toDateString());
+            $days[] = $this->day(
+                $teacher,
+                $cursor->copy()->addDays($i)->toDateString(),
+                cachedBreaks: $breaks,
+            );
         }
 
         return $days;
@@ -237,10 +260,18 @@ class AvailabilityCalculator
     {
         $start = SlotGrid::atDate(sprintf('%04d-%02d-01', $year, $month), SlotGrid::dayStart());
         $daysInMonth = $start->daysInMonth;
+        $breaks = TeacherBreak::query()
+            ->where('teacher_id', $teacher->id)
+            ->get();
         $days = [];
         for ($day = 1; $day <= $daysInMonth; $day++) {
             $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
-            $snapshot = $this->day($teacher, $date);
+            $snapshot = $this->day(
+                $teacher,
+                $date,
+                includeBookingPayloads: false,
+                cachedBreaks: $breaks,
+            );
             $counts = Collection::make($snapshot['slots'])->countBy('status');
             $days[] = [
                 'date' => $date,
@@ -268,7 +299,7 @@ class AvailabilityCalculator
         string $start,
         ?string $ignoreBookingId = null,
     ): bool {
-        $day = $this->day($teacher, $date, $ignoreBookingId);
+        $day = $this->day($teacher, $date, $ignoreBookingId, includeBookingPayloads: false);
         foreach ($day['slots'] as $slot) {
             if ($slot['start'] === $start) {
                 if ($slot['status'] !== ScheduleSlotStatus::Available->value) {
@@ -309,7 +340,7 @@ class AvailabilityCalculator
      */
     public function overlapsBookings(TeacherProfile $teacher, string $date, array $starts, ?string $ignoreBookingId = null): bool
     {
-        $day = $this->day($teacher, $date, $ignoreBookingId);
+        $day = $this->day($teacher, $date, $ignoreBookingId, includeBookingPayloads: false);
         $wanted = array_flip($starts);
         foreach ($day['slots'] as $slot) {
             if (isset($wanted[$slot['start']]) && $slot['status'] === ScheduleSlotStatus::Booked->value) {
@@ -325,36 +356,81 @@ class AvailabilityCalculator
      */
     public function bookingPayload(SessionBooking $booking, string $viewer = 'student'): array
     {
-        $booking->loadMissing(['student.currentLevelJourney', 'teacher', 'reassignedFromTeacher']);
-        $eligibility = app(BookingEligibility::class);
-        $type = $booking->type?->value ?? $booking->type;
-        $attempt = $eligibility->attemptNumber($booking);
-        $week = $type === 'master_class' ? $eligibility->learningWeekFor($booking) : null;
+        return $this->bookingPayloads(collect([$booking]), $viewer)->first()
+            ?? [];
+    }
 
-        return [
-            'id' => $booking->id,
-            'student_id' => $booking->student_id,
-            'teacher_id' => $booking->teacher_id,
-            'student_name' => $booking->student?->full_name,
-            'teacher_name' => $booking->teacher?->full_name,
-            'type' => $type,
-            'date' => $booking->date?->toDateString() ?? SlotGrid::dateFrom($booking->starts_at),
-            'start' => SlotGrid::hmFrom($booking->starts_at),
-            'end' => SlotGrid::hmFrom($booking->ends_at),
-            'starts_at' => $booking->starts_at?->timezone(config('app.timezone'))->toIso8601String(),
-            'ends_at' => $booking->ends_at?->timezone(config('app.timezone'))->toIso8601String(),
-            'status' => $booking->status?->value ?? $booking->status,
-            'attempt_number' => $attempt,
-            'learning_week' => $week,
-            'meeting_url' => TeacherDailyMeeting::query()
-                ->where('teacher_id', $booking->teacher_id)
-                ->whereDate('date', $booking->date?->toDateString() ?? SlotGrid::dateFrom($booking->starts_at))
-                ->value('meet_url'),
-            'attendance' => $this->attendance->payloadFor($booking, $viewer),
-            'was_reassigned' => $booking->reassigned_at !== null,
-            'reassigned_at' => $booking->reassigned_at?->toIso8601String(),
-            'previous_teacher_name' => $booking->reassignedFromTeacher?->full_name,
-        ];
+    /**
+     * Batch-serialize booking list payloads (student/teacher/admin indexes).
+     *
+     * @param  Collection<int, SessionBooking>  $bookings
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function bookingPayloads(Collection $bookings, string $viewer = 'student'): Collection
+    {
+        if ($bookings->isEmpty()) {
+            return collect();
+        }
+
+        $bookings = $bookings instanceof \Illuminate\Database\Eloquent\Collection
+            ? $bookings
+            : new \Illuminate\Database\Eloquent\Collection($bookings->all());
+
+        $bookings->loadMissing([
+            'student.currentLevelJourney',
+            'student.levelJourneys',
+            'student.academicLevel',
+            'student.activeEnrollment.batch.level',
+            'teacher',
+            'reassignedFromTeacher',
+        ]);
+        $attendanceById = $this->attendance->payloadsFor($bookings, $viewer);
+
+        return $bookings->map(function (SessionBooking $booking) use ($attendanceById): array {
+            $type = $booking->type?->value ?? $booking->type;
+            $attendance = $attendanceById[$booking->id] ?? [];
+            $attempt = $attendance['attempt_number'] ?? null;
+            $week = null;
+            if ($type === 'master_class') {
+                $at = $booking->starts_at;
+                $student = $booking->student;
+                if ($student !== null && $at !== null) {
+                    $journey = $student->currentLevelJourney;
+                    if ($journey === null || ($journey->started_at !== null && $journey->started_at->gt($at))) {
+                        $journey = $student->levelJourneys->first(function ($row) use ($at): bool {
+                            if ($row->started_at !== null && $row->started_at->gt($at)) {
+                                return false;
+                            }
+
+                            return $row->ended_at === null || $row->ended_at->gte($at);
+                        });
+                    }
+                    $week = $journey?->weekNumberAt($at);
+                }
+            }
+
+            return [
+                'id' => $booking->id,
+                'student_id' => $booking->student_id,
+                'teacher_id' => $booking->teacher_id,
+                'student_name' => $booking->student?->full_name,
+                'teacher_name' => $booking->teacher?->full_name,
+                'type' => $type,
+                'date' => $booking->date?->toDateString() ?? SlotGrid::dateFrom($booking->starts_at),
+                'start' => SlotGrid::hmFrom($booking->starts_at),
+                'end' => SlotGrid::hmFrom($booking->ends_at),
+                'starts_at' => $booking->starts_at?->timezone(config('app.timezone'))->toIso8601String(),
+                'ends_at' => $booking->ends_at?->timezone(config('app.timezone'))->toIso8601String(),
+                'status' => $booking->status?->value ?? $booking->status,
+                'attempt_number' => $attempt,
+                'learning_week' => $week,
+                'meeting_url' => $attendance['meeting_url'] ?? null,
+                'attendance' => $attendance,
+                'was_reassigned' => $booking->reassigned_at !== null,
+                'reassigned_at' => $booking->reassigned_at?->toIso8601String(),
+                'previous_teacher_name' => $booking->reassignedFromTeacher?->full_name,
+            ];
+        })->values();
     }
 
     private function hm(mixed $time): string

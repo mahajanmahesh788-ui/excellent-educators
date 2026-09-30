@@ -172,17 +172,19 @@ class ScheduleController extends Controller
     public function bookings(Request $request): JsonResponse
     {
         $bookings = SessionBooking::query()
-            ->with(['teacher', 'student'])
+            ->with(['teacher', 'student.currentLevelJourney', 'reassignedFromTeacher'])
             ->when($request->filled('teacher_id'), fn ($q) => $q->where('teacher_id', $request->string('teacher_id')))
             ->when($request->filled('student_id'), fn ($q) => $q->where('student_id', $request->string('student_id')))
             ->when($request->filled('date'), fn ($q) => $q->whereDate('date', $request->string('date')))
             ->where('status', '!=', SessionBookingStatus::Cancelled->value)
             ->orderByDesc('starts_at')
             ->limit(200)
-            ->get()
-            ->map(fn (SessionBooking $booking) => $this->availability->bookingPayload($booking));
+            ->get();
 
-        return ApiResponse::success('Bookings fetched successfully.', $bookings);
+        return ApiResponse::success(
+            'Bookings fetched successfully.',
+            $this->availability->bookingPayloads($bookings)->all(),
+        );
     }
 
     public function storeBooking(StoreBookingRequest $request, CreateSessionBooking $action): JsonResponse

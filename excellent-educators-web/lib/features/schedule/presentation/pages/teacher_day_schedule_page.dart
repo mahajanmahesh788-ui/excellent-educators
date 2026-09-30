@@ -454,7 +454,7 @@ class _TeacherMeetingLinkCardState
               controller: _controller,
               decoration: const InputDecoration(
                 labelText: 'https://meet.google.com/...',
-                border: OutlineInputBorder(),
+                border: AppOutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),

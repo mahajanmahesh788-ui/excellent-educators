@@ -11,6 +11,8 @@ class PaymentListFilter {
   const PaymentListFilter({
     this.status,
     this.period,
+    this.from,
+    this.to,
     this.paymentType,
     this.preferredMode,
     this.search,
@@ -19,24 +21,34 @@ class PaymentListFilter {
 
   final String? status;
   final String? period;
+  final String? from;
+  final String? to;
   final String? paymentType;
   final String? preferredMode;
   final String? search;
   final int page;
 
+  bool get hasCustomDateRange =>
+      from != null && from!.isNotEmpty && to != null && to!.isNotEmpty;
+
   PaymentListFilter copyWith({
     String? status,
     String? period,
+    String? from,
+    String? to,
     String? paymentType,
     String? preferredMode,
     String? search,
     int? page,
     bool clearStatus = false,
     bool clearPeriod = false,
+    bool clearDateRange = false,
   }) {
     return PaymentListFilter(
       status: clearStatus ? null : (status ?? this.status),
       period: clearPeriod ? null : (period ?? this.period),
+      from: clearDateRange ? null : (from ?? this.from),
+      to: clearDateRange ? null : (to ?? this.to),
       paymentType: paymentType ?? this.paymentType,
       preferredMode: preferredMode ?? this.preferredMode,
       search: search ?? this.search,
@@ -55,7 +67,9 @@ final paymentListProvider =
   final filter = ref.watch(paymentListFilterProvider);
   return ref.watch(paymentRepositoryProvider).listPlans(
         status: filter.status,
-        period: filter.period,
+        period: filter.hasCustomDateRange ? null : filter.period,
+        from: filter.from,
+        to: filter.to,
         paymentType: filter.paymentType,
         preferredMode: filter.preferredMode,
         search: filter.search,

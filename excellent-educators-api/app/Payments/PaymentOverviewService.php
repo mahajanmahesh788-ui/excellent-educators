@@ -40,33 +40,48 @@ class PaymentOverviewService
                 ),
             );
 
+        $monthStartDate = $monthStart->toDateString();
+        $monthEndDate = $monthEnd->toDateString();
+
+        $planStats = (clone $active)
+            ->selectRaw('sum(case when pending_amount > 0 then 1 else 0 end) as all_pending')
+            ->selectRaw('sum(case when pending_amount > 0 and next_due_date between ? and ? then 1 else 0 end) as due_this_month', [
+                $monthStartDate,
+                $monthEndDate,
+            ])
+            ->selectRaw('sum(case when status = ? then 1 else 0 end) as overdue', [
+                PaymentPlanStatus::Overdue->value,
+            ])
+            ->selectRaw('coalesce(sum(total_amount), 0) as total_expected')
+            ->selectRaw('coalesce(sum(pending_amount), 0) as total_pending')
+            ->selectRaw('coalesce(sum(case when status = ? then overdue_amount else 0 end), 0) as total_overdue', [
+                PaymentPlanStatus::Overdue->value,
+            ])
+            ->first();
+
+        $paymentStats = (clone $ownedPayments)
+            ->where('status', PaymentTransactionStatus::Successful->value)
+            ->selectRaw('count(distinct case when payment_date between ? and ? then student_id end) as paid_this_month', [
+                $monthStartDate,
+                $monthEndDate,
+            ])
+            ->selectRaw('coalesce(sum(case when payment_date between ? and ? then amount else 0 end), 0) as collected_this_month', [
+                $monthStartDate,
+                $monthEndDate,
+            ])
+            ->selectRaw('coalesce(sum(amount), 0) as total_collected')
+            ->first();
+
         return [
-            'all_pending' => (clone $active)->where('pending_amount', '>', 0)->count(),
-            'due_this_month' => (clone $active)
-                ->where('pending_amount', '>', 0)
-                ->whereBetween('next_due_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
-                ->count(),
-            'overdue' => (clone $active)->where('status', PaymentPlanStatus::Overdue->value)->count(),
-            'paid_this_month' => (clone $ownedPayments)
-                ->where('status', PaymentTransactionStatus::Successful->value)
-                ->whereBetween('payment_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
-                ->distinct('student_id')
-                ->count('student_id'),
-            'collected_this_month' => (float) (clone $ownedPayments)
-                ->where('status', PaymentTransactionStatus::Successful->value)
-                ->whereBetween('payment_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
-                ->sum('amount'),
-            // Expected / pending only for live plans.
-            'total_expected' => (float) (clone $active)->sum('total_amount'),
-            // Collected forever — includes payments from deleted/withdrawn students.
-            'total_collected' => (float) (clone $ownedPayments)
-                ->where('status', PaymentTransactionStatus::Successful->value)
-                ->sum('amount'),
-            'total_pending' => (float) (clone $active)->sum('pending_amount'),
-            'total_overdue' => (float) (clone $active)
-                ->where('status', PaymentPlanStatus::Overdue->value)
-                ->sum('overdue_amount'),
-            // Written-off pending when students were deleted.
+            'all_pending' => (int) ($planStats->all_pending ?? 0),
+            'due_this_month' => (int) ($planStats->due_this_month ?? 0),
+            'overdue' => (int) ($planStats->overdue ?? 0),
+            'paid_this_month' => (int) ($paymentStats->paid_this_month ?? 0),
+            'collected_this_month' => (float) ($paymentStats->collected_this_month ?? 0),
+            'total_expected' => (float) ($planStats->total_expected ?? 0),
+            'total_collected' => (float) ($paymentStats->total_collected ?? 0),
+            'total_pending' => (float) ($planStats->total_pending ?? 0),
+            'total_overdue' => (float) ($planStats->total_overdue ?? 0),
             'total_dead' => (float) StudentPaymentPlan::query()
                 ->when(
                     $createdByUserId !== null,

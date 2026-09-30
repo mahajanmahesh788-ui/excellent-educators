@@ -436,11 +436,11 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
                   : null,
               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
               isDense: true,
-              border: OutlineInputBorder(
+              border: AppOutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFFD7CDBB)),
               ),
-              enabledBorder: OutlineInputBorder(
+              enabledBorder: AppOutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFFD7CDBB)),
               ),
@@ -457,11 +457,11 @@ class _AdminTeacherHistoryPageState extends ConsumerState<AdminTeacherHistoryPag
             isExpanded: true,
             decoration: InputDecoration(
               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-              border: OutlineInputBorder(
+              border: AppOutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFFD7CDBB)),
               ),
-              enabledBorder: OutlineInputBorder(
+              enabledBorder: AppOutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFFD7CDBB)),
               ),

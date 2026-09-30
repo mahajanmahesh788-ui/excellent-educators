@@ -8,7 +8,6 @@ use App\Models\SessionBooking;
 use App\Models\TeacherProfile;
 use App\Support\AppClock;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class StudentsDueForRating
@@ -49,13 +48,13 @@ class StudentsDueForRating
 
     private function dueQuery(int $year, int $month): Builder
     {
-        $start = Carbon::create($year, $month, 1, 0, 0, 0, config('app.timezone'))->toDateString();
-        $end = Carbon::create($year, $month, 1, 0, 0, 0, config('app.timezone'))->endOfMonth()->toDateString();
-
+        // Prefer year/month extractors — date columns may be stored as midnight datetimes
+        // (e.g. "2026-09-30 00:00:00"), which breaks string whereBetween against "Y-m-d" ends.
         return SessionBooking::query()
             ->where('type', SessionBookingType::MasterClass)
             ->where('status', '!=', SessionBookingStatus::Cancelled->value)
-            ->whereBetween('date', [$start, $end])
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
             ->where('ends_at', '<=', AppClock::now())
             ->whereDoesntHave('attendanceIssues')
             ->whereDoesntHave('monthlyFeedback');

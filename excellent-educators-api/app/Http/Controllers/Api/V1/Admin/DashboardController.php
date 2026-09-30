@@ -60,9 +60,7 @@ class DashboardController extends Controller
 
         $fullBatches = Batch::query()
             ->where('status', BatchStatus::Active->value)
-            ->withCount('activeEnrollments')
-            ->get()
-            ->filter(fn (Batch $batch) => $batch->active_enrollments_count >= $maxPerBatch)
+            ->whereHas('activeEnrollments', null, '>=', $maxPerBatch)
             ->count();
 
         $studentsAssessmentPending = StudentProfile::query()

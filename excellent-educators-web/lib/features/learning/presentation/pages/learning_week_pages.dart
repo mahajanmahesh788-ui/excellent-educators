@@ -1072,12 +1072,12 @@ class _CompactQuestionCard extends StatelessWidget {
             alignLabelWithHint: true,
             filled: true,
             fillColor: const Color(0xFFFAF8F3),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            enabledBorder: OutlineInputBorder(
+            border: AppOutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            enabledBorder: AppOutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: Color(0xFFE8E0D4)),
             ),
-            focusedBorder: OutlineInputBorder(
+            focusedBorder: AppOutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: Brand.gold, width: 1.4),
             ),

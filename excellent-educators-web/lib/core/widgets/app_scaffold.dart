@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/theme/breakpoints.dart';
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_info.dart';
+import 'package:excellent_educators_web/core/navigation/app_nav_history.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
 import 'package:excellent_educators_web/core/widgets/portal_chrome.dart';
@@ -39,14 +40,22 @@ void navigateBack(BuildContext context, String? backTo) {
   if (dismissOverlayRoutesIfAny(context)) {
     return;
   }
-  // Prefer the explicit fallback route. With go_router `go()` navigations,
-  // `canPop()` is often misleading and can send users to the wrong screen.
-  if (backTo != null) {
-    context.go(backTo);
-    return;
-  }
+
+  // Prefer real stack pop when routes were pushed (A→B→C then C→B→A).
   if (context.canPop()) {
     context.pop();
+    return;
+  }
+
+  // With `go()` navigations there is often no Navigator stack — walk our history.
+  final previous = AppNavHistory.instance.takeBackTarget();
+  if (previous != null) {
+    context.go(previous);
+    return;
+  }
+
+  if (backTo != null && backTo.isNotEmpty) {
+    context.go(backTo);
   }
 }
 
@@ -115,10 +124,11 @@ class AppScaffold extends ConsumerWidget {
     final useDrawer = !wide && !useBottomNav && destinations.isNotEmpty;
 
     final portal = isTeacher;
+    // Extra top inset so the first outlined field's floating label isn't clipped.
     Widget content = Padding(
       padding: EdgeInsets.fromLTRB(
         wide ? 16 : 10,
-        wide ? 12 : 8,
+        wide ? 16 : 12,
         wide ? 16 : 10,
         useBottomNav ? 4 : (wide ? 12 : 8),
       ),
@@ -129,23 +139,30 @@ class AppScaffold extends ConsumerWidget {
     }
 
     return PopScope(
-      canPop: backTo == null,
+      // Let the navigator pop when it has a stack (push). Otherwise intercept
+      // system/browser back and walk AppNavHistory / backTo (C→B→A).
+      canPop: context.canPop(),
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop || backTo == null) {
+        if (didPop) {
           return;
         }
         navigateBack(context, backTo);
       },
       child: Scaffold(
       appBar: AppBar(
-        leading: backTo == null
-            ? null
-            : IconButton(
+        leading: (backTo != null ||
+                context.canPop() ||
+                AppNavHistory.instance.canGoBack)
+            ? IconButton(
                 tooltip: AppStrings.back,
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => navigateBack(context, backTo),
-              ),
-        automaticallyImplyLeading: backTo == null && useDrawer,
+              )
+            : null,
+        automaticallyImplyLeading: backTo == null &&
+            !context.canPop() &&
+            !AppNavHistory.instance.canGoBack &&
+            useDrawer,
         title: Text(title, overflow: TextOverflow.ellipsis),
         actions: [
           ...?actions,

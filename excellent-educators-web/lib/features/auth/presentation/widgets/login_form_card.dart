@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_colors.dart';
+import 'package:excellent_educators_web/app/theme/app_outline_input_border.dart';
 import 'package:excellent_educators_web/app/theme/breakpoints.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/features/auth/data/dto/login_page_dtos.dart';
@@ -119,15 +120,15 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
                   horizontal: 14,
                   vertical: isMobile ? 12 : 14,
                 ),
-                border: OutlineInputBorder(
+                border: AppOutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.border),
                 ),
-                enabledBorder: OutlineInputBorder(
+                enabledBorder: AppOutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.border),
                 ),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: AppOutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
                 ),
@@ -172,15 +173,15 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
                   horizontal: 14,
                   vertical: isMobile ? 12 : 14,
                 ),
-                border: OutlineInputBorder(
+                border: AppOutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.border),
                 ),
-                enabledBorder: OutlineInputBorder(
+                enabledBorder: AppOutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.border),
                 ),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: AppOutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
                 ),

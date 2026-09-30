@@ -604,6 +604,7 @@ class BookingAttendanceDto {
     this.monthlyFeedbackId,
     this.classCompleted = false,
     this.reportSubmitted = false,
+    this.pendingIssue = false,
     this.rebookingAvailable = false,
     this.isLastChance = false,
     this.lastChanceMessage,
@@ -623,6 +624,7 @@ class BookingAttendanceDto {
       monthlyFeedbackId: json['monthly_feedback_id'] as String?,
       classCompleted: json['class_completed'] as bool? ?? false,
       reportSubmitted: json['report_submitted'] as bool? ?? false,
+      pendingIssue: json['pending_issue'] as bool? ?? false,
       rebookingAvailable: json['rebooking_available'] as bool? ?? false,
       isLastChance: json['is_last_chance'] as bool? ?? false,
       lastChanceMessage: json['last_chance_message'] as String?,
@@ -641,6 +643,7 @@ class BookingAttendanceDto {
   final String? monthlyFeedbackId;
   final bool classCompleted;
   final bool reportSubmitted;
+  final bool pendingIssue;
   final bool rebookingAvailable;
   final bool isLastChance;
   final String? lastChanceMessage;

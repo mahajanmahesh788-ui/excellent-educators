@@ -34,6 +34,17 @@ class StudentController extends Controller
                 'activeEnrollment.batch.level.masterTeachers.user',
                 'activeEnrollment.batch.activeTeacherAssignment.teacher',
                 'activeMasterTeacherAssignment.teacher',
+                'currentLevelJourney',
+                'activePaymentPlan',
+            ])
+            ->withCount([
+                'monthlyFeedbacks as feedback_total_sessions',
+                'monthlyFeedbacks as feedback_current_month_sessions' => fn ($query) => $query
+                    ->where('year', $year)
+                    ->where('month', $month),
+                'monthlyFeedbacks as feedback_filter_sessions' => fn ($query) => $query
+                    ->where('year', $year)
+                    ->where('month', $month),
             ])
             ->when($request->filled('level_id'), function ($query) use ($request): void {
                 $levelId = $request->string('level_id')->toString();
@@ -88,15 +99,6 @@ class StudentController extends Controller
         $students->each(function (StudentProfile $student) use ($averages, $year, $month, $dueIds, $feedbackByStudent): void {
             $student->feedback_filter_year = $year;
             $student->feedback_filter_month = $month;
-            $student->loadCount([
-                'monthlyFeedbacks as feedback_total_sessions',
-                'monthlyFeedbacks as feedback_current_month_sessions' => fn ($query) => $query
-                    ->where('year', $year)
-                    ->where('month', $month),
-                'monthlyFeedbacks as feedback_filter_sessions' => fn ($query) => $query
-                    ->where('year', $year)
-                    ->where('month', $month),
-            ]);
             $student->feedback_overall_average = $averages[$student->id] ?? null;
             $due = $dueIds->contains($student->id);
             $ownRatings = $feedbackByStudent->get($student->id);
@@ -105,6 +107,7 @@ class StudentController extends Controller
             $student->can_edit_rating_this_month = $due && $feedbackId !== null;
             $student->monthly_feedback_id = $feedbackId;
         });
+        StudentProfile::attachMasterClassBalances($students);
 
         $levels = $teacher->academicLevels()
             ->with(['batches' => fn ($query) => $query->orderBy('name')])

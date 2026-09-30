@@ -148,7 +148,7 @@ class _AdminSitePagesEditorState extends ConsumerState<AdminSitePagesEditor> {
               controller: _titleControllers[slug],
               decoration: const InputDecoration(
                 labelText: 'Page title',
-                border: OutlineInputBorder(),
+                border: AppOutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 14),
@@ -159,7 +159,7 @@ class _AdminSitePagesEditorState extends ConsumerState<AdminSitePagesEditor> {
               decoration: const InputDecoration(
                 labelText: 'Page content',
                 alignLabelWithHint: true,
-                border: OutlineInputBorder(),
+                border: AppOutlineInputBorder(),
                 hintText: 'Use plain text. Separate sections with blank lines.',
               ),
             ),

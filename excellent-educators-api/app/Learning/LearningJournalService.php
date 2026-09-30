@@ -101,22 +101,42 @@ class LearningJournalService
             ->get();
 
         $levels = [];
+        $maxWeekByJourney = [];
         foreach ($journeys as $journey) {
-            $maxWeek = $journey->weekNumberAt(AppClock::now());
-            $units = WeeklyLearning::query()
+            $maxWeekByJourney[$journey->id] = $journey->weekNumberAt(AppClock::now());
+        }
+
+        $unitsByLevel = collect();
+        if ($journeys->isNotEmpty()) {
+            $unitsByLevel = WeeklyLearning::query()
                 ->with('questions.options.dimensionCodes')
-                ->where('level_id', $journey->level_id)
-                ->where('week_number', '<=', $maxWeek)
+                ->where(function ($query) use ($journeys, $maxWeekByJourney): void {
+                    foreach ($journeys as $journey) {
+                        $maxWeek = $maxWeekByJourney[$journey->id] ?? 0;
+                        $query->orWhere(function ($inner) use ($journey, $maxWeek): void {
+                            $inner->where('level_id', $journey->level_id)
+                                ->where('week_number', '<=', $maxWeek);
+                        });
+                    }
+                })
                 ->orderBy('week_number')
                 ->get()
-                ->keyBy('week_number');
+                ->groupBy('level_id');
+        }
 
-            $attemptsByUnit = WeeklyAssignmentAttempt::query()
+        $attemptsByJourney = $journeys->isEmpty()
+            ? collect()
+            : WeeklyAssignmentAttempt::query()
                 ->where('student_id', $student->id)
-                ->where('student_level_journey_id', $journey->id)
+                ->whereIn('student_level_journey_id', $journeys->pluck('id')->all())
                 ->orderBy('attempt_number')
                 ->get()
-                ->groupBy('weekly_learning_id');
+                ->groupBy('student_level_journey_id');
+
+        foreach ($journeys as $journey) {
+            $maxWeek = $maxWeekByJourney[$journey->id] ?? 0;
+            $units = ($unitsByLevel->get($journey->level_id) ?? collect())->keyBy('week_number');
+            $attemptsByUnit = ($attemptsByJourney->get($journey->id) ?? collect())->groupBy('weekly_learning_id');
 
             $weeks = [];
             for ($week = $maxWeek; $week >= 1; $week--) {

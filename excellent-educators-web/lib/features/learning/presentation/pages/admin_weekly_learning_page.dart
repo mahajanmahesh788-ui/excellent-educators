@@ -224,7 +224,7 @@ class _AdminWeeklyLearningPageState
     return Card(
       key: ValueKey('question-$index-${question.text.hashCode}'),
       margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.none,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -283,16 +283,16 @@ class _AdminWeeklyLearningPageState
                       ),
                       filled: true,
                       fillColor: Colors.white.withValues(alpha: 0.7),
-                      border: OutlineInputBorder(
+                      border: AppOutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      enabledBorder: OutlineInputBorder(
+                      enabledBorder: AppOutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(
                           color: Brand.navy.withValues(alpha: 0.15),
                         ),
                       ),
-                      focusedBorder: OutlineInputBorder(
+                      focusedBorder: AppOutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(
                           color: Brand.gold,
@@ -426,18 +426,18 @@ class _AdminWeeklyLearningPageState
               ),
               decoration: InputDecoration(
                 labelText: 'Option ${index + 1}',
-                labelStyle: const TextStyle(color: Brand.muted, fontSize: 12),
-                isDense: true,
+                labelStyle: const TextStyle(color: Brand.muted, fontSize: 12, height: 1.25),
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(
+                contentPadding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
+                border: AppOutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFE8E0D4)),
+                enabledBorder: const AppOutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                  borderSide: BorderSide(color: Color(0xFFE8E0D4)),
                 ),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: AppOutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(
                     color: Brand.gold.withValues(alpha: 0.7),

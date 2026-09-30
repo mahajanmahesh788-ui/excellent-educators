@@ -183,11 +183,18 @@ class ScheduleRepository with MapsApiFailures {
     });
   }
 
-  Future<SessionBookingDto> studentReportTeacher(String bookingId, String message) {
+  Future<SessionBookingDto> studentReportTeacher(
+    String bookingId,
+    String message, {
+    String issueType = 'teacher_did_not_join',
+  }) {
     return runApi(() async {
       final json = await _client.post(
         ApiEndpoints.studentBookingAttendanceReport(bookingId),
-        data: {'message': message},
+        data: {
+          'message': message,
+          'issue_type': issueType,
+        },
       );
       return SessionBookingDto.fromJson(json!);
     });

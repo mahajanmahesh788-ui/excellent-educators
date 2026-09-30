@@ -51,11 +51,8 @@ class StaffLearningJournalPage extends ConsumerWidget {
             if (data.currentLevelName != null)
               Text('Current level: ${data.currentLevelName}'),
             const SizedBox(height: 12),
-            WeekDimensionRatingsSection(journal: data),
-            const SizedBox(height: 8),
-            LearningJournalTable(
+            StaffJournalAnalysisPanel(
               journal: data,
-              staffView: true,
               onOpenWeek: (group, week) {
                 final path = masterTeacher
                     ? RoutePaths.masterTeacherStudentWeekFor(

@@ -63,17 +63,17 @@ class ScheduleController extends Controller
     {
         $teacher = $this->teacherFrom($request);
         $bookings = SessionBooking::query()
-            ->with(['student', 'teacher', 'reassignedFromTeacher'])
+            ->with(['student.currentLevelJourney', 'teacher', 'reassignedFromTeacher'])
             ->where('teacher_id', $teacher->id)
             ->where('status', '!=', SessionBookingStatus::Cancelled->value)
             ->orderByDesc('starts_at')
             ->limit(500)
-            ->get()
-            ->map(fn (SessionBooking $booking) => $this->availability->bookingPayload($booking, 'teacher'))
-            ->values()
-            ->all();
+            ->get();
 
-        return ApiResponse::success('Bookings fetched successfully.', $bookings);
+        return ApiResponse::success(
+            'Bookings fetched successfully.',
+            $this->availability->bookingPayloads($bookings, 'teacher')->all(),
+        );
     }
 
     public function breaks(Request $request): JsonResponse

@@ -1,4 +1,5 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/core/navigation/app_nav_history.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_batches_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_dashboard_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_standouts_pages.dart';
@@ -60,7 +61,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   });
   ref.onDispose(refresh.dispose);
 
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: RoutePaths.login,
     refreshListenable: refresh,
@@ -702,4 +703,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  void syncNavHistory() {
+    AppNavHistory.instance.track(router.state.uri.toString());
+  }
+
+  router.routerDelegate.addListener(syncNavHistory);
+  // Capture the initial route as well.
+  syncNavHistory();
+  ref.onDispose(() {
+    router.routerDelegate.removeListener(syncNavHistory);
+    AppNavHistory.instance.clear();
+  });
+
+  return router;
 });

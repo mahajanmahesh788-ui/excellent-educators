@@ -93,6 +93,7 @@ class StudentController extends Controller
         }
 
         StudentProfile::attachOverallAverages($students->getCollection());
+        StudentProfile::attachMasterClassBalances($students->getCollection());
 
         return ApiResponse::success(
             'Students fetched successfully.',
@@ -163,9 +164,12 @@ class StudentController extends Controller
     {
         return [
             'user',
-            'academicLevel',
+            'academicLevel.masterTeachers.user',
+            'activeEnrollment.batch.level.masterTeachers.user',
             'activeEnrollment.batch.activeTeacherAssignment.teacher',
             'activeMasterTeacherAssignment.teacher',
+            'currentLevelJourney',
+            'activePaymentPlan',
             'latestAptitudeAssessmentResult.attempt.assessment',
         ];
     }

@@ -303,6 +303,8 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
     return ListView(
       key: const PageStorageKey('admin-assessment-editor'),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      clipBehavior: Clip.none,
+      padding: const EdgeInsets.only(top: 4),
       children: [
         TextField(
           controller: _title,
@@ -385,7 +387,7 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
     return Card(
       key: ValueKey(question.id ?? 'question-$index'),
       margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.none,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -441,14 +443,14 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
                       ),
                       filled: true,
                       fillColor: Colors.white.withValues(alpha: 0.7),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      enabledBorder: OutlineInputBorder(
+                      border: AppOutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      enabledBorder: AppOutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(color: Brand.navy.withValues(alpha: 0.15)),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Brand.gold, width: 1.5),
+                      focusedBorder: const AppOutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                        borderSide: BorderSide(color: Brand.gold, width: 1.5),
                       ),
                     ),
                   ),
@@ -513,16 +515,16 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
               ),
               decoration: InputDecoration(
                 labelText: 'Option ${index + 1}',
-                labelStyle: const TextStyle(color: Brand.muted, fontSize: 12),
-                isDense: true,
+                labelStyle: const TextStyle(color: Brand.muted, fontSize: 12, height: 1.25),
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFE8E0D4)),
+                contentPadding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
+                border: AppOutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                enabledBorder: const AppOutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                  borderSide: BorderSide(color: Color(0xFFE8E0D4)),
                 ),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: AppOutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: Brand.gold.withValues(alpha: 0.7)),
                 ),

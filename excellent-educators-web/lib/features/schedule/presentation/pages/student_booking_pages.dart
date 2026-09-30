@@ -34,7 +34,7 @@ class StudentBookingsPage extends ConsumerStatefulWidget {
 }
 
 class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
-  // Main Tab Filter: 0 = All, 1 = Upcoming, 2 = Past Sessions
+  // 0 = Upcoming, 1 = Past
   int _selectedTab = 0;
 
   Timer? _countdownTimer;
@@ -170,9 +170,8 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
 
                 const SizedBox(height: 20),
 
-                // 3. Spotlight Next Session Card
-                if (nearestUpcoming != null &&
-                    (_selectedTab == 0 || _selectedTab == 1)) ...[
+                // 3. Spotlight Next Session Card (Upcoming tab only)
+                if (nearestUpcoming != null && _selectedTab == 0) ...[
                   _NextSessionFeatureCard(
                     booking: nearestUpcoming,
                     now: now,
@@ -196,10 +195,9 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
                   const SizedBox(height: 24),
                 ],
 
-                // 4. Session tabs
+                // 4. Session tabs — Upcoming / Past only
                 _SessionsFilterBar(
                   selectedTab: _selectedTab,
-                  allCount: items.length,
                   upcomingCount: allUpcoming.length,
                   pastCount: allPast.length,
                   onTabChanged: (val) => setState(() => _selectedTab = val),
@@ -230,8 +228,8 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
     required String? bookType,
     required DateTime now,
   }) {
-    if (selectedTab == 1) {
-      // Upcoming Only
+    if (selectedTab == 0) {
+      // Upcoming
       if (upcomingList.isEmpty) {
         return _SessionEmptyState(
           isPast: false,
@@ -261,38 +259,10 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
       );
     }
 
-    if (selectedTab == 2) {
-      // Past Only
-      if (pastList.isEmpty) {
-        return _SessionEmptyState(
-          isPast: true,
-          isFiltered: false,
-          bookType: bookType,
-          onBook: bookType == null
-              ? null
-              : () => context.go('${RoutePaths.studentBookNew}?type=$bookType'),
-          onResetFilters: null,
-        );
-      }
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionLabel(
-            title: 'SESSION HISTORY (${pastList.length})',
-            subtitle: 'Latest sessions first',
-          ),
-          const SizedBox(height: 12),
-          for (int i = 0; i < pastList.length; i++)
-            _SessionTimelineCard(booking: pastList[i], isPast: true, now: now),
-        ],
-      );
-    }
-
-    // All Sessions View (Upcoming first, then Past History)
-    final bool isEmptyAll = upcomingList.isEmpty && pastList.isEmpty;
-    if (isEmptyAll) {
+    // Past
+    if (pastList.isEmpty) {
       return _SessionEmptyState(
-        isPast: false,
+        isPast: true,
         isFiltered: false,
         bookType: bookType,
         onBook: bookType == null
@@ -301,33 +271,16 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
         onResetFilters: null,
       );
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (upcomingList.isNotEmpty) ...[
-          _SectionLabel(
-            title: 'UPCOMING SESSIONS (${upcomingList.length})',
-            subtitle: 'Chronological timeline (nearest first)',
-          ),
-          const SizedBox(height: 12),
-          for (int i = 0; i < upcomingList.length; i++)
-            _SessionTimelineCard(
-              booking: upcomingList[i],
-              isPast: false,
-              now: now,
-            ),
-          const SizedBox(height: 24),
-        ],
-        if (pastList.isNotEmpty) ...[
-          _SectionLabel(
-            title: 'PAST SESSION HISTORY (${pastList.length})',
-            subtitle: 'Historical learning journey (latest first)',
-          ),
-          const SizedBox(height: 12),
-          for (int i = 0; i < pastList.length; i++)
-            _SessionTimelineCard(booking: pastList[i], isPast: true, now: now),
-        ],
+        _SectionLabel(
+          title: 'SESSION HISTORY (${pastList.length})',
+          subtitle: 'Latest sessions first',
+        ),
+        const SizedBox(height: 12),
+        for (int i = 0; i < pastList.length; i++)
+          _SessionTimelineCard(booking: pastList[i], isPast: true, now: now),
       ],
     );
   }
@@ -1037,14 +990,12 @@ class _NextSessionFeatureCard extends StatelessWidget {
 class _SessionsFilterBar extends StatelessWidget {
   const _SessionsFilterBar({
     required this.selectedTab,
-    required this.allCount,
     required this.upcomingCount,
     required this.pastCount,
     required this.onTabChanged,
   });
 
   final int selectedTab;
-  final int allCount;
   final int upcomingCount;
   final int pastCount;
   final ValueChanged<int> onTabChanged;
@@ -1065,24 +1016,17 @@ class _SessionsFilterBar extends StatelessWidget {
         child: Row(
           children: [
             _FilterTabPill(
-              label: 'All Sessions',
-              count: allCount,
+              label: 'Upcoming',
+              count: upcomingCount,
               isSelected: selectedTab == 0,
               onTap: () => onTabChanged(0),
             ),
             const SizedBox(width: 8),
             _FilterTabPill(
-              label: 'Upcoming',
-              count: upcomingCount,
-              isSelected: selectedTab == 1,
-              onTap: () => onTabChanged(1),
-            ),
-            const SizedBox(width: 8),
-            _FilterTabPill(
               label: 'Past Sessions',
               count: pastCount,
-              isSelected: selectedTab == 2,
-              onTap: () => onTabChanged(2),
+              isSelected: selectedTab == 1,
+              onTap: () => onTabChanged(1),
             ),
           ],
         ),
@@ -1626,21 +1570,38 @@ class _SessionTimelineCardState extends ConsumerState<_SessionTimelineCard> {
           ),
         ],
 
-        if (att?.canReportTeacherDidNotJoin == true)
+        if (att?.canReportTeacherDidNotJoin == true ||
+            att?.canReportStudentDidNotJoin == true)
           OutlinedButton.icon(
             onPressed: () async {
+              final reportTeacher = att?.canReportTeacherDidNotJoin == true;
+              final reportMissed = att?.canReportStudentDidNotJoin == true;
               final sessionLabel = isMasterClass
                   ? 'class'
                   : AppStrings.introductionCall;
+              final title = reportTeacher && !reportMissed
+                  ? AppStrings.teacherDidnTJoin
+                  : 'Report to Admin';
+              final hint = reportTeacher && !reportMissed
+                  ? 'Tell Admin what happened on this $sessionLabel:'
+                  : reportMissed && !reportTeacher
+                      ? 'Tell Admin why you could not attend this $sessionLabel:'
+                      : 'Tell Admin what happened on this $sessionLabel:';
               final message = await showAttendanceReportDialog(
                 context,
-                title: AppStrings.teacherDidnTJoin,
-                hint: 'Tell Admin what happened on this $sessionLabel:',
+                title: title,
+                hint: hint,
               );
               if (message == null) return;
-              await ref
-                  .read(scheduleRepositoryProvider)
-                  .studentReportTeacher(booking.id, message);
+              // Prefer teacher-absence report when both are possible; otherwise missed-class.
+              final issueType = reportTeacher
+                  ? 'teacher_did_not_join'
+                  : 'student_did_not_join';
+              await ref.read(scheduleRepositoryProvider).studentReportTeacher(
+                    booking.id,
+                    message,
+                    issueType: issueType,
+                  );
               ref.invalidate(studentBookingsProvider);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1658,21 +1619,25 @@ class _SessionTimelineCardState extends ConsumerState<_SessionTimelineCard> {
             ),
             icon: const Icon(Icons.report_problem_outlined, size: 13),
             label: const Text(
-              'Teacher didn\'t join',
+              'Report to Admin',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5),
             ),
           ),
 
-        if (att?.reportSubmitted == true)
+        if (att?.reportSubmitted == true &&
+            att?.canReportTeacherDidNotJoin != true &&
+            att?.canReportStudentDidNotJoin != true)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: StudentColors.amberLight,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: const Text(
-              'Report Sent to Admin',
-              style: TextStyle(
+            child: Text(
+              att?.pendingIssue == true
+                  ? 'Report pending Admin'
+                  : 'Report Sent to Admin',
+              style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 11,
                 color: StudentColors.amberDark,
@@ -1680,7 +1645,8 @@ class _SessionTimelineCardState extends ConsumerState<_SessionTimelineCard> {
             ),
           ),
 
-        if (att?.rebookingAvailable == true)
+        // Rebooking is used via Book Introduction / Book Class — do not badge past cards.
+        if (!isPast && att?.rebookingAvailable == true)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(

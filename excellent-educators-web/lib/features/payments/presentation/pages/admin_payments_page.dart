@@ -48,15 +48,62 @@ class _AdminPaymentsPageState extends ConsumerState<AdminPaymentsPage> {
     final uri = GoRouterState.of(context).uri;
     final status = widget.initialStatus ?? uri.queryParameters['status'];
     final period = widget.initialPeriod ?? uri.queryParameters['period'];
+    final from = uri.queryParameters['from'];
+    final to = uri.queryParameters['to'];
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
       ref.read(paymentListFilterProvider.notifier).state = PaymentListFilter(
         status: status ?? 'pending_balance',
-        period: period,
+        period: (from != null && to != null) ? null : period,
+        from: from,
+        to: to,
       );
     });
+  }
+
+  Future<void> _pickDateRange(BuildContext context, PaymentListFilter filter) async {
+    final now = DateTime.now();
+    final initialStart = filter.from != null
+        ? DateTime.tryParse(filter.from!) ?? now
+        : DateTime(now.year, now.month, 1);
+    final initialEnd = filter.to != null
+        ? DateTime.tryParse(filter.to!) ?? now
+        : now;
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 3),
+      lastDate: DateTime(now.year + 1, 12, 31),
+      initialDateRange: DateTimeRange(
+        start: initialStart.isBefore(initialEnd) ? initialStart : initialEnd,
+        end: initialEnd.isAfter(initialStart) ? initialEnd : initialStart,
+      ),
+      helpText: AppStrings.date2,
+    );
+    if (!mounted || picked == null) {
+      return;
+    }
+    ref.read(paymentListFilterProvider.notifier).state = filter.copyWith(
+      clearPeriod: true,
+      from: _ymd(picked.start),
+      to: _ymd(picked.end),
+      page: 1,
+    );
+  }
+
+  String _ymd(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  String _dateRangeLabel(String from, String to) {
+    if (from == to) {
+      return formatDisplayDate(from);
+    }
+    return '${formatDisplayDate(from)} – ${formatDisplayDate(to)}';
   }
 
   @override
@@ -115,16 +162,31 @@ class _AdminPaymentsPageState extends ConsumerState<AdminPaymentsPage> {
               ])
                 ChoiceChip(
                   label: Text(entry.$2),
-                  selected: filter.period == entry.$1,
+                  selected: !filter.hasCustomDateRange && filter.period == entry.$1,
                   onSelected: (_) {
                     ref.read(paymentListFilterProvider.notifier).state =
                         filter.copyWith(
                       period: entry.$1,
                       page: 1,
                       clearPeriod: entry.$1 == null,
+                      clearDateRange: true,
                     );
                   },
                 ),
+              ChoiceChip(
+                avatar: Icon(
+                  Icons.calendar_today_outlined,
+                  size: 16,
+                  color: filter.hasCustomDateRange ? Brand.navy : Brand.muted,
+                ),
+                label: Text(
+                  filter.hasCustomDateRange
+                      ? _dateRangeLabel(filter.from!, filter.to!)
+                      : AppStrings.date2,
+                ),
+                selected: filter.hasCustomDateRange,
+                onSelected: (_) => _pickDateRange(context, filter),
+              ),
             ],
           ),
           const SizedBox(height: 10),

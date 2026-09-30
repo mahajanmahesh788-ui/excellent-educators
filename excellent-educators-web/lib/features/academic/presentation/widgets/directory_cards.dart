@@ -31,6 +31,7 @@ class StudentCard extends StatelessWidget {
     this.onTap,
     this.highlightOverallRating = false,
     this.showMonthRatingStatus = false,
+    this.showFacts = true,
   });
 
   final StudentDto student;
@@ -39,6 +40,7 @@ class StudentCard extends StatelessWidget {
   final VoidCallback? onTap;
   final bool highlightOverallRating;
   final bool showMonthRatingStatus;
+  final bool showFacts;
 
   @override
   Widget build(BuildContext context) {
@@ -93,29 +95,31 @@ class StudentCard extends StatelessWidget {
       subtitle: student.email.isNotEmpty ? student.email : null,
       chips: chips,
       trailing: headerTrailing,
-      facts: [
-        if (student.createdAt != null)
-          _Fact(AppStrings.registered, formatDisplayDateTime(student.createdAt)),
-        if (student.classGrade > 0)
-          _Fact(AppStrings.classLabel, 'Class ${student.classGrade}'),
-        if (student.gender != null && student.gender!.isNotEmpty)
-          _Fact(AppStrings.gender, genderLabel(student.gender)),
-        if (student.phone.isNotEmpty) _Fact(AppStrings.phone, student.phone),
-        if (student.whatsappNumber != null && student.whatsappNumber!.isNotEmpty)
-          _Fact(AppStrings.whatsapp, student.whatsappNumber!),
-        if (student.address != null && student.address!.isNotEmpty)
-          _Fact(AppStrings.address, student.address!),
-        if (student.level != null && !student.level!.isEmpty)
-          _Fact(AppStrings.level, student.level!.label)
-        else if (student.batch != null && !student.batch!.isEmpty)
-          _Fact(AppStrings.level, student.batch!.label),
-        if (student.batch != null && !student.batch!.isEmpty && student.level != null && !student.level!.isEmpty)
-          _Fact(AppStrings.batch, student.batch!.label),
-        if (student.guardianName != null && student.guardianName!.isNotEmpty)
-          _Fact(AppStrings.guardian, student.guardianName!),
-        if (student.feedbackTotalSessions > 0)
-          _Fact(AppStrings.monthlyRatings, '${student.feedbackTotalSessions} on record'),
-      ],
+      facts: showFacts
+          ? [
+              if (student.createdAt != null)
+                _Fact(AppStrings.registered, formatDisplayDateTime(student.createdAt)),
+              if (student.classGrade > 0)
+                _Fact(AppStrings.classLabel, 'Class ${student.classGrade}'),
+              if (student.gender != null && student.gender!.isNotEmpty)
+                _Fact(AppStrings.gender, genderLabel(student.gender)),
+              if (student.phone.isNotEmpty) _Fact(AppStrings.phone, student.phone),
+              if (student.whatsappNumber != null && student.whatsappNumber!.isNotEmpty)
+                _Fact(AppStrings.whatsapp, student.whatsappNumber!),
+              if (student.address != null && student.address!.isNotEmpty)
+                _Fact(AppStrings.address, student.address!),
+              if (student.level != null && !student.level!.isEmpty)
+                _Fact(AppStrings.level, student.level!.label)
+              else if (student.batch != null && !student.batch!.isEmpty)
+                _Fact(AppStrings.level, student.batch!.label),
+              if (student.batch != null && !student.batch!.isEmpty && student.level != null && !student.level!.isEmpty)
+                _Fact(AppStrings.batch, student.batch!.label),
+              if (student.guardianName != null && student.guardianName!.isNotEmpty)
+                _Fact(AppStrings.guardian, student.guardianName!),
+              if (student.feedbackTotalSessions > 0)
+                _Fact(AppStrings.monthlyRatings, '${student.feedbackTotalSessions} on record'),
+            ]
+          : const [],
       action: action,
       onTap: onTap,
     );

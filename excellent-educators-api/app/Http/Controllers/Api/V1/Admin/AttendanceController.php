@@ -31,7 +31,7 @@ class AttendanceController extends Controller
             $query->where('verification_status', $status);
         }
 
-        $items = $query->get()->map(fn (AttendanceIssue $issue) => $this->attendance->issueDetail($issue));
+        $items = $this->attendance->issueDetails($query->get())->all();
 
         return ApiResponse::success('Class conflicts fetched.', $items);
     }

@@ -27,16 +27,18 @@ class BuildAdminAcademySnapshot
             }
         };
 
-        $interviews = SessionBooking::query()
-            ->where('type', SessionBookingType::IntroductionCall->value)
+        $interviewsAndMaster = SessionBooking::query()
             ->where('status', '!=', SessionBookingStatus::Cancelled->value)
             ->where($bookingScope)
-            ->count();
-        $masterClasses = SessionBooking::query()
-            ->where('type', SessionBookingType::MasterClass->value)
-            ->where('status', '!=', SessionBookingStatus::Cancelled->value)
-            ->where($bookingScope)
-            ->count();
+            ->selectRaw('sum(case when type = ? then 1 else 0 end) as interviews', [
+                SessionBookingType::IntroductionCall->value,
+            ])
+            ->selectRaw('sum(case when type = ? then 1 else 0 end) as master_classes', [
+                SessionBookingType::MasterClass->value,
+            ])
+            ->first();
+        $interviews = (int) ($interviewsAndMaster->interviews ?? 0);
+        $masterClasses = (int) ($interviewsAndMaster->master_classes ?? 0);
         $promotedStudents = StudentProfile::query()
             ->where('status', ProfileStatus::Active->value)
             ->whereHas('levelJourneys', fn ($query) => $query->whereNotNull('ended_at'))

@@ -1,6 +1,7 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/navigation/app_nav_history.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
@@ -45,9 +46,9 @@ class StudentScaffold extends ConsumerWidget {
         !isInternal && MediaQuery.sizeOf(context).width < 960;
 
     return PopScope(
-      canPop: !isInternal,
+      canPop: context.canPop(),
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop || !isInternal) {
+        if (didPop) {
           return;
         }
         navigateBack(context, backTo);
@@ -234,7 +235,9 @@ class _AcademyNav extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                if (backTo != null) ...[
+                if (backTo != null ||
+                    context.canPop() ||
+                    AppNavHistory.instance.canGoBack) ...[
                   IconButton(
                     tooltip: AppStrings.back,
                     iconSize: 22,

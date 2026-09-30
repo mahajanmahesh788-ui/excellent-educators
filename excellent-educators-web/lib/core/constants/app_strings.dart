@@ -687,7 +687,12 @@ abstract final class AppStrings {
   static const overall = 'Overall';
   static const overallAverage = 'Overall average';
   static const overallBySkillDimension = 'Overall by skill / dimension';
+  static const overallFromAllWeeks = 'Overall from all weeks';
+  static const overallFromSelectedWeeks = 'Overall from selected weeks';
   static const overallRating = 'Overall rating';
+  static const selectWeeksToRecalculateOverall =
+      'Tick weeks below to recalculate overall dimension totals. Default shows all weeks.';
+  static const showAllWeeks = 'Show all weeks';
   static const pageNotFound = 'Page not found';
   static const partTime = 'Part time';
   static const passingScore = 'Passing Score';

@@ -138,20 +138,29 @@ class TeacherAvailabilityTest extends TestCase
         $this->assertSame('lunch', $day['13:00']['status']);
         $this->assertSame('booked', $day['11:00']['status']);
 
-        $this->withToken($adminToken)->postJson('/api/v1/admin/schedule/teachers/'.$teacher->id.'/leaves', [
+        $overlappingLeave = $this->withToken($adminToken)->postJson('/api/v1/admin/schedule/teachers/'.$teacher->id.'/leaves', [
             'date' => '2026-09-16',
             'reason' => 'Clash',
             'start_time' => '11:00',
             'end_time' => '12:00',
-        ])->assertUnprocessable()->assertJsonPath('error.code', 'LEAVE_OVERLAPS_BOOKING');
+        ])->assertCreated()->json('data');
+        $this->assertSame('reassignment_pending', $overlappingLeave['status']);
+        $this->assertSame(1, $overlappingLeave['affected_count']);
+        $this->assertSame(0, $overlappingLeave['reassigned_count']);
+        // Pending leave does not paint the calendar; the booking still shows.
+        $this->assertSame('booked', collect($this->withToken($adminToken)
+            ->getJson('/api/v1/admin/schedule/day?teacher_id='.$teacher->id.'&date=2026-09-16')
+            ->json('data.slots'))->firstWhere('start', '11:00')['status']);
 
-        $this->withToken($adminToken)->postJson('/api/v1/admin/schedule/teachers/'.$teacher->id.'/leaves', [
+        $emptyLeave = $this->withToken($adminToken)->postJson('/api/v1/admin/schedule/teachers/'.$teacher->id.'/leaves', [
             'date' => '2026-09-16',
             'reason' => 'Later',
             'start_time' => '16:00',
             'end_time' => '17:00',
-        ])->assertCreated();
-        $this->assertSame('leave', collect($this->withToken($adminToken)
+        ])->assertCreated()->json('data');
+        $this->assertSame('pending', $emptyLeave['status']);
+        $this->assertSame(0, $emptyLeave['affected_count']);
+        $this->assertSame('available', collect($this->withToken($adminToken)
             ->getJson('/api/v1/admin/schedule/day?teacher_id='.$teacher->id.'&date=2026-09-16')
             ->json('data.slots'))->firstWhere('start', '16:00')['status']);
 

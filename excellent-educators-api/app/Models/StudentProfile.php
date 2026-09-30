@@ -155,4 +155,46 @@ class StudentProfile extends Model
             $student->feedback_overall_average = $averages[$student->id] ?? null;
         }
     }
+
+    /**
+     * Attach read-only master-class balance hints for list serialization (avoids per-row ensure()).
+     *
+     * @param  Collection<int, self>|iterable<self>  $students
+     */
+    public static function attachMasterClassBalances(iterable $students): void
+    {
+        $profiles = Collection::make($students)->filter()->unique('id')->values();
+        if ($profiles->isEmpty()) {
+            return;
+        }
+
+        $eloquent = new \Illuminate\Database\Eloquent\Collection($profiles->all());
+        $eloquent->loadMissing(['academicLevel', 'activeEnrollment.batch.level']);
+
+        ['year' => $year, 'month' => $month] = \App\Support\AppClock::currentYearMonth();
+        $rows = StudentMasterClassBalance::query()
+            ->whereIn('student_id', $eloquent->pluck('id'))
+            ->where('year', $year)
+            ->where('month', $month)
+            ->get()
+            ->keyBy('student_id');
+
+        $balance = app(\App\Scheduling\MasterClassBalance::class);
+        foreach ($eloquent as $student) {
+            $row = $rows->get($student->id);
+            if ($row !== null) {
+                $allotment = (int) $row->allotment;
+                $remaining = (int) $row->remaining;
+            } else {
+                $allotment = $balance->allotmentFor($student);
+                $remaining = $allotment;
+            }
+
+            $student->master_class_balance = [
+                'allotment' => $allotment,
+                'remaining' => $remaining,
+                'used' => max(0, $allotment - $remaining),
+            ];
+        }
+    }
 }

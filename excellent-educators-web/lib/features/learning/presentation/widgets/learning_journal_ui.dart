@@ -107,12 +107,21 @@ class LearningJournalTable extends StatelessWidget {
     required this.journal,
     required this.staffView,
     required this.onOpenWeek,
+    this.enableWeekSelection = false,
+    this.selectedWeekKeys = const {},
+    this.onToggleWeek,
   });
 
   final LearningJournalDto journal;
   final bool staffView;
   final void Function(LearningLevelGroupDto group, LearningWeekDto week)
   onOpenWeek;
+  final bool enableWeekSelection;
+  final Set<String> selectedWeekKeys;
+  final void Function(String weekKey)? onToggleWeek;
+
+  static String weekKey(String journeyId, int weekNumber) =>
+      '$journeyId:$weekNumber';
 
   @override
   Widget build(BuildContext context) {
@@ -151,11 +160,24 @@ class LearningJournalTable extends StatelessWidget {
                   group: group,
                   weeks: displayedWeeks,
                   onOpenWeek: onOpenWeek,
+                  enableWeekSelection: enableWeekSelection,
+                  selectedWeekKeys: selectedWeekKeys,
+                  onToggleWeek: onToggleWeek,
                 );
               }
 
-              final tableWidth = math.max(constraints.maxWidth, 780.0);
-              final dynamicSpacing = math.max(20.0, (tableWidth - 680.0) / 6.0);
+              final showSelect = enableWeekSelection && onToggleWeek != null;
+              final numGaps = showSelect ? 7.0 : 6.0;
+              final baseContentWidth = showSelect ? 730.0 : 680.0;
+              final availableGapSpace = constraints.maxWidth - baseContentWidth;
+              final targetSpacing = availableGapSpace / numGaps;
+              // Balance spacing between 12px (for compact screens) and 44px (prevents excessive gaps on wide screens)
+              // ensuring the entire table fits in 1 screen without cutting off the Action column.
+              final dynamicSpacing = math.max(12.0, math.min(44.0, targetSpacing));
+              final tableWidth = math.max(
+                constraints.maxWidth,
+                baseContentWidth + (numGaps * dynamicSpacing),
+              );
 
               return AcademySurface(
                 padding: EdgeInsets.zero,
@@ -166,6 +188,7 @@ class LearningJournalTable extends StatelessWidget {
                     child: ConstrainedBox(
                       constraints: BoxConstraints(minWidth: tableWidth),
                       child: DataTable(
+                        horizontalMargin: 16,
                         columnSpacing: dynamicSpacing,
                         headingRowHeight: 40,
                         dataRowMinHeight: 48,
@@ -176,19 +199,42 @@ class LearningJournalTable extends StatelessWidget {
                           color: Academy.muted,
                           letterSpacing: 0.8,
                         ),
-                        columns: const [
-                          DataColumn(label: Text(AppStrings.week)),
-                          DataColumn(label: Text(AppStrings.status)),
-                          DataColumn(label: Text(AppStrings.score)),
-                          DataColumn(label: Text(AppStrings.attempts)),
-                          DataColumn(label: Text(AppStrings.studyDate)),
-                          DataColumn(label: Text(AppStrings.videoLesson)),
-                          DataColumn(label: Text(AppStrings.action)),
+                        columns: [
+                          if (showSelect)
+                            const DataColumn(label: Text(AppStrings.select)),
+                          const DataColumn(label: Text(AppStrings.week)),
+                          const DataColumn(label: Text(AppStrings.status)),
+                          const DataColumn(label: Text(AppStrings.score)),
+                          const DataColumn(label: Text(AppStrings.attempts)),
+                          const DataColumn(label: Text(AppStrings.studyDate)),
+                          const DataColumn(label: Text(AppStrings.videoLesson)),
+                          const DataColumn(label: Text(AppStrings.action)),
                         ],
                         rows: [
                           for (final week in displayedWeeks)
                             DataRow(
+                              selected: showSelect &&
+                                  selectedWeekKeys.contains(
+                                    weekKey(group.journeyId, week.weekNumber),
+                                  ),
                               cells: [
+                                if (showSelect)
+                                  DataCell(
+                                    Checkbox(
+                                      value: selectedWeekKeys.contains(
+                                        weekKey(
+                                          group.journeyId,
+                                          week.weekNumber,
+                                        ),
+                                      ),
+                                      onChanged: (_) => onToggleWeek!(
+                                        weekKey(
+                                          group.journeyId,
+                                          week.weekNumber,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 DataCell(
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -779,12 +825,18 @@ class _MobileStaffWeekList extends StatelessWidget {
     required this.group,
     this.weeks,
     required this.onOpenWeek,
+    this.enableWeekSelection = false,
+    this.selectedWeekKeys = const {},
+    this.onToggleWeek,
   });
 
   final LearningLevelGroupDto group;
   final List<LearningWeekDto>? weeks;
   final void Function(LearningLevelGroupDto group, LearningWeekDto week)
   onOpenWeek;
+  final bool enableWeekSelection;
+  final Set<String> selectedWeekKeys;
+  final void Function(String weekKey)? onToggleWeek;
 
   @override
   Widget build(BuildContext context) {
@@ -804,6 +856,18 @@ class _MobileStaffWeekList extends StatelessWidget {
           _StaffMobileWeekCard(
             week: week,
             onOpen: () => onOpenWeek(group, week),
+            selected: enableWeekSelection &&
+                selectedWeekKeys.contains(
+                  LearningJournalTable.weekKey(group.journeyId, week.weekNumber),
+                ),
+            onToggleSelect: enableWeekSelection && onToggleWeek != null
+                ? () => onToggleWeek!(
+                      LearningJournalTable.weekKey(
+                        group.journeyId,
+                        week.weekNumber,
+                      ),
+                    )
+                : null,
           ),
       ],
     );
@@ -811,10 +875,17 @@ class _MobileStaffWeekList extends StatelessWidget {
 }
 
 class _StaffMobileWeekCard extends StatelessWidget {
-  const _StaffMobileWeekCard({required this.week, required this.onOpen});
+  const _StaffMobileWeekCard({
+    required this.week,
+    required this.onOpen,
+    this.selected = false,
+    this.onToggleSelect,
+  });
 
   final LearningWeekDto week;
   final VoidCallback onOpen;
+  final bool selected;
+  final VoidCallback? onToggleSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -830,7 +901,10 @@ class _StaffMobileWeekCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: StudentColors.border),
+        border: Border.all(
+          color: selected ? Brand.navy.withValues(alpha: 0.45) : StudentColors.border,
+          width: selected ? 1.4 : 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: Brand.navy.withValues(alpha: 0.04),
@@ -845,6 +919,15 @@ class _StaffMobileWeekCard extends StatelessWidget {
           // Row 1: Week Badge, Label, Study Date & Status Chip
           Row(
             children: [
+              if (onToggleSelect != null) ...[
+                Checkbox(
+                  value: selected,
+                  onChanged: (_) => onToggleSelect!(),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                const SizedBox(width: 2),
+              ],
               Container(
                 width: 34,
                 height: 34,
@@ -1083,21 +1166,42 @@ class _StaffMobileWeekCard extends StatelessWidget {
 
 /// Overall = sum of each dimension across completed weeks, shown as horizontal pills (highest first).
 class WeekDimensionRatingsSection extends StatelessWidget {
-  const WeekDimensionRatingsSection({super.key, required this.journal});
+  const WeekDimensionRatingsSection({
+    super.key,
+    required this.journal,
+    this.selectedWeekKeys = const {},
+  });
 
   final LearningJournalDto journal;
 
+  /// Empty = all weeks with dimension results.
+  final Set<String> selectedWeekKeys;
+
   @override
   Widget build(BuildContext context) {
-    final weeks = <LearningWeekDto>[
+    final allRatedWeeks = <({String key, LearningWeekDto week})>[
       for (final level in journal.levels)
         for (final week in level.weeks)
-          if (week.hasDimensionResult) week,
+          if (week.hasDimensionResult)
+            (
+              key: LearningJournalTable.weekKey(
+                week.journeyId.isNotEmpty ? week.journeyId : level.journeyId,
+                week.weekNumber,
+              ),
+              week: week,
+            ),
     ];
 
-    if (weeks.isEmpty) {
+    if (allRatedWeeks.isEmpty) {
       return const SizedBox.shrink();
     }
+
+    final weeks = selectedWeekKeys.isEmpty
+        ? [for (final item in allRatedWeeks) item.week]
+        : [
+            for (final item in allRatedWeeks)
+              if (selectedWeekKeys.contains(item.key)) item.week,
+          ];
 
     final overallDimensions = _sumDimensionsAcrossWeeks(weeks)
       ..sort((a, b) {
@@ -1110,6 +1214,12 @@ class WeekDimensionRatingsSection extends StatelessWidget {
 
     final isMobile = MediaQuery.sizeOf(context).width < 600;
     final gap = isMobile ? 5.0 : 8.0;
+    final filtering = selectedWeekKeys.isNotEmpty;
+    final selectedWeekNumbers = [
+      for (final item in allRatedWeeks)
+        if (selectedWeekKeys.contains(item.key)) item.week.weekNumber,
+    ]..sort();
+
     final pills = [
       for (final dim in overallDimensions)
         _OverallDimensionPill(
@@ -1119,24 +1229,121 @@ class WeekDimensionRatingsSection extends StatelessWidget {
         ),
     ];
 
-    if (isMobile) {
-      return Wrap(
-        spacing: gap,
-        runSpacing: gap,
-        children: pills,
-      );
-    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          filtering
+              ? '${AppStrings.overallFromSelectedWeeks} · ${selectedWeekNumbers.map((n) => 'W$n').join(', ')}'
+              : AppStrings.overallFromAllWeeks,
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: isMobile ? 13 : 14,
+            color: Brand.navy,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          AppStrings.selectWeeksToRecalculateOverall,
+          style: TextStyle(
+            fontSize: isMobile ? 11.5 : 12.5,
+            color: Academy.muted,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (weeks.isEmpty)
+          const Text(
+            AppStrings.noDimensionScoresYet,
+            style: TextStyle(color: Academy.muted, fontWeight: FontWeight.w600),
+          )
+        else if (isMobile)
+          Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: pills,
+          )
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (var i = 0; i < pills.length; i++) ...[
+                  if (i > 0) SizedBox(width: gap),
+                  pills[i],
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (var i = 0; i < pills.length; i++) ...[
-            if (i > 0) SizedBox(width: gap),
-            pills[i],
-          ],
+/// Staff journal view with week checkboxes that recalculate overall dimension totals.
+class StaffJournalAnalysisPanel extends StatefulWidget {
+  const StaffJournalAnalysisPanel({
+    super.key,
+    required this.journal,
+    required this.onOpenWeek,
+  });
+
+  final LearningJournalDto journal;
+  final void Function(LearningLevelGroupDto group, LearningWeekDto week)
+  onOpenWeek;
+
+  @override
+  State<StaffJournalAnalysisPanel> createState() =>
+      _StaffJournalAnalysisPanelState();
+}
+
+class _StaffJournalAnalysisPanelState extends State<StaffJournalAnalysisPanel> {
+  final Set<String> _selectedWeekKeys = {};
+
+  void _toggleWeek(String key) {
+    setState(() {
+      if (_selectedWeekKeys.contains(key)) {
+        _selectedWeekKeys.remove(key);
+      } else {
+        _selectedWeekKeys.add(key);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(_selectedWeekKeys.clear);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        WeekDimensionRatingsSection(
+          journal: widget.journal,
+          selectedWeekKeys: _selectedWeekKeys,
+        ),
+        if (_selectedWeekKeys.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _clearSelection,
+              icon: const Icon(Icons.clear_all, size: 18),
+              label: const Text(AppStrings.showAllWeeks),
+            ),
+          ),
         ],
-      ),
+        const SizedBox(height: 8),
+        LearningJournalTable(
+          journal: widget.journal,
+          staffView: true,
+          enableWeekSelection: true,
+          selectedWeekKeys: _selectedWeekKeys,
+          onToggleWeek: _toggleWeek,
+          onOpenWeek: widget.onOpenWeek,
+        ),
+      ],
     );
   }
 }

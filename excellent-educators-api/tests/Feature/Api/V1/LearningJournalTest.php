@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Enums\BatchStatus;
 use App\Models\AcademicLevel;
+use App\Models\Batch;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Models\WeeklyAssignmentAttempt;
@@ -64,6 +66,17 @@ class LearningJournalTest extends TestCase
             'name' => 'Level 2',
             'academic_year' => 2026,
             'status' => 'active',
+        ]);
+        // Promote only starts a Level 2 journey when the allocated batch is active.
+        Batch::query()->create([
+            'level_id' => $level2->id,
+            'name' => 'Batch 1',
+            'academic_year' => 2026,
+            'year' => 2026,
+            'month' => 7,
+            'enrolled_watermark' => 0,
+            'status' => BatchStatus::Active,
+            'starts_on' => '2026-07-15',
         ]);
         $week1 = $this->seedWeek($admin, $level1, 1, 'https://video.test/l1w1');
         $this->seedWeek($admin, $level2, 1, 'https://video.test/l2w1');

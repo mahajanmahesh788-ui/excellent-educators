@@ -1,7 +1,9 @@
 import 'package:excellent_educators_web/app/theme/app_colors.dart';
+import 'package:excellent_educators_web/app/theme/app_outline_input_border.dart';
 import 'package:flutter/material.dart';
 
 export 'app_colors.dart';
+export 'app_outline_input_border.dart';
 export 'student_colors.dart';
 
 /// Compatibility layer mapping legacy Brand tokens to [AppColors].
@@ -68,21 +70,28 @@ abstract final class AppTheme {
           fontSize: 12,
         ),
       ),
-      inputDecorationTheme: InputDecorationTheme(
+      cardTheme: const CardThemeData(clipBehavior: Clip.none),
+      inputDecorationTheme: const InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        labelStyle: const TextStyle(color: Brand.muted),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFD7CDBB)),
+        isDense: false,
+        contentPadding: EdgeInsets.fromLTRB(14, 16, 14, 12),
+        labelStyle: TextStyle(color: Brand.muted, height: 1.25),
+        floatingLabelStyle: TextStyle(color: Brand.muted, fontSize: 12, height: 1.25),
+        border: AppOutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFD7CDBB)),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFD7CDBB)),
+        enabledBorder: AppOutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFD7CDBB)),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Brand.gold, width: 1.6),
+        focusedBorder: AppOutlineInputBorder(
+          borderSide: BorderSide(color: Brand.gold, width: 1.6),
+        ),
+        errorBorder: AppOutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.danger),
+        ),
+        focusedErrorBorder: AppOutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.danger, width: 1.6),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -147,12 +156,10 @@ abstract final class AppTheme {
           fontWeight: FontWeight.w600,
         ),
       ),
+      // Keep input labels readable — dense paddings clip floating labels.
       inputDecorationTheme: base.inputDecorationTheme.copyWith(
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
-        ),
+        isDense: false,
+        contentPadding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: (base.filledButtonTheme.style ?? const ButtonStyle()).merge(

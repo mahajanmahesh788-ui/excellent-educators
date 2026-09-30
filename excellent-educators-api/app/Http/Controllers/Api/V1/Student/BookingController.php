@@ -84,7 +84,12 @@ class BookingController extends Controller
         }
 
         $date = $request->string('date')->toString();
-        $day = $this->availability->day($teacher, $date, bookableOnly: true);
+        $day = $this->availability->day(
+            $teacher,
+            $date,
+            bookableOnly: true,
+            includeBookingPayloads: false,
+        );
         unset($day['breaks'], $day['leaves'], $day['bookings'], $day['availability_source'], $day['availability_ranges']);
         $day['slots'] = array_values(array_map(static function (array $slot): array {
             return [
@@ -104,14 +109,23 @@ class BookingController extends Controller
     {
         $student = $this->studentFrom($request);
         $bookings = SessionBooking::query()
-            ->with(['teacher', 'student'])
+            ->with([
+                'teacher',
+                'student.currentLevelJourney',
+                'student.levelJourneys',
+                'student.academicLevel',
+                'student.activeEnrollment.batch.level',
+            ])
             ->where('student_id', $student->id)
             ->where('status', '!=', SessionBookingStatus::Cancelled->value)
             ->orderByDesc('starts_at')
-            ->get()
-            ->map(fn (SessionBooking $booking) => $this->availability->bookingPayload($booking, 'student'));
+            ->limit(200)
+            ->get();
 
-        return ApiResponse::success('Bookings fetched successfully.', $bookings);
+        return ApiResponse::success(
+            'Bookings fetched successfully.',
+            $this->availability->bookingPayloads($bookings, 'student')->all(),
+        );
     }
 
     public function store(StoreBookingRequest $request, CreateSessionBooking $action): JsonResponse
@@ -162,10 +176,16 @@ class BookingController extends Controller
         if ($booking->student_id !== $student->id) {
             return ApiResponse::error('Booking not found.', ErrorCode::NOT_FOUND, null, 404);
         }
+
+        $issueType = match ($request->string('issue_type')->toString()) {
+            AttendanceIssueType::StudentDidNotJoin->value => AttendanceIssueType::StudentDidNotJoin,
+            default => AttendanceIssueType::TeacherDidNotJoin,
+        };
+
         $attendance->report(
             $booking,
             $request->user(),
-            AttendanceIssueType::TeacherDidNotJoin,
+            $issueType,
             $request->string('message')->toString(),
         );
         $booking->load(['teacher', 'student']);

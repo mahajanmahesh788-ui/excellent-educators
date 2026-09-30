@@ -44,11 +44,16 @@ class BatchController extends Controller
         $students = $batch->activeEnrollments()
             ->with([
                 'student.user',
+                'student.academicLevel.masterTeachers.user',
+                'student.activeEnrollment.batch.level.masterTeachers.user',
                 'student.activeEnrollment.batch.activeTeacherAssignment.teacher',
                 'student.activeMasterTeacherAssignment.teacher',
+                'student.currentLevelJourney',
+                'student.activePaymentPlan',
             ])
             ->get()
-            ->pluck('student');
+            ->pluck('student')
+            ->filter();
 
         ['year' => $year, 'month' => $month] = AppClock::currentYearMonth();
         $studentIds = $students->pluck('id');
@@ -60,15 +65,26 @@ class BatchController extends Controller
             ->selectRaw('monthly_feedbacks.student_id, avg(monthly_feedback_items.rating) as overall_average')
             ->pluck('overall_average', 'student_id');
 
-        $students->each(function (StudentProfile $student) use ($averages, $year, $month): void {
-            $student->loadCount([
-                'monthlyFeedbacks as feedback_total_sessions',
-                'monthlyFeedbacks as feedback_current_month_sessions' => fn ($query) => $query
-                    ->where('year', $year)
-                    ->where('month', $month),
-            ]);
+        $counts = $studentIds->isEmpty()
+            ? collect()
+            : StudentProfile::query()
+                ->whereIn('id', $studentIds)
+                ->withCount([
+                    'monthlyFeedbacks as feedback_total_sessions',
+                    'monthlyFeedbacks as feedback_current_month_sessions' => fn ($query) => $query
+                        ->where('year', $year)
+                        ->where('month', $month),
+                ])
+                ->get(['id'])
+                ->keyBy('id');
+
+        $students->each(function (StudentProfile $student) use ($averages, $counts): void {
+            $counted = $counts->get($student->id);
+            $student->feedback_total_sessions = (int) ($counted?->feedback_total_sessions ?? 0);
+            $student->feedback_current_month_sessions = (int) ($counted?->feedback_current_month_sessions ?? 0);
             $student->feedback_overall_average = $averages[$student->id] ?? null;
         });
+        StudentProfile::attachMasterClassBalances($students);
 
         return ApiResponse::success(
             'Batch students fetched successfully.',

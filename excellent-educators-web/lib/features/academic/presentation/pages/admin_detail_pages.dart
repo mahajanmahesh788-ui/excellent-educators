@@ -55,6 +55,7 @@ class AdminStudentDetailPage extends ConsumerWidget {
                 student: student,
                 highlightOverallRating: true,
                 showMonthRatingStatus: false,
+                showFacts: false,
                 action: Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -133,6 +134,8 @@ class AdminStudentDetailPage extends ConsumerWidget {
                 title: AppStrings.studentInformation,
                 children: [
                   DetailRow(label: AppStrings.studentId, value: student.studentCode),
+                  if (student.classGrade > 0)
+                    DetailRow(label: AppStrings.classLabel, value: 'Class ${student.classGrade}'),
                   DetailRow(label: AppStrings.gender, value: genderLabel(student.gender)),
                   DetailRow(label: AppStrings.email, value: student.email),
                   DetailRow(label: AppStrings.phone, value: student.phone.isNotEmpty ? student.phone : '—'),

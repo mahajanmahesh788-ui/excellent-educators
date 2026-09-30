@@ -55,10 +55,10 @@ class TeacherDailyMeetingTest extends TestCase
         [$student, $teacher] = $this->makeStudentWithTeacher();
         $first = $this->book($student, $teacher, 'introduction_call', '2026-09-16', '10:00');
         $other = $this->makeSecondStudent();
-        $this->completeIntroduction($other, $teacher);
+        // Reuse via a second introduction_call — master_class is blocked until next month.
         $second = $this->withToken($this->tokenFor($other->user))->postJson('/api/v1/student/bookings', [
             'teacher_id' => $teacher->id,
-            'type' => 'master_class',
+            'type' => 'introduction_call',
             'date' => '2026-09-16',
             'start' => '11:00',
         ])->assertCreated()->json('data');
@@ -330,15 +330,6 @@ class TeacherDailyMeetingTest extends TestCase
         ])->assertCreated()->json('data.id');
 
         return StudentProfile::query()->with('user')->findOrFail($id);
-    }
-
-    private function completeIntroduction(StudentProfile $student, TeacherProfile $teacher): void
-    {
-        $booking = $this->book($student, $teacher, 'introduction_call', '2026-09-16', '06:00');
-        $booking->update([
-            'status' => SessionBookingStatus::Completed->value,
-            'ends_at' => Carbon::parse('2026-09-15 07:00:00', 'Asia/Kolkata'),
-        ]);
     }
 
     private function book(StudentProfile $student, TeacherProfile $teacher, string $type, string $date, string $start): SessionBooking
