@@ -13,7 +13,6 @@ use App\Scheduling\LeaveRequestAssembler;
 use App\Support\AdminActivity;
 use App\Support\AppClock;
 use App\Support\ErrorCode;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class RejectTeacherLeave
@@ -64,21 +63,19 @@ class RejectTeacherLeave
             $teacher = $primary->teacher;
             $user = $teacher?->user;
             $date = $primary->date?->toDateString() ?? '';
-            $displayDate = $date !== '' ? Carbon::parse($date)->format('d-M-Y') : 'the requested date';
+            $displayDate = AppClock::formatDisplayDate($date, 'the requested date');
 
-            if ($user !== null) {
-                $this->notifications->execute(
-                    $user,
-                    NotificationType::TeacherLeaveRejected,
-                    'Leave request not approved',
-                    "Your leave request for {$displayDate} was not approved.",
-                    [
-                        'leave_request_group_id' => $groupId,
-                        'date' => $date,
-                        'rejection_reason' => $rejectionReason,
-                    ],
-                );
-            }
+            $this->notifications->safeExecute(
+                $user,
+                NotificationType::TeacherLeaveRejected,
+                'Leave request not approved',
+                "Your leave request for {$displayDate} was not approved.",
+                [
+                    'leave_request_group_id' => $groupId,
+                    'date' => $date,
+                    'rejection_reason' => $rejectionReason,
+                ],
+            );
 
             AdminActivity::record(
                 $actor,

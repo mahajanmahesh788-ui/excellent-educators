@@ -14,9 +14,7 @@ use App\Scheduling\LeaveRequestAssembler;
 use App\Support\AdminActivity;
 use App\Support\AppClock;
 use App\Support\ErrorCode;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Throwable;
 
 class CancelTeacherLeave
 {
@@ -90,43 +88,36 @@ class CancelTeacherLeave
 
     private function notifyCancellation(TeacherLeave $primary, string $groupId, bool $cancelledByTeacher): void
     {
-        try {
-            $teacher = $primary->teacher;
-            $teacherName = $teacher?->full_name ?? 'A teacher';
-            $date = $primary->date?->toDateString() ?? '';
-            $displayDate = $date !== '' ? Carbon::parse($date)->format('d-M-Y') : 'the requested date';
-            $data = [
-                'leave_request_group_id' => $groupId,
-                'teacher_id' => $primary->teacher_id,
-                'date' => $date,
-            ];
+        $teacher = $primary->teacher;
+        $teacherName = $teacher?->full_name ?? 'A teacher';
+        $date = $primary->date?->toDateString() ?? '';
+        $displayDate = AppClock::formatDisplayDate($date, 'the requested date');
+        $data = [
+            'leave_request_group_id' => $groupId,
+            'teacher_id' => $primary->teacher_id,
+            'date' => $date,
+        ];
 
-            if ($cancelledByTeacher) {
-                $this->notifyAdmins->execute(
-                    NotificationType::TeacherLeaveCancelled,
-                    'Leave request cancelled',
-                    "{$teacherName} cancelled their leave request for {$displayDate}.",
-                    array_merge($data, [
-                        'teacher_name' => $teacherName,
-                        'link' => '/admin/leaves/'.$groupId,
-                    ]),
-                );
+        if ($cancelledByTeacher) {
+            $this->notifyAdmins->execute(
+                NotificationType::TeacherLeaveCancelled,
+                'Leave request cancelled',
+                "{$teacherName} cancelled their leave request for {$displayDate}.",
+                array_merge($data, [
+                    'teacher_name' => $teacherName,
+                    'link' => '/admin/leaves/'.$groupId,
+                ]),
+            );
 
-                return;
-            }
-
-            $user = $teacher?->user;
-            if ($user !== null) {
-                $this->notifications->execute(
-                    $user,
-                    NotificationType::TeacherLeaveCancelled,
-                    'Leave request cancelled',
-                    "Your leave request for {$displayDate} was cancelled by admin.",
-                    array_merge($data, ['link' => '/teacher/schedule']),
-                );
-            }
-        } catch (Throwable) {
-            // Cancellation must succeed even if notify fails.
+            return;
         }
+
+        $this->notifications->safeExecute(
+            $teacher?->user,
+            NotificationType::TeacherLeaveCancelled,
+            'Leave request cancelled',
+            "Your leave request for {$displayDate} was cancelled by admin.",
+            array_merge($data, ['link' => '/teacher/schedule']),
+        );
     }
 }

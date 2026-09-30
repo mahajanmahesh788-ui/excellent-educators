@@ -2,14 +2,14 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/core/widgets/app_status_chip.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
-import 'package:excellent_educators_web/features/schedule/presentation/widgets/schedule_ui.dart';
+import 'package:excellent_educators_web/core/utils/launch_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class AdminLeavesPage extends ConsumerStatefulWidget {
   const AdminLeavesPage({super.key});
@@ -21,31 +21,8 @@ class AdminLeavesPage extends ConsumerStatefulWidget {
 class _AdminLeavesPageState extends ConsumerState<AdminLeavesPage> {
   var _showPast = false;
 
-  Color _statusColor(String status) {
-    return switch (status) {
-      'pending' => const Color(0xFF785500),
-      'reassignment_pending' => const Color(0xFF9A3412),
-      'approved' => const Color(0xFF047857),
-      'rejected' => const Color(0xFFB91C1C),
-      'cancelled' => const Color(0xFF64748B),
-      _ => Brand.muted,
-    };
-  }
-
-  Color _statusBg(String status) {
-    return switch (status) {
-      'pending' => const Color(0xFFFFF7E8),
-      'reassignment_pending' => const Color(0xFFFFF1E8),
-      'approved' => const Color(0xFFECFDF5),
-      'rejected' => const Color(0xFFFEF2F2),
-      'cancelled' => const Color(0xFFF1F5F9),
-      _ => const Color(0xFFF8FAFC),
-    };
-  }
-
   Future<void> _call(String number) async {
-    final uri = Uri(scheme: 'tel', path: number.replaceAll(' ', ''));
-    await launchUrl(uri);
+    await launchPhoneCall(number);
   }
 
   @override
@@ -106,8 +83,6 @@ class _AdminLeavesPageState extends ConsumerState<AdminLeavesPage> {
                   if (index > 0) const SizedBox(height: 10),
                   _LeaveCard(
                     leave: visible[index],
-                    statusColor: _statusColor(visible[index].status),
-                    statusBg: _statusBg(visible[index].status),
                     onCall: _call,
                   ),
                 ],
@@ -122,14 +97,10 @@ class _AdminLeavesPageState extends ConsumerState<AdminLeavesPage> {
 class _LeaveCard extends StatelessWidget {
   const _LeaveCard({
     required this.leave,
-    required this.statusColor,
-    required this.statusBg,
     required this.onCall,
   });
 
   final LeaveRequestDto leave;
-  final Color statusColor;
-  final Color statusBg;
   final Future<void> Function(String number) onCall;
 
   @override
@@ -313,24 +284,9 @@ class _LeaveCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusBg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      leave.statusLabel,
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: statusColor,
-                      ),
-                    ),
+                  LeaveStatusChip(
+                    status: leave.status,
+                    label: leave.statusLabel,
                   ),
                   const SizedBox(height: 10),
                   const Icon(Icons.chevron_right, color: Brand.muted),

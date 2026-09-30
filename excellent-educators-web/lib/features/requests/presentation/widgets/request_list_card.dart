@@ -1,7 +1,8 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/utils/display_date.dart';
+import 'package:excellent_educators_web/core/utils/launch_helpers.dart';
 import 'package:excellent_educators_web/features/requests/data/dto/request_dtos.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class RequestListCard extends StatelessWidget {
@@ -267,24 +268,11 @@ class RequestListCard extends StatelessWidget {
   }
 
   static Future<void> _launchPhone(String phone) async {
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) {
-      return;
-    }
-    await launchUrl(Uri(scheme: 'tel', path: digits));
+    await launchPhoneCall(phone.replaceAll(RegExp(r'\D'), ''));
   }
 
   static String _formatDate(String iso) {
-    final parsed = DateTime.tryParse(iso);
-    if (parsed == null) {
-      return iso;
-    }
-    final local = parsed.toLocal();
-    const months = [
-      AppStrings.jan2, AppStrings.feb2, AppStrings.mar2, AppStrings.apr2, AppStrings.may2, AppStrings.jun2,
-      AppStrings.jul2, AppStrings.aug2, AppStrings.sep2, AppStrings.oct2, AppStrings.nov2, AppStrings.dec2,
-    ];
-    return '${local.day} ${months[local.month - 1]} ${local.year}';
+    return formatDisplayDate(iso, fallback: iso);
   }
 }
 

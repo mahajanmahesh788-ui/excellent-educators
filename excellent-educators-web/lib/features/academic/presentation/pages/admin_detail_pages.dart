@@ -22,6 +22,7 @@ import 'package:excellent_educators_web/features/payments/presentation/widgets/a
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_history.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_receipt.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_reminder_actions.dart';
+import 'package:excellent_educators_web/core/widgets/app_status_chip.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/teacher_availability_editor.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +30,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
-import 'package:excellent_educators_web/features/schedule/presentation/widgets/schedule_ui.dart';
 
 class AdminStudentDetailPage extends ConsumerWidget {
   const AdminStudentDetailPage({super.key, required this.studentId});
@@ -258,53 +258,576 @@ Future<void> _moveStudentBatch(
   BuildContext context,
   WidgetRef ref,
   StudentDto student,
-) async {
-  try {
-    final levels = await ref.read(academicRepositoryProvider).adminLevels();
-    final batches = <BatchDto>[
-      for (final level in levels) ...level.batches,
-    ];
-    if (!context.mounted) {
+) {
+  return showDialog<void>(
+    context: context,
+    builder: (ctx) => _MoveStudentBatchDialog(student: student),
+  );
+}
+
+class _MoveStudentBatchDialog extends ConsumerStatefulWidget {
+  const _MoveStudentBatchDialog({required this.student});
+
+  final StudentDto student;
+
+  @override
+  ConsumerState<_MoveStudentBatchDialog> createState() =>
+      _MoveStudentBatchDialogState();
+}
+
+class _MoveStudentBatchDialogState
+    extends ConsumerState<_MoveStudentBatchDialog> {
+  List<AcademicLevelDto>? _levels;
+  bool _loading = true;
+  String? _errorMessage;
+  BatchDto? _selectedBatch;
+  AcademicLevelDto? _selectedLevel;
+  String? _filterLevelId;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLevels();
+  }
+
+  Future<void> _loadLevels() async {
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+    try {
+      final levels = await ref.read(academicRepositoryProvider).adminLevels();
+      if (!mounted) return;
+
+      BatchDto? initialSelected;
+      AcademicLevelDto? initialLevel;
+      final currentBatchId = widget.student.batch?.id;
+      if (currentBatchId != null && currentBatchId.isNotEmpty) {
+        for (final level in levels) {
+          for (final batch in level.batches) {
+            if (batch.id == currentBatchId) {
+              initialSelected = batch;
+              initialLevel = level;
+              break;
+            }
+          }
+          if (initialSelected != null) break;
+        }
+      }
+
+      setState(() {
+        _levels = levels;
+        _selectedBatch = initialSelected;
+        _selectedLevel = initialLevel;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_selectedBatch == null || _saving) return;
+    if (_selectedBatch!.id == widget.student.batch?.id) {
+      Navigator.of(context).pop();
       return;
     }
-    if (batches.isEmpty) {
-      showFailure(context, AppStrings.noBatchesAvailable);
-      return;
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(academicRepositoryProvider).enrollStudent(
+            batchId: _selectedBatch!.id,
+            studentId: widget.student.id,
+          );
+      ref.invalidate(adminStudentProvider(widget.student.id));
+      ref.invalidate(adminStudentHistoryProvider(widget.student.id));
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${widget.student.fullName} moved to ${_selectedLevel?.name ?? 'Level'} - ${_selectedBatch!.name}',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        setState(() => _saving = false);
+        showFailure(context, error);
+      }
     }
-    final selectedId = await showDialog<String>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: const Text(AppStrings.moveToBatch),
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final student = widget.student;
+    final currentBatchId = student.batch?.id;
+    final isSameBatchSelected = _selectedBatch?.id == currentBatchId;
+
+    return AppModalDialog(
+      title: AppStrings.moveToBatch,
+      maxWidth: 520,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final batch in batches)
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(ctx, batch.id),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Brand.navy.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.school_outlined,
+                      color: Brand.navy, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        student.fullName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: Brand.ink,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Text(
+                            'Current: ',
+                            style: TextStyle(fontSize: 12, color: Brand.muted),
+                          ),
+                          Text(
+                            student.level?.label.isNotEmpty == true
+                                ? student.level!.label
+                                : 'No level',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Brand.navy,
+                            ),
+                          ),
+                          const Text(
+                            ' · ',
+                            style: TextStyle(fontSize: 12, color: Brand.muted),
+                          ),
+                          Text(
+                            student.batch?.label.isNotEmpty == true
+                                ? student.batch!.label
+                                : 'No batch',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Brand.navy,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              ),
+            )
+          else if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(
+                children: [
+                  Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: _loadLevels,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+          else if (_levels == null || _levels!.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(
+                child: Text(
+                  AppStrings.noBatchesAvailable,
+                  style: TextStyle(color: Brand.muted, fontSize: 13),
+                ),
+              ),
+            )
+          else ...[
+            if (_levels!.length > 1) ...[
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _LevelFilterChip(
+                      label: 'All levels',
+                      isSelected: _filterLevelId == null,
+                      onTap: () => setState(() => _filterLevelId = null),
+                    ),
+                    for (final lvl in _levels!) ...[
+                      const SizedBox(width: 6),
+                      _LevelFilterChip(
+                        label: lvl.name,
+                        isCurrent: student.level?.label == lvl.name ||
+                            student.level?.id == lvl.id,
+                        isSelected: _filterLevelId == lvl.id,
+                        onTap: () => setState(() => _filterLevelId = lvl.id),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.45,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final level in _levels!)
+                      if (_filterLevelId == null ||
+                          _filterLevelId == level.id) ...[
+                        _buildLevelSection(level, student),
+                        const SizedBox(height: 12),
+                      ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          AppDialogActions(
+            cancelLabel: AppStrings.cancel,
+            confirmLabel: _selectedBatch == null
+                ? 'Select a batch'
+                : isSameBatchSelected
+                    ? 'Current batch'
+                    : 'Move to ${_selectedBatch!.name}',
+            isConfirming: _saving,
+            onConfirm: (_selectedBatch == null || isSameBatchSelected || _saving)
+                ? null
+                : _submit,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLevelSection(AcademicLevelDto level, StudentDto student) {
+    final isCurrentLevel =
+        student.level?.label == level.name || student.level?.id == level.id;
+    final batches = level.batches;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isCurrentLevel
+              ? const Color(0xFFBFDBFE)
+              : const Color(0xFFE2E8F0),
+          width: isCurrentLevel ? 1.4 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isCurrentLevel
+                  ? const Color(0xFFEFF6FF)
+                  : const Color(0xFFF8FAFC),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(9)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.layers_rounded,
+                  size: 16,
+                  color: isCurrentLevel
+                      ? const Color(0xFF1D4ED8)
+                      : Brand.navy,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  level.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: isCurrentLevel
+                        ? const Color(0xFF1E40AF)
+                        : Brand.navy,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '(${batches.length} ${batches.length == 1 ? 'batch' : 'batches'})',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Brand.muted,
+                  ),
+                ),
+                const Spacer(),
+                if (isCurrentLevel)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDBEAFE),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'Current level',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1D4ED8),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (batches.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(12),
               child: Text(
-                batch.name +
-                    (student.batch?.id == batch.id ? ' (current)' : ''),
+                AppStrings.noBatchesInThisLevelYet,
+                style: TextStyle(
+                  color: Brand.muted,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  for (final batch in batches) ...[
+                    _buildBatchTile(batch, level, student),
+                    if (batch != batches.last) const SizedBox(height: 6),
+                  ],
+                ],
               ),
             ),
         ],
       ),
     );
-    if (selectedId == null || selectedId == student.batch?.id) {
-      return;
+  }
+
+  Widget _buildBatchTile(
+    BatchDto batch,
+    AcademicLevelDto level,
+    StudentDto student,
+  ) {
+    final isCurrent = student.batch?.id == batch.id;
+    final isSelected = _selectedBatch?.id == batch.id;
+
+    final Color bgColor;
+    final Color borderColor;
+    if (isSelected) {
+      bgColor = Brand.navy.withValues(alpha: 0.05);
+      borderColor = Brand.navy;
+    } else if (isCurrent) {
+      bgColor = const Color(0xFFF0FDF4);
+      borderColor = const Color(0xFFBBF7D0);
+    } else {
+      bgColor = Colors.white;
+      borderColor = const Color(0xFFE5E7EB);
     }
-    await ref.read(academicRepositoryProvider).enrollStudent(
-          batchId: selectedId,
-          studentId: student.id,
-        );
-    ref.invalidate(adminStudentProvider(student.id));
-    ref.invalidate(adminStudentHistoryProvider(student.id));
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.studentMovedToBatch)),
-      );
-    }
-  } catch (error) {
-    if (context.mounted) {
-      showFailure(context, error);
-    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedBatch = batch;
+            _selectedLevel = level;
+          });
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: borderColor,
+              width: isSelected ? 1.4 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isSelected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                size: 16,
+                color: isSelected
+                    ? Brand.navy
+                    : (isCurrent
+                        ? const Color(0xFF16A34A)
+                        : const Color(0xFF94A3B8)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  batch.name,
+                  style: TextStyle(
+                    fontWeight: isSelected || isCurrent
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    fontSize: 13,
+                    color: isCurrent ? const Color(0xFF166534) : Brand.ink,
+                  ),
+                ),
+              ),
+              if (batch.activeStudentCount > 0 || batch.maxActiveStudents > 0) ...[
+                Text(
+                  '${batch.activeStudentCount}/${batch.maxActiveStudents}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Brand.muted,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              if (isCurrent)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'Current',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF15803D),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LevelFilterChip extends StatelessWidget {
+  const _LevelFilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    this.isCurrent = false,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final bool isCurrent;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Brand.navy
+              : (isCurrent
+                  ? const Color(0xFFEFF6FF)
+                  : const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? Brand.navy
+                : (isCurrent
+                    ? const Color(0xFF93C5FD)
+                    : const Color(0xFFCBD5E1)),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? Colors.white
+                    : (isCurrent ? const Color(0xFF1D4ED8) : Brand.ink),
+              ),
+            ),
+            if (isCurrent && !isSelected) ...[
+              const SizedBox(width: 4),
+              Container(
+                width: 5,
+                height: 5,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF2563EB),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -738,28 +1261,6 @@ class AdminTeacherLeavesPage extends ConsumerWidget {
 
   final String teacherId;
 
-  Color _statusColor(String status) {
-    return switch (status) {
-      'pending' => const Color(0xFF785500),
-      'reassignment_pending' => const Color(0xFF9A3412),
-      'approved' => const Color(0xFF047857),
-      'rejected' => const Color(0xFFB91C1C),
-      'cancelled' => const Color(0xFF64748B),
-      _ => Brand.muted,
-    };
-  }
-
-  Color _statusBg(String status) {
-    return switch (status) {
-      'pending' => const Color(0xFFFFF7E8),
-      'reassignment_pending' => const Color(0xFFFFF1E8),
-      'approved' => const Color(0xFFECFDF5),
-      'rejected' => const Color(0xFFFEF2F2),
-      'cancelled' => const Color(0xFFF1F5F9),
-      _ => const Color(0xFFF8FAFC),
-    };
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final leaves = ref.watch(adminTeacherLeavesProvider(teacherId));
@@ -855,23 +1356,9 @@ class AdminTeacherLeavesPage extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _statusBg(leave.status),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              leave.statusLabel,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: _statusColor(leave.status),
-                              ),
-                            ),
+                          LeaveStatusChip(
+                            status: leave.status,
+                            label: leave.statusLabel,
                           ),
                           const SizedBox(width: 4),
                           const Icon(Icons.chevron_right, color: Brand.muted),

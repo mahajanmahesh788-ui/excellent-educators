@@ -234,7 +234,6 @@ abstract final class ApiEndpoints {
   static const adminGoogleMeetAuthorize = '/api/v1/admin/google/meet/authorize';
 
   static const adminPayments = '/api/v1/admin/payments';
-  static const adminPaymentsOverview = '/api/v1/admin/payments/overview';
   static String adminStudentPayments(String studentId) =>
       '/api/v1/admin/payments/students/$studentId';
   static String adminStudentPaymentPlan(String studentId) =>

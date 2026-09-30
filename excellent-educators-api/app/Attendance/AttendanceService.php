@@ -646,14 +646,13 @@ class AttendanceService
             $issue->loadMissing(['booking.student', 'booking.teacher']);
             $booking = $issue->booking;
             $date = $booking?->date?->toDateString();
-            $displayDate = $date !== null ? Carbon::parse($date)->format('d-M-Y') : 'a class';
+            $displayDate = AppClock::formatDisplayDate($date, 'a class');
             $studentName = $booking?->student?->full_name ?? 'student';
             $teacherName = $booking?->teacher?->full_name ?? 'teacher';
             $reporterName = $reporter->name ?: 'Someone';
             $issueLabel = match ($type) {
                 AttendanceIssueType::TeacherDidNotJoin => 'teacher did not join',
                 AttendanceIssueType::StudentDidNotJoin => 'student did not join',
-                default => 'attendance issue',
             };
 
             $this->notifyAdmins->execute(
@@ -685,10 +684,10 @@ class AttendanceService
             }
 
             $date = $issue->booking?->date?->toDateString();
-            $displayDate = $date !== null ? Carbon::parse($date)->format('d-M-Y') : 'your class';
+            $displayDate = AppClock::formatDisplayDate($date, 'your class');
             $decisionLabel = str_replace('_', ' ', $decision->value);
 
-            $this->notifications->execute(
+            $this->notifications->safeExecute(
                 $reporter,
                 NotificationType::AttendanceConflictResolved,
                 'Class conflict reviewed',

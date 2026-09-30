@@ -86,51 +86,9 @@ void scheduleStudentsFilterFromRoute(
   });
 }
 
-void scheduleBatchesFilterFromRoute(
-  WidgetRef ref,
-  GoRouterState state, {
-  required bool Function() isMounted,
-}) {
-  final attention = state.uri.queryParameters[_attentionQueryKey];
-  final status = state.uri.queryParameters['status'];
-  final levelId = state.uri.queryParameters['level_id'];
-
-  if ((attention == null || attention.isEmpty) &&
-      (status == null || status.isEmpty) &&
-      (levelId == null || levelId.isEmpty)) {
-    return;
-  }
-
-  final next = AdminListFilter(
-    status: status ?? 'active',
-    attentionKey: attention,
-    levelId: levelId,
-  );
-  if (ref.read(adminBatchesFilterProvider) == next) {
-    return;
-  }
-
-  Future.microtask(() {
-    if (!isMounted()) {
-      return;
-    }
-    if (ref.read(adminBatchesFilterProvider) == next) {
-      return;
-    }
-    ref.read(adminBatchesFilterProvider.notifier).state = next;
-  });
-}
-
 void clearStudentsAttentionRoute(BuildContext context, WidgetRef ref, AdminListFilter filter) {
   ref.read(adminStudentsFilterProvider.notifier).state = filter.copyWith(clearAttention: true, page: 1);
   if (GoRouterState.of(context).uri.queryParameters.containsKey(_attentionQueryKey)) {
     context.go(RoutePaths.adminStudents);
-  }
-}
-
-void clearBatchesAttentionRoute(BuildContext context, WidgetRef ref, AdminListFilter filter) {
-  ref.read(adminBatchesFilterProvider.notifier).state = filter.copyWith(clearAttention: true, page: 1);
-  if (GoRouterState.of(context).uri.queryParameters.containsKey(_attentionQueryKey)) {
-    context.go(RoutePaths.adminBatches);
   }
 }

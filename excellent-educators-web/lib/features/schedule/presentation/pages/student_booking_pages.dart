@@ -19,6 +19,7 @@ import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/attendance_report_dialog.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/schedule_ui.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/widgets/session_countdown_badge.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/fresh_student_onboarding.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
@@ -733,44 +734,15 @@ class _NextSessionFeatureCard extends StatelessWidget {
     final isLive =
         booking.attendance?.canJoin == true || booking.isOngoingAt(now);
     final isMasterClass = booking.type == 'master_class';
-
-    // Countdown / status pill
-    final String countdownText;
-    final Color badgeColor;
-    final Color badgeBg;
-
-    if (isLive) {
-      countdownText = 'Happening Now';
-      badgeColor = StudentColors.emeraldDark;
-      badgeBg = StudentColors.emeraldLight;
-    } else if (startsAt != null) {
-      final diff = startsAt.difference(now);
-      if (diff.inMinutes <= 0) {
-        countdownText = 'Starting now';
-        badgeColor = StudentColors.emeraldDark;
-        badgeBg = StudentColors.emeraldLight;
-      } else if (diff.inMinutes <= 60) {
-        countdownText = 'Starts in ${diff.inMinutes} min';
-        badgeColor = StudentColors.amberDark;
-        badgeBg = StudentColors.amberLight;
-      } else if (startsAt.day == now.day && startsAt.month == now.month) {
-        countdownText = 'Today at ${formatHm(booking.start)}';
-        badgeColor = StudentColors.indigoPrimary;
-        badgeBg = StudentColors.indigoLight;
-      } else if (diff.inDays <= 1) {
-        countdownText = 'Tomorrow at ${formatHm(booking.start)}';
-        badgeColor = StudentColors.indigoPrimary;
-        badgeBg = StudentColors.indigoLight;
-      } else {
-        countdownText = 'Starts in ${diff.inDays} days';
-        badgeColor = StudentColors.textSecondary;
-        badgeBg = StudentColors.surfaceMuted;
-      }
-    } else {
-      countdownText = 'Scheduled';
-      badgeColor = StudentColors.textSecondary;
-      badgeBg = StudentColors.surfaceMuted;
-    }
+    final countdown = sessionCountdownStyle(
+      now: now,
+      isLive: isLive,
+      startsAt: startsAt,
+      startHm: booking.start,
+      dateRaw: booking.date,
+      soonMinutes: 60,
+      useDayCountForDistant: true,
+    );
 
     final isMobile = MediaQuery.sizeOf(context).width < 650;
 
@@ -839,34 +811,7 @@ class _NextSessionFeatureCard extends StatelessWidget {
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: badgeBg,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: badgeColor.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isLive) ...[
-                      const _PulsingLiveDot(),
-                      const SizedBox(width: 6),
-                    ],
-                    Text(
-                      countdownText,
-                      style: TextStyle(
-                        color: badgeColor,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              SessionCountdownBadge(style: countdown),
             ],
           ),
 

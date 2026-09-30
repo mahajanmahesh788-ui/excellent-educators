@@ -1,3 +1,5 @@
+import 'package:excellent_educators_web/core/utils/json_read.dart';
+
 class PaymentOverviewDto {
   const PaymentOverviewDto({
     required this.allPending,
@@ -108,17 +110,18 @@ class StudentPaymentDto {
 
   factory StudentPaymentDto.fromJson(Map<String, dynamic> json) {
     return StudentPaymentDto(
-      id: json['id'] as String? ?? '',
-      amount: (json['amount'] as num?)?.toDouble() ?? 0,
-      paymentMode: json['payment_mode'] as String?,
-      paymentDate: json['payment_date'] as String? ?? json['created_at'] as String?,
-      createdAt: json['created_at'] as String?,
-      transactionId: json['transaction_id'] as String?,
-      referenceNumber: json['reference_number'] as String?,
-      status: json['status'] as String? ?? 'pending',
-      statusLabel: json['status_label'] as String?,
-      notes: json['notes'] as String?,
-      receiptUrl: json['receipt_url'] as String?,
+      id: jsonString(json, 'id'),
+      amount: jsonOptDouble(json, 'amount') ?? 0,
+      paymentMode: jsonOptString(json, 'payment_mode'),
+      paymentDate: jsonOptString(json, 'payment_date') ??
+          jsonOptString(json, 'created_at'),
+      createdAt: jsonOptString(json, 'created_at'),
+      transactionId: jsonOptString(json, 'transaction_id'),
+      referenceNumber: jsonOptString(json, 'reference_number'),
+      status: jsonString(json, 'status', 'pending'),
+      statusLabel: jsonOptString(json, 'status_label'),
+      notes: jsonOptString(json, 'notes'),
+      receiptUrl: jsonOptString(json, 'receipt_url'),
     );
   }
 

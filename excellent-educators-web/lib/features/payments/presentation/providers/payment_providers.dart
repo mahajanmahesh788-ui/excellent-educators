@@ -7,11 +7,6 @@ final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
   return PaymentRepository(ref.watch(apiClientProvider));
 });
 
-final paymentOverviewProvider =
-    FutureProvider.autoDispose<PaymentOverviewDto>((ref) {
-  return ref.watch(paymentRepositoryProvider).overview();
-});
-
 class PaymentListFilter {
   const PaymentListFilter({
     this.status,

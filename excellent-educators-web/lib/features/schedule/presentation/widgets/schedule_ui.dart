@@ -180,58 +180,6 @@ class JoinMeetButton extends StatelessWidget {
   }
 }
 
-class SlotChip extends StatelessWidget {
-  const SlotChip({
-    super.key,
-    required this.slot,
-    this.selected = false,
-    this.onTap,
-  });
-
-  final ScheduleSlotDto slot;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = selected ? Brand.navy : slotColor(slot.status);
-    return Material(
-      color: color.withValues(alpha: selected ? 1 : 0.12),
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                formatHm(slot.start),
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  color: selected ? Colors.white : Brand.navy,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                slotLabel(slot),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: selected ? Colors.white70 : Brand.muted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class ScheduleTimeline extends StatelessWidget {
   const ScheduleTimeline({super.key, required this.slots});
 

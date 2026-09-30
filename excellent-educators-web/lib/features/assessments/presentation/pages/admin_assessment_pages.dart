@@ -1,6 +1,7 @@
 import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -351,23 +352,12 @@ class _AssessmentEditorFormState extends ConsumerState<_AssessmentEditorForm> {
     if (id == null) {
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(AppStrings.deleteAssessment),
-        content: const Text(AppStrings.deleteAssessmentHelp),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(AppStrings.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB42318)),
-            child: const Text(AppStrings.delete),
-          ),
-        ],
-      ),
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: AppStrings.deleteAssessment,
+      message: AppStrings.deleteAssessmentHelp,
+      confirmLabel: AppStrings.delete,
+      destructive: true,
     );
     if (confirmed != true) {
       return;

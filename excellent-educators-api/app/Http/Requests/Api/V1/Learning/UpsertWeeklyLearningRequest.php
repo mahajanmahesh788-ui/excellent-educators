@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Api\V1\Learning;
 
-use App\Enums\DimensionCode;
 use App\Enums\WeeklyQuestionType;
+use App\Support\OptionDimensionCodeRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -28,8 +28,7 @@ class UpsertWeeklyLearningRequest extends FormRequest
             'questions.*.question_type' => ['required', Rule::enum(WeeklyQuestionType::class)],
             'questions.*.options' => ['nullable', 'array'],
             'questions.*.options.*.option_text' => ['required', 'string', 'max:500'],
-            'questions.*.options.*.dimension_codes' => ['required', 'array', 'min:1', 'max:3'],
-            'questions.*.options.*.dimension_codes.*' => ['required', Rule::enum(DimensionCode::class)],
+            ...OptionDimensionCodeRules::forField('questions.*.options.*.dimension_codes'),
         ];
     }
 

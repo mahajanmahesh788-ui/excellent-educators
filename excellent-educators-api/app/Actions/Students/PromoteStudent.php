@@ -13,7 +13,6 @@ use App\Models\User;
 use App\Support\ErrorCode;
 use App\Support\StudentActivity;
 use Illuminate\Support\Facades\DB;
-use Throwable;
 
 class PromoteStudent
 {
@@ -58,30 +57,21 @@ class PromoteStudent
 
     private function notifyPromotion(StudentProfile $student, ?string $from, string $to): void
     {
-        try {
-            $user = $student->user;
-            if ($user === null) {
-                return;
-            }
+        $body = $from !== null && $from !== ''
+            ? "You moved from {$from} to {$to}."
+            : "Your level was updated to {$to}.";
 
-            $body = $from !== null && $from !== ''
-                ? "You moved from {$from} to {$to}."
-                : "Your level was updated to {$to}.";
-
-            $this->notifications->execute(
-                $user,
-                NotificationType::StudentPromoted,
-                'Level updated',
-                $body,
-                [
-                    'student_id' => $student->id,
-                    'from_level' => $from,
-                    'to_level' => $to,
-                    'link' => '/student/dashboard',
-                ],
-            );
-        } catch (Throwable) {
-            // Promotion must succeed even if notify fails.
-        }
+        $this->notifications->safeExecute(
+            $student->user,
+            NotificationType::StudentPromoted,
+            'Level updated',
+            $body,
+            [
+                'student_id' => $student->id,
+                'from_level' => $from,
+                'to_level' => $to,
+                'link' => '/student/dashboard',
+            ],
+        );
     }
 }

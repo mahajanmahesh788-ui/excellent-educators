@@ -6,8 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
-import 'package:excellent_educators_web/features/student/presentation/widgets/academy_dashboard.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/widgets/session_countdown_badge.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/join_student_session.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
 
@@ -53,40 +54,13 @@ class _NextClassCardState extends ConsumerState<NextClassCard> {
     final isLive =
         session.attendance?.canJoin == true || session.isOngoingAt(now);
     final isMaster = session.type == 'master_class';
-
-    // Countdown / status info
-    final String countdownText;
-    final Color badgeColor;
-    final Color badgeBg;
-
-    if (isLive) {
-      countdownText = 'Happening Now';
-      badgeColor = StudentColors.emeraldDark;
-      badgeBg = StudentColors.emeraldLight;
-    } else if (startsAt != null) {
-      final diff = startsAt.difference(now);
-      if (diff.inMinutes <= 0) {
-        countdownText = 'Starting now';
-        badgeColor = StudentColors.emeraldDark;
-        badgeBg = StudentColors.emeraldLight;
-      } else if (diff.inMinutes <= 120) {
-        countdownText = 'Starts in ${diff.inMinutes} min';
-        badgeColor = StudentColors.amberDark;
-        badgeBg = StudentColors.amberLight;
-      } else if (diff.inHours <= 24 && startsAt.day == now.day) {
-        countdownText = 'Today at ${formatHm(session.start)}';
-        badgeColor = StudentColors.indigoPrimary;
-        badgeBg = StudentColors.indigoLight;
-      } else {
-        countdownText = 'Upcoming on ${formatPrettyDate(session.date)}';
-        badgeColor = StudentColors.textSecondary;
-        badgeBg = StudentColors.surfaceMuted;
-      }
-    } else {
-      countdownText = 'Scheduled';
-      badgeColor = StudentColors.textSecondary;
-      badgeBg = StudentColors.surfaceMuted;
-    }
+    final countdown = sessionCountdownStyle(
+      now: now,
+      isLive: isLive,
+      startsAt: startsAt,
+      startHm: session.start,
+      dateRaw: session.date,
+    );
 
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
@@ -129,40 +103,7 @@ class _NextClassCardState extends ConsumerState<NextClassCard> {
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: badgeBg,
-                      borderRadius: BorderRadius.circular(99),
-                      border: Border.all(
-                        color: badgeColor.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isLive) ...[
-                          const _PulsingLiveDot(),
-                          const SizedBox(width: 6),
-                        ],
-                        Flexible(
-                          child: Text(
-                            countdownText,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: badgeColor,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: SessionCountdownBadge(style: countdown),
                 ),
               ),
             ],
@@ -421,48 +362,6 @@ class _NextClassCardState extends ConsumerState<NextClassCard> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PulsingLiveDot extends StatefulWidget {
-  const _PulsingLiveDot();
-
-  @override
-  State<_PulsingLiveDot> createState() => _PulsingLiveDotState();
-}
-
-class _PulsingLiveDotState extends State<_PulsingLiveDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: Tween<double>(begin: 0.3, end: 1.0).animate(_controller),
-      child: Container(
-        width: 8,
-        height: 8,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: StudentColors.emeraldPrimary,
-        ),
       ),
     );
   }

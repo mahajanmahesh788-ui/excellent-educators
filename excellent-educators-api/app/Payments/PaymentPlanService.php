@@ -19,7 +19,6 @@ use App\Support\ErrorCode;
 use App\Support\StudentActivity;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Throwable;
 
 class PaymentPlanService
 {
@@ -396,16 +395,8 @@ class PaymentPlanService
         string $body,
         array $data = [],
     ): void {
-        try {
-            $student = StudentProfile::query()->with('user')->find($studentId);
-            $user = $student?->user;
-            if ($user === null) {
-                return;
-            }
-            $this->notifications->execute($user, $type, $title, $body, $data);
-        } catch (Throwable) {
-            // Payment must succeed even if notify fails.
-        }
+        $student = StudentProfile::query()->with('user')->find($studentId);
+        $this->notifications->safeExecute($student?->user, $type, $title, $body, $data);
     }
 
     public function recalculate(StudentPaymentPlan $plan, ?string $actorId = null): StudentPaymentPlan

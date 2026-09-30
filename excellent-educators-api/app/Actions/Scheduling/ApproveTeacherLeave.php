@@ -153,8 +153,8 @@ class ApproveTeacherLeave
             $user = $teacher->user;
             if ($user !== null) {
                 $date = $primary->date?->toDateString() ?? '';
-                $displayDate = $date !== '' ? Carbon::parse($date)->format('d-M-Y') : 'the requested date';
-                $this->notifications->execute(
+                $displayDate = AppClock::formatDisplayDate($date, 'the requested date');
+                $this->notifications->safeExecute(
                     $user,
                     NotificationType::TeacherLeaveApproved,
                     'Leave request approved',

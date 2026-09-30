@@ -1,16 +1,17 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/core/widgets/app_status_chip.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
-import 'package:excellent_educators_web/features/schedule/presentation/widgets/schedule_ui.dart';
+import 'package:excellent_educators_web/core/utils/launch_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class AdminLeaveRequestPage extends ConsumerStatefulWidget {
   const AdminLeaveRequestPage({super.key, required this.groupId});
@@ -120,22 +121,13 @@ class _AdminLeaveRequestPageState extends ConsumerState<AdminLeaveRequestPage> {
   }
 
   Future<void> _cancelLeave() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(AppStrings.cancelLeaveRequest),
-        content: const Text(AppStrings.cancelLeaveRequestHelp),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(AppStrings.keepRequest),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(AppStrings.cancelLeave),
-          ),
-        ],
-      ),
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: AppStrings.cancelLeaveRequest,
+      message: AppStrings.cancelLeaveRequestHelp,
+      confirmLabel: AppStrings.cancelLeave,
+      cancelLabel: AppStrings.keepRequest,
+      destructive: true,
     );
     if (confirmed != true) {
       return;
@@ -283,8 +275,7 @@ class _SummaryCard extends ConsumerWidget {
   final String teacherId;
 
   Future<void> _call(String number) async {
-    final uri = Uri(scheme: 'tel', path: number.replaceAll(' ', ''));
-    await launchUrl(uri);
+    await launchPhoneCall(number);
   }
 
   bool _isCurrentMonth(LeaveRequestDto leave) {
@@ -386,35 +377,9 @@ class _SummaryCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: switch (request.status) {
-                    'pending' => const Color(0xFFFFF7E8),
-                    'reassignment_pending' => const Color(0xFFFFF1E8),
-                    'approved' => const Color(0xFFECFDF5),
-                    'rejected' => const Color(0xFFFEF2F2),
-                    'cancelled' => const Color(0xFFF1F5F9),
-                    _ => const Color(0xFFF8FAFC),
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  request.statusLabel,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11,
-                    color: switch (request.status) {
-                      'pending' => const Color(0xFF785500),
-                      'reassignment_pending' => const Color(0xFF9A3412),
-                      'approved' => const Color(0xFF047857),
-                      'rejected' => const Color(0xFFB91C1C),
-                      'cancelled' => const Color(0xFF64748B),
-                      _ => Brand.muted,
-                    },
-                  ),
-                ),
+              LeaveStatusChip(
+                status: request.status,
+                label: request.statusLabel,
               ),
             ],
           ),

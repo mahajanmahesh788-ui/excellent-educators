@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/core/widgets/phone_whatsapp_address_fields.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/admin_list_providers.dart';
@@ -232,35 +233,13 @@ class _AdminCreateTeacherPageState
               validator: validateRequired,
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _phone,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: AppStrings.phoneNumber,
-                prefixText: '+91  ',
-              ),
-              validator: validateOptionalPhone,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _whatsapp,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: AppStrings.whatsappNumberOptional,
-                prefixText: '+91  ',
-              ),
-              validator: validateOptionalPhone,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _address,
-              maxLines: 2,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: AppStrings.address,
-                hintText: AppStrings.enterTeacherAddress,
-                alignLabelWithHint: true,
-              ),
+            PhoneWhatsappAddressFields(
+              phone: _phone,
+              whatsapp: _whatsapp,
+              address: _address,
+              requirePhone: false,
+              addressHint: AppStrings.enterTeacherAddress,
+              fieldSpacing: 12,
             ),
             const SizedBox(height: 28),
             MentorProfileEditor(
@@ -415,24 +394,12 @@ class _AdminEditTeacherPageState extends ConsumerState<AdminEditTeacherPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _phone,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: AppStrings.phoneNumber,
-                      prefixText: '+91  ',
-                    ),
-                    validator: validateOptionalPhone,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _whatsapp,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: AppStrings.whatsappNumberOptional,
-                      prefixText: '+91  ',
-                    ),
-                    validator: validateOptionalPhone,
+                  PhoneWhatsappAddressFields(
+                    phone: _phone,
+                    whatsapp: _whatsapp,
+                    requirePhone: false,
+                    showAddress: false,
+                    fieldSpacing: 12,
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(

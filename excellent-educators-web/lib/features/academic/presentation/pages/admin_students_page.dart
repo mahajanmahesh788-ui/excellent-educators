@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/network/api_client.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/core/widgets/phone_whatsapp_address_fields.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/admin_list_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/assessment_providers.dart';
@@ -353,35 +354,11 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                     onChanged: (value) => setState(() => _gender = value),
                   ),
                   const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _phone,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: AppStrings.phoneNumber,
-                      prefixText: '+91  ',
-                    ),
-                    validator: validateRequiredPhone,
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _whatsapp,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: AppStrings.whatsappNumberOptional,
-                      prefixText: '+91  ',
-                    ),
-                    validator: validateOptionalPhone,
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _address,
-                    maxLines: 2,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      labelText: AppStrings.address,
-                      hintText: AppStrings.enterStudentAddress,
-                      alignLabelWithHint: true,
-                    ),
+                  PhoneWhatsappAddressFields(
+                    phone: _phone,
+                    whatsapp: _whatsapp,
+                    address: _address,
+                    addressHint: AppStrings.enterStudentAddress,
                   ),
                   const SizedBox(height: 14),
                   TextFormField(

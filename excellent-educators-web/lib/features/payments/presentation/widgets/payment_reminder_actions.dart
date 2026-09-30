@@ -1,10 +1,10 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/utils/launch_helpers.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/payments/presentation/providers/payment_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class PaymentReminderActions extends ConsumerWidget {
   const PaymentReminderActions({
@@ -29,7 +29,7 @@ class PaymentReminderActions extends ConsumerWidget {
         }
         return;
       }
-      await launchUrl(Uri.parse(url), webOnlyWindowName: AppStrings.blank);
+      await launchExternalUrl(url);
     } catch (error) {
       if (context.mounted) {
         showFailure(context, error);
@@ -43,7 +43,7 @@ class PaymentReminderActions extends ConsumerWidget {
       showFailure(context, AppStrings.noPhoneNumberAvailable);
       return;
     }
-    await launchUrl(Uri(scheme: 'tel', path: digits));
+    await launchPhoneCall(digits);
   }
 
   @override

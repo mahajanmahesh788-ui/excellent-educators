@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
@@ -425,25 +426,13 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
   }
 
   Future<void> _deleteLevel(BuildContext context, AcademicLevelDto level) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text(AppStrings.deleteLevel),
-        content: Text(
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: AppStrings.deleteLevel,
+      message:
           'Delete ${level.name}? Remove or move its batches first if delete fails.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text(AppStrings.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB42318)),
-            child: const Text(AppStrings.delete),
-          ),
-        ],
-      ),
+      confirmLabel: AppStrings.delete,
+      destructive: true,
     );
     if (confirmed != true) {
       return;
@@ -731,25 +720,13 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
   }
 
   Future<void> _deleteBatch() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text(AppStrings.deleteBatch),
-        content: Text(
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: AppStrings.deleteBatch,
+      message:
           'Delete ${widget.batch.name}? Active enrollments must be moved or removed first.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text(AppStrings.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB42318)),
-            child: const Text(AppStrings.delete),
-          ),
-        ],
-      ),
+      confirmLabel: AppStrings.delete,
+      destructive: true,
     );
     if (confirmed != true) {
       return;

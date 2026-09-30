@@ -7,7 +7,7 @@ import 'package:excellent_educators_web/features/academic/presentation/providers
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
-import 'package:excellent_educators_web/features/student/presentation/widgets/academy_dashboard.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/extra_master_class_banner.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/achievement_cards.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/book_class_section.dart';

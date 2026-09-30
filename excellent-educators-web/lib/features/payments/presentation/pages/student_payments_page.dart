@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
+import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/payments/data/dto/payment_dtos.dart';
@@ -97,25 +98,13 @@ class StudentPaymentsPage extends ConsumerWidget {
         }
         return;
       }
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text(AppStrings.confirmOnlinePayment),
-          content: Text(
-            '${AppStrings.paymentAmount}: ${formatRupee((initiated['amount'] as num?)?.toDouble() ?? 0)}\n\n'
-            '${AppStrings.manualGatewayConfirmHelp}',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text(AppStrings.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text(AppStrings.confirmPayment),
-            ),
-          ],
-        ),
+      final amount = (initiated['amount'] as num?)?.toDouble() ?? 0;
+      final confirmed = await showAppConfirmDialog(
+        context,
+        title: AppStrings.confirmOnlinePayment,
+        message:
+            '${AppStrings.paymentAmount}: ${formatRupee(amount)}\n\n${AppStrings.manualGatewayConfirmHelp}',
+        confirmLabel: AppStrings.confirmPayment,
       );
       if (confirmed != true) {
         return;

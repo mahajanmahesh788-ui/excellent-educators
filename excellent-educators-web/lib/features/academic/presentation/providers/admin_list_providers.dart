@@ -134,8 +134,6 @@ final adminStudentsFilterProvider = StateProvider<AdminListFilter>((ref) => cons
 
 final adminTeachersFilterProvider = StateProvider<AdminListFilter>((ref) => const AdminListFilter());
 
-final adminBatchesFilterProvider = StateProvider<AdminListFilter>((ref) => const AdminListFilter());
-
 final adminStudentsProvider = FutureProvider.autoDispose.family<PagedResult, AdminListFilter>((ref, filter) {
   return ref.read(academicRepositoryProvider).adminStudents(
         search: filter.search,
@@ -159,15 +157,6 @@ final adminTeachersProvider = FutureProvider.autoDispose.family<PagedResult, Adm
   return ref.read(academicRepositoryProvider).adminTeachers(
         search: filter.search,
         status: filter.status,
-        page: filter.page,
-      );
-});
-
-final adminBatchesProvider = FutureProvider.autoDispose.family<PagedResult, AdminListFilter>((ref, filter) {
-  return ref.read(academicRepositoryProvider).adminBatches(
-        search: filter.search,
-        status: filter.status,
-        full: filter.attentionKey == 'full',
         page: filter.page,
       );
 });

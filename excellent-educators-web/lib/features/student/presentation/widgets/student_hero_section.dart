@@ -8,7 +8,7 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
-import 'package:excellent_educators_web/features/student/presentation/widgets/academy_dashboard.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/join_student_session.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
 

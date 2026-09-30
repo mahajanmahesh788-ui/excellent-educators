@@ -5,9 +5,11 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/notifications/data/dto/notification_dtos.dart';
+import 'package:excellent_educators_web/features/notifications/presentation/notification_icons.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/notification_navigation.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/providers/notification_feature_providers.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
+import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
@@ -254,14 +256,14 @@ class _NotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formatted = _formatDateTime(notification.createdAt);
+    final formatted = formatDisplayDateTime(notification.createdAt, fallback: '');
 
     return ListTile(
       onTap: onTap,
       leading: CircleAvatar(
         backgroundColor: notification.isUnread ? Brand.gold.withValues(alpha: 0.18) : const Color(0xFFECEFF3),
         child: Icon(
-          _iconFor(notification.type),
+          notificationIconFor(notification.type),
           color: notification.isUnread ? Brand.goldDark : Brand.muted,
           size: 20,
         ),
@@ -286,49 +288,4 @@ class _NotificationTile extends StatelessWidget {
       isThreeLine: true,
     );
   }
-
-  IconData _iconFor(String type) {
-    return switch (type) {
-      'master_teacher_assigned' ||
-      'master_teacher_changed' ||
-      'master_teacher_removed' =>
-        Icons.psychology_alt_rounded,
-      'common_teacher_assigned' ||
-      'common_teacher_changed' ||
-      'common_teacher_removed' =>
-        Icons.person_outline,
-      'student_enrolled_in_batch' || 'student_unenrolled_from_batch' =>
-        Icons.groups_rounded,
-      'student_booking_failed' => Icons.warning_amber_rounded,
-      'session_booked' => Icons.event_available_rounded,
-      'session_rescheduled' || 'session_mentor_updated' =>
-        Icons.event_repeat_rounded,
-      'session_cancelled' => Icons.event_busy_rounded,
-      'teacher_leave_submitted' ||
-      'teacher_leave_approved' ||
-      'teacher_leave_rejected' ||
-      'teacher_leave_cancelled' =>
-        Icons.event_busy_rounded,
-      'payment_recorded' || 'payment_voided' => Icons.payments_outlined,
-      'attendance_conflict_reported' || 'attendance_conflict_resolved' =>
-        Icons.report_outlined,
-      'student_promoted' => Icons.school_outlined,
-      'aptitude_assessment_available' => Icons.quiz_outlined,
-      'admin_announcement' => Icons.campaign_outlined,
-      _ => Icons.notifications_outlined,
-    };
-  }
 }
-
-String _formatDateTime(String? iso) {
-  if (iso == null || iso.isEmpty) {
-    return '';
-  }
-  final dt = DateTime.parse(iso).toLocal();
-  const months = [AppStrings.jan2, AppStrings.feb2, AppStrings.mar2, AppStrings.apr2, AppStrings.may2, AppStrings.jun2, AppStrings.jul2, AppStrings.aug2, AppStrings.sep2, AppStrings.oct2, AppStrings.nov2, AppStrings.dec2];
-  final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-  final minute = dt.minute.toString().padLeft(2, '0');
-  final amPm = dt.hour >= 12 ? AppStrings.pm : AppStrings.am;
-  return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $hour:$minute $amPm';
-}
-

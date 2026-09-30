@@ -3,17 +3,14 @@
 namespace App\Actions\Notifications;
 
 use App\Enums\NotificationType;
-use App\Enums\RoleName;
 use App\Enums\TeacherLeaveStatus;
 use App\Models\TeacherProfile;
-use App\Models\User;
-use Illuminate\Support\Carbon;
-use Throwable;
+use App\Support\AppClock;
 
 class NotifyAdminsOfTeacherLeaveSubmitted
 {
     public function __construct(
-        private readonly CreateUserNotification $notifications,
+        private readonly NotifyOperationalAdmins $notifyAdmins,
     ) {}
 
     public function execute(
@@ -24,37 +21,20 @@ class NotifyAdminsOfTeacherLeaveSubmitted
     ): void {
         $teacher->loadMissing('user');
         $teacherName = $teacher->full_name ?: ($teacher->user?->name ?? 'A teacher');
-        $displayDate = Carbon::parse($date)->format('d-M-Y');
+        $displayDate = AppClock::formatDisplayDate($date, 'the requested date');
 
-        $title = 'New leave request';
-        $body = "New leave request from {$teacherName} for {$displayDate}.";
-        $data = [
-            'leave_request_group_id' => $groupId,
-            'teacher_id' => $teacher->id,
-            'teacher_name' => $teacherName,
-            'date' => $date,
-            'status' => $status->value,
-            'link' => '/admin/leaves/'.$groupId,
-        ];
-
-        try {
-            User::query()
-                ->role([
-                    RoleName::SuperAdmin->value,
-                    RoleName::OperationalAdmin->value,
-                ])
-                ->get()
-                ->each(function (User $admin) use ($title, $body, $data): void {
-                    $this->notifications->execute(
-                        $admin,
-                        NotificationType::TeacherLeaveSubmitted,
-                        $title,
-                        $body,
-                        $data,
-                    );
-                });
-        } catch (Throwable) {
-            // Leave submission must succeed even if notify fails.
-        }
+        $this->notifyAdmins->execute(
+            NotificationType::TeacherLeaveSubmitted,
+            'New leave request',
+            "New leave request from {$teacherName} for {$displayDate}.",
+            [
+                'leave_request_group_id' => $groupId,
+                'teacher_id' => $teacher->id,
+                'teacher_name' => $teacherName,
+                'date' => $date,
+                'status' => $status->value,
+                'link' => '/admin/leaves/'.$groupId,
+            ],
+        );
     }
 }
