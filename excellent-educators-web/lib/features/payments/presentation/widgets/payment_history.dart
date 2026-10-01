@@ -84,95 +84,86 @@ class _PaymentHistoryListState extends State<PaymentHistoryList> {
     final hasPending = pending != null && pending > 0;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 14, 12, 12),
+      padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const Expanded(
             child: Text(
               AppStrings.paymentHistory,
               style: TextStyle(
                 color: Brand.navy,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                letterSpacing: -0.2,
               ),
             ),
           ),
-          if (hasPending) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFFECACA), width: 1),
-              ),
+          if (hasPending)
+            _HeaderPill(
+              background: const Color(0xFFFEF2F2),
+              border: const Color(0xFFFECACA),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 7,
-                    height: 7,
+                    width: 6,
+                    height: 6,
                     decoration: const BoxDecoration(
                       color: Color(0xFFDC2626),
                       shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 5),
                   Text(
-                    '${AppStrings.pendingAmount}: ${formatRupee(pending)}',
+                    formatRupee(pending),
                     style: const TextStyle(
                       color: Color(0xFFDC2626),
-                      fontSize: 12.5,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 0.1,
                     ),
                   ),
                 ],
               ),
-            ),
-          ] else if (pending != null && pending <= 0) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFBBF7D0), width: 1),
-              ),
-              child: const Row(
+            )
+          else if (pending != null && pending <= 0)
+            const _HeaderPill(
+              background: Color(0xFFF0FDF4),
+              border: Color(0xFFBBF7D0),
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.check_circle_outline_rounded,
-                    size: 14,
+                    Icons.check_circle_rounded,
+                    size: 13,
                     color: Color(0xFF16A34A),
                   ),
-                  SizedBox(width: 5),
+                  SizedBox(width: 4),
                   Text(
                     AppStrings.paid,
                     style: TextStyle(
                       color: Color(0xFF16A34A),
-                      fontSize: 12.5,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-          if (canExpand) ...[
-            const SizedBox(width: 4),
+          if (canExpand)
             IconButton(
               tooltip: _expanded
                   ? AppStrings.showLess
                   : AppStrings.showAllHistory,
               onPressed: () => setState(() => _expanded = !_expanded),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
               icon: AnimatedRotation(
                 turns: _expanded ? 0.5 : 0,
                 duration: const Duration(milliseconds: 180),
-                child: const Icon(Icons.keyboard_arrow_down),
+                child: const Icon(Icons.keyboard_arrow_down_rounded, size: 22),
               ),
             ),
-          ],
         ],
       ),
     );
@@ -187,20 +178,20 @@ class _PaymentHistoryListState extends State<PaymentHistoryList> {
       return DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE8E6E0)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE6E2D8)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildHeader(canExpand: false),
-            const Divider(height: 1, color: Color(0xFFE8E6E0)),
+            const Divider(height: 1, thickness: 1, color: Color(0xFFECE8E0)),
             const Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 18),
               child: Center(
                 child: Text(
                   AppStrings.noPaymentHistoryYet,
-                  style: TextStyle(color: Brand.muted),
+                  style: TextStyle(color: Brand.muted, fontSize: 13),
                 ),
               ),
             ),
@@ -215,14 +206,14 @@ class _PaymentHistoryListState extends State<PaymentHistoryList> {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8E6E0)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE6E2D8)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(canExpand: canExpand),
-          const Divider(height: 1, color: Color(0xFFE8E6E0)),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFECE8E0)),
           _PaymentHistoryTile(
             payment: latest,
             showReceipt: widget.showReceipt,
@@ -238,7 +229,7 @@ class _PaymentHistoryListState extends State<PaymentHistoryList> {
           ),
           if (_expanded && older.isNotEmpty) ...[
             for (final payment in older) ...[
-              const Divider(height: 1, color: Color(0xFFE8E6E0)),
+              const Divider(height: 1, thickness: 1, color: Color(0xFFECE8E0)),
               _PaymentHistoryTile(
                 payment: payment,
                 showReceipt: false,
@@ -256,6 +247,31 @@ class _PaymentHistoryListState extends State<PaymentHistoryList> {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _HeaderPill extends StatelessWidget {
+  const _HeaderPill({
+    required this.background,
+    required this.border,
+    required this.child,
+  });
+
+  final Color background;
+  final Color border;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
+      child: child,
     );
   }
 }
@@ -303,238 +319,319 @@ class _PaymentHistoryTile extends StatelessWidget {
   bool get _hasStoredReceipt =>
       (payment.receiptUrl ?? '').trim().isNotEmpty;
 
+  bool get _showAdminMenu =>
+      persistAsAdmin &&
+      studentId != null &&
+      repository != null &&
+      payment.status == 'successful';
+
+  String get _receiptNo {
+    final id = payment.id;
+    if (id.isEmpty) {
+      return '—';
+    }
+    if (id.length <= 10) {
+      return id.toUpperCase();
+    }
+    return id.substring(id.length - 10).toUpperCase();
+  }
+
+  String get _modeLabel {
+    if (payment.paymentMode == null) {
+      return '—';
+    }
+    return payment.paymentMode == 'online'
+        ? AppStrings.online
+        : AppStrings.offline;
+  }
+
+  Future<void> _onAdminMenu(BuildContext context, String value) async {
+    if (value == 'void') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text(AppStrings.voidPayment),
+          content: const Text(AppStrings.voidPaymentHelp),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text(AppStrings.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text(AppStrings.voidPayment),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) {
+        return;
+      }
+      try {
+        await repository!.voidPayment(studentId!, payment.id);
+        onReceiptUpdated?.call(payment.copyWith(status: 'failed'));
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$error')),
+          );
+        }
+      }
+      return;
+    }
+
+    if (value == 'edit') {
+      final amountCtrl = TextEditingController(
+        text: payment.amount.toStringAsFixed(0),
+      );
+      final notesCtrl = TextEditingController(text: payment.notes ?? '');
+      var mode = payment.paymentMode ?? 'offline';
+      final dateCtrl = TextEditingController(
+        text: (payment.paymentDate ?? '').length >= 10
+            ? payment.paymentDate!.substring(0, 10)
+            : '',
+      );
+      final saved = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: const Text(AppStrings.editPayment),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: amountCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: AppStrings.paymentAmount,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: mode,
+                    decoration: const InputDecoration(
+                      labelText: AppStrings.paymentMode,
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'offline',
+                        child: Text(AppStrings.offline),
+                      ),
+                      DropdownMenuItem(
+                        value: 'online',
+                        child: Text(AppStrings.online),
+                      ),
+                    ],
+                    onChanged: (next) {
+                      if (next != null) {
+                        setDialogState(() => mode = next);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: dateCtrl,
+                    decoration: const InputDecoration(
+                      labelText: AppStrings.paymentDate,
+                      hintText: 'YYYY-MM-DD',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: notesCtrl,
+                    decoration: const InputDecoration(
+                      labelText: AppStrings.notesOptional,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(AppStrings.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, {
+                  'amount':
+                      double.tryParse(amountCtrl.text.trim()) ?? payment.amount,
+                  'payment_mode': mode,
+                  'payment_date': dateCtrl.text.trim().isEmpty
+                      ? null
+                      : dateCtrl.text.trim(),
+                  'notes': notesCtrl.text.trim().isEmpty
+                      ? null
+                      : notesCtrl.text.trim(),
+                }),
+                child: const Text(AppStrings.save),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (saved == null) {
+        return;
+      }
+      try {
+        await repository!.updatePayment(studentId!, payment.id, saved);
+        onReceiptUpdated?.call(
+          payment.copyWith(
+            amount: (saved['amount'] as num?)?.toDouble() ?? payment.amount,
+            paymentMode:
+                saved['payment_mode'] as String? ?? payment.paymentMode,
+            paymentDate:
+                saved['payment_date'] as String? ?? payment.paymentDate,
+            notes: saved['notes'] as String? ?? payment.notes,
+          ),
+        );
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$error')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final mode = payment.paymentMode == null
-        ? '—'
-        : payment.paymentMode == 'online'
-            ? AppStrings.online
-            : AppStrings.offline;
     final note = payment.notes?.trim();
     final hasNote = note != null && note.isNotEmpty;
-    final dateStr = formatDisplayDateTime(payment.createdAt ?? payment.paymentDate);
-    final line = [
-      dateStr,
-      formatRupee(payment.amount),
-      mode,
-    ].join(' · ');
+    final dateStr =
+        formatDisplayDateTime(payment.createdAt ?? payment.paymentDate);
+    final isOnline = payment.paymentMode == 'online';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      formatRupee(payment.amount),
+                      style: const TextStyle(
+                        color: Brand.navy,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                        height: 1.15,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      dateStr,
+                      style: const TextStyle(
+                        color: Brand.muted,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12.5,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: isOnline
+                      ? const Color(0xFFEFF6FF)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: isOnline
+                        ? const Color(0xFFBFDBFE)
+                        : const Color(0xFFE2E8F0),
+                  ),
+                ),
                 child: Text(
-                  line,
-                  style: const TextStyle(
-                    color: Brand.navy,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    height: 1.35,
+                  _modeLabel,
+                  style: TextStyle(
+                    color: isOnline
+                        ? const Color(0xFF1D4ED8)
+                        : Brand.navy.withValues(alpha: 0.75),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                '${AppStrings.receiptNo}: $_receiptNo',
-                style: const TextStyle(
-                  color: Brand.muted,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              if (persistAsAdmin &&
-                  studentId != null &&
-                  repository != null &&
-                  payment.status == 'successful')
+              if (_showAdminMenu)
                 PopupMenuButton<String>(
-                  onSelected: (value) async {
-                    if (value == 'void') {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text(AppStrings.voidPayment),
-                          content: const Text(AppStrings.voidPaymentHelp),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text(AppStrings.cancel),
-                            ),
-                            FilledButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text(AppStrings.voidPayment),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed != true) {
-                        return;
-                      }
-                      try {
-                        await repository!.voidPayment(studentId!, payment.id);
-                        onReceiptUpdated?.call(payment.copyWith(status: 'failed'));
-                      } catch (error) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('$error')),
-                          );
-                        }
-                      }
-                    } else if (value == 'edit') {
-                      final amountCtrl = TextEditingController(
-                        text: payment.amount.toStringAsFixed(0),
-                      );
-                      final notesCtrl = TextEditingController(
-                        text: payment.notes ?? '',
-                      );
-                      var mode = payment.paymentMode ?? 'offline';
-                      final dateCtrl = TextEditingController(
-                        text: (payment.paymentDate ?? '').length >= 10
-                            ? payment.paymentDate!.substring(0, 10)
-                            : '',
-                      );
-                      final saved = await showDialog<Map<String, dynamic>>(
-                        context: context,
-                        builder: (ctx) => StatefulBuilder(
-                          builder: (ctx, setDialogState) => AlertDialog(
-                            title: const Text(AppStrings.editPayment),
-                            content: SingleChildScrollView(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  TextField(
-                                    controller: amountCtrl,
-                                    keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(
-                                      labelText: AppStrings.paymentAmount,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  DropdownButtonFormField<String>(
-                                    value: mode,
-                                    decoration: const InputDecoration(
-                                      labelText: AppStrings.paymentMode,
-                                    ),
-                                    items: const [
-                                      DropdownMenuItem(
-                                        value: 'offline',
-                                        child: Text(AppStrings.offline),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'online',
-                                        child: Text(AppStrings.online),
-                                      ),
-                                    ],
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setDialogState(() => mode = value);
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(height: 12),
-                                  TextField(
-                                    controller: dateCtrl,
-                                    decoration: const InputDecoration(
-                                      labelText: AppStrings.paymentDate,
-                                      hintText: 'YYYY-MM-DD',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  TextField(
-                                    controller: notesCtrl,
-                                    decoration: const InputDecoration(
-                                      labelText: AppStrings.notesOptional,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                child: const Text(AppStrings.cancel),
-                              ),
-                              FilledButton(
-                                onPressed: () => Navigator.pop(ctx, {
-                                  'amount': double.tryParse(
-                                        amountCtrl.text.trim(),
-                                      ) ??
-                                      payment.amount,
-                                  'payment_mode': mode,
-                                  'payment_date': dateCtrl.text.trim().isEmpty
-                                      ? null
-                                      : dateCtrl.text.trim(),
-                                  'notes': notesCtrl.text.trim().isEmpty
-                                      ? null
-                                      : notesCtrl.text.trim(),
-                                }),
-                                child: const Text(AppStrings.save),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                      if (saved == null) {
-                        return;
-                      }
-                      try {
-                        await repository!.updatePayment(
-                          studentId!,
-                          payment.id,
-                          saved,
-                        );
-                        onReceiptUpdated?.call(
-                          payment.copyWith(
-                            amount: (saved['amount'] as num?)?.toDouble() ??
-                                payment.amount,
-                            paymentMode: saved['payment_mode'] as String? ??
-                                payment.paymentMode,
-                            paymentDate: saved['payment_date'] as String? ??
-                                payment.paymentDate,
-                            notes: saved['notes'] as String? ?? payment.notes,
-                          ),
-                        );
-                      } catch (error) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('$error')),
-                          );
-                        }
-                      }
-                    }
-                  },
+                  tooltip: AppStrings.editPayment,
+                  padding: EdgeInsets.zero,
+                  onSelected: (value) => _onAdminMenu(context, value),
                   itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'edit', child: Text(AppStrings.editPayment)),
-                    PopupMenuItem(value: 'void', child: Text(AppStrings.voidPayment)),
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Text(AppStrings.editPayment),
+                    ),
+                    PopupMenuItem(
+                      value: 'void',
+                      child: Text(AppStrings.voidPayment),
+                    ),
                   ],
+                  child: const Padding(
+                    padding: EdgeInsets.only(left: 2),
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: Icon(Icons.more_horiz_rounded, size: 18),
+                    ),
+                  ),
                 ),
             ],
           ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.receipt_long_outlined, size: 14, color: Brand.muted),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  '${AppStrings.receiptNo} $_receiptNo',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Brand.muted,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    letterSpacing: 0.15,
+                  ),
+                ),
+              ),
+            ],
+          ),
           if (hasNote || _canShowReceipt) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: hasNote
                       ? Text(
-                          '${AppStrings.note}: $note',
-                          style: const TextStyle(
-                            color: Brand.muted,
-                            fontSize: 13,
-                            height: 1.35,
+                          note,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Brand.navy.withValues(alpha: 0.72),
+                            fontSize: 12.5,
+                            height: 1.3,
                           ),
                         )
                       : const SizedBox.shrink(),
                 ),
                 if (_canShowReceipt) ...[
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
+                  const SizedBox(width: 8),
+                  TextButton.icon(
                     onPressed: () => showPaymentReceiptActions(
                       context,
                       data: PaymentReceiptData(
@@ -550,8 +647,10 @@ class _PaymentHistoryTile extends StatelessWidget {
                       persistAsAdmin: persistAsAdmin,
                       onReceiptUpdated: onReceiptUpdated,
                     ),
-                    icon: const Icon(
-                      Icons.download_rounded,
+                    icon: Icon(
+                      _hasStoredReceipt
+                          ? Icons.check_rounded
+                          : Icons.download_rounded,
                       size: 15,
                     ),
                     label: Text(
@@ -559,18 +658,20 @@ class _PaymentHistoryTile extends StatelessWidget {
                           ? AppStrings.receiptSaved
                           : AppStrings.receipt,
                     ),
-                    style: OutlinedButton.styleFrom(
+                    style: TextButton.styleFrom(
                       foregroundColor: Brand.navy,
-                      backgroundColor: const Color(0xFFF8FAFC),
-                      side: const BorderSide(color: Color(0xFFCBD5E1), width: 1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
+                      backgroundColor: const Color(0xFFF1F5F9),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       visualDensity: VisualDensity.compact,
                       textStyle: const TextStyle(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                         fontSize: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
@@ -581,16 +682,5 @@ class _PaymentHistoryTile extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String get _receiptNo {
-    final id = payment.id;
-    if (id.isEmpty) {
-      return '—';
-    }
-    if (id.length <= 10) {
-      return id.toUpperCase();
-    }
-    return id.substring(id.length - 10).toUpperCase();
   }
 }

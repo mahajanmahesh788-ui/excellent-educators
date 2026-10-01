@@ -18,6 +18,7 @@ use App\Models\TeacherProfile;
 use App\Support\ApiResponse;
 use App\Support\ErrorCode;
 use App\Support\SearchRank;
+use App\Support\TeacherPhotoStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -141,6 +142,34 @@ class TeacherController extends Controller
             ->loadCount(['academicLevels', 'activeBatchAssignments', 'activeMasterTeacherAssignments']);
 
         return ApiResponse::success('Teacher updated successfully.', TeacherResource::make($teacher)->resolve());
+    }
+
+    public function storePhoto(Request $request, ?TeacherProfile $teacher = null): JsonResponse
+    {
+        $data = $request->validate([
+            'photo' => ['required', 'file', 'max:5120', 'mimes:jpg,jpeg,png,webp'],
+        ]);
+
+        $photoUrl = TeacherPhotoStorage::store($data['photo'], $teacher);
+
+        if ($teacher !== null) {
+            $teacher->update(['photo_url' => $photoUrl]);
+            $teacher->load(['user.roles', 'academicLevels'])
+                ->loadCount(['academicLevels', 'activeBatchAssignments', 'activeMasterTeacherAssignments']);
+
+            return ApiResponse::success(
+                'Teacher photo uploaded successfully.',
+                [
+                    'photo_url' => $photoUrl,
+                    'teacher' => TeacherResource::make($teacher)->resolve(),
+                ],
+            );
+        }
+
+        return ApiResponse::success(
+            'Teacher photo uploaded successfully.',
+            ['photo_url' => $photoUrl],
+        );
     }
 
     public function destroy(TeacherProfile $teacher): JsonResponse

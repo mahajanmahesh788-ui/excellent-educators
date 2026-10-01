@@ -119,6 +119,7 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
           const classOptions = [5, 6, 7, 8, 9, 10, 11, 12];
 
           return SingleChildScrollView(
+            clipBehavior: Clip.none,
             child: Form(
               key: _formKey,
               child: Column(

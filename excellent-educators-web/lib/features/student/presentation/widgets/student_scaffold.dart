@@ -1,8 +1,8 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
-import 'package:excellent_educators_web/core/navigation/app_nav_history.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
+import 'package:excellent_educators_web/core/widgets/app_pull_to_refresh.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
@@ -21,6 +21,8 @@ class StudentScaffold extends ConsumerWidget {
     this.actions,
     this.floatingActionButton,
     this.backTo,
+    this.onRefresh,
+    this.enablePullToRefresh = true,
   });
 
   final String title;
@@ -28,6 +30,8 @@ class StudentScaffold extends ConsumerWidget {
   final List<Widget>? actions;
   final Widget? floatingActionButton;
   final String? backTo;
+  final Future<void> Function()? onRefresh;
+  final bool enablePullToRefresh;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,21 +41,26 @@ class StudentScaffold extends ConsumerWidget {
       orElse: () => false,
     );
     final journeyWaiting = ref.watch(studentProfileProvider).maybeWhen(
-          data: (student) => student.isBatchWaitingToStart,
+          data: (student) => student.locksFeaturesForWaitingBatch,
           orElse: () => false,
         );
     final location = GoRouterState.of(context).uri.path;
-    final isInternal = backTo != null;
-    final showBottomNav =
-        !isInternal && MediaQuery.sizeOf(context).width < 960;
+    final compact = MediaQuery.sizeOf(context).width < 960;
+    // Settings destinations (Requests, Payment, policies) should not show the
+    // mobile bottom bar. On laptop, leave Requests as a normal top-nav page
+    // unless the page itself passed an explicit backTo.
+    final settingsLike = _SettingsFloatingMenu.hidesMobileBottomNav(location);
+    final effectiveBackTo = backTo ??
+        (compact && settingsLike ? RoutePaths.studentDashboard : null);
+    final showBottomNav = effectiveBackTo == null && compact;
 
     return PopScope(
-      canPop: context.canPop(),
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) {
           return;
         }
-        navigateBack(context, backTo);
+        navigateBack(context, effectiveBackTo);
       },
       child: Scaffold(
         backgroundColor: StudentColors.canvas,
@@ -80,7 +89,7 @@ class StudentScaffold extends ConsumerWidget {
                 journeyWaiting: journeyWaiting,
                 extraActions: actions,
                 title: title,
-                backTo: backTo,
+                backTo: effectiveBackTo,
               ),
               Expanded(
                 child: Theme(
@@ -92,6 +101,38 @@ class StudentScaffold extends ConsumerWidget {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final insets = Academy.pageInsets(constraints.maxWidth);
+                      Widget page = SizedBox(
+                        width: constraints.maxWidth -
+                            insets.left -
+                            insets.right,
+                        height: constraints.maxHeight -
+                            insets.top -
+                            insets.bottom,
+                        child: body,
+                      );
+                      if (enablePullToRefresh) {
+                        final scrollChild = page;
+                        page = AppRefreshHost(
+                          child: Builder(
+                            builder: (context) {
+                              return AppPullToRefresh(
+                                onRefresh: () {
+                                  if (onRefresh != null) {
+                                    return onRefresh!();
+                                  }
+                                  return AppRefreshHost.of(context).refresh(
+                                    fallback: () => ScreenRefresh.refresh(
+                                      ref,
+                                      location,
+                                    ),
+                                  );
+                                },
+                                child: scrollChild,
+                              );
+                            },
+                          ),
+                        );
+                      }
                       return Padding(
                         padding: EdgeInsets.fromLTRB(
                           insets.left,
@@ -99,15 +140,7 @@ class StudentScaffold extends ConsumerWidget {
                           insets.right,
                           insets.bottom,
                         ),
-                        child: SizedBox(
-                          width: constraints.maxWidth -
-                              insets.left -
-                              insets.right,
-                          height: constraints.maxHeight -
-                              insets.top -
-                              insets.bottom,
-                          child: body,
-                        ),
+                        child: page,
                       );
                     },
                   ),
@@ -185,9 +218,8 @@ class _AcademyNav extends ConsumerWidget {
   }
 
   void _onNavTap(BuildContext context, String path, String label) {
-    dismissOverlayRoutes(context);
     if (!_isLockedLink(path)) {
-      context.go(path);
+      goMenu(context, path);
       return;
     }
     if (journeyWaiting) {
@@ -198,7 +230,7 @@ class _AcademyNav extends ConsumerWidget {
       LockedFeatureNoticeDialog.show(context, featureName: label);
       return;
     }
-    context.go(path);
+    goMenu(context, path);
   }
 
   bool _selected(String path) {
@@ -235,9 +267,7 @@ class _AcademyNav extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                if (backTo != null ||
-                    context.canPop() ||
-                    AppNavHistory.instance.canGoBack) ...[
+                if (shouldShowAppBack(context, backTo: backTo)) ...[
                   IconButton(
                     tooltip: AppStrings.back,
                     iconSize: 22,
@@ -271,8 +301,7 @@ class _AcademyNav extends ConsumerWidget {
                   Expanded(
                     child: InkWell(
                       onTap: () {
-                        dismissOverlayRoutes(context);
-                        context.go(RoutePaths.studentDashboard);
+                        goMenu(context, RoutePaths.studentDashboard);
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Padding(
@@ -360,8 +389,9 @@ class _AcademyNav extends ConsumerWidget {
                   const SizedBox(width: 6),
                 ],
 
-                // Mobile: Settings in the action strip
-                if (compact && backTo == null)
+                // Keep Settings available on Payment / Requests / policies, etc.
+                // (those pages use a back header, which previously hid Settings).
+                if (compact || shouldShowAppBack(context, backTo: backTo))
                   _SettingsFloatingMenu(
                     location: location,
                     tight: true,
@@ -417,9 +447,8 @@ class _StudentBottomNav extends StatelessWidget {
   }
 
   void _onNavTap(BuildContext context, String path, String label) {
-    dismissOverlayRoutes(context);
     if (!_AcademyNav._isLockedLink(path)) {
-      context.go(path);
+      goMenu(context, path);
       return;
     }
     if (journeyWaiting) {
@@ -430,7 +459,7 @@ class _StudentBottomNav extends StatelessWidget {
       LockedFeatureNoticeDialog.show(context, featureName: label);
       return;
     }
-    context.go(path);
+    goMenu(context, path);
   }
 
   static final _links = _AcademyNav._links
@@ -500,6 +529,11 @@ class _SettingsFloatingMenu extends StatefulWidget {
 
   static const _items = [
     (
+      label: AppStrings.requests,
+      icon: Icons.support_agent_outlined,
+      path: RoutePaths.studentRequests,
+    ),
+    (
       label: AppStrings.payment,
       icon: Icons.payments_outlined,
       path: RoutePaths.studentPayments,
@@ -527,10 +561,24 @@ class _SettingsFloatingMenu extends StatefulWidget {
   ];
 
   static bool isSettingsRoute(String location) {
-    return _items.any(
-      (item) =>
-          location == item.path || location.startsWith('${item.path}/'),
-    );
+    final pathOnly = Uri.tryParse(location)?.path ?? location;
+    return _items.any((item) {
+      final itemPath = Uri.tryParse(item.path)?.path ?? item.path;
+      // Requests is a primary laptop nav item — don't also mark Settings selected.
+      if (itemPath == RoutePaths.studentRequests) {
+        return false;
+      }
+      return pathOnly == itemPath || pathOnly.startsWith('$itemPath/');
+    });
+  }
+
+  /// Settings destinations that should hide the mobile bottom bar (includes Requests).
+  static bool hidesMobileBottomNav(String location) {
+    final pathOnly = Uri.tryParse(location)?.path ?? location;
+    return _items.any((item) {
+      final itemPath = Uri.tryParse(item.path)?.path ?? item.path;
+      return pathOnly == itemPath || pathOnly.startsWith('$itemPath/');
+    });
   }
 
   @override
@@ -631,8 +679,7 @@ class _SettingsFloatingMenuState extends State<_SettingsFloatingMenu> {
                       ),
                   onTap: () {
                     _menuController.close();
-                    dismissOverlayRoutes(context);
-                    context.go(_SettingsFloatingMenu._items[i].path);
+                    goMenu(context, _SettingsFloatingMenu._items[i].path);
                   },
                 ),
               ],

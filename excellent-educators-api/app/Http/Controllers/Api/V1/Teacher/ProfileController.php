@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\Teacher\UpdateMentorProfileRequest;
 use App\Http\Resources\Api\V1\TeacherResource;
 use App\Support\ApiResponse;
 use App\Support\ErrorCode;
+use App\Support\TeacherPhotoStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -44,5 +45,33 @@ class ProfileController extends Controller
         ])->loadCount(['activeBatchAssignments', 'activeMasterTeacherAssignments']);
 
         return ApiResponse::success('Professional profile updated successfully.', TeacherResource::make($teacher)->resolve());
+    }
+
+    public function storePhoto(Request $request): JsonResponse
+    {
+        $teacher = $request->user()?->teacherProfile;
+        if ($teacher === null) {
+            return ApiResponse::error('Teacher profile not found.', ErrorCode::NOT_FOUND, null, 404);
+        }
+
+        $data = $request->validate([
+            'photo' => ['required', 'file', 'max:5120', 'mimes:jpg,jpeg,png,webp'],
+        ]);
+
+        $photoUrl = TeacherPhotoStorage::store($data['photo'], $teacher);
+        $teacher->update(['photo_url' => $photoUrl]);
+        $teacher->load([
+            'user.roles',
+            'activeBatchAssignments.batch',
+            'academicLevels',
+        ])->loadCount(['activeBatchAssignments', 'activeMasterTeacherAssignments']);
+
+        return ApiResponse::success(
+            'Profile photo uploaded successfully.',
+            [
+                'photo_url' => $photoUrl,
+                'teacher' => TeacherResource::make($teacher)->resolve(),
+            ],
+        );
     }
 }

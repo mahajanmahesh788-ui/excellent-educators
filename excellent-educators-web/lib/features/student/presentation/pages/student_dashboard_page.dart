@@ -60,7 +60,7 @@ class StudentDashboardPage extends ConsumerWidget {
         error: (_, _) =>
             AcademyError(onRetry: () => ref.invalidate(studentProfileProvider)),
         data: (student) {
-          if (student.isBatchWaitingToStart) {
+          if (student.locksFeaturesForWaitingBatch) {
             return const _JourneyNotStartedView();
           }
 
@@ -72,6 +72,8 @@ class StudentDashboardPage extends ConsumerWidget {
           if (eligibility.hasError || bookings.hasError) {
             return ListView(
               children: [
+                if (student.isBatchWaitingToStart)
+                  _NewLevelBatchWaitingBanner(student: student),
                 StudentHeroSection(
                   student: student,
                   snapshot: StudentJourneySnapshot(
@@ -124,12 +126,14 @@ class StudentDashboardPage extends ConsumerWidget {
           if (snapshot == null) {
             return ListView(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              children: const [
-                AcademySkeleton(height: 240),
-                SizedBox(height: 18),
-                AcademySkeleton(height: 160),
-                SizedBox(height: 18),
-                AcademySkeleton(height: 200),
+              children: [
+                if (student.isBatchWaitingToStart)
+                  _NewLevelBatchWaitingBanner(student: student),
+                const AcademySkeleton(height: 240),
+                const SizedBox(height: 18),
+                const AcademySkeleton(height: 160),
+                const SizedBox(height: 18),
+                const AcademySkeleton(height: 200),
               ],
             );
           }
@@ -139,6 +143,9 @@ class StudentDashboardPage extends ConsumerWidget {
               final isDesktop = constraints.maxWidth >= 1080;
               final isTablet =
                   constraints.maxWidth >= 680 && constraints.maxWidth < 1080;
+              final waitingBanner = student.isBatchWaitingToStart
+                  ? _NewLevelBatchWaitingBanner(student: student)
+                  : null;
 
               if (isDesktop) {
                 return _buildDesktopLayout(
@@ -147,6 +154,7 @@ class StudentDashboardPage extends ConsumerWidget {
                   learningDashboard: learningDashboard,
                   journalData: journalData,
                   bookingsList: bookingsList,
+                  waitingBanner: waitingBanner,
                 );
               }
 
@@ -157,6 +165,7 @@ class StudentDashboardPage extends ConsumerWidget {
                   learningDashboard: learningDashboard,
                   journalData: journalData,
                   bookingsList: bookingsList,
+                  waitingBanner: waitingBanner,
                 );
               }
 
@@ -166,6 +175,7 @@ class StudentDashboardPage extends ConsumerWidget {
                 learningDashboard: learningDashboard,
                 journalData: journalData,
                 bookingsList: bookingsList,
+                waitingBanner: waitingBanner,
               );
             },
           );
@@ -181,10 +191,12 @@ class StudentDashboardPage extends ConsumerWidget {
     required dynamic learningDashboard,
     required dynamic journalData,
     required List<dynamic> bookingsList,
+    Widget? waitingBanner,
   }) {
     return ListView(
       padding: const EdgeInsets.only(bottom: 48),
       children: [
+        ?waitingBanner,
         // 1. Personalized Hero Banner
         StudentHeroSection(
           student: student,
@@ -290,10 +302,12 @@ class StudentDashboardPage extends ConsumerWidget {
     required dynamic learningDashboard,
     required dynamic journalData,
     required List<dynamic> bookingsList,
+    Widget? waitingBanner,
   }) {
     return ListView(
       padding: const EdgeInsets.only(bottom: 36),
       children: [
+        ?waitingBanner,
         StudentHeroSection(
           student: student,
           snapshot: snapshot,
@@ -386,10 +400,12 @@ class StudentDashboardPage extends ConsumerWidget {
     required dynamic learningDashboard,
     required dynamic journalData,
     required List<dynamic> bookingsList,
+    Widget? waitingBanner,
   }) {
     return ListView(
       padding: const EdgeInsets.only(bottom: 28),
       children: [
+        ?waitingBanner,
         // 1. Greeting & Hero
         StudentHeroSection(
           student: student,
@@ -511,6 +527,65 @@ class _FreshStudentOnboardingViewState
         const SizedBox(height: 24),
         const FreshStudentRoadmapCard(),
       ],
+    );
+  }
+}
+
+class _NewLevelBatchWaitingBanner extends StatelessWidget {
+  const _NewLevelBatchWaitingBanner({required this.student});
+
+  final StudentDto student;
+
+  @override
+  Widget build(BuildContext context) {
+    final levelName = student.level?.label ?? AppStrings.newLevel;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 14),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: StudentColors.amberLight,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: StudentColors.amberBorder),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.hourglass_top_rounded,
+                color: StudentColors.amberDeep,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppStrings.levelBatchNotStartedYet(levelName),
+                      style: const TextStyle(
+                        color: StudentColors.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      AppStrings.youCanStillReviewPreviousJourneyWhileWaiting,
+                      style: TextStyle(
+                        color: StudentColors.textSecondary,
+                        height: 1.4,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

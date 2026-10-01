@@ -2,12 +2,12 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
-import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/payments/data/dto/payment_dtos.dart';
 import 'package:excellent_educators_web/features/payments/presentation/providers/payment_providers.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_history.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_qr_popup.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_receipt.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_status_badge.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
@@ -118,14 +118,14 @@ class StudentPaymentsPage extends ConsumerWidget {
         return;
       }
       final amount = (initiated['amount'] as num?)?.toDouble() ?? 0;
-      final confirmed = await showAppConfirmDialog(
+      if (!context.mounted) {
+        return;
+      }
+      final paid = await showEnrolmentPaymentQrPopup(
         context,
-        title: AppStrings.confirmOnlinePayment,
-        message:
-            '${AppStrings.paymentAmount}: ${formatRupee(amount)}\n\n${AppStrings.manualGatewayConfirmHelp}',
-        confirmLabel: AppStrings.confirmPayment,
+        amount: amount,
       );
-      if (confirmed != true) {
+      if (paid != true) {
         return;
       }
       await ref.read(paymentRepositoryProvider).confirmOnline(orderId: orderId);

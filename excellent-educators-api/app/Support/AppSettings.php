@@ -22,7 +22,7 @@ class AppSettings
                 'group' => 'batches',
                 'group_label' => 'Batches',
                 'label' => 'Maximum students per batch',
-                'help' => 'Active students allowed in one batch before it is treated as full.',
+                'help' => 'Batch stays inactive until it reaches this many students (then auto-activates), or an admin activates it earlier.',
                 'type' => 'integer',
                 'min' => 1,
                 'max' => 500,

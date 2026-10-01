@@ -1116,56 +1116,77 @@ class _BatchStudentList extends ConsumerWidget {
               return Column(
                 children: [
                   for (final student in students) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      margin: const EdgeInsets.only(bottom: 6),
-                      decoration: BoxDecoration(
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Material(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 14,
-                            backgroundColor: Brand.navy.withOpacity(0.1),
-                            child: Text(
-                              student.fullName.isNotEmpty ? student.fullName[0].toUpperCase() : 'S',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Brand.navy,
-                              ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(6),
+                          onTap: () =>
+                              context.go(RoutePaths.adminStudent(student.id)),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Row(
                               children: [
-                                Text(
-                                  student.fullName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
+                                CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor:
+                                      Brand.navy.withOpacity(0.1),
+                                  child: Text(
+                                    student.fullName.isNotEmpty
+                                        ? student.fullName[0].toUpperCase()
+                                        : 'S',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Brand.navy,
+                                    ),
                                   ),
                                 ),
-                                Text(
-                                  'Code: ${student.studentCode} · Phone: ${student.phone}',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 11,
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        student.fullName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Code: ${student.studentCode} · Phone: ${student.phone}',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                ),
+                                IconButton(
+                                  tooltip: AppStrings.removeFromBatch,
+                                  icon: const Icon(
+                                    Icons.remove_circle_outline,
+                                    color: Colors.red,
+                                    size: 18,
+                                  ),
+                                  onPressed: () => onUnenrollStudent(student),
                                 ),
                               ],
                             ),
                           ),
-                          IconButton(
-                            tooltip: AppStrings.removeFromBatch,
-                            icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 18),
-                            onPressed: () => onUnenrollStudent(student),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ],

@@ -54,6 +54,9 @@ class StudentResource extends JsonResource
             'journey_started' => $this->relationLoaded('currentLevelJourney')
                 ? $this->currentLevelJourney !== null
                 : $this->currentLevelJourney()->exists(),
+            'has_learning_history' => $this->relationLoaded('levelJourneys')
+                ? $this->levelJourneys->isNotEmpty()
+                : $this->levelJourneys()->exists(),
             'master_teacher' => $master === null ? null : [
                 'id' => $master->id,
                 'full_name' => $master->full_name,

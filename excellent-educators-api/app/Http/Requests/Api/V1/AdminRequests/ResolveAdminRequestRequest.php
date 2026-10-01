@@ -18,6 +18,7 @@ class ResolveAdminRequestRequest extends FormRequest
     {
         return [
             'apply_action' => ['sometimes', 'boolean'],
+            'reject' => ['sometimes', 'boolean'],
         ];
     }
 }

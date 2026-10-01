@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:excellent_educators_web/core/constants/api_endpoints.dart';
 import 'package:excellent_educators_web/core/network/api_client.dart';
 import 'package:excellent_educators_web/core/network/maps_api_failures.dart';
@@ -179,18 +182,10 @@ class AcademicRepository with MapsApiFailures {
     });
   }
 
-  Future<List<StudentActivityDto>> subAdminHistory(String id) {
+  Future<SubAdminHistoryDto> subAdminHistory(String id) {
     return runApi(() async {
-      final items = await _client.getList(
-        ApiEndpoints.adminSubAdminHistory(id),
-      );
-      return items
-          .whereType<Map>()
-          .map(
-            (item) =>
-                StudentActivityDto.fromJson(Map<String, dynamic>.from(item)),
-          )
-          .toList();
+      final page = await _client.getPage(ApiEndpoints.adminSubAdminHistory(id));
+      return SubAdminHistoryDto.fromJson(items: page.items, meta: page.meta);
     });
   }
 
@@ -272,6 +267,26 @@ class AcademicRepository with MapsApiFailures {
     return runApi(() async {
       final json = await _client.put(ApiEndpoints.adminTeacher(id), data: data);
       return TeacherDto.fromJson(json!);
+    });
+  }
+
+  Future<String> uploadTeacherPhoto({
+    required Uint8List bytes,
+    required String filename,
+    String? teacherId,
+    bool asSelf = false,
+  }) {
+    return runApi(() async {
+      final form = FormData.fromMap({
+        'photo': MultipartFile.fromBytes(bytes, filename: filename),
+      });
+      final path = asSelf
+          ? ApiEndpoints.teacherProfilePhoto
+          : teacherId == null || teacherId.isEmpty
+              ? ApiEndpoints.adminTeacherPhotos
+              : ApiEndpoints.adminTeacherPhoto(teacherId);
+      final json = await _client.post(path, data: form);
+      return (json?['photo_url'] as String?)?.trim() ?? '';
     });
   }
 
@@ -374,6 +389,19 @@ class AcademicRepository with MapsApiFailures {
   Future<List<AcademicLevelDto>> adminLevels() {
     return runApi(() async {
       final items = await _client.getList(ApiEndpoints.adminLevels);
+      return items
+          .whereType<Map>()
+          .map(
+            (item) =>
+                AcademicLevelDto.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList();
+    });
+  }
+
+  Future<List<AcademicLevelDto>> masterTeacherLevels() {
+    return runApi(() async {
+      final items = await _client.getList(ApiEndpoints.masterTeacherLevels);
       return items
           .whereType<Map>()
           .map(

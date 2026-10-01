@@ -12,6 +12,11 @@ IconData notificationIconFor(String type) {
       Icons.person_outline,
     'student_enrolled_in_batch' || 'student_unenrolled_from_batch' =>
       Icons.groups_rounded,
+    'agent_registered_student' => Icons.person_add_alt_1_outlined,
+    'admin_request_submitted' ||
+    'admin_request_approved' ||
+    'admin_request_rejected' =>
+      Icons.support_agent_outlined,
     'student_booking_failed' => Icons.warning_amber_rounded,
     'session_booked' => Icons.event_available_rounded,
     'session_rescheduled' || 'session_mentor_updated' =>

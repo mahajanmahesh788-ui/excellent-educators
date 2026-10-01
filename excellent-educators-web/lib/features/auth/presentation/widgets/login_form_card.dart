@@ -7,6 +7,7 @@ import 'package:excellent_educators_web/features/auth/data/dto/login_page_dtos.d
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/login_page_providers.dart';
 import 'package:excellent_educators_web/features/auth/presentation/widgets/auth_form_card.dart';
+import 'package:excellent_educators_web/features/auth/presentation/widgets/login_install_app_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -287,6 +288,8 @@ class _LoginFormCardState extends ConsumerState<LoginFormCard> {
                       ),
               ),
             ),
+
+            LoginInstallAppSection(isMobile: isMobile),
           ],
         ),
       ),

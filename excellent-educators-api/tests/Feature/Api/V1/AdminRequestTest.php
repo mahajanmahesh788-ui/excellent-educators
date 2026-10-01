@@ -22,17 +22,30 @@ class AdminRequestTest extends TestCase
 
     public function test_student_submits_and_lists_requests(): void
     {
+        $admin = $this->makeAdmin();
         $student = $this->makeStudent('req-student@excellenteducators.test');
         $token = $this->tokenFor($student);
 
-        $this->withToken($token)->postJson('/api/v1/student/requests', [
+        $requestId = $this->withToken($token)->postJson('/api/v1/student/requests', [
             'subtitle' => 'Batch change',
             'description' => 'Please move me to the morning batch.',
         ])
             ->assertCreated()
             ->assertJsonPath('data.subtitle', 'Batch change')
             ->assertJsonPath('data.status', 'pending')
-            ->assertJsonPath('data.requester_type', 'student');
+            ->assertJsonPath('data.requester_type', 'student')
+            ->json('data.id');
+
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $admin->id,
+            'type' => 'admin_request_submitted',
+        ]);
+        $notification = \App\Models\UserNotification::query()
+            ->where('user_id', $admin->id)
+            ->where('type', 'admin_request_submitted')
+            ->first();
+        $this->assertNotNull($notification);
+        $this->assertSame($requestId, $notification->data['admin_request_id'] ?? null);
 
         $this->withToken($token)->getJson('/api/v1/student/requests')
             ->assertOk()
@@ -113,6 +126,55 @@ class AdminRequestTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('error.code', 'VALIDATION_ERROR')
             ->assertJsonStructure(['error' => ['details' => ['subtitle', 'description']]]);
+    }
+
+    public function test_student_cannot_submit_fourth_request_while_three_are_pending(): void
+    {
+        $student = $this->makeStudent('req-limit@excellenteducators.test');
+        $token = $this->tokenFor($student);
+
+        for ($i = 1; $i <= 3; $i++) {
+            $this->withToken($token)->postJson('/api/v1/student/requests', [
+                'subtitle' => "Pending request {$i}",
+                'description' => "Please help with pending item {$i}.",
+            ])->assertCreated();
+        }
+
+        $this->withToken($token)->postJson('/api/v1/student/requests', [
+            'subtitle' => 'Fourth request',
+            'description' => 'This should be blocked while three are pending.',
+        ])
+            ->assertStatus(409)
+            ->assertJsonPath('error.code', 'CONFLICT');
+
+        $this->withToken($token)->getJson('/api/v1/student/requests')
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
+    }
+
+    public function test_student_can_submit_again_after_a_pending_request_is_resolved(): void
+    {
+        $admin = $this->makeAdmin();
+        $student = $this->makeStudent('req-limit-resolve@excellenteducators.test', $admin);
+        $studentToken = $this->tokenFor($student);
+
+        $requestIds = [];
+        for ($i = 1; $i <= 3; $i++) {
+            $requestIds[] = $this->withoutToken()->withToken($studentToken)->postJson('/api/v1/student/requests', [
+                'subtitle' => "Pending request {$i}",
+                'description' => "Please help with pending item {$i}.",
+            ])->assertCreated()->json('data.id');
+        }
+
+        $adminToken = $this->tokenFor($admin->fresh());
+        $this->withoutToken()->withToken($adminToken)->postJson("/api/v1/admin/requests/{$requestIds[0]}/resolve")
+            ->assertOk();
+
+        $studentToken = $this->tokenFor($student->fresh());
+        $this->withoutToken()->withToken($studentToken)->postJson('/api/v1/student/requests', [
+            'subtitle' => 'After resolve',
+            'description' => 'Should succeed once one pending slot is free.',
+        ])->assertCreated();
     }
 
     public function test_master_teacher_can_request_mentee_removal_and_admin_can_approve(): void

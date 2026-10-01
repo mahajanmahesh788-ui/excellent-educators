@@ -10,7 +10,6 @@ import 'package:excellent_educators_web/features/student/presentation/widgets/ac
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
@@ -133,13 +132,14 @@ class _StudentLearningWeekPageState
           }
 
           final answeredCount = week.questions.where(isAnswered).length;
+          final isMobile = MediaQuery.sizeOf(context).width < 600;
 
           for (var i = 0; i < totalQuestions; i++) {
             _questionKeys.putIfAbsent(i, () => GlobalKey());
           }
 
           return ListView(
-            padding: const EdgeInsets.only(bottom: 48),
+            padding: EdgeInsets.only(bottom: isMobile ? 32 : 48),
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -600,85 +600,215 @@ class _StudentLearningWeekPageState
                 ],
 
                 // Submit action when assignment is still open
-                if (week.canSubmit) ...[
-                  Container(
-                    padding: const EdgeInsets.all(18),
+                if (week.canSubmit)
+                  Builder(
+                    builder: (context) {
+                      final allAnswered = answeredCount == totalQuestions;
+                      final statusTitle = allAnswered
+                          ? (totalQuestions == 1
+                              ? 'All questions answered!'
+                              : 'All $totalQuestions questions answered!')
+                          : (totalQuestions == 1
+                              ? '$answeredCount of 1 question answered'
+                              : '$answeredCount of $totalQuestions answered');
+                      return Container(
+                    padding: EdgeInsets.all(isMobile ? 14 : 18),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Academy.line),
+                      border: Border.all(
+                        color: allAnswered
+                            ? const Color(0xFFCDEBD6)
+                            : Academy.line,
+                        width: allAnswered ? 1.4 : 1.0,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Brand.navy.withValues(alpha: 0.03),
-                          blurRadius: 8,
+                          color: allAnswered
+                              ? const Color(0xFF16A34A).withValues(alpha: 0.05)
+                              : Brand.navy.withValues(alpha: 0.03),
+                          blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
+                    child: isMobile
+                        ? Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                answeredCount == totalQuestions
-                                    ? 'All $totalQuestions questions answered!'
-                                    : '$answeredCount of $totalQuestions answered',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 15,
-                                  color: Academy.ink,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: allAnswered
+                                          ? const Color(0xFFE8F5E9)
+                                          : Brand.gold.withValues(alpha: 0.16),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      allAnswered
+                                          ? Icons.check_circle_rounded
+                                          : Icons.pending_actions_rounded,
+                                      color: allAnswered
+                                          ? const Color(0xFF2E7D32)
+                                          : const Color(0xFF8C6600),
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          statusTitle,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 15,
+                                            color: Academy.ink,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          allAnswered
+                                              ? AppStrings
+                                                  .youAreReadyToSubmitYourAssignment
+                                              : AppStrings
+                                                  .selectAnswersForTheRemainingQuestionsAbove,
+                                          style: const TextStyle(
+                                            fontSize: 12.5,
+                                            color: Academy.muted,
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 46,
+                                child: FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Brand.navy,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onPressed: _submitting
+                                      ? null
+                                      : () => _submit(week),
+                                  icon: const Icon(
+                                    Icons.check_circle_outline_rounded,
+                                    size: 18,
+                                    color: Brand.gold,
+                                  ),
+                                  label: Text(
+                                    _submitting
+                                        ? AppStrings.submitting
+                                        : AppStrings.submitAssignment,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                answeredCount == totalQuestions
-                                    ? AppStrings
-                                          .youAreReadyToSubmitYourAssignment
-                                    : AppStrings
-                                          .selectAnswersForTheRemainingQuestionsAbove,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Academy.muted,
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: allAnswered
+                                      ? const Color(0xFFE8F5E9)
+                                      : Brand.gold.withValues(alpha: 0.16),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  allAnswered
+                                      ? Icons.check_circle_rounded
+                                      : Icons.pending_actions_rounded,
+                                  color: allAnswered
+                                      ? const Color(0xFF2E7D32)
+                                      : const Color(0xFF8C6600),
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      statusTitle,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 15,
+                                        color: Academy.ink,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      allAnswered
+                                          ? AppStrings
+                                              .youAreReadyToSubmitYourAssignment
+                                          : AppStrings
+                                              .selectAnswersForTheRemainingQuestionsAbove,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Academy.muted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Brand.navy,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: _submitting
+                                    ? null
+                                    : () => _submit(week),
+                                icon: const Icon(
+                                  Icons.check_circle_outline_rounded,
+                                  size: 18,
+                                  color: Brand.gold,
+                                ),
+                                label: Text(
+                                  _submitting
+                                      ? AppStrings.submitting
+                                      : AppStrings.submitAssignment,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        FilledButton.icon(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Brand.navy,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 15,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: _submitting ? null : () => _submit(week),
-                          icon: const Icon(
-                            Icons.check_circle_outline_rounded,
-                            size: 18,
-                            color: Brand.gold,
-                          ),
-                          label: Text(
-                            _submitting
-                                ? AppStrings.submitting
-                                : AppStrings.submitAssignment,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  );
+                    },
                   ),
-                ],
               ],
             ],
           );
@@ -826,7 +956,10 @@ class _StudentLearningWeekPageState
                       ),
                       onPressed: () {
                         Navigator.of(dialogContext).pop();
-                        context.go(RoutePaths.studentJournal);
+                        completeAndReturnTo(
+                          context,
+                          RoutePaths.studentJournal,
+                        );
                       },
                       child: const Text(
                         AppStrings.ok,

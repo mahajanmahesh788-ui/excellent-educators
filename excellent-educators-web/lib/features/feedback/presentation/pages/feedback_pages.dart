@@ -6,6 +6,7 @@ import 'package:excellent_educators_web/features/academic/presentation/providers
 import 'package:excellent_educators_web/features/academic/presentation/providers/admin_list_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
+import 'package:excellent_educators_web/features/academic/presentation/widgets/promote_student_card.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
 import 'package:excellent_educators_web/features/feedback/data/dto/feedback_dtos.dart';
@@ -60,6 +61,13 @@ class MasterTeacherStudentDetailPage extends ConsumerWidget {
                 onPressed: () => context.go(RoutePaths.masterTeacherStudentJournalFor(studentId)),
                 icon: const Icon(Icons.menu_book_outlined),
                 label: const Text(AppStrings.learningJournal2),
+              ),
+              const SizedBox(height: 12),
+              PromoteStudentCard(
+                studentId: studentData.id,
+                currentLevelId: studentData.level?.id,
+                currentLevelName: studentData.level?.label,
+                masterTeacher: true,
               ),
               const SizedBox(height: 16),
               Text(

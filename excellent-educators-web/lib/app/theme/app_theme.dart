@@ -75,9 +75,14 @@ abstract final class AppTheme {
         filled: true,
         fillColor: Colors.white,
         isDense: false,
-        contentPadding: EdgeInsets.fromLTRB(14, 16, 14, 12),
-        labelStyle: TextStyle(color: Brand.muted, height: 1.25),
-        floatingLabelStyle: TextStyle(color: Brand.muted, fontSize: 12, height: 1.25),
+        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        labelStyle: TextStyle(color: Brand.muted),
+        floatingLabelStyle: TextStyle(
+          color: Brand.muted,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
         border: AppOutlineInputBorder(
           borderSide: BorderSide(color: Color(0xFFD7CDBB)),
         ),
@@ -159,7 +164,7 @@ abstract final class AppTheme {
       // Keep input labels readable — dense paddings clip floating labels.
       inputDecorationTheme: base.inputDecorationTheme.copyWith(
         isDense: false,
-        contentPadding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: (base.filledButtonTheme.style ?? const ButtonStyle()).merge(

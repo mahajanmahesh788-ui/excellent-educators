@@ -71,14 +71,31 @@ class LearningRepository with MapsApiFailures {
   Future<StudentDto> promoteStudent({
     required String studentId,
     required String levelId,
-    bool masterTeacher = false,
   }) {
     return runApi(() async {
-      final path = masterTeacher
-          ? ApiEndpoints.masterTeacherStudentPromote(studentId)
-          : ApiEndpoints.adminStudentPromote(studentId);
-      final json = await _client.post(path, data: {'level_id': levelId});
+      final json = await _client.post(
+        ApiEndpoints.adminStudentPromote(studentId),
+        data: {'level_id': levelId},
+      );
       return StudentDto.fromJson(json!);
+    });
+  }
+
+  /// Master Teacher: request admin approval for a level upgrade (does not promote yet).
+  Future<Map<String, dynamic>> requestStudentLevelUpgrade({
+    required String studentId,
+    required String levelId,
+    String? reason,
+  }) {
+    return runApi(() async {
+      final json = await _client.post(
+        ApiEndpoints.masterTeacherStudentPromote(studentId),
+        data: {
+          'level_id': levelId,
+          if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+        },
+      );
+      return Map<String, dynamic>.from(json!);
     });
   }
 

@@ -16,7 +16,7 @@ class AdminRequestController extends Controller
     public function index(Request $request): JsonResponse
     {
         $requests = AdminRequest::query()
-            ->with(['user.studentProfile', 'user.teacherProfile', 'resolvedBy', 'student', 'batch'])
+            ->with(['user.studentProfile', 'user.teacherProfile', 'resolvedBy', 'student', 'batch', 'fromLevel', 'targetLevel'])
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->when($request->string('search')->toString(), function ($query, string $search): void {
                 $query->where(function ($inner) use ($search): void {
@@ -44,7 +44,7 @@ class AdminRequestController extends Controller
 
     public function show(AdminRequest $adminRequest): JsonResponse
     {
-        $adminRequest->load(['user.studentProfile', 'user.teacherProfile', 'resolvedBy', 'student', 'batch']);
+        $adminRequest->load(['user.studentProfile', 'user.teacherProfile', 'resolvedBy', 'student', 'batch', 'fromLevel', 'targetLevel']);
 
         return ApiResponse::success(
             'Request fetched successfully.',
@@ -57,15 +57,21 @@ class AdminRequestController extends Controller
         AdminRequest $adminRequest,
         ResolveAdminRequest $resolveAdminRequest,
     ): JsonResponse {
+        $reject = $request->boolean('reject', false);
+        $applyAction = $reject ? false : $request->boolean('apply_action', true);
+
         $adminRequest = $resolveAdminRequest->execute(
             $adminRequest,
             $request->user(),
-            $request->boolean('apply_action', true),
+            $applyAction,
+            $reject,
         );
 
-        $message = $adminRequest->request_type?->value !== 'general' && $request->boolean('apply_action', true)
-            ? 'Request approved and action completed.'
-            : 'Request marked as resolved.';
+        $message = match (true) {
+            $reject => 'Request rejected.',
+            $adminRequest->request_type?->value !== 'general' && $applyAction => 'Request approved and action completed.',
+            default => 'Request marked as resolved.',
+        };
 
         return ApiResponse::success(
             $message,

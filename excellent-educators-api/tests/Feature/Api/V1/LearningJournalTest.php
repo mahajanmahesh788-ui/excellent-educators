@@ -113,6 +113,73 @@ class LearningJournalTest extends TestCase
         $this->assertSame('https://video.test/l2w1', $dashboard['week']['video_url']);
     }
 
+    public function test_promote_to_inactive_batch_preserves_history_without_locking_out(): void
+    {
+        [$admin, $student] = $this->makeStudent();
+        $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+        $level1Batch = $student->fresh(['activeEnrollment.batch'])->activeEnrollment?->batch;
+        $this->assertNotNull($level1Batch);
+        $level1Batch->update([
+            'status' => BatchStatus::Active,
+            'starts_on' => '2026-07-01',
+        ]);
+        // Ensure Level 1 journey is open after batch activation.
+        app(\App\Actions\Learning\StartStudentLevelJourney::class)
+            ->executeIfBatchActive($student->fresh(), $level1);
+
+        $level2 = AcademicLevel::query()->create([
+            'name' => 'Level 2 Waiting',
+            'academic_year' => 2026,
+            'status' => 'active',
+        ]);
+        Batch::query()->create([
+            'level_id' => $level2->id,
+            'name' => 'Batch 1',
+            'academic_year' => 2026,
+            'year' => 2026,
+            'month' => 7,
+            'enrolled_watermark' => 0,
+            'status' => BatchStatus::Inactive,
+            'starts_on' => null,
+        ]);
+        $week1 = $this->seedWeek($admin, $level1, 1, 'https://video.test/l1w1');
+        $this->submitAttempt($student, 1, $week1, 0);
+
+        $this->withToken($this->tokenFor($admin))->postJson("/api/v1/admin/students/{$student->id}/promote", [
+            'level_id' => $level2->id,
+        ])->assertOk();
+
+        $profile = $this->withToken($this->tokenFor($student->user))
+            ->getJson('/api/v1/student/profile')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame($level2->id, $profile['level']['id']);
+        $this->assertSame('inactive', $profile['batch']['status']);
+        $this->assertFalse($profile['journey_started']);
+        $this->assertTrue($profile['has_learning_history']);
+
+        $journal = $this->withToken($this->tokenFor($student->user))
+            ->getJson('/api/v1/student/learning/journal')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertCount(1, $journal['levels']);
+        $this->assertFalse($journal['levels'][0]['is_current']);
+        $level1Weeks = $journal['levels'][0]['weeks'];
+        $completedWeek1 = collect($level1Weeks)->firstWhere('week_number', 1);
+        $this->assertNotNull($completedWeek1);
+        $this->assertSame('completed', $completedWeek1['assignment_status']);
+        $this->assertSame('https://video.test/l1w1', $completedWeek1['video_url']);
+
+        $dashboard = $this->withToken($this->tokenFor($student->user))
+            ->getJson('/api/v1/student/learning/dashboard')
+            ->assertOk()
+            ->json('data');
+        $this->assertNull($dashboard['current_level']);
+        $this->assertSame('awaiting_level', $dashboard['next_action']);
+    }
+
     public function test_two_attempts_are_stored_and_third_is_rejected(): void
     {
         [$admin, $student] = $this->makeStudent();

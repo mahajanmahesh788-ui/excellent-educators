@@ -17,6 +17,7 @@ class AppNavHistory {
     RoutePaths.resetPassword,
     RoutePaths.session,
     RoutePaths.adminDashboard,
+    RoutePaths.adminAgentDashboard,
     RoutePaths.adminStudents,
     RoutePaths.adminTeachers,
     RoutePaths.adminBatches,
@@ -81,17 +82,19 @@ class AppNavHistory {
       return;
     }
 
-    // Returning to an earlier screen (pop / go back) — truncate forward entries.
-    final existing = _stack.lastIndexOf(normalized);
-    if (existing >= 0) {
-      _stack.removeRange(existing + 1, _stack.length);
-      return;
-    }
-
+    // Menu / shell screens always become the sole root — never keep details
+    // (or prior menus) behind them for Back.
     if (isShellDestination(normalized)) {
       _stack
         ..clear()
         ..add(normalized);
+      return;
+    }
+
+    // Returning to an earlier detail screen — truncate forward entries.
+    final existing = _stack.lastIndexOf(normalized);
+    if (existing >= 0) {
+      _stack.removeRange(existing + 1, _stack.length);
       return;
     }
 
@@ -110,6 +113,14 @@ class AppNavHistory {
     }
     _stack.removeLast();
     return _stack.last;
+  }
+
+  /// Drop the current entry without navigating (used when returning to a parent
+  /// after submit when the route was not opened via push).
+  void discardCurrent() {
+    if (_stack.isNotEmpty) {
+      _stack.removeLast();
+    }
   }
 
   void clear() => _stack.clear();

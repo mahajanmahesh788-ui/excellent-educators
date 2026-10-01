@@ -2,9 +2,10 @@ import 'package:excellent_educators_web/app/theme/breakpoints.dart';
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_info.dart';
-import 'package:excellent_educators_web/core/navigation/app_nav_history.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
+import 'package:excellent_educators_web/core/widgets/app_pull_to_refresh.dart';
 import 'package:excellent_educators_web/core/widgets/portal_chrome.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/widgets/notification_bell_button.dart';
 import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
@@ -16,48 +17,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
-void dismissOverlayRoutes(BuildContext context) {
-  final navigator = Navigator.of(context, rootNavigator: true);
-  navigator.popUntil((route) => route is! PopupRoute);
-}
-
-/// Returns true if at least one dialog/bottom-sheet/popup was closed.
-bool dismissOverlayRoutesIfAny(BuildContext context) {
-  final navigator = Navigator.of(context, rootNavigator: true);
-  var closed = false;
-  navigator.popUntil((route) {
-    if (route is PopupRoute) {
-      closed = true;
-      return false;
-    }
-    return true;
-  });
-  return closed;
-}
-
-void navigateBack(BuildContext context, String? backTo) {
-  // Back should close an open dialog first, then leave the page on the next press.
-  if (dismissOverlayRoutesIfAny(context)) {
-    return;
-  }
-
-  // Prefer real stack pop when routes were pushed (A→B→C then C→B→A).
-  if (context.canPop()) {
-    context.pop();
-    return;
-  }
-
-  // With `go()` navigations there is often no Navigator stack — walk our history.
-  final previous = AppNavHistory.instance.takeBackTarget();
-  if (previous != null) {
-    context.go(previous);
-    return;
-  }
-
-  if (backTo != null && backTo.isNotEmpty) {
-    context.go(backTo);
-  }
-}
+export 'package:excellent_educators_web/core/navigation/app_navigation.dart'
+    show
+        dismissOverlayRoutes,
+        dismissOverlayRoutesIfAny,
+        navigateBack,
+        goMenu,
+        goDetail,
+        popDetail,
+        completeAndReturnTo,
+        replaceWithMenu,
+        shouldShowAppBack,
+        handleDoubleBackToExit;
 
 class _NavBrandFooter extends StatelessWidget {
   const _NavBrandFooter({required this.compact});
@@ -98,6 +69,8 @@ class AppScaffold extends ConsumerWidget {
     this.floatingActionButton,
     this.disabledNavPaths = const [],
     this.backTo,
+    this.onRefresh,
+    this.enablePullToRefresh = true,
   });
 
   final String title;
@@ -107,6 +80,9 @@ class AppScaffold extends ConsumerWidget {
   final List<String> disabledNavPaths;
   /// When set, shows a back arrow in the app bar that navigates to this route.
   final String? backTo;
+  /// Optional screen-specific reload. When null, path-based provider refresh is used.
+  final Future<void> Function()? onRefresh;
+  final bool enablePullToRefresh;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -124,24 +100,44 @@ class AppScaffold extends ConsumerWidget {
     final useDrawer = !wide && !useBottomNav && destinations.isNotEmpty;
 
     final portal = isTeacher;
-    // Extra top inset so the first outlined field's floating label isn't clipped.
+    // Extra top inset so the first outlined field / search isn't flush to the app bar.
     Widget content = Padding(
       padding: EdgeInsets.fromLTRB(
-        wide ? 16 : 10,
         wide ? 16 : 12,
-        wide ? 16 : 10,
-        useBottomNav ? 4 : (wide ? 12 : 8),
+        wide ? 16 : 12,
+        wide ? 16 : 12,
+        useBottomNav ? 4 : (wide ? 12 : 10),
       ),
       child: body,
     );
     if (portal) {
       content = AnimatedPortalBackdrop(child: content);
     }
+    if (enablePullToRefresh) {
+      final page = content;
+      content = AppRefreshHost(
+        child: Builder(
+          builder: (context) {
+            return AppPullToRefresh(
+              onRefresh: () {
+                if (onRefresh != null) {
+                  return onRefresh!();
+                }
+                return AppRefreshHost.of(context).refresh(
+                  fallback: () => ScreenRefresh.refresh(ref, location),
+                );
+              },
+              child: page,
+            );
+          },
+        ),
+      );
+    }
 
     return PopScope(
-      // Let the navigator pop when it has a stack (push). Otherwise intercept
-      // system/browser back and walk AppNavHistory / backTo (C→B→A).
-      canPop: context.canPop(),
+      // Always intercept so browser/system back cannot reopen finished detail
+      // screens (e.g. journey ← week after submit). Menu roots use double-back exit.
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) {
           return;
@@ -150,18 +146,14 @@ class AppScaffold extends ConsumerWidget {
       },
       child: Scaffold(
       appBar: AppBar(
-        leading: (backTo != null ||
-                context.canPop() ||
-                AppNavHistory.instance.canGoBack)
+        leading: shouldShowAppBack(context, backTo: backTo)
             ? IconButton(
                 tooltip: AppStrings.back,
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => navigateBack(context, backTo),
               )
             : null,
-        automaticallyImplyLeading: backTo == null &&
-            !context.canPop() &&
-            !AppNavHistory.instance.canGoBack &&
+        automaticallyImplyLeading: !shouldShowAppBack(context, backTo: backTo) &&
             useDrawer,
         title: Text(title, overflow: TextOverflow.ellipsis),
         actions: [
@@ -183,47 +175,113 @@ class AppScaffold extends ConsumerWidget {
       drawer: useDrawer
           ? Drawer(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   DrawerHeader(
+                    margin: EdgeInsets.zero,
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                     decoration: const BoxDecoration(color: Brand.navy),
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Text(
-                        user?.name ?? '',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        const AppLogo(height: 52),
+                        const SizedBox(height: 12),
+                        Text(
+                          user?.name.isNotEmpty == true
+                              ? user!.name
+                              : AppStrings.excellentEducators,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
+                        if (user?.email != null && user!.email.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            user.email,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.72),
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   Expanded(
                     child: ListView(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 6,
+                        horizontal: 8,
+                      ),
                       children: [
                         for (final item in destinations)
-                          ListTile(
-                            leading: Badge(
-                              isLabelVisible: item.badgeCount != null && item.badgeCount! > 0,
-                              label: Text('${item.badgeCount ?? 0}'),
-                              child: Icon(item.icon),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 1),
+                            child: ListTile(
+                              dense: true,
+                              visualDensity: const VisualDensity(vertical: -1),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 0,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              selectedTileColor: Brand.navy.withOpacity(0.08),
+                              selectedColor: Brand.navy,
+                              leading: Badge(
+                                isLabelVisible: item.badgeCount != null &&
+                                    item.badgeCount! > 0,
+                                label: Text('${item.badgeCount ?? 0}'),
+                                child: Icon(item.icon, size: 22),
+                              ),
+                              title: Text(
+                                item.label,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: selected >= 0 &&
+                                          destinations[selected].path == item.path
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                              selected: selected >= 0 &&
+                                  destinations[selected].path == item.path,
+                              enabled: !disabledNavPaths.contains(item.path),
+                              onTap: disabledNavPaths.contains(item.path)
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).pop();
+                                      goMenu(context, item.path);
+                                    },
                             ),
-                            title: Text(item.label),
-                            selected: selected >= 0 && destinations[selected].path == item.path,
-                            enabled: !disabledNavPaths.contains(item.path),
-                            onTap: disabledNavPaths.contains(item.path)
-                                ? null
-                                : () {
-                                    Navigator.of(context).pop();
-                                    dismissOverlayRoutes(context);
-                                    context.go(item.path);
-                                  },
                           ),
                       ],
                     ),
                   ),
-                  _NavBrandFooter(compact: true),
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'v${AppInfo.version}',
+                        style: const TextStyle(
+                          color: Brand.muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             )
@@ -240,8 +298,7 @@ class AppScaffold extends ConsumerWidget {
                 if (disabledNavPaths.contains(item.path)) {
                   return;
                 }
-                dismissOverlayRoutes(context);
-                context.go(item.path);
+                goMenu(context, item.path);
               },
               destinations: [
                 for (final item in destinations)
@@ -265,7 +322,7 @@ class AppScaffold extends ConsumerWidget {
           : null,
       floatingActionButton: floatingActionButton,
       body: destinations.isEmpty || !wide
-          ? SelectionArea(child: content)
+          ? content
           : Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -274,12 +331,11 @@ class AppScaffold extends ConsumerWidget {
                   selectedIndex: selected,
                   disabledPaths: disabledNavPaths,
                   onSelect: (index) {
-                    dismissOverlayRoutes(context);
-                    context.go(destinations[index].path);
+                    goMenu(context, destinations[index].path);
                   },
                 ),
                 const VerticalDivider(width: 1, color: Color(0x33000000)),
-                Expanded(child: SelectionArea(child: content)),
+                Expanded(child: content),
               ],
             ),
     ),
@@ -292,7 +348,9 @@ class AppScaffold extends ConsumerWidget {
     }
     return [
       if (user.isAdmin) ...[
-        if (!user.isAgent)
+        if (user.isAgent)
+          const _NavItem(AppStrings.dashboard, Icons.dashboard_outlined, RoutePaths.adminAgentDashboard)
+        else
           const _NavItem(AppStrings.dashboard, Icons.dashboard_outlined, RoutePaths.adminDashboard),
         if (user.canAnyAdmin(const [
           AdminPermission.studentsView,

@@ -21,6 +21,8 @@ class AdminRequest extends Model
         'description',
         'student_id',
         'batch_id',
+        'from_level_id',
+        'target_level_id',
         'status',
         'resolved_at',
         'resolved_by_id',
@@ -54,6 +56,16 @@ class AdminRequest extends Model
     public function batch(): BelongsTo
     {
         return $this->belongsTo(Batch::class, 'batch_id');
+    }
+
+    public function fromLevel(): BelongsTo
+    {
+        return $this->belongsTo(AcademicLevel::class, 'from_level_id');
+    }
+
+    public function targetLevel(): BelongsTo
+    {
+        return $this->belongsTo(AcademicLevel::class, 'target_level_id');
     }
 
     public function isPending(): bool

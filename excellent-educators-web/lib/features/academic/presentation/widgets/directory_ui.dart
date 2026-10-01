@@ -116,23 +116,32 @@ class _DirectoryToolbarState extends State<DirectoryToolbar> {
                 widget.attentionItems != null &&
                 widget.onAttentionChanged != null;
 
+            // iOS Safari zooms focused inputs under 16px — looks like the
+            // search bar "jumps up". Desktop/dev tools usually won't show this.
+            final searchFontSize = fullWidth ? 16.0 : 14.0;
             final searchField = _ToolbarLabeledField(
               label: AppStrings.search,
               child: TextField(
                 controller: _searchController,
                 focusNode: _searchFocusNode,
-                style: TextStyle(fontSize: fullWidth ? 13.5 : 14),
+                style: TextStyle(fontSize: searchFontSize, height: 1.25),
+                scrollPadding: EdgeInsets.only(
+                  top: MediaQuery.paddingOf(context).top + kToolbarHeight + 28,
+                  bottom: MediaQuery.viewInsetsOf(context).bottom + 28,
+                  left: 20,
+                  right: 20,
+                ),
                 decoration: InputDecoration(
                   hintText: fullWidth ? AppStrings.search : widget.searchHint,
                   hintStyle: TextStyle(
-                    fontSize: fullWidth ? 13 : 14,
+                    fontSize: fullWidth ? 15 : 14,
                     color: Brand.muted.withValues(alpha: 0.85),
                   ),
-                  prefixIcon: Icon(Icons.search, size: fullWidth ? 18 : 20),
+                  prefixIcon: Icon(Icons.search, size: fullWidth ? 20 : 20),
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: fullWidth ? 10 : 12,
-                    vertical: fullWidth ? 8 : 10,
+                    vertical: fullWidth ? 10 : 10,
                   ),
                 ),
                 onChanged: _onSearchChanged,
@@ -260,6 +269,8 @@ class _DirectoryToolbarState extends State<DirectoryToolbar> {
             ],
           ),
         ],
+        // Small gap between filters and the list below.
+        const SizedBox(height: 6),
       ],
     );
   }
@@ -328,7 +339,8 @@ class _ToolbarDropdown<T> extends StatelessWidget {
         initialValue: value,
         style: TextStyle(
           color: Brand.navy,
-          fontSize: compact ? 13 : 14,
+          // 16px on compact/mobile avoids iOS input zoom.
+          fontSize: compact ? 16 : 14,
           fontWeight: FontWeight.w500,
         ),
         icon: Icon(Icons.keyboard_arrow_down, size: compact ? 18 : 20, color: Brand.muted),
@@ -336,7 +348,7 @@ class _ToolbarDropdown<T> extends StatelessWidget {
           isDense: true,
           contentPadding: EdgeInsets.symmetric(
             horizontal: compact ? 8 : 12,
-            vertical: compact ? 8 : 10,
+            vertical: compact ? 10 : 10,
           ),
         ),
         selectedItemBuilder: (context) => [

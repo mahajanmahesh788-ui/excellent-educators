@@ -42,6 +42,20 @@ class StartStudentLevelJourney
     }
 
     /**
+     * Close any open journey without starting a new one.
+     * Used when a student is promoted but the new-level batch is not active yet.
+     */
+    public function endOpenJourneys(StudentProfile $student, ?Carbon $endedAt = null): void
+    {
+        $now = $endedAt ?? AppClock::now();
+
+        StudentLevelJourney::query()
+            ->where('student_id', $student->id)
+            ->whereNull('ended_at')
+            ->update(['ended_at' => $now]);
+    }
+
+    /**
      * Start a journey only when the student's current batch is active.
      * Journey start date follows the batch's starts_on (activation date).
      */

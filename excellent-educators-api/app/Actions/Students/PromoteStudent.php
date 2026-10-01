@@ -4,6 +4,7 @@ namespace App\Actions\Students;
 
 use App\Actions\Batches\AllocateBatchForStudent;
 use App\Actions\Learning\StartStudentLevelJourney;
+use App\Actions\Mentoring\UnassignMasterTeacher;
 use App\Actions\Notifications\CreateUserNotification;
 use App\Enums\NotificationType;
 use App\Exceptions\ApiException;
@@ -19,6 +20,7 @@ class PromoteStudent
     public function __construct(
         private readonly AllocateBatchForStudent $allocateBatchForStudent,
         private readonly StartStudentLevelJourney $startStudentLevelJourney,
+        private readonly UnassignMasterTeacher $unassignMasterTeacher,
         private readonly CreateUserNotification $notifications,
     ) {}
 
@@ -33,17 +35,27 @@ class PromoteStudent
         }
 
         return DB::transaction(function () use ($student, $level, $actor): StudentProfile {
-            $student->loadMissing(['academicLevel', 'user']);
+            $student->loadMissing(['academicLevel', 'user', 'activeMasterTeacherAssignment.teacher']);
             $from = $student->academicLevel?->name;
             $student->update(['level_id' => $level->id]);
             $this->allocateBatchForStudent->execute($level, $student->fresh(), $actor);
+
+            // Always close the previous level journey on promote so history stays
+            // readable. Start the new-level Week 1 journey only when the new batch
+            // is already active; otherwise the student waits without being locked out.
+            $this->startStudentLevelJourney->endOpenJourneys($student->fresh());
             $this->startStudentLevelJourney->executeIfBatchActive($student->fresh(), $level);
+
+            // Level 2 students belong to Level 2 teachers only — drop mentors who
+            // are not assigned to the destination level.
+            $this->releaseMentorIfNotOnLevel($student->fresh(), $level);
+
             StudentActivity::record(
                 $student->fresh(),
                 'level_changed',
                 $from
-                    ? "Admin updated the student from {$from} to {$level->name}"
-                    : "Admin updated the student to {$level->name}",
+                    ? "Updated the student from {$from} to {$level->name}"
+                    : "Updated the student to {$level->name}",
                 actor: $actor,
                 related: $level,
             );
@@ -53,6 +65,23 @@ class PromoteStudent
 
             return $fresh;
         });
+    }
+
+    private function releaseMentorIfNotOnLevel(StudentProfile $student, AcademicLevel $level): void
+    {
+        $assignment = $student->activeMasterTeacherAssignment()->with('teacher')->first();
+        $teacher = $assignment?->teacher;
+        if ($teacher === null) {
+            return;
+        }
+
+        $teachesTarget = $teacher->academicLevels()
+            ->where('academic_levels.id', $level->id)
+            ->exists();
+
+        if (! $teachesTarget) {
+            $this->unassignMasterTeacher->execute($student);
+        }
     }
 
     private function notifyPromotion(StudentProfile $student, ?string $from, string $to): void

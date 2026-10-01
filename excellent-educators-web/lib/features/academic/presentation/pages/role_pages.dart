@@ -521,6 +521,7 @@ class _TeacherProfilePageState extends ConsumerState<TeacherProfilePage> {
                                     children: [
                                       MentorProfileEditor(
                                         draft: _draft!,
+                                        asSelf: true,
                                         onChanged: () => setState(() {}),
                                       ),
                                       const SizedBox(height: 18),

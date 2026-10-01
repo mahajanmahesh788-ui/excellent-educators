@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/navigation/app_nav_history.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_batches_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_dashboard_page.dart';
+import 'package:excellent_educators_web/features/academic/presentation/pages/agent_dashboard_page.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_standouts_pages.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_detail_pages.dart';
 import 'package:excellent_educators_web/features/academic/presentation/pages/admin_teacher_history_page.dart';
@@ -266,6 +267,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.adminDashboard,
         builder: (context, state) => const AdminDashboardPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminAgentDashboard,
+        builder: (context, state) => const AgentDashboardPage(),
       ),
       GoRoute(
         path: RoutePaths.adminSubAdmins,
@@ -705,11 +710,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 
   void syncNavHistory() {
-    AppNavHistory.instance.track(router.state.uri.toString());
+    // GoRouter.state uses currentConfiguration.last — empty before the first
+    // route parse completes (throws Bad state: No element on startup).
+    final config = router.routerDelegate.currentConfiguration;
+    if (config.isEmpty) {
+      return;
+    }
+    AppNavHistory.instance.track(config.uri.toString());
   }
 
   router.routerDelegate.addListener(syncNavHistory);
-  // Capture the initial route as well.
+  // Capture the initial route once configuration is ready (may still be empty here).
   syncNavHistory();
   ref.onDispose(() {
     router.routerDelegate.removeListener(syncNavHistory);

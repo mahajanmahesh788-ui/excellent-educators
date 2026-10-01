@@ -4,6 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class PhoneWhatsappAddressFields extends StatelessWidget {
+  final TextEditingController phone;
+  final TextEditingController whatsapp;
+  final TextEditingController? address;
+  final bool requirePhone;
+  final bool showAddress;
+  final String phoneLabel;
+  final String whatsappLabel;
+  final String addressLabel;
+  final String? addressHint;
+  final double fieldSpacing;
+  final bool? isDense;
+  final EdgeInsetsGeometry? contentPadding;
+
   const PhoneWhatsappAddressFields({
     super.key,
     required this.phone,
@@ -16,18 +29,9 @@ class PhoneWhatsappAddressFields extends StatelessWidget {
     this.addressLabel = AppStrings.address,
     this.addressHint,
     this.fieldSpacing = 14,
+    this.isDense,
+    this.contentPadding,
   });
-
-  final TextEditingController phone;
-  final TextEditingController whatsapp;
-  final TextEditingController? address;
-  final bool requirePhone;
-  final bool showAddress;
-  final String phoneLabel;
-  final String whatsappLabel;
-  final String addressLabel;
-  final String? addressHint;
-  final double fieldSpacing;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +47,8 @@ class PhoneWhatsappAddressFields extends StatelessWidget {
           decoration: InputDecoration(
             labelText: phoneLabel,
             prefixText: '+91  ',
+            isDense: isDense,
+            contentPadding: contentPadding,
           ),
           validator: requirePhone ? validateRequiredPhone : validateOptionalPhone,
         ),
@@ -57,6 +63,8 @@ class PhoneWhatsappAddressFields extends StatelessWidget {
           decoration: InputDecoration(
             labelText: whatsappLabel,
             prefixText: '+91  ',
+            isDense: isDense,
+            contentPadding: contentPadding,
           ),
           validator: validateOptionalPhone,
         ),
@@ -70,6 +78,8 @@ class PhoneWhatsappAddressFields extends StatelessWidget {
               labelText: addressLabel,
               hintText: addressHint,
               alignLabelWithHint: true,
+              isDense: isDense,
+              contentPadding: contentPadding,
             ),
           ),
         ],

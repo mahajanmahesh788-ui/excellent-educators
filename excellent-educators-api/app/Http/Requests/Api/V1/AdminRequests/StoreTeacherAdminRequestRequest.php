@@ -24,7 +24,11 @@ class StoreTeacherAdminRequestRequest extends FormRequest
         return [
             'request_type' => ['sometimes', Rule::enum(AdminRequestType::class)],
             'student_id' => [
-                Rule::requiredIf(in_array($type, [AdminRequestType::RemoveMentee, AdminRequestType::RemoveBatchStudent], true)),
+                Rule::requiredIf(in_array($type, [
+                    AdminRequestType::RemoveMentee,
+                    AdminRequestType::RemoveBatchStudent,
+                    AdminRequestType::PromoteStudent,
+                ], true)),
                 'nullable',
                 'ulid',
                 'exists:student_profiles,id',
@@ -34,6 +38,12 @@ class StoreTeacherAdminRequestRequest extends FormRequest
                 'nullable',
                 'ulid',
                 'exists:batches,id',
+            ],
+            'level_id' => [
+                Rule::requiredIf($type === AdminRequestType::PromoteStudent),
+                'nullable',
+                'ulid',
+                'exists:academic_levels,id',
             ],
             'reason' => ['nullable', 'string', 'max:5000'],
             'subtitle' => [

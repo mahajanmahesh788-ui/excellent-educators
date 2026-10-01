@@ -11,6 +11,13 @@ class PaymentRepository with MapsApiFailures {
 
   final ApiClient _client;
 
+  Future<AgentDashboardDto> agentDashboard() {
+    return runApiSimple(() async {
+      final json = await _client.get(ApiEndpoints.adminAgentDashboard);
+      return AgentDashboardDto.fromJson(json ?? const {});
+    });
+  }
+
   Future<PaymentListResult> listPlans({
     String? status,
     String? period,

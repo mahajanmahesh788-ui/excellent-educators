@@ -1,11 +1,11 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
 import 'package:excellent_educators_web/features/learning/presentation/widgets/learning_journal_ui.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class StudentLearningJournalPage extends ConsumerWidget {
@@ -69,7 +69,8 @@ class StudentLearningJournalPage extends ConsumerWidget {
                 journal: data,
                 staffView: false,
                 onOpenWeek: (group, week) {
-                  context.go(
+                  goDetail(
+                    context,
                     RoutePaths.studentJournalWeekFor(
                       group.journeyId,
                       week.weekNumber,

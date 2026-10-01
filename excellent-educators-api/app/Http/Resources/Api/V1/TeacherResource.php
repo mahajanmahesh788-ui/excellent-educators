@@ -48,7 +48,10 @@ class TeacherResource extends JsonResource
             'assigned_levels_count' => $this->academic_levels_count ?? $academicLevels->count(),
             'active_batch_count' => $this->whenCounted('activeBatchAssignments'),
             'active_mentee_count' => $this->whenCounted('activeMasterTeacherAssignments'),
-            'mentor_stats' => $this->mentor_stats ?? app(BuildMentorProfileStats::class)->execute($this->resource),
+            'mentor_stats' => $this->mentor_stats ?? app(BuildMentorProfileStats::class)->execute(
+                $this->resource,
+                includePublicBaseline: (bool) $request->attributes->get('include_public_mentor_stats_baseline', false),
+            ),
         ];
     }
 }

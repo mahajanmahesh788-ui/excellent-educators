@@ -45,6 +45,17 @@ abstract final class AppStrings {
   static const accountDisabledUnderstood = 'Understood';
   static const accountType = 'Account type';
   static const agent = 'Agent';
+  static const agentDashboardWelcome =
+      'Your overview — students you registered and fees from those students.';
+  static const yourStudents = 'Your students';
+  static const studentsRegistered = 'Students registered';
+  static const totalEnrolledByYou = 'enrolled by you';
+  static const currentlyActive = 'currently active';
+  static const earningsAndFees = 'Earnings & fees';
+  static const feesCollected = 'fees collected';
+  static const outstandingBalance = 'outstanding balance';
+  static const studentsWithBalance = 'with balance due';
+  static const registerNewStudent = 'Register new student';
   static const agentPermissionsHint =
       'Agents can view/create their own students. Optionally enable View payments and Record payments for those students.';
   static const addStudentToALevelLevelsEnrollStudent = 'Add student to a level (Levels → Enroll student)';
@@ -123,6 +134,7 @@ abstract final class AppStrings {
   static const averageRatingOverTime = 'Average rating over time';
   static const awaitingAdmin = 'awaiting admin';
   static const back = 'Back';
+  static const pressBackAgainToExit = 'Press back again to exit';
   static const backToJourney = 'Back to Journey';
   static const backToSignIn = 'Back to sign in';
   static const batch = 'Batch';
@@ -567,6 +579,8 @@ abstract final class AppStrings {
   static const networkError = 'Network error.';
   static const newAssessment = 'New assessment';
   static const newLevel = 'New level';
+  static const noOtherLevelsAvailableToPromoteTo =
+      'No other levels available to promote to.';
   static const newPassword = 'New password';
   static const newRequest = 'New request';
   static const newStudentAndTeacherJoinReportsWillAppearHere = 'New student and teacher join reports will appear here.';
@@ -588,6 +602,7 @@ abstract final class AppStrings {
   static const noBookingsOnThisDate = 'No Bookings on This Date';
   static const noClassConflicts = 'No class conflicts';
   static const noCompletedRequests = 'No completed requests';
+  static const noRejectedRequests = 'No rejected requests';
   static const noDimensionScoresYet = 'No dimension scores yet.';
   static const noEmailOnFile = 'No email on file';
   static const noEventsFoundMatchingCurrentFilters = 'No events found matching current filters';
@@ -706,6 +721,8 @@ abstract final class AppStrings {
   static const pastSessions = 'Past Sessions';
   static const pending = 'Pending';
   static const pendingClassConflicts = 'Pending class conflicts';
+  static const pendingRequestsLimitReached =
+      'You already have 3 pending requests. Wait for an admin to resolve one before sending another.';
   static const pendingVerification = 'Pending verification';
   static const permissions = 'Permissions';
   static const permissionDefaultsOff = 'All permissions start off. Turn on only what this sub admin may do.';
@@ -730,8 +747,24 @@ abstract final class AppStrings {
   static const progressStandouts = 'Progress & standouts';
   static const promote = 'Promote';
   static const promoteStudent = 'Promote student';
+  static const requestLevelUpgrade = 'Request level upgrade';
+  static const sendUpgradeRequest = 'Send upgrade request';
+  static const sendingRequest = 'Sending request…';
+  static const levelUpgradeRequestSentToAdmin = 'Level upgrade request sent to admin.';
+  static const requestSendsToAdminWhoMustAcceptBeforeLevelChanges =
+      'This sends a request to admin. The student level changes only after admin accepts.';
+  static const waitingForAdminToAcceptOrRejectThisUpgrade =
+      'Waiting for admin to accept or reject this upgrade.';
+  static String levelUpgradePending(String from, String to) =>
+      'Level upgrade $from → $to pending';
+  static const acceptLevelUpgrade = 'Accept level upgrade';
+  static const rejectRequest = 'Reject request';
+  static const requestRejected = 'Request rejected.';
+  static const requestApprovedAndCompleted = 'Request approved and completed.';
+  static const rejected = 'Rejected';
   static const promotedStudents = 'Promoted students';
   static const promoting = 'Promoting…';
+  static const studentPromotedSuccessfully = 'Student promoted successfully.';
   static const question = 'Question';
   static const questions = 'Questions';
   static const rate = 'Rate';
@@ -765,6 +798,9 @@ abstract final class AppStrings {
   static const removeThisLeave = 'Remove this leave?';
   static const reportSentToAdmin = 'Report sent to Admin';
   static const reportSubmitted = 'Report submitted';
+  static const reportSession = 'Report session';
+  static const reportSessionHelp =
+      'Open a past session below and tap Report to Admin if the teacher did not join or you need help.';
   static const requestAdmin = 'Request admin';
   static const requestDetail = 'Request detail';
   static const requestFailed = 'Request failed.';
@@ -785,6 +821,7 @@ abstract final class AppStrings {
   static const resolveIssues = 'Resolve issues';
   static const resolved = 'Resolved';
   static const resolvedRequestsWillShowUpHere = 'Resolved requests will show up here.';
+  static const rejectedRequestsWillShowUpHere = 'Rejected requests will show up here.';
   static const retry = 'Retry';
   static const review = 'Review';
   static const reviewDimensionScoresBeforeAssigningTeachers = 'Review dimension scores before assigning teachers';
@@ -879,6 +916,15 @@ abstract final class AppStrings {
   static const showLess = 'Show less';
   static const signIn = 'Sign in';
   static const signInForm = 'Sign-in form';
+  static const installApp = 'Install app';
+  static const installAppHint =
+      'Install Excellent Educators on your phone for faster access — no App Store needed.';
+  static const installAppIosSteps =
+      'On iPhone/iPad: tap the Share button in Safari, then choose "Add to Home Screen".';
+  static const installAppBrowserSteps =
+      'Open your browser menu and choose "Install app" or "Add to Home Screen". If you do not see it, try Chrome or Safari.';  static const appInstalledThanks = 'App installed. You can open it from your home screen.';
+  static const orLabel = 'OR';
+  static const gotIt = 'Got it';
   static const signOut = 'Sign out';
   static const signOut2 = 'Sign out?';
   static const signedIn = 'Signed in';
@@ -912,6 +958,8 @@ abstract final class AppStrings {
   static const studentUpdatedSuccessfully = 'Student updated successfully.';
   static const students = 'Students';
   static const studentsCreated = 'Students created';
+  static const totalEarned = 'Total earned';
+  static const amountPending = 'Amount pending';
   static const studentsAssessmentPending = 'Students — assessment pending';
   static const studentsAwaitingRating = 'Students awaiting rating';
   static const studentsByLevelAndBatch = 'Students by level and batch';
@@ -1089,6 +1137,10 @@ abstract final class AppStrings {
   static const yourLearningJourneyIsWaitingForYou = 'Your learning journey is waiting for you.';
   static const yourJourneyHasNotStartedYet = 'Your journey has not started yet';
   static const yourLearningJourneyWillAppearOnceALevelJourneyStarts = 'Your learning journey will appear once a level journey starts.';
+  static String levelBatchNotStartedYet(String levelName) =>
+      '$levelName batch has not started yet';
+  static const youCanStillReviewPreviousJourneyWhileWaiting =
+      'You can still open Journey to review previous weeks and use the rest of the app. New-level Week 1 unlocks when this batch is activated.';
   static const yourBatchIsStillBeingPreparedYouWillBeAbleToStartLearning = 'Your batch is still being prepared. You will be able to start learning once an admin activates your batch or it reaches full capacity.';
 
   static const yourLevel = 'Your level';

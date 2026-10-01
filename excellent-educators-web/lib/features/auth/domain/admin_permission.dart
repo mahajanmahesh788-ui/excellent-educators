@@ -1,3 +1,4 @@
+import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/features/auth/domain/entities/app_user.dart';
 
 abstract final class AdminPermission {
@@ -40,7 +41,8 @@ abstract final class AdminPermission {
       return true;
     }
     if (user.isAgent) {
-      if (location.startsWith('/admin/notifications')) {
+      if (location == RoutePaths.adminAgentDashboard ||
+          location.startsWith('/admin/notifications')) {
         return true;
       }
       if (location.startsWith('/admin/payments') ||

@@ -98,7 +98,7 @@ class CleanAcademicDataCommand extends Command
                     'academic_year' => $currentYear,
                     'year' => $currentYear,
                     'month' => $currentMonth,
-                    'status' => 'active',
+                    'status' => 'inactive',
                     'enrolled_watermark' => 0,
                     'created_at' => now(),
                     'updated_at' => now(),

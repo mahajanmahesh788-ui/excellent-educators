@@ -139,7 +139,10 @@ class _AdminStudentPaymentsPageState
                               totalAmount: plan.totalAmount,
                               pendingAmount: plan.pendingAmount,
                             );
+                            if (!mounted) return;
                             if (ok) {
+                              await Future<void>.delayed(Duration.zero);
+                              if (!mounted) return;
                               ref.invalidate(
                                 adminStudentPaymentPlanProvider(widget.studentId),
                               );

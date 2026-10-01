@@ -1,7 +1,13 @@
+import 'dart:typed_data';
+
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
+import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/mentor_profile_view.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 const mentorTitleSuggestions = [
   'Student Mentor',
@@ -118,15 +124,96 @@ class MentorProfileDraft {
   }
 }
 
-class MentorProfileEditor extends StatelessWidget {
+class MentorProfileEditor extends ConsumerStatefulWidget {
   const MentorProfileEditor({
     super.key,
     required this.draft,
     required this.onChanged,
+    this.teacherId,
+    this.asSelf = false,
   });
 
   final MentorProfileDraft draft;
   final VoidCallback onChanged;
+  final String? teacherId;
+  final bool asSelf;
+
+  @override
+  ConsumerState<MentorProfileEditor> createState() =>
+      _MentorProfileEditorState();
+}
+
+class _MentorProfileEditorState extends ConsumerState<MentorProfileEditor> {
+  Uint8List? _localPreview;
+  var _uploading = false;
+
+  MentorProfileDraft get draft => widget.draft;
+
+  Future<void> _selectPhoto() async {
+    final files = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+    );
+    if (files.isEmpty) {
+      return;
+    }
+    final file = files.first;
+    late final Uint8List bytes;
+    try {
+      bytes = await file.readAsBytes();
+    } catch (_) {
+      if (mounted) {
+        showFailure(context, 'Could not read the selected image.');
+      }
+      return;
+    }
+    if (bytes.isEmpty) {
+      if (mounted) {
+        showFailure(context, 'Could not read the selected image.');
+      }
+      return;
+    }
+
+    setState(() {
+      _localPreview = bytes;
+      _uploading = true;
+    });
+
+    try {
+      final photoUrl = await ref
+          .read(academicRepositoryProvider)
+          .uploadTeacherPhoto(
+            bytes: bytes,
+            filename: file.name.isEmpty ? 'teacher-photo.jpg' : file.name,
+            teacherId: widget.teacherId,
+            asSelf: widget.asSelf,
+          );
+      if (photoUrl.isEmpty) {
+        throw StateError('Upload did not return a photo URL.');
+      }
+      draft.photoUrl.text = photoUrl;
+      widget.onChanged();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile photo uploaded.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        showFailure(context, error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _uploading = false);
+      }
+    }
+  }
+
+  Future<void> _clearPhoto() async {
+    draft.photoUrl.clear();
+    setState(() => _localPreview = null);
+    widget.onChanged();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,32 +227,71 @@ class MentorProfileEditor extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final preview = _PhotoPreview(url: draft.photoUrl.text);
-                  final field = TextFormField(
-                    controller: draft.photoUrl,
-                    onChanged: (_) => onChanged(),
-                    decoration: const InputDecoration(
-                      labelText: 'Profile photo URL',
-                      hintText: 'https://…',
-                      prefixIcon: Icon(Icons.link_rounded),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _PhotoPreview(
+                    url: draft.photoUrl.text,
+                    bytes: _localPreview,
+                    uploading: _uploading,
+                    onTap: _uploading ? null : _selectPhoto,
+                  ),
+                  const SizedBox(width: 18),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Profile photo',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Brand.navy,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Use a clear vertical portrait (JPG, PNG, or WebP). '
+                          'Saved on the server under teacher photos.',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12.5,
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            FilledButton.tonalIcon(
+                              onPressed: _uploading ? null : _selectPhoto,
+                              icon: _uploading
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.photo_library_outlined),
+                              label: Text(
+                                _uploading ? 'Uploading…' : 'Select image',
+                              ),
+                            ),
+                            if (draft.photoUrl.text.trim().isNotEmpty ||
+                                _localPreview != null)
+                              TextButton.icon(
+                                onPressed: _uploading ? null : _clearPhoto,
+                                icon: const Icon(Icons.delete_outline_rounded),
+                                label: const Text('Remove'),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
-                  );
-                  if (constraints.maxWidth < 520) {
-                    return Column(
-                      children: [preview, const SizedBox(height: 14), field],
-                    );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      preview,
-                      const SizedBox(width: 18),
-                      Expanded(child: field),
-                    ],
-                  );
-                },
+                  ),
+                ],
               ),
               const SizedBox(height: 18),
               TextFormField(
@@ -187,7 +313,7 @@ class MentorProfileEditor extends StatelessWidget {
                       label: Text(title),
                       onPressed: () {
                         draft.professionalTitle.text = title;
-                        onChanged();
+                        widget.onChanged();
                       },
                     ),
                 ],
@@ -199,7 +325,8 @@ class MentorProfileEditor extends StatelessWidget {
                 decoration: const InputDecoration(
                   labelText: 'Introduction / bio',
                   alignLabelWithHint: true,
-                  hintText: 'Share how you help students discover strengths and build clear goals.',
+                  hintText:
+                      'Share how you help students discover strengths and build clear goals.',
                   prefixIcon: Padding(
                     padding: EdgeInsets.only(bottom: 88),
                     child: Icon(Icons.format_quote_rounded),
@@ -238,7 +365,7 @@ class MentorProfileEditor extends StatelessWidget {
                   } else {
                     draft.guidanceAreas = [...draft.guidanceAreas, value];
                   }
-                  onChanged();
+                  widget.onChanged();
                 },
               ),
               const SizedBox(height: 22),
@@ -256,7 +383,7 @@ class MentorProfileEditor extends StatelessWidget {
                       value,
                     ];
                   }
-                  onChanged();
+                  widget.onChanged();
                 },
               ),
             ],
@@ -278,7 +405,7 @@ class MentorProfileEditor extends StatelessWidget {
                     ...draft.education,
                     const MentorEducationDto(degree: '', institution: ''),
                   ];
-                  onChanged();
+                  widget.onChanged();
                 },
               ),
               for (var i = 0; i < draft.education.length; i++)
@@ -286,11 +413,11 @@ class MentorProfileEditor extends StatelessWidget {
                   value: draft.education[i],
                   onChanged: (value) {
                     draft.education = [...draft.education]..[i] = value;
-                    onChanged();
+                    widget.onChanged();
                   },
                   onRemove: () {
                     draft.education = [...draft.education]..removeAt(i);
-                    onChanged();
+                    widget.onChanged();
                   },
                 ),
               const SizedBox(height: 20),
@@ -302,7 +429,7 @@ class MentorProfileEditor extends StatelessWidget {
                     ...draft.certifications,
                     const MentorCertificationDto(name: ''),
                   ];
-                  onChanged();
+                  widget.onChanged();
                 },
               ),
               for (var i = 0; i < draft.certifications.length; i++)
@@ -311,12 +438,12 @@ class MentorProfileEditor extends StatelessWidget {
                   onChanged: (value) {
                     draft.certifications = [...draft.certifications]
                       ..[i] = value;
-                    onChanged();
+                    widget.onChanged();
                   },
                   onRemove: () {
                     draft.certifications = [...draft.certifications]
                       ..removeAt(i);
-                    onChanged();
+                    widget.onChanged();
                   },
                 ),
               const SizedBox(height: 20),
@@ -328,7 +455,7 @@ class MentorProfileEditor extends StatelessWidget {
                     ...draft.experience,
                     const MentorExperienceDto(organization: '', role: ''),
                   ];
-                  onChanged();
+                  widget.onChanged();
                 },
               ),
               for (var i = 0; i < draft.experience.length; i++)
@@ -336,11 +463,11 @@ class MentorProfileEditor extends StatelessWidget {
                   value: draft.experience[i],
                   onChanged: (value) {
                     draft.experience = [...draft.experience]..[i] = value;
-                    onChanged();
+                    widget.onChanged();
                   },
                   onRemove: () {
                     draft.experience = [...draft.experience]..removeAt(i);
-                    onChanged();
+                    widget.onChanged();
                   },
                 ),
             ],
@@ -410,23 +537,85 @@ class _EditorCard extends StatelessWidget {
 }
 
 class _PhotoPreview extends StatelessWidget {
-  const _PhotoPreview({required this.url});
+  const _PhotoPreview({
+    required this.url,
+    this.bytes,
+    this.uploading = false,
+    this.onTap,
+  });
 
   final String url;
+  final Uint8List? bytes;
+  final bool uploading;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Brand.gold, Color(0xFF1E7654)]),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: MentorAvatar(
-        name: 'Mentor',
-        photoUrl: url,
-        size: 82,
-        borderRadius: 20,
+    const width = 120.0;
+    const height = 160.0;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Ink(
+          width: width + 8,
+          height: height + 8,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Brand.gold, Color(0xFF1E7654)],
+            ),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                MentorAvatar(
+                  name: 'Mentor',
+                  photoUrl: url,
+                  bytes: bytes,
+                  width: width,
+                  height: height,
+                  borderRadius: 18,
+                ),
+                if (uploading)
+                  ColoredBox(
+                    color: Colors.black45,
+                    child: const Center(
+                      child: SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      color: Colors.black54,
+                      child: const Text(
+                        'Change',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

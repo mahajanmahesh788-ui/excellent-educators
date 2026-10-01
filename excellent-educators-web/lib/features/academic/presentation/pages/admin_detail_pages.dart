@@ -4,6 +4,7 @@ import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
+import 'package:excellent_educators_web/features/auth/domain/entities/app_user.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
@@ -14,9 +15,9 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:excellent_educators_web/features/academic/presentation/widgets/master_teacher_progress_panel.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_ui.dart';
+import 'package:excellent_educators_web/features/academic/presentation/widgets/promote_student_card.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
-import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
 import 'package:excellent_educators_web/features/payments/presentation/providers/payment_providers.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/add_payment_modal.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_history.dart';
@@ -56,69 +57,9 @@ class AdminStudentDetailPage extends ConsumerWidget {
                 highlightOverallRating: true,
                 showMonthRatingStatus: false,
                 showFacts: false,
-                action: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton.tonalIcon(
-                      onPressed: () => context.go(RoutePaths.adminStudentJournalFor(student.id)),
-                      icon: const Icon(Icons.menu_book_outlined, size: 18),
-                      label: const Text(AppStrings.learningJournal2),
-                    ),
-                    if (user?.canAnyAdmin(const [
-                          AdminPermission.paymentsView,
-                          AdminPermission.paymentsManage,
-                          AdminPermission.paymentsRecord,
-                          AdminPermission.studentsView,
-                        ]) ??
-                        false)
-                      FilledButton.tonalIcon(
-                        onPressed: () =>
-                            context.go(RoutePaths.adminStudentPaymentsFor(student.id)),
-                        icon: const Icon(Icons.payments_outlined, size: 18),
-                        label: const Text(AppStrings.payments),
-                      ),
-                    if (user?.canAdmin(AdminPermission.studentsEdit) ?? false)
-                      FilledButton.tonalIcon(
-                        onPressed: () => updateStudentMasterClassQuota(context, ref, student),
-                        icon: const Icon(Icons.event_available_outlined, size: 18),
-                        label: const Text(AppStrings.masterClasses),
-                      ),
-                    if (student.hasSubmittedAptitudeAssessment)
-                      FilledButton.tonalIcon(
-                        onPressed: () => context.go(RoutePaths.adminStudentResultsFor(student.id)),
-                        icon: const Icon(Icons.insights, size: 18),
-                        label: const Text(AppStrings.aptitudeResults),
-                      ),
-                    if (user?.canAdmin(AdminPermission.studentsDelete) ?? false)
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          final confirmed = await showAppConfirmDialog(
-                            context,
-                            title: AppStrings.deleteStudent,
-                            message: AppStrings.deleteStudentPaymentWarning,
-                            confirmLabel: AppStrings.delete,
-                            cancelLabel: AppStrings.cancel,
-                            destructive: true,
-                          );
-                          if (confirmed != true) {
-                            return;
-                          }
-                          try {
-                            await ref.read(academicRepositoryProvider).deleteStudent(student.id);
-                            if (context.mounted) {
-                              context.go(RoutePaths.adminStudents);
-                            }
-                          } catch (error) {
-                            if (context.mounted) {
-                              showFailure(context, error);
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.delete_outline, size: 18),
-                        label: const Text(AppStrings.deleteStudent),
-                      ),
-                  ],
+                action: _StudentDetailActions(
+                  student: student,
+                  user: user,
                 ),
                 trailing: (user?.canAdmin(AdminPermission.studentsEdit) ?? false)
                     ? IconButton(
@@ -247,7 +188,10 @@ class AdminStudentDetailPage extends ConsumerWidget {
               AdminStudentFeedbackSection(student: student),
               if (user?.canAdmin(AdminPermission.studentsPromote) ?? false) ...[
                 const SizedBox(height: 12),
-                _PromoteStudentCard(studentId: student.id, currentLevelId: student.level?.id),
+                PromoteStudentCard(
+                  studentId: student.id,
+                  currentLevelId: student.level?.id,
+                ),
               ],
             ],
           );
@@ -378,7 +322,7 @@ class _MoveStudentBatchDialogState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+            children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -387,7 +331,7 @@ class _MoveStudentBatchDialogState
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Row(
-              children: [
+                children: [
                 Container(
                   width: 38,
                   height: 38,
@@ -420,7 +364,7 @@ class _MoveStudentBatchDialogState
                             'Current: ',
                             style: TextStyle(fontSize: 12, color: Brand.muted),
                           ),
-                          Text(
+                    Text(
                             student.level?.label.isNotEmpty == true
                                 ? student.level!.label
                                 : 'No level',
@@ -467,8 +411,8 @@ class _MoveStudentBatchDialogState
           else if (_errorMessage != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Column(
-                children: [
+                    child: Column(
+                      children: [
                   Text(
                     _errorMessage!,
                     style: const TextStyle(color: Colors.red, fontSize: 13),
@@ -516,8 +460,8 @@ class _MoveStudentBatchDialogState
                     ],
                   ],
                 ),
-              ),
-              const SizedBox(height: 12),
+                          ),
+                        const SizedBox(height: 12),
             ],
             ConstrainedBox(
               constraints: BoxConstraints(
@@ -538,7 +482,7 @@ class _MoveStudentBatchDialogState
               ),
             ),
           ],
-          const SizedBox(height: 16),
+                        const SizedBox(height: 16),
           AppDialogActions(
             cancelLabel: AppStrings.cancel,
             confirmLabel: _selectedBatch == null
@@ -632,8 +576,8 @@ class _MoveStudentBatchDialogState
                       ),
                     ),
                   ),
-              ],
-            ),
+                ],
+              ),
           ),
           if (batches.isEmpty)
             const Padding(
@@ -732,7 +676,7 @@ class _MoveStudentBatchDialogState
                 ),
               ),
               if (batch.activeStudentCount > 0 || batch.maxActiveStudents > 0) ...[
-                Text(
+        Text(
                   '${batch.activeStudentCount}/${batch.maxActiveStudents}',
                   style: const TextStyle(
                     fontSize: 11,
@@ -788,7 +732,7 @@ class _LevelFilterChip extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
+      decoration: BoxDecoration(
           color: isSelected
               ? Brand.navy
               : (isCurrent
@@ -802,11 +746,11 @@ class _LevelFilterChip extends StatelessWidget {
                     ? const Color(0xFF93C5FD)
                     : const Color(0xFFCBD5E1)),
           ),
-        ),
-        child: Row(
+      ),
+      child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
+              children: [
+                Text(
               label,
               style: TextStyle(
                 fontSize: 11,
@@ -824,11 +768,11 @@ class _LevelFilterChip extends StatelessWidget {
                 decoration: const BoxDecoration(
                   color: Color(0xFF2563EB),
                   shape: BoxShape.circle,
-                ),
-              ),
-            ],
-          ],
-        ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
       ),
     );
   }
@@ -1034,7 +978,12 @@ class _AdminStudentPaymentSection extends ConsumerWidget {
                           totalAmount: plan.totalAmount,
                           pendingAmount: plan.pendingAmount,
                         );
+                        if (!context.mounted) return;
                         if (ok) {
+                          // Let the dialog route finish tearing down before
+                          // rebuilding this page (avoids InheritedWidget crash).
+                          await Future<void>.delayed(Duration.zero);
+                          if (!context.mounted) return;
                           ref.invalidate(
                             adminStudentPaymentPlanProvider(studentId),
                           );
@@ -1299,7 +1248,7 @@ class AdminTeacherLeavesPage extends ConsumerWidget {
 
           return ListView(
             padding: const EdgeInsets.only(bottom: 32),
-            children: [
+                children: [
               Text(
                 '$thisMonth this month · total ${approved.length} leaves',
                 style: const TextStyle(
@@ -1330,9 +1279,9 @@ class AdminTeacherLeavesPage extends ConsumerWidget {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Column(
+                    child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
+                      children: [
                                 Text(
                                   leave.date,
                                   style: const TextStyle(
@@ -1368,9 +1317,9 @@ class AdminTeacherLeavesPage extends ConsumerWidget {
                         ],
                       ),
                     ),
+                    ),
                   ),
-                ),
-              ],
+                ],
             ],
           );
         },
@@ -1450,82 +1399,6 @@ class AdminTeacherPromotedPage extends ConsumerWidget {
   }
 }
 
-class _PromoteStudentCard extends ConsumerStatefulWidget {
-  const _PromoteStudentCard({required this.studentId, this.currentLevelId});
-
-  final String studentId;
-  final String? currentLevelId;
-
-  @override
-  ConsumerState<_PromoteStudentCard> createState() => _PromoteStudentCardState();
-}
-
-class _PromoteStudentCardState extends ConsumerState<_PromoteStudentCard> {
-  String? _levelId;
-  var _saving = false;
-  String? _error;
-
-  @override
-  Widget build(BuildContext context) {
-    final levels = ref.watch(adminLevelsProvider);
-    return DetailSection(
-      title: AppStrings.promoteStudent,
-      children: [
-        AsyncBody(
-          value: levels,
-          onRetry: () => ref.invalidate(adminLevelsProvider),
-          builder: (items) {
-            final options = items.where((level) => level.id != widget.currentLevelId).toList();
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(AppStrings.theNewLevelStartsFromItsOwnWeek1Previous),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: _levelId,
-                  decoration: const InputDecoration(labelText: AppStrings.newLevel),
-                  items: [
-                    for (final level in options)
-                      DropdownMenuItem(value: level.id, child: Text(level.name)),
-                  ],
-                  onChanged: (value) => setState(() => _levelId = value),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 8),
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
-                ],
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: _saving || _levelId == null
-                      ? null
-                      : () async {
-                          setState(() {
-                            _saving = true;
-                            _error = null;
-                          });
-                          try {
-                            await ref.read(learningRepositoryProvider).promoteStudent(
-                                  studentId: widget.studentId,
-                                  levelId: _levelId!,
-                                );
-                            ref.invalidate(adminStudentProvider(widget.studentId));
-                          } catch (error) {
-                            setState(() => _error = error.toString());
-                          } finally {
-                            if (mounted) setState(() => _saving = false);
-                          }
-                        },
-                  child: Text(_saving ? AppStrings.promoting : AppStrings.promote),
-                ),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
 class _AdminTeacherProgressSection extends ConsumerWidget {
   const _AdminTeacherProgressSection({required this.teacherId});
 
@@ -1551,6 +1424,176 @@ class _AdminTeacherProgressSection extends ConsumerWidget {
             }
             context.go(RoutePaths.adminFeedbackEditFor(student.id, id));
           },
+        );
+      },
+    );
+  }
+}
+
+class _StudentDetailActions extends ConsumerWidget {
+  const _StudentDetailActions({
+    required this.student,
+    required this.user,
+  });
+
+  final StudentDto student;
+  final AppUser? user;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showPayments = user?.canAnyAdmin(const [
+          AdminPermission.paymentsView,
+          AdminPermission.paymentsManage,
+          AdminPermission.paymentsRecord,
+          AdminPermission.studentsView,
+        ]) ??
+        false;
+    final showMasterClasses =
+        user?.canAdmin(AdminPermission.studentsEdit) ?? false;
+    final showAptitude = student.hasSubmittedAptitudeAssessment;
+    final showDelete = user?.canAdmin(AdminPermission.studentsDelete) ?? false;
+
+    final primaryButtons = <Widget>[
+      FilledButton.tonalIcon(
+        onPressed: () =>
+            context.go(RoutePaths.adminStudentJournalFor(student.id)),
+        icon: const Icon(Icons.menu_book_outlined, size: 16),
+        label: const Text(
+          AppStrings.learningJournal2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
+      if (showPayments)
+        FilledButton.tonalIcon(
+          onPressed: () =>
+              context.go(RoutePaths.adminStudentPaymentsFor(student.id)),
+          icon: const Icon(Icons.payments_outlined, size: 16),
+          label: const Text(
+            AppStrings.payments,
+            overflow: TextOverflow.ellipsis,
+          ),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+      if (showMasterClasses)
+        FilledButton.tonalIcon(
+          onPressed: () =>
+              updateStudentMasterClassQuota(context, ref, student),
+          icon: const Icon(Icons.event_available_outlined, size: 16),
+          label: const Text(
+            AppStrings.masterClasses,
+            overflow: TextOverflow.ellipsis,
+          ),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+      if (showAptitude)
+        FilledButton.tonalIcon(
+          onPressed: () =>
+              context.go(RoutePaths.adminStudentResultsFor(student.id)),
+          icon: const Icon(Icons.insights, size: 16),
+          label: const Text(
+            AppStrings.aptitudeResults,
+            overflow: TextOverflow.ellipsis,
+          ),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+    ];
+
+    Widget? deleteButton;
+    if (showDelete) {
+      deleteButton = OutlinedButton.icon(
+        onPressed: () async {
+          final confirmed = await showAppConfirmDialog(
+            context,
+            title: AppStrings.deleteStudent,
+            message: AppStrings.deleteStudentPaymentWarning,
+            confirmLabel: AppStrings.delete,
+            cancelLabel: AppStrings.cancel,
+            destructive: true,
+          );
+          if (confirmed != true) {
+            return;
+          }
+          try {
+            await ref
+                .read(academicRepositoryProvider)
+                .deleteStudent(student.id);
+            if (context.mounted) {
+              context.go(RoutePaths.adminStudents);
+            }
+          } catch (error) {
+            if (context.mounted) {
+              showFailure(context, error);
+            }
+          }
+        },
+        icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFDC2626)),
+        label: const Text(
+          AppStrings.deleteStudent,
+          style: TextStyle(
+            color: Color(0xFFDC2626),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Color(0xFFFECACA)),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          visualDensity: VisualDensity.compact,
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 620;
+        if (!isMobile) {
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ...primaryButtons,
+              if (deleteButton != null) deleteButton,
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < primaryButtons.length; i += 2) ...[
+              if (i > 0) const SizedBox(height: 8),
+              if (i + 1 < primaryButtons.length)
+                Row(
+                  children: [
+                    Expanded(child: primaryButtons[i]),
+                    const SizedBox(width: 8),
+                    Expanded(child: primaryButtons[i + 1]),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(child: primaryButtons[i]),
+                  ],
+                ),
+            ],
+            if (deleteButton != null) ...[
+              const SizedBox(height: 8),
+              deleteButton,
+            ],
+          ],
         );
       },
     );

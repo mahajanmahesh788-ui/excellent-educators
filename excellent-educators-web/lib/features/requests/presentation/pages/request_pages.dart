@@ -18,9 +18,16 @@ import 'package:excellent_educators_web/core/constants/app_strings.dart';
 class StudentRequestsPage extends ConsumerWidget {
   const StudentRequestsPage({super.key});
 
+  static const maxPendingRequests = 3;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final requests = ref.watch(studentRequestsProvider);
+    final pendingCount = requests.maybeWhen(
+      data: (items) => items.where((item) => item.status == 'pending').length,
+      orElse: () => 0,
+    );
+    final atPendingLimit = pendingCount >= maxPendingRequests;
 
     return StudentScaffold(
       title: AppStrings.requestToAdmin,
@@ -32,10 +39,21 @@ class StudentRequestsPage extends ConsumerWidget {
           emptyMessage: AppStrings.noRequestsYetTapBelowToSendYourFirstRequest,
           newRoute: RoutePaths.studentRequestNew,
           nested: false,
+          allowNew: !atPendingLimit,
+          limitMessage:
+              atPendingLimit ? AppStrings.pendingRequestsLimitReached : null,
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go(RoutePaths.studentRequestNew),
+        onPressed: atPendingLimit
+            ? () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(AppStrings.pendingRequestsLimitReached),
+                  ),
+                );
+              }
+            : () => context.go(RoutePaths.studentRequestNew),
         icon: const Icon(Icons.add),
         label: const Text(AppStrings.newRequest),
       ),
@@ -76,12 +94,16 @@ class _RequestListBody extends StatelessWidget {
     required this.emptyMessage,
     required this.newRoute,
     this.nested = false,
+    this.allowNew = true,
+    this.limitMessage,
   });
 
   final List<AdminRequestDto> items;
   final String emptyMessage;
   final String newRoute;
   final bool nested;
+  final bool allowNew;
+  final String? limitMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -90,11 +112,13 @@ class _RequestListBody extends StatelessWidget {
         icon: EmptyIcons.requests,
         title: AppStrings.noRequestsYet,
         subtitle: emptyMessage,
-        action: FilledButton.icon(
-          onPressed: () => context.go(newRoute),
-          icon: const Icon(Icons.add),
-          label: const Text(AppStrings.newRequest),
-        ),
+        action: allowNew
+            ? FilledButton.icon(
+                onPressed: () => context.go(newRoute),
+                icon: const Icon(Icons.add),
+                label: const Text(AppStrings.newRequest),
+              )
+            : null,
       );
     }
 
@@ -107,6 +131,33 @@ class _RequestListBody extends StatelessWidget {
       physics: nested ? const NeverScrollableScrollPhysics() : null,
       padding: EdgeInsets.fromLTRB(0, isMobile ? 4 : 8, 0, nested ? 0 : 88),
       children: [
+        if (limitMessage != null) ...[
+          Material(
+            color: Brand.gold.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.info_outline, color: Brand.navy, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      limitMessage!,
+                      style: const TextStyle(
+                        color: Brand.navy,
+                        height: 1.35,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: isMobile ? 10 : 12),
+        ],
         if (pending.isNotEmpty) ...[
           _SectionHeading(label: AppStrings.pending, count: pending.length),
           for (final item in pending) ...[
@@ -198,6 +249,17 @@ class _StudentNewRequestPageState extends ConsumerState<StudentNewRequestPage> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    final existing = ref.read(studentRequestsProvider).valueOrNull ?? const [];
+    final pendingCount =
+        existing.where((item) => item.status == 'pending').length;
+    if (pendingCount >= StudentRequestsPage.maxPendingRequests) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.pendingRequestsLimitReached)),
+        );
+      }
+      return;
+    }
     setState(() => _saving = true);
     try {
       await ref.read(requestRepositoryProvider).createStudentRequest(
@@ -224,17 +286,54 @@ class _StudentNewRequestPageState extends ConsumerState<StudentNewRequestPage> {
 
   @override
   Widget build(BuildContext context) {
+    final requests = ref.watch(studentRequestsProvider);
+    final atPendingLimit = requests.maybeWhen(
+      data: (items) =>
+          items.where((item) => item.status == 'pending').length >=
+          StudentRequestsPage.maxPendingRequests,
+      orElse: () => false,
+    );
+
     return StudentScaffold(
       title: AppStrings.newRequest,
       backTo: RoutePaths.studentRequests,
-      body: _NewRequestForm(
-        formKey: _formKey,
-        subtitle: _subtitle,
-        description: _description,
-        saving: _saving,
-        onSubmit: _submit,
-        nested: false,
-      ),
+      body: atPendingLimit
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.hourglass_top_rounded,
+                        size: 40, color: Brand.navy),
+                    const SizedBox(height: 14),
+                    const Text(
+                      AppStrings.pendingRequestsLimitReached,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Brand.navy,
+                        fontWeight: FontWeight.w700,
+                        height: 1.4,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    FilledButton(
+                      onPressed: () => context.go(RoutePaths.studentRequests),
+                      child: const Text(AppStrings.back),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : _NewRequestForm(
+              formKey: _formKey,
+              subtitle: _subtitle,
+              description: _description,
+              saving: _saving,
+              onSubmit: _submit,
+              nested: false,
+            ),
     );
   }
 }
@@ -446,6 +545,7 @@ class AdminRequestsPage extends ConsumerWidget {
   static String _emptyMessage(String status) {
     return switch (status) {
       'completed' => AppStrings.resolvedRequestsWillShowUpHere,
+      'rejected' => AppStrings.rejectedRequestsWillShowUpHere,
       _ => AppStrings.nothingWaitingForReviewRightNow,
     };
   }
@@ -453,6 +553,7 @@ class AdminRequestsPage extends ConsumerWidget {
   static String _emptyTitle(String status) {
     return switch (status) {
       'completed' => AppStrings.noCompletedRequests,
+      'rejected' => AppStrings.noRejectedRequests,
       _ => AppStrings.noPendingRequests,
     };
   }
@@ -557,6 +658,11 @@ class _AdminRequestFilters extends ConsumerWidget {
           selected: filter.status == 'completed',
           onSelected: (_) => setFilter(filter.copyWith(status: 'completed', page: 1)),
         ),
+        FilterChip(
+          label: const Text(AppStrings.rejected),
+          selected: filter.status == 'rejected',
+          onSelected: (_) => setFilter(filter.copyWith(status: 'rejected', page: 1)),
+        ),
       ],
     );
   }
@@ -574,20 +680,25 @@ class AdminRequestDetailPage extends ConsumerStatefulWidget {
 class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage> {
   var _resolving = false;
 
-  Future<void> _resolve({required bool applyAction}) async {
+  Future<void> _resolve({required bool applyAction, bool reject = false}) async {
     setState(() => _resolving = true);
     try {
-      await ref.read(requestRepositoryProvider).resolveAdminRequest(widget.requestId, applyAction: applyAction);
+      await ref.read(requestRepositoryProvider).resolveAdminRequest(
+            widget.requestId,
+            applyAction: applyAction,
+            reject: reject,
+          );
       ref.invalidate(adminRequestDetailProvider(widget.requestId));
       ref.invalidate(adminRequestsProvider(ref.read(adminRequestsFilterProvider)));
       ref.invalidate(adminDashboardProvider);
       if (mounted) {
+        final message = reject
+            ? AppStrings.requestRejected
+            : applyAction
+                ? AppStrings.requestApprovedAndCompleted
+                : AppStrings.requestMarkedAsResolved;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              applyAction ? AppStrings.studentRemovedAndRequestCompleted : AppStrings.requestMarkedAsResolved,
-            ),
-          ),
+          SnackBar(content: Text(message)),
         );
       }
     } catch (error) {
@@ -629,12 +740,12 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                 'Submitted ${_formatDate(item.createdAt)}',
                 style: const TextStyle(color: Brand.muted, fontSize: 13),
               ),
-              if (item.isCompleted) ...[
+              if (item.isCompleted || item.isRejected) ...[
                 const SizedBox(height: 20),
                 Text(AppStrings.resolution, style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
                 Text(
-                  'Resolved by ${item.resolvedByName ?? 'admin'}'
+                  '${item.isRejected ? AppStrings.rejected : AppStrings.resolved} by ${item.resolvedByName ?? 'admin'}'
                   '${item.resolvedAt != null ? ' on ${_formatDate(item.resolvedAt!)}' : ''}',
                   style: const TextStyle(color: Brand.muted),
                 ),
@@ -648,13 +759,37 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                     label: const Text(AppStrings.openStudentProfile),
                   ),
                 ],
+                if (item.isPromoteStudent && item.fromLevel != null && item.targetLevel != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    AppStrings.levelUpgradePending(
+                      item.fromLevel!.name,
+                      item.targetLevel!.name,
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ],
                 const SizedBox(height: 28),
                 if (!canResolve)
                   const Text(
                     AppStrings.youCanViewThisRequestButNeedResolvePermission,
                     style: TextStyle(color: Brand.muted),
                   )
-                else if (item.isActionable) ...[
+                else if (item.isPromoteStudent) ...[
+                  FilledButton.icon(
+                    onPressed: _resolving ? null : () => _resolve(applyAction: true),
+                    icon: _resolving
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.check_circle_outline),
+                    label: const Text(AppStrings.acceptLevelUpgrade),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: _resolving ? null : () => _resolve(applyAction: false, reject: true),
+                    icon: const Icon(Icons.close),
+                    label: const Text(AppStrings.rejectRequest),
+                  ),
+                ] else if (item.isActionable) ...[
                   FilledButton.icon(
                     onPressed: _resolving ? null : () => _resolve(applyAction: true),
                     icon: _resolving

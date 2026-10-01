@@ -1197,14 +1197,29 @@ class _TestimonialsSection extends StatelessWidget {
             ],
           )
         else
-          // Mobile column
-          Column(
-            children: [
-              for (var i = 0; i < testimonials.length; i++) ...[
-                _RefinedQuoteCard(item: testimonials[i]),
-                if (i < testimonials.length - 1) const SizedBox(height: 14),
-              ],
-            ],
+          // Mobile: swipeable horizontal cards (peek next card)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cardWidth =
+                  (constraints.maxWidth * 0.86).clamp(260.0, 340.0);
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                clipBehavior: Clip.none,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var i = 0; i < testimonials.length; i++) ...[
+                      SizedBox(
+                        width: cardWidth,
+                        child: _RefinedQuoteCard(item: testimonials[i]),
+                      ),
+                      if (i < testimonials.length - 1) const SizedBox(width: 12),
+                    ],
+                  ],
+                ),
+              );
+            },
           ),
       ],
     );

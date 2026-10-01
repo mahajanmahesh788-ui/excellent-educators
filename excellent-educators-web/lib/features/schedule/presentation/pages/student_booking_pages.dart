@@ -36,6 +36,8 @@ class StudentBookingsPage extends ConsumerStatefulWidget {
 class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
   // 0 = Upcoming, 1 = Past
   int _selectedTab = 0;
+  var _appliedQuery = false;
+  var _focusReport = false;
 
   Timer? _countdownTimer;
 
@@ -46,6 +48,24 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
     _countdownTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_appliedQuery) {
+      return;
+    }
+    final params = GoRouterState.of(context).uri.queryParameters;
+    final tab = params['tab'];
+    final focus = params['focus'];
+    if (tab == 'past' || tab == 'report' || focus == 'report') {
+      _selectedTab = 1;
+    }
+    if (focus == 'report') {
+      _focusReport = true;
+    }
+    _appliedQuery = true;
   }
 
   @override
@@ -151,7 +171,8 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
                 // 1. Modern Page Header
                 _SessionsHeader(
                   type: bookType,
-                  onBook: () => context.go(
+                  onBook: () => goDetail(
+                    context,
                     bookType == null
                         ? RoutePaths.studentBookNew
                         : '${RoutePaths.studentBookNew}?type=$bookType',
@@ -188,7 +209,8 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
                         );
                       }
                     },
-                    onReschedule: () => context.go(
+                    onReschedule: () => goDetail(
+                      context,
                       '${RoutePaths.studentBookNew}?type=${nearestUpcoming.type}&bookingId=${nearestUpcoming.id}',
                     ),
                   ),
@@ -200,8 +222,18 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
                   selectedTab: _selectedTab,
                   upcomingCount: allUpcoming.length,
                   pastCount: allPast.length,
-                  onTabChanged: (val) => setState(() => _selectedTab = val),
+                  onTabChanged: (val) => setState(() {
+                    _selectedTab = val;
+                    if (val != 1) {
+                      _focusReport = false;
+                    }
+                  }),
                 ),
+
+                if (_focusReport && _selectedTab == 1) ...[
+                  const SizedBox(height: 14),
+                  const _ReportSessionHint(),
+                ],
 
                 const SizedBox(height: 18),
 
@@ -237,7 +269,7 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
           bookType: bookType,
           onBook: bookType == null
               ? null
-              : () => context.go('${RoutePaths.studentBookNew}?type=$bookType'),
+              : () => goDetail(context, '${RoutePaths.studentBookNew}?type=$bookType'),
           onResetFilters: null,
         );
       }
@@ -267,7 +299,7 @@ class _StudentBookingsPageState extends ConsumerState<StudentBookingsPage> {
         bookType: bookType,
         onBook: bookType == null
             ? null
-            : () => context.go('${RoutePaths.studentBookNew}?type=$bookType'),
+            : () => goDetail(context, '${RoutePaths.studentBookNew}?type=$bookType'),
         onResetFilters: null,
       );
     }
@@ -324,6 +356,45 @@ class _SectionLabel extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ReportSessionHint extends StatelessWidget {
+  const _ReportSessionHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFDBA74)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.report_problem_outlined,
+            size: 20,
+            color: Color(0xFFC2410C),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              AppStrings.reportSessionHelp,
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF9A3412),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2260,7 +2331,7 @@ class _StudentBookingWizardPageState
         ),
       );
       if (mounted) {
-        context.go(RoutePaths.studentBookings);
+        goMenu(context, RoutePaths.studentBookings);
       }
     } catch (error) {
       if (mounted) {
@@ -2416,8 +2487,9 @@ class _TimeStep extends ConsumerWidget {
     final day = ref.watch(
       studentAvailabilityProvider((teacherId: teacherId, date: date)),
     );
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     return AcademySurface(
-      padding: const EdgeInsets.all(16),
+      padding: isMobile ? const EdgeInsets.all(12) : const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

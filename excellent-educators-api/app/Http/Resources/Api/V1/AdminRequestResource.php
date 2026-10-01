@@ -32,6 +32,14 @@ class AdminRequestResource extends JsonResource
                 'id' => $this->batch->id,
                 'name' => $this->batch->name,
             ]),
+            'from_level' => $this->whenLoaded('fromLevel', fn () => $this->fromLevel === null ? null : [
+                'id' => $this->fromLevel->id,
+                'name' => $this->fromLevel->name,
+            ]),
+            'target_level' => $this->whenLoaded('targetLevel', fn () => $this->targetLevel === null ? null : [
+                'id' => $this->targetLevel->id,
+                'name' => $this->targetLevel->name,
+            ]),
             'requester' => $this->whenLoaded('user', fn () => [
                 'id' => $this->user?->id,
                 'name' => $this->user?->name,

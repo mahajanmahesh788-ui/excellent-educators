@@ -13,6 +13,11 @@ final adminLevelsProvider = FutureProvider.autoDispose<List<AcademicLevelDto>>((
   return ref.watch(academicRepositoryProvider).adminLevels();
 });
 
+final masterTeacherLevelsProvider =
+    FutureProvider.autoDispose<List<AcademicLevelDto>>((ref) {
+  return ref.watch(academicRepositoryProvider).masterTeacherLevels();
+});
+
 final adminLevelProvider = FutureProvider.autoDispose.family<AcademicLevelDto, String>((ref, id) {
   return ref.watch(academicRepositoryProvider).adminLevel(id);
 });

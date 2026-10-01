@@ -23,6 +23,9 @@ class RoleSeeder extends Seeder
             Role::findOrCreate($role->value, 'web');
         }
 
+        // Refresh after creates — stale cache makes syncPermissions miss new names.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         $adminPermissions = array_map(
             fn (PermissionName $permission) => $permission->value,
             PermissionName::cases(),

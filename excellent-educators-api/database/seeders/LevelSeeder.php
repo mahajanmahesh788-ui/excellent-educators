@@ -26,7 +26,8 @@ class LevelSeeder extends Seeder
                 'year' => (int) date('Y'),
                 'month' => (int) date('n'),
                 'enrolled_watermark' => 0,
-                'status' => 'active',
+                // Inactive until full (max students) or an admin activates it.
+                'status' => 'inactive',
             ]);
         }
     }

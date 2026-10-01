@@ -7,6 +7,10 @@ final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
   return PaymentRepository(ref.watch(apiClientProvider));
 });
 
+final agentDashboardProvider = FutureProvider.autoDispose<AgentDashboardDto>((ref) {
+  return ref.watch(paymentRepositoryProvider).agentDashboard();
+});
+
 class PaymentListFilter {
   const PaymentListFilter({
     this.status,

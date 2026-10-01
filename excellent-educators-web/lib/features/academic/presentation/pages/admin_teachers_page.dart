@@ -423,6 +423,7 @@ class _AdminEditTeacherPageState extends ConsumerState<AdminEditTeacherPage> {
                   const SizedBox(height: 28),
                   MentorProfileEditor(
                     draft: _mentor!,
+                    teacherId: widget.teacherId,
                     onChanged: () => setState(() {}),
                   ),
                   const SizedBox(height: 24),

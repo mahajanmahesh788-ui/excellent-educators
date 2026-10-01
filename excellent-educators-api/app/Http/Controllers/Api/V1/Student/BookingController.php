@@ -41,6 +41,8 @@ class BookingController extends Controller
 
     public function teachers(Request $request): JsonResponse
     {
+        $request->attributes->set('include_public_mentor_stats_baseline', true);
+
         $teachers = $this->eligibility->eligibleTeachers($this->studentFrom($request)->loadMissing([
             'academicLevel.masterTeachers.user',
             'activeEnrollment.batch.level.masterTeachers.user',
@@ -54,6 +56,8 @@ class BookingController extends Controller
 
     public function showTeacher(Request $request, TeacherProfile $teacher): JsonResponse
     {
+        $request->attributes->set('include_public_mentor_stats_baseline', true);
+
         $student = $this->studentFrom($request)->loadMissing([
             'academicLevel.masterTeachers.user',
             'activeEnrollment.batch.level.masterTeachers.user',

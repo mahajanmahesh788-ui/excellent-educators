@@ -22,12 +22,11 @@ class NotificationBellButton extends ConsumerWidget {
       tooltip: AppStrings.notifications,
       onPressed: () {
         dismissOverlayRoutes(context);
-        context.go(
-          RoutePaths.notificationsFor(
-            isStudent: user?.isStudent ?? false,
-            isAdmin: user?.isAdmin ?? false,
-          ),
+        final route = RoutePaths.notificationsFor(
+          isStudent: user?.isStudent ?? false,
+          isAdmin: user?.isAdmin ?? false,
         );
+        context.go(route);
       },
       icon: Badge(
         isLabelVisible: count > 0,

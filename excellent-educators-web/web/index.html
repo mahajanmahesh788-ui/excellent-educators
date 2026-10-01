@@ -18,19 +18,122 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Excellent Educators student and teacher portal.">
+  <meta name="theme-color" content="#0E2744">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="excellent_educators_web">
+  <meta name="apple-mobile-web-app-title" content="Excellent Educators">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>excellent_educators_web</title>
+  <title>Excellent Educators</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Capture install prompt early (before Flutter loads) so the login Install button can use it. -->
+  <script>
+    (function () {
+      var deferredPrompt = null;
+      var availableCbs = [];
+
+      function isStandalone() {
+        return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+          || window.navigator.standalone === true;
+      }
+
+      function isIos() {
+        var ua = window.navigator.userAgent || '';
+        var iOS = /iPad|iPhone|iPod/.test(ua)
+          || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        return iOS && !window.MSStream;
+      }
+
+      window.eePwaCanInstall = function () {
+        return !!deferredPrompt && !isStandalone();
+      };
+      window.eePwaIsStandalone = isStandalone;
+      window.eePwaIsIos = isIos;
+      window.eePwaInstall = function () {
+        if (!deferredPrompt) {
+          return Promise.resolve({ outcome: 'unavailable' });
+        }
+        var promptEvent = deferredPrompt;
+        deferredPrompt = null;
+        promptEvent.prompt();
+        return promptEvent.userChoice;
+      };
+      window.eePwaOnAvailable = function (cb) {
+        availableCbs.push(cb);
+        if (deferredPrompt) {
+          try { cb(); } catch (_) {}
+        }
+      };
+
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        availableCbs.forEach(function (cb) {
+          try { cb(); } catch (_) {}
+        });
+      });
+      window.addEventListener('appinstalled', function () {
+        deferredPrompt = null;
+      });
+
+      // Browser / OS notification banners (permission + system sound).
+      window.eeNotifySupported = function () {
+        return typeof window.Notification === 'function';
+      };
+      window.eeNotifyPermission = function () {
+        if (!window.eeNotifySupported()) return 'denied';
+        return Notification.permission || 'default';
+      };
+      window.eeNotifyRequestPermission = function () {
+        if (!window.eeNotifySupported()) {
+          return Promise.resolve('denied');
+        }
+        if (Notification.permission === 'granted') {
+          return Promise.resolve('granted');
+        }
+        if (Notification.permission === 'denied') {
+          return Promise.resolve('denied');
+        }
+        try {
+          return Notification.requestPermission().then(function (p) {
+            return p || 'denied';
+          });
+        } catch (_) {
+          return Promise.resolve('denied');
+        }
+      };
+      window.eeNotifyShow = function (title, body, tag, icon) {
+        if (!window.eeNotifySupported() || Notification.permission !== 'granted') {
+          return false;
+        }
+        try {
+          var n = new Notification(String(title || 'Excellent Educators'), {
+            body: String(body || ''),
+            tag: tag ? String(tag) : undefined,
+            icon: icon || 'icons/Icon-192.png',
+            badge: icon || 'icons/Icon-192.png',
+            silent: false
+          });
+          n.onclick = function () {
+            try { window.focus(); } catch (_) {}
+            try { n.close(); } catch (_) {}
+          };
+          return true;
+        } catch (_) {
+          return false;
+        }
+      };
+    })();
+  </script>
 </head>
 <body>
   <!--

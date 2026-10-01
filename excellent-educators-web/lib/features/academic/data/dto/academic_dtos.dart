@@ -59,6 +59,7 @@ class StudentDto {
     this.batchStatus,
     this.batchStartsOn,
     this.journeyStarted = false,
+    this.hasLearningHistory = false,
   });
 
   factory StudentDto.fromJson(Map<String, dynamic> json) {
@@ -97,6 +98,8 @@ class StudentDto {
       batchStatus: batchJson?['status'] as String?,
       batchStartsOn: batchJson?['starts_on'] as String?,
       journeyStarted: json['journey_started'] == true,
+      hasLearningHistory: json['has_learning_history'] == true ||
+          json['journey_started'] == true,
       masterTeacher: json['master_teacher'] is Map
           ? NamedRef.fromJson(
               Map<String, dynamic>.from(json['master_teacher'] as Map),
@@ -182,12 +185,27 @@ class StudentDto {
   final String? batchStatus;
   final String? batchStartsOn;
   final bool journeyStarted;
+  final bool hasLearningHistory;
 
   bool get hasSubmittedAptitudeAssessment =>
       aptitudeAssessmentStatus == 'submitted';
 
+  /// True only while the student has no open level journey and their current
+  /// batch is still inactive — e.g. after promote into a Level 2 batch that
+  /// admin has not activated yet. Mid-journey students (even if the batch was
+  /// marked inactive) must not see this wait state; a pending upgrade request
+  /// also must not trigger it.
   bool get isBatchWaitingToStart =>
-      batch != null && !batch!.isEmpty && batchStatus != 'active';
+      batch != null &&
+      !batch!.isEmpty &&
+      batchStatus != 'active' &&
+      !journeyStarted;
+
+  /// Brand-new students wait behind a lock. Promoted students with prior
+  /// journey history keep using the app while the new-level batch is prepared.
+  bool get locksFeaturesForWaitingBatch =>
+      isBatchWaitingToStart && !hasLearningHistory;
+
   bool get hasMasterTeacher =>
       masterTeachers.isNotEmpty ||
       (masterTeacher != null && !masterTeacher!.isEmpty);
@@ -1375,7 +1393,11 @@ class StudentActivityDto {
     required this.occurredAt,
     required this.type,
     required this.message,
+    this.studentId,
     this.studentName,
+    this.studentEmail,
+    this.studentPhone,
+    this.paymentStatus,
   });
 
   factory StudentActivityDto.fromJson(Map<String, dynamic> json) {
@@ -1383,14 +1405,60 @@ class StudentActivityDto {
       occurredAt: json['occurred_at'] as String? ?? '',
       type: json['type'] as String? ?? '',
       message: json['message'] as String? ?? '',
+      studentId: json['student_id'] as String?,
       studentName: json['student_name'] as String?,
+      studentEmail: json['student_email'] as String?,
+      studentPhone: json['student_phone'] as String?,
+      paymentStatus: json['payment_status'] as String?,
     );
   }
 
   final String occurredAt;
   final String type;
   final String message;
+  final String? studentId;
   final String? studentName;
+  final String? studentEmail;
+  final String? studentPhone;
+
+  /// full | partial | unpaid | null
+  final String? paymentStatus;
+}
+
+class SubAdminHistoryDto {
+  const SubAdminHistoryDto({
+    required this.items,
+    this.studentsCreatedCount = 0,
+    this.isAgent = false,
+    this.totalCollected = 0,
+    this.totalPending = 0,
+  });
+
+  factory SubAdminHistoryDto.fromJson({
+    required List<dynamic> items,
+    Map<String, dynamic> meta = const {},
+  }) {
+    return SubAdminHistoryDto(
+      items: items
+          .whereType<Map>()
+          .map(
+            (item) =>
+                StudentActivityDto.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(),
+      studentsCreatedCount:
+          (meta['students_created_count'] as num?)?.toInt() ?? 0,
+      isAgent: meta['is_agent'] == true,
+      totalCollected: (meta['total_collected'] as num?)?.toDouble() ?? 0,
+      totalPending: (meta['total_pending'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  final List<StudentActivityDto> items;
+  final int studentsCreatedCount;
+  final bool isAgent;
+  final double totalCollected;
+  final double totalPending;
 }
 
 class PermissionCatalogGroupDto {

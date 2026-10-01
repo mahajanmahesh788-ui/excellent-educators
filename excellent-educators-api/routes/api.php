@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AcademicLevelController;
+use App\Http\Controllers\Api\V1\Admin\AgentDashboardController;
 use App\Http\Controllers\Api\V1\Admin\AdminRequestController as AdminAdminRequestController;
 use App\Http\Controllers\Api\V1\Admin\AptitudeAssessmentController as AdminAptitudeAssessmentController;
 use App\Http\Controllers\Api\V1\Admin\AttendanceController as AdminAttendanceController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\V1\Auth\LoginPageController;
 use App\Http\Controllers\Api\V1\Public\SitePageController;
 use App\Http\Controllers\Api\V1\MasterTeacher\DashboardController as MasterTeacherDashboardController;
 use App\Http\Controllers\Api\V1\MasterTeacher\FeedbackController as MasterTeacherFeedbackController;
+use App\Http\Controllers\Api\V1\MasterTeacher\AcademicLevelController as MasterTeacherAcademicLevelController;
 use App\Http\Controllers\Api\V1\MasterTeacher\StudentController as MasterTeacherStudentController;
 use App\Http\Controllers\Api\V1\MasterTeacher\StudentLearningController as MasterTeacherStudentLearningController;
 use App\Http\Controllers\Api\V1\NotificationController;
@@ -70,6 +72,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
 
 Route::middleware(['auth:sanctum', 'active', 'admin', 'admin.permission', 'subadmin.activity'])->prefix('admin')->group(function (): void {
     Route::get('dashboard', [DashboardController::class, 'show']);
+    Route::get('agent-dashboard', [AgentDashboardController::class, 'show']);
 
     Route::get('sub-admins/permissions', [SubAdminController::class, 'catalog']);
     Route::get('sub-admins', [SubAdminController::class, 'index']);
@@ -105,10 +108,12 @@ Route::middleware(['auth:sanctum', 'active', 'admin', 'admin.permission', 'subad
 
     Route::get('teachers', [AdminTeacherController::class, 'index']);
     Route::post('teachers', [AdminTeacherController::class, 'store']);
+    Route::post('teachers/photos', [AdminTeacherController::class, 'storePhoto']);
     Route::get('teachers/{teacher}', [AdminTeacherController::class, 'show']);
     Route::get('teachers/{teacher}/dashboard', [AdminTeacherController::class, 'dashboard']);
     Route::get('teachers/{teacher}/history', [AdminTeacherController::class, 'history']);
     Route::get('teachers/{teacher}/promoted-students', [AdminTeacherController::class, 'promotedStudents']);
+    Route::post('teachers/{teacher}/photo', [AdminTeacherController::class, 'storePhoto']);
     Route::put('teachers/{teacher}', [AdminTeacherController::class, 'update']);
     Route::delete('teachers/{teacher}', [AdminTeacherController::class, 'destroy']);
 
@@ -204,6 +209,7 @@ Route::middleware(['auth:sanctum', 'active', 'admin', 'admin.permission', 'subad
 Route::middleware(['auth:sanctum', 'active', 'role:common_teacher|master_teacher'])->group(function (): void {
     Route::get('teacher/profile', [TeacherProfileController::class, 'show']);
     Route::put('teacher/profile', [TeacherProfileController::class, 'update']);
+    Route::post('teacher/profile/photo', [TeacherProfileController::class, 'storePhoto']);
     Route::get('teacher/requests', [TeacherAdminRequestController::class, 'index']);
     Route::post('teacher/requests', [TeacherAdminRequestController::class, 'store']);
     Route::get('teacher/schedule/day', [TeacherScheduleController::class, 'day']);
@@ -234,6 +240,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:master_teacher'])->prefix('te
 
 Route::middleware(['auth:sanctum', 'active', 'role:master_teacher'])->prefix('master-teacher')->group(function (): void {
     Route::get('dashboard', [MasterTeacherDashboardController::class, 'show']);
+    Route::get('levels', [MasterTeacherAcademicLevelController::class, 'index']);
     Route::get('students', [MasterTeacherStudentController::class, 'index']);
     Route::get('students/{student}', [MasterTeacherStudentController::class, 'show']);
     Route::get('feedback-catalog', [MasterTeacherFeedbackController::class, 'catalog']);

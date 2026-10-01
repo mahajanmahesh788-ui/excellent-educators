@@ -48,14 +48,14 @@ class AcademicLevelController extends Controller
             'status' => 'active',
         ]);
 
-        // Auto-create initial Batch 1 for the new level
+        // Auto-create initial Batch 1 for the new level (inactive until full or admin activates).
         Batch::query()->create([
             'level_id' => $level->id,
             'name' => 'Batch 1',
             'academic_year' => $level->academic_year,
             'year' => (int) date('Y'),
             'month' => (int) date('n'),
-            'status' => 'active',
+            'status' => 'inactive',
             'enrolled_watermark' => 0,
         ]);
 

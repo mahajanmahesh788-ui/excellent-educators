@@ -12,6 +12,7 @@ abstract final class ApiEndpoints {
   static String adminSitePage(String slug) => '/api/v1/admin/site-pages/$slug';
 
   static const adminDashboard = '/api/v1/admin/dashboard';
+  static const adminAgentDashboard = '/api/v1/admin/agent-dashboard';
   static const adminStudents = '/api/v1/admin/students';
   static const adminSubAdmins = '/api/v1/admin/sub-admins';
   static const adminSubAdminPermissions =
@@ -26,6 +27,9 @@ abstract final class ApiEndpoints {
       '/api/v1/admin/students/$id/mentor';
   static const adminTeachers = '/api/v1/admin/teachers';
   static String adminTeacher(String id) => '/api/v1/admin/teachers/$id';
+  static const adminTeacherPhotos = '/api/v1/admin/teachers/photos';
+  static String adminTeacherPhoto(String id) =>
+      '/api/v1/admin/teachers/$id/photo';
   static String adminTeacherDashboard(String id) =>
       '/api/v1/admin/teachers/$id/dashboard';
   static String adminTeacherHistory(String id) =>
@@ -79,6 +83,7 @@ abstract final class ApiEndpoints {
 
   static const teacherBatches = '/api/v1/teacher/batches';
   static const teacherProfile = '/api/v1/teacher/profile';
+  static const teacherProfilePhoto = '/api/v1/teacher/profile/photo';
   static String teacherBatchStudents(String id) =>
       '/api/v1/teacher/batches/$id/students';
   static String teacherBatchAssessments(String batchId) =>
@@ -90,6 +95,7 @@ abstract final class ApiEndpoints {
 
   static const masterTeacherStudents = '/api/v1/master-teacher/students';
   static const masterTeacherDashboard = '/api/v1/master-teacher/dashboard';
+  static const masterTeacherLevels = '/api/v1/master-teacher/levels';
   static String masterTeacherStudent(String id) =>
       '/api/v1/master-teacher/students/$id';
 

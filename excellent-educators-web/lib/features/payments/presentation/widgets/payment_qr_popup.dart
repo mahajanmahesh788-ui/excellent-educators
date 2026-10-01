@@ -37,43 +37,23 @@ Future<bool> showEnrolmentPaymentQrPopup(
     barrierDismissible: false,
     barrierColor: const Color(0x990B1F33),
     builder: (dialogContext) {
+      final isMobile = MediaQuery.sizeOf(dialogContext).width < 600;
       return Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 16 : 24,
+          vertical: isMobile ? 16 : 24,
+        ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 380),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _PaymentQrCard(
-                amount: amount,
-                onClose: () => Navigator.of(dialogContext).pop(false),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Brand.navy,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text(
-                    AppStrings.paymentDone,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          child: SingleChildScrollView(
+            child: _PaymentQrCard(
+              amount: amount,
+              isMobile: isMobile,
+              onClose: () => Navigator.of(dialogContext).pop(false),
+              onPaymentDone: () => Navigator.of(dialogContext).pop(true),
+            ),
           ),
         ),
       );
@@ -85,11 +65,15 @@ Future<bool> showEnrolmentPaymentQrPopup(
 class _PaymentQrCard extends StatelessWidget {
   const _PaymentQrCard({
     required this.onClose,
+    required this.onPaymentDone,
     this.amount,
+    this.isMobile = false,
   });
 
   final VoidCallback onClose;
+  final VoidCallback onPaymentDone;
   final double? amount;
+  final bool isMobile;
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +81,7 @@ class _PaymentQrCard extends StatelessWidget {
       color: Colors.transparent,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(isMobile ? 22 : 28),
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -124,30 +108,40 @@ class _PaymentQrCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
+              padding: EdgeInsets.fromLTRB(
+                isMobile ? 18 : 22,
+                isMobile ? 14 : 18,
+                isMobile ? 18 : 22,
+                isMobile ? 18 : 22,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(height: 8),
-                  const AppLogo(height: 54),
-                  const SizedBox(height: 8),
+                  SizedBox(height: isMobile ? 4 : 8),
+                  AppLogo(height: isMobile ? 44 : 54),
+                  SizedBox(height: isMobile ? 6 : 8),
                   Text(
                     AppStrings.excellentEducators,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Brand.navy.withValues(alpha: 0.92),
                       fontWeight: FontWeight.w800,
-                      fontSize: 18,
+                      fontSize: isMobile ? 16 : 18,
                       letterSpacing: 0.3,
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: isMobile ? 12 : 18),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                    padding: EdgeInsets.fromLTRB(
+                      isMobile ? 14 : 18,
+                      isMobile ? 14 : 20,
+                      isMobile ? 14 : 18,
+                      isMobile ? 14 : 18,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.94),
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius: BorderRadius.circular(isMobile ? 18 : 22),
                       border: Border.all(color: const Color(0xFFEDE6DA)),
                       boxShadow: const [
                         BoxShadow(
@@ -165,43 +159,43 @@ class _PaymentQrCard extends StatelessWidget {
                           style: TextStyle(
                             color: Brand.goldDark,
                             fontWeight: FontWeight.w800,
-                            fontSize: 22,
+                            fontSize: isMobile ? 19 : 22,
                             letterSpacing: 0.2,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         Text(
                           '${AppStrings.upiId}: ${EnrolmentPaymentQr.upiId}',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Brand.muted,
-                            fontSize: 13,
+                            fontSize: isMobile ? 12 : 13,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         if (amount != null && amount! > 0) ...[
-                          const SizedBox(height: 10),
+                          SizedBox(height: isMobile ? 6 : 10),
                           Text(
                             formatRupee(amount!),
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Brand.navy,
                               fontWeight: FontWeight.w800,
-                              fontSize: 20,
+                              fontSize: isMobile ? 18 : 20,
                             ),
                           ),
                         ],
-                        const SizedBox(height: 16),
+                        SizedBox(height: isMobile ? 10 : 16),
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: EdgeInsets.all(isMobile ? 10 : 14),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
                             border: Border.all(color: const Color(0xFFE8E2D6)),
                           ),
                           child: QrImageView(
                             data: EnrolmentPaymentQr.payload(amount: amount),
                             version: QrVersions.auto,
-                            size: 210,
+                            size: isMobile ? 170 : 210,
                             backgroundColor: Colors.white,
                             eyeStyle: const QrEyeStyle(
                               eyeShape: QrEyeShape.square,
@@ -213,39 +207,66 @@ class _PaymentQrCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        const Text(
+                        SizedBox(height: isMobile ? 10 : 14),
+                        Text(
                           AppStrings.scanAndPayUsingAnyUpiApp,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Brand.muted,
-                            fontSize: 12.5,
+                            fontSize: isMobile ? 11.5 : 12.5,
                             height: 1.35,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: isMobile ? 14 : 18),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Brand.navy,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          vertical: isMobile ? 13 : 15,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 1,
+                      ),
+                      onPressed: onPaymentDone,
+                      icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                      label: const Text(
+                        AppStrings.paymentDone,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.5,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: isMobile ? 10 : 14),
                   Container(
-                    width: 36,
+                    width: 32,
                     height: 1.5,
                     decoration: BoxDecoration(
                       color: Brand.gold.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(99),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
                     EnrolmentPaymentQr.founderLine,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Brand.navy.withValues(alpha: 0.58),
-                      fontSize: 12,
+                      fontSize: isMobile ? 11 : 12,
                       fontWeight: FontWeight.w500,
-                      letterSpacing: 0.4,
+                      letterSpacing: 0.3,
                       fontStyle: FontStyle.italic,
-                      height: 1.3,
+                      height: 1.25,
                     ),
                   ),
                 ],
@@ -260,6 +281,7 @@ class _PaymentQrCard extends StatelessWidget {
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.white.withValues(alpha: 0.85),
                   foregroundColor: Brand.navy,
+                  minimumSize: const Size(36, 36),
                 ),
                 icon: const Icon(Icons.close_rounded, size: 20),
               ),

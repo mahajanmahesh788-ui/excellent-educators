@@ -8,10 +8,16 @@ use App\Models\TeacherProfile;
 
 class BuildMentorProfileStats
 {
+    /** Public floor shown on student-facing mentor profiles (not admin/teacher). */
+    public const PUBLIC_STUDENTS_GUIDED_BASELINE = 49;
+
+    /** Public floor shown on student-facing mentor profiles (not admin/teacher). */
+    public const PUBLIC_SESSIONS_COMPLETED_BASELINE = 99;
+
     /**
      * @return array{students_guided: int, sessions_completed: int, rating_average: float|null}
      */
-    public function execute(TeacherProfile $teacher): array
+    public function execute(TeacherProfile $teacher, bool $includePublicBaseline = false): array
     {
         $sessionsCompleted = SessionBooking::query()
             ->where('teacher_id', $teacher->id)
@@ -33,6 +39,11 @@ class BuildMentorProfileStats
 
         if ($studentsGuided === 0) {
             $studentsGuided = $teacher->activeMasterTeacherAssignments()->count();
+        }
+
+        if ($includePublicBaseline) {
+            $studentsGuided += self::PUBLIC_STUDENTS_GUIDED_BASELINE;
+            $sessionsCompleted += self::PUBLIC_SESSIONS_COMPLETED_BASELINE;
         }
 
         return [

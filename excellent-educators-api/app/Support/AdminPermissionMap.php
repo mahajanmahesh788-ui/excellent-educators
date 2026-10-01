@@ -16,7 +16,7 @@ final class AdminPermissionMap
         $method = strtoupper($request->method());
         $path = self::path($request);
 
-        if ($path === 'admin/dashboard') {
+        if ($path === 'admin/dashboard' || $path === 'admin/agent-dashboard') {
             return null;
         }
 

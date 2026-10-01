@@ -41,6 +41,26 @@ class PaymentOverviewDto {
   final double totalDead;
 }
 
+class AgentDashboardDto {
+  const AgentDashboardDto({
+    required this.studentsRegistered,
+    required this.studentsActive,
+    required this.payments,
+  });
+
+  factory AgentDashboardDto.fromJson(Map<String, dynamic> json) {
+    return AgentDashboardDto(
+      studentsRegistered: (json['students_registered'] as num?)?.toInt() ?? 0,
+      studentsActive: (json['students_active'] as num?)?.toInt() ?? 0,
+      payments: PaymentOverviewDto.fromJson(json),
+    );
+  }
+
+  final int studentsRegistered;
+  final int studentsActive;
+  final PaymentOverviewDto payments;
+}
+
 class PaymentPlanStudentRef {
   const PaymentPlanStudentRef({
     required this.id,

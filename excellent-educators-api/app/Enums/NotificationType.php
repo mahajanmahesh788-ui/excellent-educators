@@ -25,6 +25,10 @@ enum NotificationType: string
     case PaymentVoided = 'payment_voided';
     case AttendanceConflictReported = 'attendance_conflict_reported';
     case AttendanceConflictResolved = 'attendance_conflict_resolved';
+    case AgentRegisteredStudent = 'agent_registered_student';
+    case AdminRequestSubmitted = 'admin_request_submitted';
+    case AdminRequestApproved = 'admin_request_approved';
+    case AdminRequestRejected = 'admin_request_rejected';
     case StudentPromoted = 'student_promoted';
     case AptitudeAssessmentAvailable = 'aptitude_assessment_available';
     case AdminAnnouncement = 'admin_announcement';

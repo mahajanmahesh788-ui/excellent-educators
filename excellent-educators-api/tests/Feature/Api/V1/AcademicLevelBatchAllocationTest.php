@@ -5,7 +5,7 @@ namespace Tests\Feature\Api\V1;
 use App\Models\AcademicLevel;
 use App\Models\Batch;
 use App\Models\StudentProfile;
-use Database\Seeders\CareerCompassLevelSeeder;
+use Database\Seeders\LevelSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -17,7 +17,7 @@ class AcademicLevelBatchAllocationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class]);
+        $this->seed([RoleSeeder::class, LevelSeeder::class]);
     }
 
     public function test_new_student_is_automatically_assigned_to_level_1_and_batch_1(): void
@@ -43,6 +43,12 @@ class AcademicLevelBatchAllocationTest extends TestCase
         $this->assertNotNull($student->activeEnrollment);
         $this->assertEquals('Batch 1', $student->activeEnrollment->batch->name);
         $this->assertEquals(1, $student->activeEnrollment->batch->enrolled_watermark);
+        $this->assertEquals(
+            'inactive',
+            $student->activeEnrollment->batch->status->value
+                ?? $student->activeEnrollment->batch->status,
+        );
+        $this->assertNull($student->currentLevelJourney);
     }
 
     public function test_batch_rollover_after_50_students_and_no_backfill_when_student_removed(): void
@@ -107,11 +113,8 @@ class AcademicLevelBatchAllocationTest extends TestCase
         $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
         $batch1 = Batch::query()->where('level_id', $level1->id)->where('name', 'Batch 1')->firstOrFail();
 
-        // Toggle Batch 1 to inactive (still open for enrollment)
-        $this->withToken($token)->patchJson("/api/v1/admin/batches/{$batch1->id}/status")
-            ->assertOk()
-            ->assertJsonPath('data.status', 'inactive');
-
+        // Seeded / new batches start inactive — keep Batch 1 inactive for this test.
+        $batch1->update(['status' => 'inactive']);
         $batch1->refresh();
         $this->assertEquals('inactive', $batch1->status->value ?? $batch1->status);
 

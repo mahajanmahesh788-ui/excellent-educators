@@ -11,6 +11,8 @@ use App\Http\Requests\Api\V1\Admin\StoreSubAdminRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateSubAdminRequest;
 use App\Http\Resources\Api\V1\SubAdminResource;
 use App\Models\AdminActivityEvent;
+use App\Models\StudentPaymentPlan;
+use App\Models\StudentProfile;
 use App\Models\User;
 use App\Support\ApiResponse;
 use App\Support\SearchRank;
@@ -78,6 +80,28 @@ class SubAdminController extends Controller
         $this->ensureSubAdmin($subAdmin);
         $isAgent = $subAdmin->adminProfile?->isAgent() ?? false;
 
+        $students = StudentProfile::query()
+            ->where('created_by_user_id', $subAdmin->id)
+            ->with([
+                'user:id,email',
+                'paymentPlans' => fn ($query) => $query
+                    ->where('is_active', true)
+                    ->orderByDesc('updated_at'),
+            ])
+            ->get()
+            ->keyBy('id');
+
+        $studentIds = $students->keys()->all();
+        $paymentTotals = $studentIds === []
+            ? (object) ['total_collected' => 0, 'total_pending' => 0]
+            : StudentPaymentPlan::query()
+                ->whereIn('student_id', $studentIds)
+                ->where('is_active', true)
+                ->selectRaw(
+                    'coalesce(sum(paid_amount), 0) as total_collected, coalesce(sum(pending_amount), 0) as total_pending'
+                )
+                ->first();
+
         $query = AdminActivityEvent::query()
             ->where('actor_id', $subAdmin->id)
             ->orderByDesc('occurred_at');
@@ -89,17 +113,34 @@ class SubAdminController extends Controller
         $events = $query
             ->limit(500)
             ->get()
-            ->map(function (AdminActivityEvent $event) {
+            ->map(function (AdminActivityEvent $event) use ($students) {
+                $studentId = $event->meta['student_id'] ?? null;
+                if (! is_string($studentId) || $studentId === '') {
+                    $studentId = is_string($event->related_id) ? $event->related_id : null;
+                }
+
+                $student = $studentId !== null ? $students->get($studentId) : null;
+
                 $studentName = $event->meta['student_name'] ?? null;
+                if (! is_string($studentName) || $studentName === '') {
+                    $studentName = $student?->full_name;
+                }
                 if (! is_string($studentName) || $studentName === '') {
                     $studentName = self::studentNameFromMessage($event->message);
                 }
+
+                $plan = $student?->paymentPlans->first();
+                $paymentStatus = self::paymentStatusForPlan($plan);
 
                 return [
                     'occurred_at' => $event->occurred_at?->timezone(config('app.timezone'))->toIso8601String(),
                     'type' => $event->type,
                     'message' => $event->message,
+                    'student_id' => $student?->id ?? $studentId,
                     'student_name' => $studentName,
+                    'student_email' => $student?->user?->email,
+                    'student_phone' => $student?->phone,
+                    'payment_status' => $paymentStatus,
                 ];
             })
             ->all();
@@ -112,7 +153,28 @@ class SubAdminController extends Controller
         return ApiResponse::success('Sub admin history fetched successfully.', $events, [
             'students_created_count' => $createdCount,
             'is_agent' => $isAgent,
+            'total_collected' => round((float) ($paymentTotals->total_collected ?? 0), 2),
+            'total_pending' => round((float) ($paymentTotals->total_pending ?? 0), 2),
         ]);
+    }
+
+    private static function paymentStatusForPlan(?StudentPaymentPlan $plan): ?string
+    {
+        if ($plan === null) {
+            return null;
+        }
+
+        $paid = round((float) $plan->paid_amount, 2);
+        $pending = round((float) $plan->pending_amount, 2);
+
+        if ($pending <= 0) {
+            return 'full';
+        }
+        if ($paid > 0) {
+            return 'partial';
+        }
+
+        return 'unpaid';
     }
 
     private static function studentNameFromMessage(?string $message): ?string

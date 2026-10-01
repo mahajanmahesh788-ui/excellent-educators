@@ -46,9 +46,9 @@ class StudentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget? assessmentBadge;
     if (student.hasSubmittedAptitudeAssessment) {
-      assessmentBadge = const _InfoChip(AppStrings.assessmentSubmitted, tone: _ChipTone.success);
+      assessmentBadge = const _InfoChip('AS', tone: _ChipTone.success);
     } else if (student.aptitudeAssessmentStatus == 'pending') {
-      assessmentBadge = const _InfoChip(AppStrings.assessmentPending, tone: _ChipTone.warning);
+      assessmentBadge = const _InfoChip('AP', tone: _ChipTone.warning);
     }
 
     final ratingBadge = highlightOverallRating ? _OverallRatingBadge(student: student) : null;
@@ -57,43 +57,69 @@ class StudentCard extends StatelessWidget {
         const _InfoChip(AppStrings.inactive, tone: _ChipTone.neutral)
       else if (student.status == 'active')
         const _InfoChip(AppStrings.active, tone: _ChipTone.success),
+      if (assessmentBadge != null) assessmentBadge,
       if (showMonthRatingStatus)
         student.feedbackFilterMonthCompleted
             ? const _InfoChip(AppStrings.rated, tone: _ChipTone.success)
             : const _InfoChip(AppStrings.notRated, tone: _ChipTone.warning),
     ];
 
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final placeChipsBelow = isMobile && ratingBadge == null;
+
     final headerRightWidgets = <Widget>[
-      ...statusChips,
+      if (!placeChipsBelow) ...statusChips,
       if (ratingBadge != null) ratingBadge,
       if (trailing != null) trailing!,
     ];
 
     final headerTrailing = headerRightWidgets.isNotEmpty
-        ? Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              for (var i = 0; i < headerRightWidgets.length; i++) ...[
-                if (i > 0) const SizedBox(width: 8),
-                headerRightWidgets[i],
-              ],
-            ],
-          )
+        ? (isMobile && ratingBadge != null && statusChips.isNotEmpty
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < statusChips.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 4),
+                        statusChips[i],
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  if (ratingBadge != null) ratingBadge,
+                  if (trailing != null) trailing!,
+                ],
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < headerRightWidgets.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    headerRightWidgets[i],
+                  ],
+                ],
+              ))
         : null;
 
-    final chips = <Widget>[
-      if (assessmentBadge != null) assessmentBadge,
-    ];
     final title = student.studentCode.isNotEmpty
         ? '${student.fullName} (${student.studentCode})'
         : student.fullName;
+
+    final monthlyRatingValue = student.feedbackOverallAverage != null
+        ? '${student.feedbackOverallAverage!.toStringAsFixed(1)}/10'
+        : (student.feedbackCurrentMonthCompleted
+            ? AppStrings.done
+            : AppStrings.notRated);
 
     return _DirectoryCard(
       initials: _initials(student.fullName),
       title: title,
       subtitle: student.email.isNotEmpty ? student.email : null,
-      chips: chips,
+      chips: placeChipsBelow ? statusChips : const [],
       trailing: headerTrailing,
       facts: showFacts
           ? [
@@ -101,23 +127,10 @@ class StudentCard extends StatelessWidget {
                 _Fact(AppStrings.registered, formatDisplayDateTime(student.createdAt)),
               if (student.classGrade > 0)
                 _Fact(AppStrings.classLabel, 'Class ${student.classGrade}'),
-              if (student.gender != null && student.gender!.isNotEmpty)
-                _Fact(AppStrings.gender, genderLabel(student.gender)),
               if (student.phone.isNotEmpty) _Fact(AppStrings.phone, student.phone),
-              if (student.whatsappNumber != null && student.whatsappNumber!.isNotEmpty)
-                _Fact(AppStrings.whatsapp, student.whatsappNumber!),
-              if (student.address != null && student.address!.isNotEmpty)
-                _Fact(AppStrings.address, student.address!),
-              if (student.level != null && !student.level!.isEmpty)
-                _Fact(AppStrings.level, student.level!.label)
-              else if (student.batch != null && !student.batch!.isEmpty)
-                _Fact(AppStrings.level, student.batch!.label),
-              if (student.batch != null && !student.batch!.isEmpty && student.level != null && !student.level!.isEmpty)
+              if (student.batch != null && !student.batch!.isEmpty)
                 _Fact(AppStrings.batch, student.batch!.label),
-              if (student.guardianName != null && student.guardianName!.isNotEmpty)
-                _Fact(AppStrings.guardian, student.guardianName!),
-              if (student.feedbackTotalSessions > 0)
-                _Fact(AppStrings.monthlyRatings, '${student.feedbackTotalSessions} on record'),
+              _Fact(AppStrings.rating, monthlyRatingValue),
             ]
           : const [],
       action: action,
@@ -416,7 +429,10 @@ class _InfoChip extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(
+        horizontal: label.length <= 2 ? 7 : 8,
+        vertical: 3,
+      ),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(16),
@@ -424,7 +440,12 @@ class _InfoChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(color: text, fontSize: 11, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: text,
+          fontSize: label.length <= 2 ? 10.5 : 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: label.length <= 2 ? 0.3 : 0,
+        ),
       ),
     );
   }
@@ -501,9 +522,13 @@ class _OverallRatingBadge extends StatelessWidget {
       );
     }
 
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     final average = student.feedbackOverallAverage!;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 9 : 12,
+        vertical: isMobile ? 5 : 8,
+      ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF0E2744), Color(0xFF1A3A5C)],

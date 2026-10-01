@@ -98,6 +98,8 @@ class TeacherProfile extends Model
     {
         $levelIds = $this->academicLevels()->pluck('academic_levels.id');
 
+        // Only students currently on this teacher's levels (or batches for those levels).
+        // Former Level 1 students who moved to Level 2 must not stay on a Level 1 roster.
         $fromLevel = $levelIds->isEmpty()
             ? collect()
             : StudentProfile::query()->whereIn('level_id', $levelIds)->pluck('id');
@@ -110,8 +112,19 @@ class TeacherProfile extends Model
                 ->whereHas('batch', fn ($query) => $query->whereIn('level_id', $levelIds))
                 ->pluck('student_id');
 
-        return $this->activeMasterTeacherAssignments()
-            ->pluck('student_id')
+        $fromMentees = $levelIds->isEmpty()
+            ? $this->activeMasterTeacherAssignments()->pluck('student_id')
+            : $this->activeMasterTeacherAssignments()
+                ->whereHas('student', function ($query) use ($levelIds): void {
+                    $query->whereIn('level_id', $levelIds)
+                        ->orWhereHas(
+                            'activeEnrollment.batch',
+                            fn ($batch) => $batch->whereIn('level_id', $levelIds),
+                        );
+                })
+                ->pluck('student_id');
+
+        return $fromMentees
             ->concat($fromLevel)
             ->concat($fromBatch)
             ->unique()
@@ -121,9 +134,6 @@ class TeacherProfile extends Model
     public function canAccessStudent(StudentProfile|string $student): bool
     {
         $id = $student instanceof StudentProfile ? $student->id : $student;
-        if ($this->activeMasterTeacherAssignments()->where('student_id', $id)->exists()) {
-            return true;
-        }
 
         $profile = $student instanceof StudentProfile
             ? $student->loadMissing('activeEnrollment.batch')
@@ -134,13 +144,23 @@ class TeacherProfile extends Model
         }
 
         $levelIds = $this->academicLevels()->pluck('academic_levels.id');
-        if ($profile->level_id && $levelIds->contains($profile->level_id)) {
+        $onTeacherLevel = ($profile->level_id && $levelIds->contains($profile->level_id))
+            || (
+                ($batchLevelId = $profile->activeEnrollment?->batch?->level_id) !== null
+                && $levelIds->contains($batchLevelId)
+            );
+
+        if ($onTeacherLevel) {
             return true;
         }
 
-        $batchLevelId = $profile->activeEnrollment?->batch?->level_id;
+        // Active mentee access only while the student remains on a level this teacher owns,
+        // or when the teacher has no level assignments (mentor-only).
+        if (! $this->activeMasterTeacherAssignments()->where('student_id', $id)->exists()) {
+            return false;
+        }
 
-        return $batchLevelId !== null && $levelIds->contains($batchLevelId);
+        return $levelIds->isEmpty();
     }
 
     public function breaks(): HasMany

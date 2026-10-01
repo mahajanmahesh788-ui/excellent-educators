@@ -3,6 +3,7 @@ import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/mentor_profile_view.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +29,16 @@ class StudentMentorProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(studentMentorProfileProvider(teacherId));
+    final eligibility = ref.watch(studentEligibilityProvider);
+    final canBook = eligibility.maybeWhen(
+      data: (value) {
+        final canIntro = value.canBookIntroduction;
+        final canMaster =
+            value.canBookMasterClass && value.masterClassRemaining > 0;
+        return canIntro || canMaster;
+      },
+      orElse: () => false,
+    );
 
     return StudentScaffold(
       title: 'Meet Your Mentor',
@@ -53,12 +64,20 @@ class StudentMentorProfilePage extends ConsumerWidget {
                       child: MentorProfileContent(
                         teacher: teacher,
                         bookLabel: 'Book a Session',
-                        onBook: () {
-                          final type = bookingType ?? 'master_class';
-                          context.go(
-                            '${RoutePaths.studentBookNew}?type=$type&teacher=${teacher.id}',
-                          );
-                        },
+                        onBook: canBook
+                            ? () {
+                                final type = bookingType ??
+                                    eligibility.maybeWhen(
+                                      data: (value) => value.canBookIntroduction
+                                          ? 'introduction_call'
+                                          : 'master_class',
+                                      orElse: () => 'master_class',
+                                    );
+                                context.go(
+                                  '${RoutePaths.studentBookNew}?type=$type&teacher=${teacher.id}',
+                                );
+                              }
+                            : null,
                       ),
                     ),
                   ),

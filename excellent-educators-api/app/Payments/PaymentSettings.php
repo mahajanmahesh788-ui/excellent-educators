@@ -72,8 +72,8 @@ class PaymentSettings
 
     public function onlineEnabled(): bool
     {
-        // Disabled until a real payment gateway + webhook verification is wired.
-        return false;
+        // Manual UPI scan-and-pay (QR). Students confirm after paying; no card gateway yet.
+        return true;
     }
 
     public function offlineEnabled(): bool

@@ -52,15 +52,15 @@ class _StudentAcceptTermsPageState
         child: Center(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(
-              horizontal: compact ? 16 : 24,
-              vertical: compact ? 20 : 36,
+              horizontal: compact ? 12 : 24,
+              vertical: compact ? 12 : 36,
             ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 680),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(compact ? 16 : 20),
                   border: Border.all(
                     color: const Color(0xFFE2E8F0),
                     width: 1.2,
@@ -73,40 +73,40 @@ class _StudentAcceptTermsPageState
                     ),
                   ],
                 ),
-                padding: EdgeInsets.all(compact ? 20 : 36),
+                padding: EdgeInsets.all(compact ? 16 : 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Top Branding & Security Badge
                     Row(
                       children: [
-                        const AppLogo(height: 38),
+                        AppLogo(height: compact ? 32 : 38),
                         const Spacer(),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: compact ? 8 : 10,
+                            vertical: compact ? 3.5 : 5,
                           ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: const Color(0xFFBFDBFE)),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.verified_user_rounded,
-                                size: 14,
+                                size: 13,
                                 color: Color(0xFF1D4ED8),
                               ),
-                              SizedBox(width: 5),
+                              const SizedBox(width: 4),
                               Text(
                                 'Official Portal Verification',
                                 style: TextStyle(
-                                  fontSize: 11.5,
+                                  fontSize: compact ? 10.5 : 11.5,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1E40AF),
+                                  color: const Color(0xFF1E40AF),
                                 ),
                               ),
                             ],
@@ -114,80 +114,89 @@ class _StudentAcceptTermsPageState
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: compact ? 14 : 24),
 
                     // Title & Description
                     Text(
                       AppStrings.acceptTermsTitle,
                       style: TextStyle(
-                        fontSize: compact ? 22 : 26,
+                        fontSize: compact ? 20 : 26,
                         fontWeight: FontWeight.w900,
                         color: Brand.navy,
                         letterSpacing: -0.4,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       AppStrings.acceptTermsSubtitle,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        height: 1.45,
+                      style: TextStyle(
+                        fontSize: compact ? 12.5 : 14,
+                        height: 1.35,
                         color: Brand.muted,
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    SizedBox(height: compact ? 12 : 18),
 
                     // Logged-in Student Account Banner
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: compact ? 10 : 12,
+                        vertical: compact ? 8 : 12,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
                         children: [
                           CircleAvatar(
-                            radius: 19,
+                            radius: compact ? 16 : 19,
                             backgroundColor: Brand.navy,
                             child: Text(
                               (user?.name.isNotEmpty == true)
                                   ? user!.name[0].toUpperCase()
                                   : 'S',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w800,
-                                fontSize: 14,
+                                fontSize: compact ? 12 : 14,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: compact ? 10 : 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   user?.name ?? 'Student Account',
-                                  style: const TextStyle(
-                                    fontSize: 14,
+                                  style: TextStyle(
+                                    fontSize: compact ? 13 : 14,
                                     fontWeight: FontWeight.w700,
                                     color: Brand.ink,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 2),
-                                const Text(
-                                  'Enrolled Student · Policy Acceptance Required',
+                                const SizedBox(height: 1),
+                                Text(
+                                  compact
+                                      ? 'Enrolled Student'
+                                      : 'Enrolled Student · Policy Acceptance Required',
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: compact ? 11 : 12,
                                     color: Brand.muted,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
+                              horizontal: 7,
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
@@ -200,14 +209,14 @@ class _StudentAcceptTermsPageState
                               children: [
                                 Icon(
                                   Icons.pending_actions_rounded,
-                                  size: 13,
+                                  size: 12,
                                   color: Color(0xFFB45309),
                                 ),
                                 SizedBox(width: 4),
                                 Text(
                                   'Action Required',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 10.5,
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFF92400E),
                                   ),
@@ -218,21 +227,21 @@ class _StudentAcceptTermsPageState
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: compact ? 14 : 22),
 
                     // Section: Summary of Core Guidelines
-                    const Row(
+                    Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.gavel_rounded,
-                          size: 16,
+                          size: 15,
                           color: Brand.navy,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 7),
                         Text(
                           'Institutional Code of Conduct & Terms Summary',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: compact ? 12 : 13,
                             fontWeight: FontWeight.w800,
                             color: Brand.navy,
                             letterSpacing: 0.2,
@@ -240,13 +249,13 @@ class _StudentAcceptTermsPageState
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
 
                     // Structured Highlights Card
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Column(
@@ -259,6 +268,7 @@ class _StudentAcceptTermsPageState
                             description: AppStrings.acceptTermsBulletAccounts
                                 .replaceFirst('•', '')
                                 .trim(),
+                            compact: compact,
                           ),
                           const Divider(height: 1, color: Color(0xFFF1F5F9)),
                           _GuidelineItem(
@@ -269,6 +279,7 @@ class _StudentAcceptTermsPageState
                             description: AppStrings.acceptTermsBulletFees
                                 .replaceFirst('•', '')
                                 .trim(),
+                            compact: compact,
                           ),
                           const Divider(height: 1, color: Color(0xFFF1F5F9)),
                           _GuidelineItem(
@@ -279,6 +290,7 @@ class _StudentAcceptTermsPageState
                             description: AppStrings.acceptTermsBulletRefunds
                                 .replaceFirst('•', '')
                                 .trim(),
+                            compact: compact,
                           ),
                           const Divider(height: 1, color: Color(0xFFF1F5F9)),
                           _GuidelineItem(
@@ -289,6 +301,7 @@ class _StudentAcceptTermsPageState
                             description: AppStrings.acceptTermsBulletPrivacy
                                 .replaceFirst('•', '')
                                 .trim(),
+                            compact: compact,
                           ),
                           const Divider(height: 1, color: Color(0xFFF1F5F9)),
                           _GuidelineItem(
@@ -299,25 +312,26 @@ class _StudentAcceptTermsPageState
                             description: AppStrings.acceptTermsBulletParents
                                 .replaceFirst('•', '')
                                 .trim(),
+                            compact: compact,
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: compact ? 14 : 22),
 
                     // Section: Official Policy Documents
-                    const Row(
+                    Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.article_outlined,
-                          size: 16,
+                          size: 15,
                           color: Brand.navy,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 7),
                         Text(
                           'Review Full Policy Documents',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: compact ? 12 : 13,
                             fontWeight: FontWeight.w800,
                             color: Brand.navy,
                             letterSpacing: 0.2,
@@ -325,74 +339,70 @@ class _StudentAcceptTermsPageState
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
 
-                    // 2x2 Grid of Policy Documents
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isTwoColumn = constraints.maxWidth > 460;
-                        final cardWidth = isTwoColumn
-                            ? (constraints.maxWidth - 10) / 2
-                            : constraints.maxWidth;
-
-                        return Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            SizedBox(
-                              width: cardWidth,
-                              child: _LegalDocCard(
-                                icon: Icons.description_outlined,
-                                title: AppStrings.termsAndConditions,
-                                onTap: () => context.push(
-                                  RoutePaths.termsAndConditions,
-                                ),
-                              ),
+                    // Compact 2x2 Grid of Policy Documents
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _LegalDocCard(
+                            icon: Icons.description_outlined,
+                            title: AppStrings.termsAndConditions,
+                            compact: compact,
+                            onTap: () => context.push(
+                              RoutePaths.termsAndConditions,
                             ),
-                            SizedBox(
-                              width: cardWidth,
-                              child: _LegalDocCard(
-                                icon: Icons.shield_outlined,
-                                title: AppStrings.privacyPolicy,
-                                onTap: () => context.push(
-                                  RoutePaths.privacyPolicy,
-                                ),
-                              ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _LegalDocCard(
+                            icon: Icons.shield_outlined,
+                            title: AppStrings.privacyPolicy,
+                            compact: compact,
+                            onTap: () => context.push(
+                              RoutePaths.privacyPolicy,
                             ),
-                            SizedBox(
-                              width: cardWidth,
-                              child: _LegalDocCard(
-                                icon: Icons.receipt_long_outlined,
-                                title: AppStrings.refundPolicy,
-                                onTap: () => context.push(
-                                  RoutePaths.refundPolicy,
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: cardWidth,
-                              child: _LegalDocCard(
-                                icon: Icons.health_and_safety_outlined,
-                                title: AppStrings.childSafetyParentalConsent,
-                                onTap: () => context.push(
-                                  RoutePaths.childParentalConsent,
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _LegalDocCard(
+                            icon: Icons.receipt_long_outlined,
+                            title: AppStrings.refundPolicy,
+                            compact: compact,
+                            onTap: () => context.push(
+                              RoutePaths.refundPolicy,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _LegalDocCard(
+                            icon: Icons.health_and_safety_outlined,
+                            title: AppStrings.childSafetyParentalConsent,
+                            compact: compact,
+                            onTap: () => context.push(
+                              RoutePaths.childParentalConsent,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: compact ? 14 : 22),
 
                     // Agreement Checkbox Card
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: EdgeInsets.all(compact ? 10 : 14),
                       decoration: BoxDecoration(
                         color: _agreed
                             ? const Color(0xFFF0FDF4)
                             : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: _agreed
                               ? const Color(0xFF86EFAC)
@@ -427,23 +437,25 @@ class _StudentAcceptTermsPageState
                                   Text(
                                     AppStrings.acceptTermsCheckbox,
                                     style: TextStyle(
-                                      fontSize: 13.5,
-                                      height: 1.4,
+                                      fontSize: compact ? 12.5 : 13.5,
+                                      height: 1.35,
                                       fontWeight: FontWeight.w700,
                                       color: _agreed
                                           ? const Color(0xFF166534)
                                           : Brand.ink,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Your acceptance will be securely recorded with a timestamp and IP verification log.',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: Brand.muted,
-                                      height: 1.3,
+                                  if (!compact) ...[
+                                    const SizedBox(height: 3),
+                                    const Text(
+                                      'Your acceptance will be securely recorded with a timestamp and IP verification log.',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        color: Brand.muted,
+                                        height: 1.3,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -451,13 +463,13 @@ class _StudentAcceptTermsPageState
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: compact ? 14 : 20),
 
                     // Accept and Continue Button
                     FilledButton.icon(
                       onPressed: _agreed && !_submitting ? _accept : null,
                       style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50),
+                        minimumSize: Size.fromHeight(compact ? 44 : 50),
                         backgroundColor: Brand.navy,
                         disabledBackgroundColor: const Color(0xFFE2E8F0),
                         disabledForegroundColor: const Color(0xFF94A3B8),
@@ -474,8 +486,8 @@ class _StudentAcceptTermsPageState
                             ),
                       label: _submitting
                           ? const SizedBox(
-                              width: 22,
-                              height: 22,
+                              width: 20,
+                              height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: Colors.white,
@@ -484,13 +496,13 @@ class _StudentAcceptTermsPageState
                           : const Text(
                               AppStrings.acceptAndContinue,
                               style: TextStyle(
-                                fontSize: 15,
+                                fontSize: 14.5,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.3,
                               ),
                             ),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: compact ? 8 : 14),
 
                     // Sign Out Option
                     Center(
@@ -502,13 +514,13 @@ class _StudentAcceptTermsPageState
                                 .logout(),
                         icon: const Icon(
                           Icons.logout_rounded,
-                          size: 16,
+                          size: 15,
                           color: Brand.muted,
                         ),
                         label: const Text(
                           AppStrings.signOut,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12.5,
                             fontWeight: FontWeight.w600,
                             color: Brand.muted,
                           ),
@@ -533,6 +545,7 @@ class _GuidelineItem extends StatelessWidget {
     required this.iconBg,
     required this.title,
     required this.description,
+    this.compact = false,
   });
 
   final IconData icon;
@@ -540,44 +553,50 @@ class _GuidelineItem extends StatelessWidget {
   final Color iconBg;
   final String title;
   final String description;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 14,
+        vertical: compact ? 6 : 12,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 34,
-            height: 34,
+            width: compact ? 26 : 34,
+            height: compact ? 26 : 34,
             decoration: BoxDecoration(
               color: iconBg,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(compact ? 6 : 8),
             ),
-            child: Icon(icon, size: 18, color: iconColor),
+            child: Icon(icon, size: compact ? 14 : 18, color: iconColor),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: compact ? 8 : 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 13,
+                  style: TextStyle(
+                    fontSize: compact ? 12 : 13,
                     fontWeight: FontWeight.w700,
                     color: Brand.navy,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
                   description,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    height: 1.4,
+                  style: TextStyle(
+                    fontSize: compact ? 11 : 12.5,
+                    height: compact ? 1.25 : 1.4,
                     color: Brand.muted,
                   ),
+                  maxLines: compact ? 2 : 4,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -593,11 +612,13 @@ class _LegalDocCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
+    this.compact = false,
   });
 
   final IconData icon;
   final String title;
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -605,54 +626,61 @@ class _LegalDocCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 8 : 12,
+            vertical: compact ? 7 : 10,
+          ),
           decoration: BoxDecoration(
             color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: Row(
             children: [
               Container(
-                width: 30,
-                height: 30,
+                width: compact ? 24 : 30,
+                height: compact ? 24 : 30,
                 decoration: BoxDecoration(
                   color: Brand.navy.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(5),
                 ),
-                child: Icon(icon, size: 16, color: Brand.navy),
+                child: Icon(icon, size: compact ? 13 : 16, color: Brand.navy),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: compact ? 7 : 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 12.5,
+                      style: TextStyle(
+                        fontSize: compact ? 11 : 12.5,
                         fontWeight: FontWeight.w700,
                         color: Brand.ink,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Read full document',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Brand.muted,
+                    if (!compact) ...[
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Read full document',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Brand.muted,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
-              const Icon(
+              const SizedBox(width: 4),
+              Icon(
                 Icons.open_in_new_rounded,
-                size: 14,
+                size: compact ? 12 : 14,
                 color: Brand.muted,
               ),
             ],

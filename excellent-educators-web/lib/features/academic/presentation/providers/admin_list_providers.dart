@@ -203,6 +203,7 @@ final subAdminPermissionCatalogProvider = FutureProvider.autoDispose<List<Permis
   return ref.watch(academicRepositoryProvider).subAdminPermissionCatalog();
 });
 
-final adminSubAdminHistoryProvider = FutureProvider.autoDispose.family<List<StudentActivityDto>, String>((ref, id) {
+final adminSubAdminHistoryProvider =
+    FutureProvider.autoDispose.family<SubAdminHistoryDto, String>((ref, id) {
   return ref.watch(academicRepositoryProvider).subAdminHistory(id);
 });

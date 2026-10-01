@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:typed_data';
+
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
@@ -36,31 +39,59 @@ class MentorAvatar extends StatelessWidget {
     required this.name,
     this.photoUrl,
     this.size = 72,
+    this.width,
+    this.height,
     this.borderRadius,
+    this.bytes,
   });
 
   final String name;
   final String? photoUrl;
   final double size;
+  final double? width;
+  final double? height;
   final double? borderRadius;
+  final Uint8List? bytes;
 
   @override
   Widget build(BuildContext context) {
     final url = photoUrl?.trim();
-    final radius = borderRadius ?? size * 0.28;
-    final fallback = AcademyAvatar(name: name, size: size);
+    final w = width ?? size;
+    final h = height ?? size;
+    final radius = borderRadius ?? math.min(w, h) * 0.28;
+    final fallback = AcademyAvatar(name: name, size: math.min(w, h));
+
+    Widget image;
+    if (bytes != null && bytes!.isNotEmpty) {
+      image = Image.memory(
+        bytes!,
+        width: w,
+        height: h,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    } else if (url != null && url.isNotEmpty) {
+      image = Image.network(
+        url,
+        width: w,
+        height: h,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    } else {
+      image = SizedBox(
+        width: w,
+        height: h,
+        child: ColoredBox(
+          color: const Color(0xFFF3EFE7),
+          child: Center(child: fallback),
+        ),
+      );
+    }
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: url != null && url.isNotEmpty
-          ? Image.network(
-              url,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => fallback,
-            )
-          : fallback,
+      child: image,
     );
   }
 }
@@ -409,7 +440,7 @@ class _MentorHero extends StatelessWidget {
       builder: (context, constraints) {
         final desktop = constraints.maxWidth >= 760;
         return Container(
-          constraints: BoxConstraints(minHeight: desktop ? 330 : 0),
+          constraints: BoxConstraints(minHeight: desktop ? 280 : 0),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(32),
             gradient: const LinearGradient(
@@ -445,7 +476,7 @@ class _MentorHero extends StatelessWidget {
                     ? Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          _HeroPortrait(teacher: teacher, size: 238),
+                          _HeroPortrait(teacher: teacher, width: 168, height: 224),
                           const SizedBox(width: 36),
                           Expanded(child: _HeroIdentity(teacher: teacher)),
                         ],
@@ -456,7 +487,11 @@ class _MentorHero extends StatelessWidget {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _HeroPortrait(teacher: teacher, size: 112),
+                              _HeroPortrait(
+                                teacher: teacher,
+                                width: 92,
+                                height: 122,
+                              ),
                               const SizedBox(width: 18),
                               Expanded(
                                 child: _HeroIdentity(
@@ -482,20 +517,26 @@ class _MentorHero extends StatelessWidget {
 }
 
 class _HeroPortrait extends StatelessWidget {
-  const _HeroPortrait({required this.teacher, required this.size});
+  const _HeroPortrait({
+    required this.teacher,
+    required this.width,
+    required this.height,
+  });
 
   final TeacherDto teacher;
-  final double size;
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
+    final radius = math.min(width, height) * 0.22;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
-          padding: const EdgeInsets.all(5),
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(size * .3),
+            borderRadius: BorderRadius.circular(radius + 4),
             gradient: const LinearGradient(
               colors: [Brand.gold, Color(0xFF55C98C)],
             ),
@@ -508,16 +549,17 @@ class _HeroPortrait extends StatelessWidget {
             ],
           ),
           child: Container(
-            padding: const EdgeInsets.all(4),
+            padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               color: _navy,
-              borderRadius: BorderRadius.circular(size * .28),
+              borderRadius: BorderRadius.circular(radius + 1),
             ),
             child: MentorAvatar(
               name: teacher.fullName,
               photoUrl: teacher.photoUrl,
-              size: size,
-              borderRadius: size * .25,
+              width: width,
+              height: height,
+              borderRadius: radius,
             ),
           ),
         ),
@@ -541,10 +583,10 @@ class _HeroPortrait extends StatelessWidget {
                 Text(
                   'VERIFIED',
                   style: TextStyle(
-                    color: _navy,
-                    fontSize: 10,
-                    letterSpacing: .7,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w900,
+                    letterSpacing: 0.4,
+                    color: _navy,
                   ),
                 ),
               ],

@@ -4,6 +4,7 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/app/theme/breakpoints.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
+import 'package:excellent_educators_web/core/widgets/app_pull_to_refresh.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/empty_state.dart';
 import 'package:excellent_educators_web/features/academic/data/academic_repository.dart';
@@ -28,7 +29,7 @@ class AsyncBody<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return value.when(
+    final content = value.when(
       skipLoadingOnReload: true,
       data: builder,
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -44,6 +45,18 @@ class AsyncBody<T> extends StatelessWidget {
           ],
         ),
       ),
+    );
+
+    if (onRetry == null) {
+      return content;
+    }
+
+    return AppRefreshRegistrar(
+      onRefresh: () async {
+        onRetry!();
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+      },
+      child: content,
     );
   }
 }
@@ -772,18 +785,26 @@ class GenderDropdown extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.requiredField = true,
+    this.isDense,
+    this.contentPadding,
   });
 
   final String? value;
   final ValueChanged<String?> onChanged;
   final bool requiredField;
+  final bool? isDense;
+  final EdgeInsetsGeometry? contentPadding;
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
       key: ValueKey(value),
       value: value,
-      decoration: const InputDecoration(labelText: AppStrings.gender),
+      decoration: InputDecoration(
+        labelText: AppStrings.gender,
+        isDense: isDense,
+        contentPadding: contentPadding,
+      ),
       items: [
         for (final item in genderValues)
           DropdownMenuItem(value: item, child: Text(genderLabel(item))),
@@ -923,7 +944,12 @@ class AppFormPage extends StatelessWidget {
         alignment: Alignment.topLeft,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
-          child: SingleChildScrollView(child: child),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            clipBehavior: Clip.none,
+            padding: const EdgeInsets.only(top: 8, bottom: 24),
+            child: child,
+          ),
         ),
       ),
     );

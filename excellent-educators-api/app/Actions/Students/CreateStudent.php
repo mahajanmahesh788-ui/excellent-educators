@@ -5,6 +5,7 @@ namespace App\Actions\Students;
 use App\Actions\Batches\AllocateBatchForStudent;
 use App\Actions\Identity\GenerateStudentCode;
 use App\Actions\Learning\StartStudentLevelJourney;
+use App\Actions\Notifications\NotifyAdminsOfAgentStudentRegistration;
 use App\Enums\ProfileStatus;
 use App\Enums\RoleName;
 use App\Enums\UserStatus;
@@ -23,6 +24,7 @@ class CreateStudent
         private readonly AllocateBatchForStudent $allocateBatchForStudent,
         private readonly StartStudentLevelJourney $startStudentLevelJourney,
         private readonly PaymentPlanService $paymentPlanService,
+        private readonly NotifyAdminsOfAgentStudentRegistration $notifyAdminsOfAgentStudent,
     ) {}
 
     /**
@@ -115,7 +117,13 @@ class CreateStudent
                 );
             }
 
-            return $profile->fresh() ?? $profile;
+            $fresh = $profile->fresh() ?? $profile;
+            $actor = auth()->user();
+            if ($actor instanceof User && $actor->isAgent()) {
+                $this->notifyAdminsOfAgentStudent->execute($actor, $fresh);
+            }
+
+            return $fresh;
         });
     }
 }

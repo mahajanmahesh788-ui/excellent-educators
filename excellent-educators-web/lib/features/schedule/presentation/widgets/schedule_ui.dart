@@ -65,20 +65,39 @@ class SlotGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: [
-        for (final slot in slots)
-          _SlotTile(
-            slot: slot,
-            selected: selectedStart == slot.start,
-            color: colorFor?.call(slot.status) ?? slotColor(slot.status),
-            onTap: availableOnlySelectable
-                ? (slot.isAvailable ? () => onSelectAvailable?.call(slot.start) : null)
-                : () => onSelectAvailable?.call(slot.start),
-          ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final crossAxisCount = availableWidth < 300
+            ? 2
+            : (availableWidth < 460
+                ? 3
+                : (availableWidth < 620
+                    ? 4
+                    : (availableWidth < 800 ? 5 : 6)));
+
+        const spacing = 6.0;
+        final totalSpacing = spacing * (crossAxisCount - 1);
+        final itemWidth =
+            ((availableWidth - totalSpacing) / crossAxisCount).floorToDouble();
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final slot in slots)
+              _SlotTile(
+                slot: slot,
+                width: itemWidth,
+                selected: selectedStart == slot.start,
+                color: colorFor?.call(slot.status) ?? slotColor(slot.status),
+                onTap: availableOnlySelectable
+                    ? (slot.isAvailable ? () => onSelectAvailable?.call(slot.start) : null)
+                    : () => onSelectAvailable?.call(slot.start),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -88,12 +107,14 @@ class _SlotTile extends StatelessWidget {
     required this.slot,
     required this.selected,
     required this.color,
+    this.width,
     this.onTap,
   });
 
   final ScheduleSlotDto slot;
   final bool selected;
   final Color color;
+  final double? width;
   final VoidCallback? onTap;
 
   @override
@@ -102,8 +123,8 @@ class _SlotTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        width: 118,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        width: width ?? 118,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
         decoration: BoxDecoration(
           color: selected ? Brand.navy : color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(8),
@@ -114,6 +135,8 @@ class _SlotTile extends StatelessWidget {
           children: [
             Text(
               formatHm(slot.start),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,

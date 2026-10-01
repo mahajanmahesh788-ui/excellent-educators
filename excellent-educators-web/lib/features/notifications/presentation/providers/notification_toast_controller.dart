@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/notifications/data/dto/notification_dtos.dart';
+import 'package:excellent_educators_web/features/notifications/presentation/providers/browser_os_notification.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/providers/notification_feature_providers.dart';
+import 'package:excellent_educators_web/features/notifications/presentation/providers/notification_sound.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -30,6 +32,7 @@ class NotificationToastController extends ChangeNotifier {
   String? _activeUserId;
   var _bootstrapped = false;
   var _polling = false;
+  int? _lastUnreadCount;
 
   List<NotificationToastItem> get toasts => List.unmodifiable(_toasts);
 
@@ -44,6 +47,7 @@ class NotificationToastController extends ChangeNotifier {
       _activeUserId = userId;
       _bootstrapped = false;
       _knownIds.clear();
+      _lastUnreadCount = null;
       start();
       return;
     }
@@ -59,9 +63,19 @@ class NotificationToastController extends ChangeNotifier {
     }
     _pollTimer?.cancel();
     unawaited(_poll());
-    _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+    // Count + toast poll — keep snappy so slide cards appear soon after create.
+    _pollTimer = Timer.periodic(const Duration(seconds: 8), (_) {
       unawaited(_poll());
     });
+  }
+
+  /// Immediate poll (e.g. mobile tab / PWA becomes visible again).
+  void pollNow() {
+    if (_activeUserId == null) {
+      syncAuth();
+      return;
+    }
+    unawaited(_poll());
   }
 
   void stop() {
@@ -75,6 +89,7 @@ class NotificationToastController extends ChangeNotifier {
     _knownIds.clear();
     _bootstrapped = false;
     _activeUserId = null;
+    _lastUnreadCount = null;
     notifyListeners();
   }
 
@@ -106,6 +121,23 @@ class NotificationToastController extends ChangeNotifier {
     _polling = true;
     try {
       final repo = _ref.read(notificationRepositoryProvider);
+      final unread = await repo.unreadCount();
+      final unreadGrew =
+          _lastUnreadCount != null && unread > _lastUnreadCount!;
+      _lastUnreadCount = unread;
+      _ref.invalidate(unreadNotificationCountProvider);
+
+      // Skip full list fetch when nothing new (after bootstrap).
+      if (_bootstrapped && !unreadGrew && unread == 0) {
+        return;
+      }
+      if (_bootstrapped && !unreadGrew) {
+        // Still refresh list occasionally so read/unread stay in sync, but
+        // only when we might have new toasts (unread grew) we must fetch.
+        // When unread is stable and >0 (old unread), no new toast needed.
+        return;
+      }
+
       final items = await repo.notifications();
       final ids = items.map((item) => item.id).toSet();
 
@@ -114,7 +146,6 @@ class NotificationToastController extends ChangeNotifier {
           ..clear()
           ..addAll(ids);
         _bootstrapped = true;
-        _ref.invalidate(unreadNotificationCountProvider);
         return;
       }
 
@@ -128,15 +159,19 @@ class NotificationToastController extends ChangeNotifier {
         });
 
       if (incoming.isEmpty) {
-        _ref.invalidate(unreadNotificationCountProvider);
         return;
       }
 
       _knownIds.addAll(incoming.map((item) => item.id));
       for (final notification in incoming) {
         _enqueue(notification);
+        showBrowserOsNotification(
+          title: notification.title,
+          body: notification.body,
+          tag: 'ee-notif-${notification.id}',
+        );
       }
-      _ref.invalidate(unreadNotificationCountProvider);
+      playNotificationSound();
       _ref.invalidate(notificationsProvider);
     } catch (_) {
       // Polling must stay quiet on network errors.
@@ -157,7 +192,7 @@ class NotificationToastController extends ChangeNotifier {
       _autoDismiss.remove(dropped.id)?.cancel();
     }
     _autoDismiss[item.id]?.cancel();
-    _autoDismiss[item.id] = Timer(const Duration(seconds: 7), () {
+    _autoDismiss[item.id] = Timer(const Duration(seconds: 8), () {
       dismiss(item.id);
     });
     notifyListeners();
@@ -170,7 +205,6 @@ final notificationToastControllerProvider =
   ref.listen<AuthState>(authControllerProvider, (previous, next) {
     controller.syncAuth();
   });
-  // Kick once if already logged in.
   Future.microtask(controller.syncAuth);
   ref.onDispose(controller.stop);
   return controller;

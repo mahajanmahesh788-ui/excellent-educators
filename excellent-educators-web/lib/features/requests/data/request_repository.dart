@@ -112,11 +112,18 @@ class RequestRepository with MapsApiFailures {
     });
   }
 
-  Future<AdminRequestDto> resolveAdminRequest(String id, {bool applyAction = true}) {
+  Future<AdminRequestDto> resolveAdminRequest(
+    String id, {
+    bool applyAction = true,
+    bool reject = false,
+  }) {
     return runApiSimple(() async {
       final json = await _client.post(
         ApiEndpoints.adminRequestResolve(id),
-        data: {'apply_action': applyAction},
+        data: {
+          'apply_action': applyAction,
+          'reject': reject,
+        },
       );
       return AdminRequestDto.fromJson(json!);
     });

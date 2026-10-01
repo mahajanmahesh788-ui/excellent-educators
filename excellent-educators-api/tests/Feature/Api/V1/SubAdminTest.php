@@ -212,8 +212,11 @@ class SubAdminTest extends TestCase
         $this->withToken($this->tokenFor($admin))->getJson('/api/v1/admin/sub-admins/'.$agentId.'/history')
             ->assertOk()
             ->assertJsonPath('meta.students_created_count', 1)
+            ->assertJsonPath('meta.total_collected', 0)
+            ->assertJsonPath('meta.total_pending', 0)
             ->assertJsonPath('data.0.type', 'student.create')
-            ->assertJsonPath('data.0.student_name', 'Agent Student');
+            ->assertJsonPath('data.0.student_name', 'Agent Student')
+            ->assertJsonPath('data.0.student_id', $created->json('data.id'));
 
         $this->assertSame('Agent Student', $created->json('data.full_name'));
         $this->assertSame(
@@ -236,6 +239,31 @@ class SubAdminTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.admin_type', 'agent')
             ->assertJsonPath('data.id', $agentId);
+
+        $this->withToken($this->tokenFor($agent))->getJson('/api/v1/admin/agent-dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.students_registered', 1)
+            ->assertJsonPath('data.students_active', 1)
+            ->assertJsonStructure([
+                'data' => [
+                    'students_registered',
+                    'students_active',
+                    'total_collected',
+                    'total_pending',
+                    'total_overdue',
+                ],
+            ]);
+
+        $studentId = $created->json('data.id');
+        $this->assertDatabaseHas('user_notifications', [
+            'type' => 'agent_registered_student',
+        ]);
+        $adminNotification = \App\Models\UserNotification::query()
+            ->where('type', 'agent_registered_student')
+            ->where('user_id', $admin->id)
+            ->first();
+        $this->assertNotNull($adminNotification);
+        $this->assertSame($studentId, $adminNotification->data['student_id'] ?? null);
     }
 
     /**

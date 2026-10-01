@@ -10,6 +10,7 @@ import 'package:excellent_educators_web/features/academic/presentation/providers
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_ui.dart';
 import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -483,6 +484,7 @@ class AdminSubAdminHistoryPage extends ConsumerWidget {
             value: admin,
             onRetry: () => ref.invalidate(adminSubAdminProvider(subAdminId)),
             builder: (item) {
+              final totals = history.asData?.value;
               return DetailSection(
                 title: item.name,
                 children: [
@@ -500,8 +502,19 @@ class AdminSubAdminHistoryPage extends ConsumerWidget {
                   ),
                   DetailRow(
                     label: AppStrings.studentsCreated,
-                    value: '${item.studentsCreatedCount}',
+                    value:
+                        '${totals?.studentsCreatedCount ?? item.studentsCreatedCount}',
                   ),
+                  if (item.isAgent) ...[
+                    DetailRow(
+                      label: AppStrings.totalEarned,
+                      value: formatRupee(totals?.totalCollected ?? 0),
+                    ),
+                    DetailRow(
+                      label: AppStrings.amountPending,
+                      value: formatRupee(totals?.totalPending ?? 0),
+                    ),
+                  ],
                 ],
               );
             },
@@ -514,8 +527,10 @@ class AdminSubAdminHistoryPage extends ConsumerWidget {
                 value: history,
                 onRetry: () =>
                     ref.invalidate(adminSubAdminHistoryProvider(subAdminId)),
-                builder: (items) {
-                  final isAgent = admin.valueOrNull?.isAgent ?? false;
+                builder: (payload) {
+                  final items = payload.items;
+                  final isAgent =
+                      payload.isAgent || (admin.valueOrNull?.isAgent ?? false);
                   if (isAgent) {
                     if (items.isEmpty) {
                       return const Text(
@@ -527,17 +542,7 @@ class AdminSubAdminHistoryPage extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         for (final item in items)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Text(
-                              '${formatDisplayDate(item.occurredAt)}  ${item.studentName ?? item.message}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: Brand.navyDeep,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
+                          _AgentStudentHistoryTile(item: item),
                       ],
                     );
                   }
@@ -548,6 +553,115 @@ class AdminSubAdminHistoryPage extends ConsumerWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AgentStudentHistoryTile extends StatelessWidget {
+  const _AgentStudentHistoryTile({required this.item});
+
+  final StudentActivityDto item;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = item.studentName ?? item.message;
+    final canOpen = item.studentId != null && item.studentId!.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: const Color(0xFFF7F8FA),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: canOpen
+              ? () => context.go(RoutePaths.adminStudent(item.studentId!))
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        formatDisplayDate(item.occurredAt),
+                        style: const TextStyle(
+                          color: Brand.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (item.paymentStatus != null)
+                      PaymentStatusBadge(
+                        status: switch (item.paymentStatus) {
+                          'full' => 'paid',
+                          'partial' => 'partial',
+                          'unpaid' => 'pending',
+                          _ => item.paymentStatus!,
+                        },
+                        label: switch (item.paymentStatus) {
+                          'full' => AppStrings.full,
+                          'partial' => AppStrings.partialPayment,
+                          'unpaid' => AppStrings.pending,
+                          _ => item.paymentStatus,
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: canOpen ? Brand.navyDeep : Brand.navyDeep,
+                          fontSize: 15,
+                          decoration:
+                              canOpen ? TextDecoration.underline : null,
+                          decorationColor: Brand.navy.withValues(alpha: 0.35),
+                        ),
+                      ),
+                    ),
+                    if (canOpen)
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Brand.muted,
+                        size: 20,
+                      ),
+                  ],
+                ),
+                if ((item.studentEmail ?? '').isNotEmpty ||
+                    (item.studentPhone ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  if ((item.studentEmail ?? '').isNotEmpty)
+                    Text(
+                      item.studentEmail!,
+                      style: const TextStyle(
+                        color: Brand.muted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  if ((item.studentPhone ?? '').isNotEmpty)
+                    Text(
+                      item.studentPhone!,
+                      style: const TextStyle(
+                        color: Brand.muted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

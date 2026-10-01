@@ -16,7 +16,7 @@ class AdminRequestController extends Controller
     public function index(Request $request): JsonResponse
     {
         $requests = AdminRequest::query()
-            ->with(['student', 'batch'])
+            ->with(['student', 'batch', 'fromLevel', 'targetLevel'])
             ->where('user_id', $request->user()->id)
             ->orderByDesc('created_at')
             ->get();
@@ -35,7 +35,7 @@ class AdminRequestController extends Controller
             $request->user(),
             $request->validated(),
         );
-        $adminRequest->load(['user', 'student', 'batch']);
+        $adminRequest->load(['user', 'student', 'batch', 'fromLevel', 'targetLevel']);
 
         return ApiResponse::success(
             'Request submitted successfully.',

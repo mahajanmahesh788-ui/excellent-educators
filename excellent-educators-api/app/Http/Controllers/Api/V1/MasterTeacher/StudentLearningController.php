@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1\MasterTeacher;
 
-use App\Actions\Students\PromoteStudent;
+use App\Actions\AdminRequests\CreateTeacherAdminRequest;
+use App\Enums\AdminRequestType;
 use App\Http\Controllers\Api\V1\Concerns\AuthorizesLearningJournal;
 use App\Http\Controllers\Api\V1\Concerns\ResolvesTeacherProfile;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Admin\PromoteStudentRequest;
-use App\Http\Resources\Api\V1\StudentResource;
+use App\Http\Resources\Api\V1\AdminRequestResource;
 use App\Learning\LearningJournalService;
-use App\Models\AcademicLevel;
 use App\Models\StudentProfile;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -47,21 +47,29 @@ class StudentLearningController extends Controller
         );
     }
 
+    /**
+     * Master Teachers cannot promote directly — they request admin approval.
+     */
     public function promote(
         PromoteStudentRequest $request,
         StudentProfile $student,
-        PromoteStudent $promoteStudent,
+        CreateTeacherAdminRequest $createTeacherAdminRequest,
     ): JsonResponse {
         $this->assertCanPromote($request, $student);
-        $level = AcademicLevel::query()->findOrFail($request->validated('level_id'));
-        $student = $promoteStudent->execute($student, $level, $request->user());
-        $student->load([
-            'user',
-            'academicLevel',
-            'activeEnrollment.batch.activeTeacherAssignment.teacher',
-            'activeMasterTeacherAssignment.teacher',
+
+        $adminRequest = $createTeacherAdminRequest->execute($request->user(), [
+            'request_type' => AdminRequestType::PromoteStudent->value,
+            'student_id' => $student->id,
+            'level_id' => $request->validated('level_id'),
+            'reason' => $request->input('reason'),
         ]);
 
-        return ApiResponse::success('Student promoted successfully.', StudentResource::make($student)->resolve());
+        $adminRequest->load(['user.teacherProfile', 'student', 'fromLevel', 'targetLevel']);
+
+        return ApiResponse::success(
+            'Level upgrade request sent to admin.',
+            AdminRequestResource::make($adminRequest)->resolve(),
+            status: 201,
+        );
     }
 }

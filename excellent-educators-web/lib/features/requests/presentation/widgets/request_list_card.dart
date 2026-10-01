@@ -311,19 +311,36 @@ class RequestStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pending = status == 'pending';
+    final rejected = status == 'rejected';
+    final color = pending
+        ? const Color(0xFFF57F17)
+        : rejected
+            ? const Color(0xFFC62828)
+            : const Color(0xFF2E7D32);
+    final bg = pending
+        ? const Color(0xFFFFF8E1)
+        : rejected
+            ? const Color(0xFFFFEBEE)
+            : const Color(0xFFE8F5E9);
+    final label = pending
+        ? AppStrings.pending
+        : rejected
+            ? AppStrings.rejected
+            : AppStrings.completed;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: pending ? const Color(0xFFFFF8E1) : const Color(0xFFE8F5E9),
+        color: bg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: pending ? const Color(0xFFF57F17) : const Color(0xFF2E7D32), width: 0.5),
+        border: Border.all(color: color, width: 0.5),
       ),
       child: Text(
-        pending ? AppStrings.pending : AppStrings.completed,
+        label,
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: pending ? const Color(0xFFF57F17) : const Color(0xFF2E7D32),
+          color: color,
         ),
       ),
     );
@@ -340,6 +357,7 @@ class RequestTypeTag extends StatelessWidget {
     final label = switch (type) {
       'remove_mentee' => AppStrings.removeStudent,
       'remove_batch_student' => AppStrings.removeStudent,
+      'promote_student' => AppStrings.requestLevelUpgrade,
       _ => AppStrings.general,
     };
 

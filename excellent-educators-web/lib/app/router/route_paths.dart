@@ -12,6 +12,7 @@ abstract final class RoutePaths {
   static const faq = '/faq';
   static const childParentalConsent = '/child-parental-consent';
   static const adminDashboard = '/admin/dashboard';
+  static const adminAgentDashboard = '/admin/agent-dashboard';
   static const adminSubAdmins = '/admin/sub-admins';
   static const adminSubAdminNew = '/admin/sub-admins/new';
   static const adminSubAdminEdit = '/admin/sub-admins/:id/edit';
@@ -213,7 +214,7 @@ abstract final class RoutePaths {
     bool isAgent = false,
   }) {
     if (isAdmin) {
-      return isAgent ? adminStudents : adminDashboard;
+      return isAgent ? adminAgentDashboard : adminDashboard;
     }
     if (isMasterTeacher) {
       return masterTeacherDashboard;

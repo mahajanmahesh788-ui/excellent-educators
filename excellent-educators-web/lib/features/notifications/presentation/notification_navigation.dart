@@ -18,8 +18,48 @@ void openNotificationDeepLink(
     return;
   }
 
+  if (notification.type == 'admin_request_submitted' ||
+      notification.type == 'admin_request_approved' ||
+      notification.type == 'admin_request_rejected') {
+    final requestId = notification.data?['admin_request_id'] as String?;
+    if (requestId != null && requestId.isNotEmpty) {
+      if (user?.isAdmin == true && notification.type == 'admin_request_submitted') {
+        context.go(RoutePaths.adminRequestFor(requestId));
+        return;
+      }
+      if (user?.isMasterTeacher == true || user?.isCommonTeacher == true) {
+        context.go(RoutePaths.teacherRequests);
+        return;
+      }
+      context.go(RoutePaths.adminRequestFor(requestId));
+      return;
+    }
+  }
+
+  if (notification.type == 'agent_registered_student') {
+    final studentId = notification.data?['student_id'] as String?;
+    if (studentId != null && studentId.isNotEmpty) {
+      context.go(RoutePaths.adminStudent(studentId));
+      return;
+    }
+  }
+
   final link = notification.data?['link'] as String?;
   if (link != null && link.isNotEmpty) {
+    if (link.startsWith('/admin/requests/')) {
+      final requestId = link.split('/').last;
+      if (requestId.isNotEmpty) {
+        context.go(RoutePaths.adminRequestFor(requestId));
+      }
+      return;
+    }
+    if (link.startsWith('/admin/students/')) {
+      final studentId = link.split('/').last;
+      if (studentId.isNotEmpty) {
+        context.go(RoutePaths.adminStudent(studentId));
+      }
+      return;
+    }
     if (link.startsWith('/admin/leaves/') ||
         link.startsWith('/admin/schedule/leave-requests/')) {
       final leaveGroupId = link.split('/').last;

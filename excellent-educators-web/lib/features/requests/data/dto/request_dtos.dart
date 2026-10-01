@@ -35,6 +35,23 @@ class AdminRequestBatchRefDto {
   final String name;
 }
 
+class AdminRequestLevelRefDto {
+  const AdminRequestLevelRefDto({
+    required this.id,
+    required this.name,
+  });
+
+  factory AdminRequestLevelRefDto.fromJson(Map<String, dynamic> json) {
+    return AdminRequestLevelRefDto(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+    );
+  }
+
+  final String id;
+  final String name;
+}
+
 class AdminRequestDto {
   const AdminRequestDto({
     required this.id,
@@ -45,6 +62,8 @@ class AdminRequestDto {
     required this.requestType,
     this.student,
     this.batch,
+    this.fromLevel,
+    this.targetLevel,
     this.requesterName,
     this.requesterEmail,
     this.requesterPhone,
@@ -58,6 +77,8 @@ class AdminRequestDto {
     final resolvedBy = json['resolved_by'];
     final studentJson = json['student'];
     final batchJson = json['batch'];
+    final fromLevelJson = json['from_level'];
+    final targetLevelJson = json['target_level'];
 
     return AdminRequestDto(
       id: json['id'] as String,
@@ -70,6 +91,12 @@ class AdminRequestDto {
           ? AdminRequestStudentRefDto.fromJson(Map<String, dynamic>.from(studentJson))
           : null,
       batch: batchJson is Map ? AdminRequestBatchRefDto.fromJson(Map<String, dynamic>.from(batchJson)) : null,
+      fromLevel: fromLevelJson is Map
+          ? AdminRequestLevelRefDto.fromJson(Map<String, dynamic>.from(fromLevelJson))
+          : null,
+      targetLevel: targetLevelJson is Map
+          ? AdminRequestLevelRefDto.fromJson(Map<String, dynamic>.from(targetLevelJson))
+          : null,
       requesterName: requester is Map ? requester['name'] as String? : null,
       requesterEmail: requester is Map ? requester['email'] as String? : null,
       requesterPhone: requester is Map ? requester['phone'] as String? : null,
@@ -87,6 +114,8 @@ class AdminRequestDto {
   final String requestType;
   final AdminRequestStudentRefDto? student;
   final AdminRequestBatchRefDto? batch;
+  final AdminRequestLevelRefDto? fromLevel;
+  final AdminRequestLevelRefDto? targetLevel;
   final String? requesterName;
   final String? requesterEmail;
   final String? requesterPhone;
@@ -96,12 +125,18 @@ class AdminRequestDto {
 
   bool get isPending => status == 'pending';
   bool get isCompleted => status == 'completed';
+  bool get isRejected => status == 'rejected';
 
   bool get isRemoveMentee => requestType == 'remove_mentee';
   bool get isRemoveBatchStudent => requestType == 'remove_batch_student';
-  bool get isActionable => isRemoveMentee || isRemoveBatchStudent;
+  bool get isPromoteStudent => requestType == 'promote_student';
+  bool get isActionable => isRemoveMentee || isRemoveBatchStudent || isPromoteStudent;
 
-  String get statusLabel => isPending ? 'Pending' : 'Completed';
+  String get statusLabel => switch (status) {
+        'pending' => 'Pending',
+        'rejected' => 'Rejected',
+        _ => 'Completed',
+      };
 
   String get requesterTypeLabel {
     return switch (requesterType) {
@@ -115,7 +150,14 @@ class AdminRequestDto {
     return switch (requestType) {
       'remove_mentee' => 'Remove student',
       'remove_batch_student' => 'Remove student',
+      'promote_student' => 'Level upgrade',
       _ => 'General',
     };
+  }
+
+  String get levelUpgradeLabel {
+    final from = fromLevel?.name ?? 'Level';
+    final to = targetLevel?.name ?? 'Level';
+    return '$from → $to';
   }
 }
