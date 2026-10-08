@@ -15,6 +15,7 @@ import 'package:excellent_educators_web/features/student/presentation/widgets/fr
 import 'package:excellent_educators_web/features/student/presentation/widgets/learning_journal_preview.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/mandatory_assessment_panel.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/next_class_card.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/parent_intake_reminder_banner.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/progress_overview.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_hero_section.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
@@ -184,6 +185,16 @@ class StudentDashboardPage extends ConsumerWidget {
     );
   }
 
+  List<Widget> _parentReminderSlivers(StudentDto student) {
+    if (!ParentIntakeReminderBanner.shouldShow(student)) {
+      return const [];
+    }
+    return [
+      const SizedBox(height: 14),
+      ParentIntakeReminderBanner(student: student),
+    ];
+  }
+
   /// Modern Asymmetric Desktop 2-Column Layout
   Widget _buildDesktopLayout({
     required dynamic student,
@@ -203,6 +214,7 @@ class StudentDashboardPage extends ConsumerWidget {
           snapshot: snapshot,
           learning: learningDashboard,
         ),
+        ..._parentReminderSlivers(student as StudentDto),
 
         if (snapshot.hasExtraMasterClasses) ...[
           const SizedBox(height: 16),
@@ -313,6 +325,7 @@ class StudentDashboardPage extends ConsumerWidget {
           snapshot: snapshot,
           learning: learningDashboard,
         ),
+        ..._parentReminderSlivers(student as StudentDto),
         if (snapshot.hasExtraMasterClasses) ...[
           const SizedBox(height: 14),
           const ExtraMasterClassBanner(),
@@ -412,6 +425,7 @@ class StudentDashboardPage extends ConsumerWidget {
           snapshot: snapshot,
           learning: learningDashboard,
         ),
+        ..._parentReminderSlivers(student as StudentDto),
         if (snapshot.hasExtraMasterClasses) ...[
           const SizedBox(height: 12),
           const ExtraMasterClassBanner(),
@@ -515,6 +529,10 @@ class _FreshStudentOnboardingViewState
           student: widget.student,
           onStartQuestionnaire: _scrollToQuestionnaire,
         ),
+        if (ParentIntakeReminderBanner.shouldShow(widget.student)) ...[
+          const SizedBox(height: 14),
+          ParentIntakeReminderBanner(student: widget.student),
+        ],
         const SizedBox(height: 14),
         const FreshStudentStepper(),
         const SizedBox(height: 18),

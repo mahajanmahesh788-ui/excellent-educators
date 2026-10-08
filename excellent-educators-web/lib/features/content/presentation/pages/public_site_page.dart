@@ -106,39 +106,41 @@ class PublicSitePage extends ConsumerWidget {
               ),
               data: (data) {
                 final body = data.body.trim();
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 820),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            data.title.trim(),
-                            style: TextStyle(
-                              fontSize: narrow ? 24 : 30,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.4,
-                              height: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          if (slug == SitePageSlugs.faq)
-                            FaqCategoryView(body: body)
-                          else
-                            SelectableText(
-                              body,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                height: 1.5,
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w500,
+                return SelectionArea(
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 820),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              data.title.trim(),
+                              style: TextStyle(
+                                fontSize: narrow ? 24 : 30,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                                letterSpacing: -0.4,
+                                height: 1.2,
                               ),
                             ),
-                          const SizedBox(height: 20),
-                          const Divider(height: 1, color: AppColors.border),
+                            const SizedBox(height: 14),
+                            if (slug == SitePageSlugs.faq)
+                              FaqCategoryView(body: body)
+                            else
+                              Text(
+                                body,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  height: 1.5,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            const SizedBox(height: 20),
+                            const Divider(height: 1, color: AppColors.border),
                           const SizedBox(height: 12),
                           Wrap(
                             spacing: 4,
@@ -185,7 +187,8 @@ class PublicSitePage extends ConsumerWidget {
                       ),
                     ),
                   ),
-                );
+                ),
+              );
               },
             ),
           ),

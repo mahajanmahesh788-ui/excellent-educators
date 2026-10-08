@@ -164,6 +164,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _guardianName = TextEditingController();
+  final _guardianPhone = TextEditingController();
   int? _classGrade;
   String? _gender;
   bool _saving = false;
@@ -178,6 +179,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
     _email.dispose();
     _password.dispose();
     _guardianName.dispose();
+    _guardianPhone.dispose();
     super.dispose();
   }
 
@@ -189,13 +191,17 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
     }
 
     final payment = _paymentForm.toPayload();
-    final amount = _paymentAmountFromPayload(payment);
-    final paid = await showEnrolmentPaymentQrPopup(
-      context,
-      amount: amount,
-    );
-    if (!paid || !mounted) {
-      return;
+    final preferredMode = payment?['preferred_mode']?.toString();
+    // Offline (default): create immediately. Online: confirm via QR scanner first.
+    if (preferredMode == 'online') {
+      final amount = _paymentAmountFromPayload(payment);
+      final paid = await showEnrolmentPaymentQrPopup(
+        context,
+        amount: amount,
+      );
+      if (!paid || !mounted) {
+        return;
+      }
     }
     await _submit();
   }
@@ -227,6 +233,8 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
         'class_grade': _classGrade,
         'gender': _gender,
         'guardian_name': _guardianName.text.trim().isEmpty ? null : _guardianName.text.trim(),
+        'guardian_phone':
+            _guardianPhone.text.trim().isEmpty ? null : _guardianPhone.text.trim(),
         if (payment != null) 'payment': payment,
       });
       ref.invalidate(adminStudentsProvider);
@@ -445,6 +453,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                   SizedBox(height: fieldGap),
                   TextFormField(
                     controller: _guardianName,
+                    textCapitalization: TextCapitalization.words,
                     decoration: InputDecoration(
                       labelText: AppStrings.guardianNameOptional,
                       isDense: isMobile,
@@ -452,6 +461,20 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                           ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
                           : null,
                     ),
+                  ),
+                  SizedBox(height: fieldGap),
+                  TextFormField(
+                    controller: _guardianPhone,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: AppStrings.guardianPhoneOptional,
+                      prefixText: '+91  ',
+                      isDense: isMobile,
+                      contentPadding: isMobile
+                          ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+                          : null,
+                    ),
+                    validator: validateOptionalPhone,
                   ),
                   SizedBox(height: isMobile ? 16 : 24),
                   PaymentPlanFormFields(controller: _paymentForm),

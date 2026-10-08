@@ -3,6 +3,7 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/portal_chrome.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
+import 'package:excellent_educators_web/features/academic/presentation/widgets/student_onboarding_profile_section.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
@@ -53,7 +54,7 @@ class TeacherStudentBriefingPage extends ConsumerWidget {
         builder: (student) {
           return SizedBox.expand(
             child: DefaultTabController(
-              length: 3,
+              length: 4,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -105,10 +106,12 @@ class TeacherStudentBriefingPage extends ConsumerWidget {
                   const TabBar(
                     labelColor: Brand.navy,
                     indicatorColor: Brand.gold,
+                    isScrollable: true,
                     tabs: [
                       Tab(text: AppStrings.n1stAssignment),
                       Tab(text: AppStrings.ratings),
                       Tab(text: AppStrings.weeklyTests),
+                      Tab(text: AppStrings.interests),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -230,6 +233,11 @@ class TeacherStudentBriefingPage extends ConsumerWidget {
                               ],
                             );
                           },
+                        ),
+                        ListView(
+                          children: [
+                            StudentOnboardingProfileSections(student: student),
+                          ],
                         ),
                       ],
                     ),

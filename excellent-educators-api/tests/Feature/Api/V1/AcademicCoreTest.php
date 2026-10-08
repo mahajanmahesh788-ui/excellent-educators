@@ -203,6 +203,51 @@ class AcademicCoreTest extends TestCase
             ->assertJsonPath('data.email', $mentor->user->email);
     }
 
+    public function test_student_can_upload_profile_photo_under_one_megabyte(): void
+    {
+        $admin = $this->makeAdmin();
+        $student = $this->makeStudentViaAdmin($admin, 'Photo Student', 'photo');
+        $token = $this->tokenFor($student->user);
+
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        );
+        $this->assertNotFalse($png);
+
+        $response = $this->withToken($token)->post(
+            '/api/v1/student/profile/photo',
+            ['photo' => \Illuminate\Http\UploadedFile::fake()->createWithContent('avatar.png', $png)],
+            ['Accept' => 'application/json'],
+        );
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.photo_url', fn ($url) => is_string($url) && str_contains($url, '/media/students/'));
+
+        $student->refresh();
+        $this->assertNotNull($student->photo_url);
+        $this->assertStringContainsString('/media/students/', $student->photo_url);
+
+        $this->withToken($token)->getJson('/api/v1/student/profile')
+            ->assertOk()
+            ->assertJsonPath('data.photo_url', $student->photo_url);
+
+        $path = parse_url($student->photo_url, PHP_URL_PATH);
+        $this->get($path)->assertOk();
+    }
+
+    public function test_student_photo_rejects_files_over_one_megabyte(): void
+    {
+        $admin = $this->makeAdmin();
+        $student = $this->makeStudentViaAdmin($admin, 'Big Photo', 'bigphoto');
+
+        $this->withToken($this->tokenFor($student->user))->post(
+            '/api/v1/student/profile/photo',
+            ['photo' => \Illuminate\Http\UploadedFile::fake()->create('big.jpg', 1025, 'image/jpeg')],
+            ['Accept' => 'application/json'],
+        )->assertUnprocessable();
+    }
+
     public function test_non_admin_cannot_create_students(): void
     {
         $teacher = $this->makeTeacher([RoleName::MasterTeacher->value], 't@excellenteducators.test');

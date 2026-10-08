@@ -25,21 +25,43 @@ abstract final class AppStrings {
   static const addBatch = 'Add Batch';
   static const addBatchToLevel = 'Add Batch to Level';
   static const addCard = 'Add card';
+  static const addOption = 'Add option';
   static const addLevel = 'Add level';
   static const addLevelBatch = 'Add level / batch';
   static const addLevelsToOrganizeStudentsAndBatches = 'Add levels to organize students and batches.';
+  static const selectLevel = 'Select level';
+  static const chooseLevelFromList = 'Choose Level 1–10. Existing levels are hidden.';
+  static const levelNameIsFixed = 'Level name is fixed (Level 1–10).';
+  static const allLevelsCreated = 'All levels (1–10) are already created.';
+  static const assignAssessments = 'Assign Assessments';
+  static const assignAssessmentsTitle = 'Assign assessments to this level';
+  static const assignAssessmentsHelp =
+      'Students in this level’s batches will see the selected assessments from the Assessments page.';
+  static const noAssessmentsYetCreateInAssessments =
+      'No assessments yet. Create one under Assessments first.';
+  static const saveAssignments = 'Save assignments';
+  static const assessmentsAssigned = 'Assessments assigned';
   static const addMasterTeacher = 'Add Master Teacher';
   static const addMasterTeachersToMentorStudents = 'Add Master Teachers to mentor students.';
   static const addMonthlyRating = 'Add monthly rating';
   static const addMonthlyRatingAfterThisStudentCompletesAMasterClass = 'Add monthly rating after this student completes a Master Class.';
-  static const addOption = 'Add option';
   static const addQuestion = 'Add question';
+  static const addComprehension = 'Add comprehension';
+  static const comprehensionExercise = 'Comprehension exercise';
+  static const comprehensionParagraph = 'Reading passage';
+  static const comprehensionParagraphHint =
+      'Paste the paragraph students read before answering the questions below.';
+  static const removeComprehension = 'Remove comprehension';
+  static const addComprehensionQuestion = 'Add comprehension question';
   static const addStudent = 'Add student';
   static const addSubAdmin = 'Add sub admin';
   static const accountDisabledByAdmin =
       'Your account access has been paused by the institute. Sign-in is unavailable until an authorised admin restores your account.';
   static const contactSupport = 'Contact support';
   static const accountDisabledTitle = 'Account access paused';
+  static const sessionExpiredTitle = 'Session expired';
+  static const sessionExpiredMessage =
+      'Someone else signed in with your account. Please log in again.';
   static const accountDisabledHint =
       'If you believe this is a mistake, please contact Excellent Educators with your registered email or phone number.';
   static const accountDisabledUnderstood = 'Understood';
@@ -553,6 +575,9 @@ abstract final class AppStrings {
   static const myBatches = 'My batches';
   static const myLearningJourney = 'My Learning Journey';
   static const myProfile = 'My profile';
+  static const profilePhotoHint =
+      'Tap the photo to update. Images over 1 MB are shrunk automatically.';
+  static const profilePhotoUploaded = 'Profile photo uploaded.';
   static const myRatings = 'My ratings';
   static const mySessions = 'My Sessions';
   static const mySessions2 = 'My sessions';
@@ -576,12 +601,19 @@ abstract final class AppStrings {
   static const needsAttention = 'Needs attention';
   static const attention = 'Attention';
   static const needsImprovement = 'Needs Improvement';
-  static const networkError = 'Network error.';
+  static const networkError = 'No internet connection. Please check your network and try again.';
+  static const networkTimeout =
+      'This is taking too long. Please check your internet and try again.';
+  static const uploadTimeout =
+      'Upload timed out. Try a smaller image or check your internet connection.';
   static const newAssessment = 'New assessment';
   static const newLevel = 'New level';
   static const noOtherLevelsAvailableToPromoteTo =
       'No other levels available to promote to.';
   static const newPassword = 'New password';
+  static const newPasswordOptional = 'New password (optional)';
+  static const leaveBlankToKeepCurrentPassword =
+      'Leave blank to keep the current password';
   static const newRequest = 'New request';
   static const newStudentAndTeacherJoinReportsWillAppearHere = 'New student and teacher join reports will appear here.';
   static const newestFirstTapAMonthToSeeFullDetails = 'Newest first · tap a month to see full details';
@@ -818,6 +850,13 @@ abstract final class AppStrings {
   static const resetMonthFilter = 'Reset month filter';
   static const resetYourPassword = 'Reset your password';
   static const resolution = 'Resolution';
+  static const messageToRequesterOptional = 'Message to requester (optional)';
+  static const messageToRequester = 'Message to requester';
+  static const messageToRequesterHint =
+      'This message is included in the notification sent to the student or teacher.';
+  static const pleaseWriteAMessageForTheRequester =
+      'Please write a message for the requester.';
+  static const adminMessage = 'Admin message';
   static const resolveIssues = 'Resolve issues';
   static const resolved = 'Resolved';
   static const resolvedRequestsWillShowUpHere = 'Resolved requests will show up here.';
@@ -904,6 +943,71 @@ abstract final class AppStrings {
   static const acceptAndContinue = 'Accept and continue';
   static const unableToAcceptTerms =
       'Unable to save your acceptance. Please try again.';
+  static const interestProfile = 'Interest profile';
+  static const interestProfileSubtitle =
+      'Choose up to 5 options that fit you best. You can add a short “Other” if needed.';
+  static const parentIntake = 'Parent';
+  static const parentIntakeTitle = 'Parent details';
+  static const parentIntakeSubtitle =
+      'Help us stay connected with your parent or guardian. You can skip this for now.';
+  static const add = 'Add';
+  static const notAddedYet = 'Not added yet';
+  static const skippedForNow = 'Skipped for now';
+  static const noInterestAnswersYet = 'No interest answers yet.';
+  static const noParentAnswersYet = 'No parent answers yet.';
+  static const saveAndReturnToProfile = 'Save and return to profile';
+  static const parentDetailsMissingBadge = 'Action needed';
+  static const parentDetailsMissingTitle = 'Parent details are missing';
+  static const parentDetailsMissingBody =
+      'You skipped this earlier. Please add your parent or guardian details so we can stay connected and support you better.';
+  static const parentDetailsMissingCta = 'Add parent details';
+  static const skipForNow = 'Skip for now';
+  static const selectUpToThree = 'You can select up to 5 options.';
+  static const selectAnOption = 'Please select an option.';
+  static const answerCannotBeEmpty = 'Please enter an answer.';
+  static const otherOption = 'Other';
+  static const otherHint = 'Max 25 characters';
+  static const assignmentTab = 'Assignment';
+  static const interestQuestions = 'Interest questions';
+  static const parentQuestions = 'Parent questions';
+  static const interestQuestionsHelp =
+      'Configure interest categories and choices for student onboarding.';
+  static const parentQuestionsHelp =
+      'Configure parent intake questions for student onboarding.';
+  static const interestQuestionLabel = 'Interest Question';
+  static const parentQuestionLabel = 'Parent Question';
+  static const removeQuestion = 'Remove question';
+  static const removeOption = 'Remove option';
+  static const enterQuestionPrompt = 'Enter question prompt...';
+  static const textResponse = 'Text Response';
+  static const multipleChoice = 'Multiple Choice';
+  static const fromStudents = 'From students';
+  static const allowOther = 'Allow Other';
+  static const maxSelections = 'Max selections';
+  static const continueLabel = 'Continue';
+
+  static String questionBadge(int number) => 'Q$number';
+
+  static String questionNumberLabel(int number) => 'Question $number';
+
+  static String optionsCountLabel(int count) => 'OPTIONS ($count)';
+
+  static String answerOptionsCountLabel(int count) => 'ANSWER OPTIONS ($count)';
+
+  static String optionHint(int number) => 'Option $number';
+
+  static String submittedAtLabel(String when) => 'Submitted $when';
+
+  static String eachOptionNeedsDimensionCodes(int max) =>
+      'Each option needs 1 to $max unique dimension codes.';
+
+  static const deleteQuestion = 'Delete question';
+  static const enterAptitudeQuestionText = 'Enter aptitude question text...';
+  static const assessmentTitleHint =
+      'e.g. Getting to Know You Aptitude Assessment';
+  static const setDimensionCodes = 'Set dimension codes';
+  static const hideCharts = 'Hide Charts';
+  static const viewCharts = 'View Charts';
   static const onlinePaymentUnavailable =
       'Online Pay Now is not available yet. Please pay using the institute’s accepted offline methods and ask staff to record your payment. Contact support if you need help.';
   static const contactInstituteToPay =

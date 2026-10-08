@@ -116,6 +116,7 @@ class RequestRepository with MapsApiFailures {
     String id, {
     bool applyAction = true,
     bool reject = false,
+    required String resolutionNote,
   }) {
     return runApiSimple(() async {
       final json = await _client.post(
@@ -123,6 +124,7 @@ class RequestRepository with MapsApiFailures {
         data: {
           'apply_action': applyAction,
           'reject': reject,
+          'resolution_note': resolutionNote.trim(),
         },
       );
       return AdminRequestDto.fromJson(json!);

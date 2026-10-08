@@ -27,6 +27,7 @@ class ApiClient {
   ApiClient({
     required this.tokenStore,
     this.onAccountInactive,
+    this.onSessionExpired,
     Dio? dio,
     String? baseUrl,
   }) : _dio = dio ??
@@ -38,10 +39,12 @@ class ApiClient {
                       defaultValue: 'http://127.0.0.1:8000',
                     ),
                 connectTimeout: const Duration(seconds: 20),
+                sendTimeout: const Duration(seconds: 20),
                 receiveTimeout: const Duration(seconds: 20),
                 headers: const {
                   'Accept': 'application/json',
-                  'Content-Type': 'application/json',
+                  // Do not set Content-Type globally — multipart uploads must
+                  // set their own boundary. JSON requests set it per-call.
                 },
               ),
             ) {
@@ -64,7 +67,9 @@ class ApiClient {
 
   final TokenStore tokenStore;
   final VoidCallback? onAccountInactive;
+  final VoidCallback? onSessionExpired;
   final Dio _dio;
+  var _sessionExpiredNotified = false;
 
   Future<Map<String, dynamic>?> post(
     String path, {
@@ -119,6 +124,20 @@ class ApiClient {
     throw ApiException(message: AppStrings.expectedAListResponse, code: 'SERVER_ERROR');
   }
 
+  Future<List<dynamic>> putList(
+    String path, {
+    Object? data,
+  }) async {
+    final envelope = await _envelope('PUT', path, data: data);
+    if (envelope.data == null) {
+      return const [];
+    }
+    if (envelope.data is List) {
+      return envelope.data as List<dynamic>;
+    }
+    throw ApiException(message: AppStrings.expectedAListResponse, code: 'SERVER_ERROR');
+  }
+
   Future<PagedResult> getPage(
     String path, {
     Map<String, dynamic>? query,
@@ -159,6 +178,16 @@ class ApiClient {
           contentType: data is FormData
               ? null
               : Headers.jsonContentType,
+          // Photo / receipt uploads can exceed the default 20s on slower links.
+          sendTimeout: data is FormData
+              ? const Duration(seconds: 90)
+              : const Duration(seconds: 20),
+          receiveTimeout: data is FormData
+              ? const Duration(seconds: 90)
+              : const Duration(seconds: 20),
+          headers: data is FormData
+              ? <String, dynamic>{Headers.contentTypeHeader: null}
+              : null,
         ),
       );
       final body = response.data;
@@ -184,35 +213,65 @@ class ApiClient {
 
   ApiException _fromDio(DioException error) {
     final data = error.response?.data;
+    final hadBearer = _requestHadBearer(error.requestOptions);
     if (data is Map<String, dynamic>) {
-      return _fromEnvelope(data, error.response?.statusCode);
+      return _fromEnvelope(data, error.response?.statusCode, hadBearer: hadBearer);
     }
     if (data is Map) {
-      return _fromEnvelope(Map<String, dynamic>.from(data), error.response?.statusCode);
+      return _fromEnvelope(
+        Map<String, dynamic>.from(data),
+        error.response?.statusCode,
+        hadBearer: hadBearer,
+      );
+    }
+    if (error.response?.statusCode == 401 && hadBearer) {
+      _notifySessionExpired();
     }
     if (error.type == DioExceptionType.connectionError ||
         error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.unknown) {
-      final origin = _dio.options.baseUrl;
       return ApiException(
-        message:
-            'Cannot reach the API at $origin. Start the Laravel server (`php artisan serve`) and confirm CORS allows this web origin.',
+        message: AppStrings.networkError,
         statusCode: error.response?.statusCode,
         code: 'NETWORK_ERROR',
       );
     }
+    if (error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout) {
+      final isUpload = error.requestOptions.data is FormData;
+      return ApiException(
+        message: isUpload ? AppStrings.uploadTimeout : AppStrings.networkTimeout,
+        statusCode: error.response?.statusCode,
+        code: 'TIMEOUT',
+      );
+    }
+    if (error.type == DioExceptionType.badResponse) {
+      return ApiException(
+        message: AppStrings.requestFailed,
+        statusCode: error.response?.statusCode,
+        code: 'SERVER_ERROR',
+      );
+    }
     return ApiException(
-      message: error.message ?? AppStrings.networkError,
+      message: AppStrings.networkError,
       statusCode: error.response?.statusCode,
-      code: 'SERVER_ERROR',
+      code: 'NETWORK_ERROR',
     );
   }
 
-  ApiException _fromEnvelope(Map<String, dynamic> body, int? statusCode) {
+  ApiException _fromEnvelope(
+    Map<String, dynamic> body,
+    int? statusCode, {
+    bool hadBearer = false,
+  }) {
     final error = body['error'];
     final code = error is Map<String, dynamic> ? error['code'] as String? : null;
     if (code == 'ACCOUNT_INACTIVE') {
       onAccountInactive?.call();
+    } else if (statusCode == 401 &&
+        hadBearer &&
+        code != 'INVALID_CREDENTIALS') {
+      _notifySessionExpired();
     }
     return ApiException(
       message: body['message'] as String? ?? AppStrings.requestFailed,
@@ -220,6 +279,27 @@ class ApiClient {
       details: error is Map<String, dynamic> ? error['details'] : null,
       statusCode: statusCode,
     );
+  }
+
+  bool _requestHadBearer(RequestOptions? options) {
+    if (options == null) {
+      return false;
+    }
+    final header = options.headers['Authorization']?.toString() ?? '';
+    return header.startsWith('Bearer ') && header.length > 7;
+  }
+
+  void _notifySessionExpired() {
+    if (_sessionExpiredNotified) {
+      return;
+    }
+    _sessionExpiredNotified = true;
+    onSessionExpired?.call();
+  }
+
+  /// Call after a successful login so a later displace can notify again.
+  void resetSessionExpiredGuard() {
+    _sessionExpiredNotified = false;
   }
 
   void close() => _dio.close();

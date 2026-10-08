@@ -12,6 +12,11 @@ class AppUser {
     this.termsAcceptedVersion,
     this.termsCurrentVersion,
     this.mustAcceptTerms = false,
+    this.mustCompleteInterestProfile = false,
+    this.mustCompleteParentIntake = false,
+    this.interestProfileCompleted = false,
+    this.parentIntakeCompleted = false,
+    this.parentIntakeSkipped = false,
   });
 
   final String id;
@@ -26,6 +31,11 @@ class AppUser {
   final String? termsAcceptedVersion;
   final String? termsCurrentVersion;
   final bool mustAcceptTerms;
+  final bool mustCompleteInterestProfile;
+  final bool mustCompleteParentIntake;
+  final bool interestProfileCompleted;
+  final bool parentIntakeCompleted;
+  final bool parentIntakeSkipped;
 
   bool get isFullAdmin =>
       roles.contains('super_admin') || roles.contains('operational_admin');
@@ -47,4 +57,18 @@ class AppUser {
   bool canAdmin(String permission) => isFullAdmin || permissions.contains(permission);
 
   bool canAnyAdmin(Iterable<String> keys) => isFullAdmin || keys.any(permissions.contains);
+
+  /// Next gated onboarding route after terms, or null when portal is open.
+  String? get nextOnboardingPath {
+    if (mustAcceptTerms) {
+      return '/student/accept-terms';
+    }
+    if (mustCompleteInterestProfile) {
+      return '/student/interest-profile';
+    }
+    if (mustCompleteParentIntake) {
+      return '/student/parent-intake';
+    }
+    return null;
+  }
 }

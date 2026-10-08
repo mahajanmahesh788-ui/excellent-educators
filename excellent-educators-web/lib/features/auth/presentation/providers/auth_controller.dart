@@ -13,6 +13,7 @@ class AuthState {
     this.error,
     this.errorCode,
     this.accountDisabled = false,
+    this.sessionExpired = false,
   });
 
   final AppUser? user;
@@ -21,6 +22,7 @@ class AuthState {
   final String? error;
   final String? errorCode;
   final bool accountDisabled;
+  final bool sessionExpired;
 
   bool get isAuthenticated => user != null;
 
@@ -31,6 +33,7 @@ class AuthState {
     String? error,
     String? errorCode,
     bool? accountDisabled,
+    bool? sessionExpired,
     bool clearUser = false,
     bool clearError = false,
   }) {
@@ -41,16 +44,19 @@ class AuthState {
       error: clearError ? null : (error ?? this.error),
       errorCode: clearError ? null : (errorCode ?? this.errorCode),
       accountDisabled: accountDisabled ?? this.accountDisabled,
+      sessionExpired: sessionExpired ?? this.sessionExpired,
     );
   }
 }
 
 class AuthController extends StateNotifier<AuthState> {
-  AuthController(this._repository) : super(const AuthState()) {
+  AuthController(this._ref) : super(const AuthState()) {
     restore();
   }
 
-  final AuthRepository _repository;
+  final Ref _ref;
+
+  AuthRepository get _repository => _ref.read(authRepositoryProvider);
 
   Future<void> restore() async {
     final token = await _repository.readToken();
@@ -79,7 +85,12 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<bool> login({required String email, required String password}) async {
-    state = state.copyWith(isLoading: true, clearError: true, accountDisabled: false);
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      accountDisabled: false,
+      sessionExpired: false,
+    );
     try {
       final user = await _repository.login(email: email, password: password);
       if (!user.isActive) {
@@ -92,6 +103,8 @@ class AuthController extends StateNotifier<AuthState> {
         );
         return false;
       }
+      // Allow a future displace to notify again after this login.
+      _ref.read(apiClientProvider).resetSessionExpiredGuard();
       state = AuthState(user: user, isReady: true);
       return true;
     } on Failure catch (error) {
@@ -119,6 +132,10 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> logout() async {
     await _repository.logout();
     state = const AuthState(isReady: true);
+  }
+
+  void applyUser(AppUser user) {
+    state = AuthState(user: user, isReady: true);
   }
 
   Future<bool> acceptTerms() async {
@@ -151,6 +168,14 @@ class AuthController extends StateNotifier<AuthState> {
 
   void clearAccountDisabled() {
     state = state.copyWith(accountDisabled: false);
+  }
+
+  void handleSessionExpired() {
+    state = const AuthState(isReady: true, sessionExpired: true);
+  }
+
+  void clearSessionExpired() {
+    state = state.copyWith(sessionExpired: false);
   }
 
   Future<void> forgotPassword(String email) async {
@@ -198,5 +223,5 @@ class AuthController extends StateNotifier<AuthState> {
 }
 
 final authControllerProvider = StateNotifierProvider<AuthController, AuthState>((ref) {
-  return AuthController(ref.watch(authRepositoryProvider));
+  return AuthController(ref);
 });

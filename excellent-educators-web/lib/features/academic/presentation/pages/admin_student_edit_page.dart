@@ -28,11 +28,13 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
   final _address = TextEditingController();
   final _guardianName = TextEditingController();
   final _guardianPhone = TextEditingController();
+  final _password = TextEditingController();
   String? _status;
   int? _classGrade;
   String? _gender;
   String? _boundStudentId;
   bool _saving = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -42,6 +44,7 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
     _address.dispose();
     _guardianName.dispose();
     _guardianPhone.dispose();
+    _password.dispose();
     super.dispose();
   }
 
@@ -77,6 +80,7 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
         'status': _status,
         if (_classGrade != null) 'class_grade': _classGrade,
         'gender': _gender,
+        if (_password.text.isNotEmpty) 'password': _password.text,
       });
       ref.invalidate(adminStudentProvider(widget.studentId));
       ref.invalidate(adminStudentsProvider);
@@ -193,6 +197,24 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
                       prefixText: '+91  ',
                     ),
                     validator: validateOptionalPhone,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _password,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: AppStrings.newPasswordOptional,
+                      hintText: AppStrings.leaveBlankToKeepCurrentPassword,
+                      suffixIcon: IconButton(
+                        onPressed: () =>
+                            setState(() => _obscurePassword = !_obscurePassword),
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   FilledButton(

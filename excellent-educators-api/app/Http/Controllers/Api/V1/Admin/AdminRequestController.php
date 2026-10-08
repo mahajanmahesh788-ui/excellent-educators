@@ -59,12 +59,14 @@ class AdminRequestController extends Controller
     ): JsonResponse {
         $reject = $request->boolean('reject', false);
         $applyAction = $reject ? false : $request->boolean('apply_action', true);
+        $resolutionNote = $request->validated('resolution_note');
 
         $adminRequest = $resolveAdminRequest->execute(
             $adminRequest,
             $request->user(),
             $applyAction,
             $reject,
+            is_string($resolutionNote) ? $resolutionNote : null,
         );
 
         $message = match (true) {

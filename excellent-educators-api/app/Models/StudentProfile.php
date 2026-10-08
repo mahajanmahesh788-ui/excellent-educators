@@ -30,6 +30,7 @@ class StudentProfile extends Model
         'phone',
         'whatsapp_number',
         'address',
+        'photo_url',
         'guardian_name',
         'guardian_phone',
         'status',

@@ -85,6 +85,7 @@ class CleanAcademicDataCommand extends Command
                 DB::table('academic_levels')->insert([
                     'id' => $levelId,
                     'name' => 'Level 1',
+                    'number' => 1,
                     'academic_year' => $currentYear,
                     'status' => 'active',
                     'created_at' => now(),

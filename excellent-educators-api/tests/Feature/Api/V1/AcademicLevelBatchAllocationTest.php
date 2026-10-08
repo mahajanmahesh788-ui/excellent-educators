@@ -197,15 +197,17 @@ class AcademicLevelBatchAllocationTest extends TestCase
 
         // Create Level 2
         $levelRes = $this->withToken($token)->postJson('/api/v1/admin/levels', [
-            'name' => 'Level 2',
+            'number' => 2,
             'academic_year' => 2026,
-        ])->assertCreated();
+        ])->assertCreated()
+            ->assertJsonPath('data.name', 'Level 2')
+            ->assertJsonPath('data.number', 2);
 
         $level2Id = $levelRes->json('data.id');
 
-        // Prevent duplicate level name
+        // Prevent duplicate level number
         $this->withToken($token)->postJson('/api/v1/admin/levels', [
-            'name' => 'Level 2',
+            'number' => 2,
             'academic_year' => 2026,
         ])->assertUnprocessable();
 
@@ -230,30 +232,30 @@ class AcademicLevelBatchAllocationTest extends TestCase
         ])->assertOk()->assertJsonPath('data.name', 'Section Alpha Renamed');
     }
 
-    public function test_admin_levels_index_returns_levels_ordered_by_created_at_first_created_on_top(): void
+    public function test_admin_levels_index_returns_levels_ordered_by_number(): void
     {
         $admin = $this->makeAdmin();
         $token = $this->tokenFor($admin);
 
         // Level 1 already created via seeder earlier
-        // Create "A-New Level" which alphabetically precedes "Level 1"
         $this->withToken($token)->postJson('/api/v1/admin/levels', [
-            'name' => 'A-New Level',
+            'number' => 3,
             'academic_year' => 2026,
         ])->assertCreated();
 
-        // Create "Z-New Level"
         $this->withToken($token)->postJson('/api/v1/admin/levels', [
-            'name' => 'Z-New Level',
+            'number' => 2,
             'academic_year' => 2026,
         ])->assertCreated();
 
         $res = $this->withToken($token)->getJson('/api/v1/admin/levels')->assertOk();
         $names = array_column($res->json('data'), 'name');
+        $available = $res->json('meta.available_numbers');
 
-        // Verify first created is on top: Level 1 comes before A-New Level and Z-New Level
-        $this->assertEquals('Level 1', $names[0]);
-        $this->assertEquals('A-New Level', $names[1]);
-        $this->assertEquals('Z-New Level', $names[2]);
+        $this->assertEquals(['Level 1', 'Level 2', 'Level 3'], array_slice($names, 0, 3));
+        $this->assertContains(4, $available);
+        $this->assertNotContains(1, $available);
+        $this->assertNotContains(2, $available);
+        $this->assertNotContains(3, $available);
     }
 }

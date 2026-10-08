@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/errors/api_error_message.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/assessments/data/dto/assessment_dtos.dart';
@@ -107,7 +108,7 @@ class _MandatoryAssessmentPanelState
               size: 40,
             ),
             const SizedBox(height: 12),
-            Text(error.toString(), textAlign: TextAlign.center),
+            Text(friendlyErrorMessage(error), textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => ref.invalidate(studentAssessmentProvider),

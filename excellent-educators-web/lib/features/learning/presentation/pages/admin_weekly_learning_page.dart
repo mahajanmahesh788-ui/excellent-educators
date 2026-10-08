@@ -26,13 +26,20 @@ class _AdminWeeklyLearningPageState
   var _week = 1;
   final _video = TextEditingController();
   final _questions = <_QuestionDraft>[];
+  var _hasComprehension = false;
+  final _comprehensionParagraph = TextEditingController();
+  final _comprehensionQuestions = <_QuestionDraft>[];
   var _boundLevelId = '';
   var _saving = false;
 
   @override
   void dispose() {
     _video.dispose();
+    _comprehensionParagraph.dispose();
     for (final question in _questions) {
+      question.dispose();
+    }
+    for (final question in _comprehensionQuestions) {
       question.dispose();
     }
     super.dispose();
@@ -44,6 +51,9 @@ class _AdminWeeklyLearningPageState
     for (final question in _questions) {
       question.dispose();
     }
+    for (final question in _comprehensionQuestions) {
+      question.dispose();
+    }
     _questions
       ..clear()
       ..addAll(
@@ -51,28 +61,79 @@ class _AdminWeeklyLearningPageState
             ? [_QuestionDraft()]
             : unit.questions.map(_QuestionDraft.fromDto),
       );
+    _hasComprehension = unit?.hasComprehension ?? false;
+    _comprehensionParagraph.text = unit?.comprehensionParagraph ?? '';
+    _comprehensionQuestions
+      ..clear()
+      ..addAll(
+        !_hasComprehension || unit == null || unit.comprehensionQuestions.isEmpty
+            ? <_QuestionDraft>[]
+            : unit.comprehensionQuestions.map(_QuestionDraft.fromDto),
+      );
   }
 
-  Future<void> _save() async {
-    if (_video.text.trim().isEmpty) {
-      showFailure(context, AppStrings.enterAVideoLinkForThisWeek);
-      return;
+  void _addComprehension() {
+    setState(() {
+      _hasComprehension = true;
+      if (_comprehensionQuestions.isEmpty) {
+        _comprehensionQuestions.add(_QuestionDraft());
+      }
+    });
+  }
+
+  void _removeComprehension() {
+    setState(() {
+      _hasComprehension = false;
+      _comprehensionParagraph.clear();
+      for (final question in _comprehensionQuestions) {
+        question.dispose();
+      }
+      _comprehensionQuestions.clear();
+    });
+  }
+
+  List<Map<String, dynamic>> _questionPayload(List<_QuestionDraft> drafts) {
+    return [
+      for (final question in drafts)
+        {
+          'question_text': question.text.text.trim(),
+          'question_type': question.questionType,
+          'options': question.isText
+              ? <Map<String, dynamic>>[]
+              : [
+                  for (final option in question.options)
+                    {
+                      'option_text': option.text.text.trim(),
+                      'dimension_codes': option.dimensionCodes,
+                    },
+                ],
+        },
+    ];
+  }
+
+  bool _validateQuestions(
+    List<_QuestionDraft> drafts, {
+    required String emptyListMessage,
+  }) {
+    if (drafts.isEmpty) {
+      showFailure(context, emptyListMessage);
+      return false;
     }
-    for (final question in _questions) {
+    for (final question in drafts) {
       if (question.text.text.trim().isEmpty) {
         showFailure(context, AppStrings.everyQuestionNeedsText);
-        return;
+        return false;
       }
       if (question.isText) {
         continue;
       }
       if (question.options.length < 2) {
         showFailure(context, AppStrings.eachQuestionNeedsAtLeastTwoOptions);
-        return;
+        return false;
       }
       if (question.options.any((option) => option.text.text.trim().isEmpty)) {
         showFailure(context, AppStrings.everyOptionNeedsText);
-        return;
+        return false;
       }
       if (question.options.any(
         (option) => !DimensionCatalog.areValid(option.dimensionCodes),
@@ -81,34 +142,46 @@ class _AdminWeeklyLearningPageState
           context,
           'Each option needs 1 to ${DimensionCatalog.maxCodesPerOption} unique dimension codes.',
         );
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<void> _save() async {
+    if (_video.text.trim().isEmpty) {
+      showFailure(context, AppStrings.enterAVideoLinkForThisWeek);
+      return;
+    }
+    if (!_validateQuestions(_questions, emptyListMessage: AppStrings.addQuestion)) {
+      return;
+    }
+    if (_hasComprehension) {
+      if (_comprehensionParagraph.text.trim().isEmpty) {
+        showFailure(context, AppStrings.comprehensionParagraphHint);
+        return;
+      }
+      if (!_validateQuestions(
+        _comprehensionQuestions,
+        emptyListMessage: AppStrings.addComprehensionQuestion,
+      )) {
         return;
       }
     }
 
     setState(() => _saving = true);
     try {
-      await ref
-          .read(learningRepositoryProvider)
-          .upsertWeeklyLearning(
+      await ref.read(learningRepositoryProvider).upsertWeeklyLearning(
             levelId: widget.levelId,
             weekNumber: _week,
             videoUrl: _video.text.trim(),
-            questions: [
-              for (final question in _questions)
-                {
-                  'question_text': question.text.text.trim(),
-                  'question_type': question.questionType,
-                  'options': question.isText
-                      ? <Map<String, dynamic>>[]
-                      : [
-                          for (final option in question.options)
-                            {
-                              'option_text': option.text.text.trim(),
-                              'dimension_codes': option.dimensionCodes,
-                            },
-                        ],
-                },
-            ],
+            questions: _questionPayload(_questions),
+            comprehensionParagraph: _hasComprehension
+                ? _comprehensionParagraph.text.trim()
+                : null,
+            comprehensionQuestions: _hasComprehension
+                ? _questionPayload(_comprehensionQuestions)
+                : const [],
           );
       ref.invalidate(adminWeeklyLearningsProvider(widget.levelId));
       if (mounted) {
@@ -195,7 +268,80 @@ class _AdminWeeklyLearningPageState
                   ),
                   const SizedBox(height: 8),
                   for (var index = 0; index < _questions.length; index++)
-                    _questionEditor(index),
+                    _questionEditor(
+                      index: index,
+                      questions: _questions,
+                      labelPrefix: 'Q',
+                    ),
+                  const SizedBox(height: 24),
+                  if (!_hasComprehension)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: _addComprehension,
+                        icon: const Icon(Icons.menu_book_outlined),
+                        label: const Text(AppStrings.addComprehension),
+                      ),
+                    )
+                  else ...[
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            AppStrings.comprehensionExercise,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _removeComprehension,
+                          child: const Text(AppStrings.removeComprehension),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _comprehensionParagraph,
+                      minLines: 4,
+                      maxLines: 12,
+                      decoration: const InputDecoration(
+                        labelText: AppStrings.comprehensionParagraph,
+                        hintText: AppStrings.comprehensionParagraphHint,
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Text(
+                          AppStrings.questions,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: () => setState(
+                            () => _comprehensionQuestions.add(_QuestionDraft()),
+                          ),
+                          icon: const Icon(Icons.add),
+                          label: const Text(AppStrings.addComprehensionQuestion),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    for (var index = 0;
+                        index < _comprehensionQuestions.length;
+                        index++)
+                      _questionEditor(
+                        index: index,
+                        questions: _comprehensionQuestions,
+                        labelPrefix: 'C',
+                      ),
+                  ],
                   const SizedBox(height: 16),
                   Align(
                     alignment: Alignment.centerLeft,
@@ -219,10 +365,14 @@ class _AdminWeeklyLearningPageState
     );
   }
 
-  Widget _questionEditor(int index) {
-    final question = _questions[index];
+  Widget _questionEditor({
+    required int index,
+    required List<_QuestionDraft> questions,
+    required String labelPrefix,
+  }) {
+    final question = questions[index];
     return Card(
-      key: ValueKey('question-$index-${question.text.hashCode}'),
+      key: ValueKey('$labelPrefix-$index-${question.text.hashCode}'),
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.none,
       child: Column(
@@ -255,7 +405,7 @@ class _AdminWeeklyLearningPageState
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    'Q${index + 1}',
+                    '$labelPrefix${index + 1}',
                     style: const TextStyle(
                       color: Brand.gold,
                       fontWeight: FontWeight.w800,
@@ -303,10 +453,10 @@ class _AdminWeeklyLearningPageState
                   ),
                 ),
                 IconButton(
-                  onPressed: _questions.length == 1
+                  onPressed: questions.length == 1
                       ? null
                       : () => setState(() {
-                          final removed = _questions.removeAt(index);
+                          final removed = questions.removeAt(index);
                           removed.dispose();
                         }),
                   icon: const Icon(Icons.delete_outline),
@@ -675,7 +825,6 @@ class _WeekStripState extends State<_WeekStrip> {
     );
   }
 }
-
 class _QuestionDraft {
   _QuestionDraft()
     : text = TextEditingController(),

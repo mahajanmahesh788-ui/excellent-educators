@@ -6,6 +6,7 @@ use App\Enums\Gender;
 use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class UpdateStudentRequest extends FormRequest
 {
@@ -25,6 +26,12 @@ class UpdateStudentRequest extends FormRequest
         if ($this->has('whatsapp_number')) {
             $this->merge([
                 'whatsapp_number' => PhoneNumber::normalize($this->input('whatsapp_number')),
+            ]);
+        }
+
+        if ($this->has('guardian_phone')) {
+            $this->merge([
+                'guardian_phone' => PhoneNumber::normalize($this->input('guardian_phone')),
             ]);
         }
     }
@@ -49,6 +56,7 @@ class UpdateStudentRequest extends FormRequest
             'whatsapp_number' => ['nullable', 'string', 'min:10', 'max:15'],
             'guardian_name' => ['nullable', 'string', 'max:255'],
             'guardian_phone' => ['nullable', 'string', 'max:32'],
+            'password' => ['sometimes', 'nullable', Password::defaults()],
             'status' => ['sometimes', 'in:active,inactive'],
             'master_classes_per_month' => ['nullable', 'integer', 'min:1', 'max:10'],
             'student_code' => ['prohibited'],

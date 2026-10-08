@@ -19,6 +19,7 @@ class AdminRequest extends Model
         'request_type',
         'subtitle',
         'description',
+        'resolution_note',
         'student_id',
         'batch_id',
         'from_level_id',

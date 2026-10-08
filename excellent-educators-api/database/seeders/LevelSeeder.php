@@ -11,12 +11,20 @@ class LevelSeeder extends Seeder
     public function run(): void
     {
         $level = AcademicLevel::query()->firstOrCreate(
-            ['name' => 'Level 1'],
+            ['number' => 1],
             [
+                'name' => 'Level 1',
                 'academic_year' => (int) date('Y'),
                 'status' => 'active',
             ]
         );
+
+        if ($level->number === null || $level->name !== 'Level 1') {
+            $level->forceFill([
+                'number' => 1,
+                'name' => 'Level 1',
+            ])->save();
+        }
 
         if (! Batch::query()->where('level_id', $level->id)->where('name', 'Batch 1')->exists()) {
             Batch::query()->create([

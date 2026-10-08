@@ -1,9 +1,11 @@
 import 'package:excellent_educators_web/core/network/account_inactive_signal.dart';
 import 'package:excellent_educators_web/core/network/api_client.dart';
+import 'package:excellent_educators_web/core/network/session_expired_signal.dart';
 import 'package:excellent_educators_web/core/storage/token_store.dart';
 import 'package:excellent_educators_web/features/auth/data/auth_remote_datasource.dart';
 import 'package:excellent_educators_web/features/auth/data/auth_repository_impl.dart';
 import 'package:excellent_educators_web/features/auth/domain/repositories/auth_repository.dart';
+import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
@@ -19,6 +21,16 @@ final apiClientProvider = Provider<ApiClient>((ref) {
       Future.microtask(() async {
         await store.clear();
         ref.read(accountInactiveSignalProvider.notifier).state = true;
+      });
+    },
+    onSessionExpired: () {
+      Future.microtask(() async {
+        final auth = ref.read(authControllerProvider);
+        if (!auth.isAuthenticated || auth.sessionExpired) {
+          return;
+        }
+        await store.clear();
+        ref.read(sessionExpiredSignalProvider.notifier).state = true;
       });
     },
   );

@@ -15,6 +15,7 @@ class WeeklyLearning extends Model
         'level_id',
         'week_number',
         'video_url',
+        'comprehension_paragraph',
     ];
 
     protected function casts(): array

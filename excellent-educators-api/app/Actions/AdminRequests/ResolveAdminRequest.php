@@ -3,6 +3,7 @@
 namespace App\Actions\AdminRequests;
 
 use App\Actions\Notifications\CreateUserNotification;
+use App\Enums\AdminRequestRequesterType;
 use App\Enums\AdminRequestStatus;
 use App\Enums\AdminRequestType;
 use App\Enums\NotificationType;
@@ -24,6 +25,7 @@ class ResolveAdminRequest
         User $admin,
         bool $applyAction = true,
         bool $reject = false,
+        ?string $resolutionNote = null,
     ): AdminRequest {
         if ($adminRequest->status !== AdminRequestStatus::Pending) {
             throw new ApiException(
@@ -33,15 +35,21 @@ class ResolveAdminRequest
             );
         }
 
+        $note = $resolutionNote !== null ? trim($resolutionNote) : null;
+        if ($note === '') {
+            $note = null;
+        }
+
         if ($reject) {
             $adminRequest->update([
                 'status' => AdminRequestStatus::Rejected,
+                'resolution_note' => $note,
                 'resolved_at' => AppClock::now(),
                 'resolved_by_id' => $admin->id,
             ]);
 
             $fresh = $adminRequest->fresh(['user.studentProfile', 'user.teacherProfile', 'resolvedBy', 'student', 'batch', 'fromLevel', 'targetLevel']);
-            $this->notifyRequester($fresh, approved: false);
+            $this->notifyRequester($fresh, approved: false, actionApplied: false);
 
             return $fresh;
         }
@@ -53,59 +61,101 @@ class ResolveAdminRequest
 
         $adminRequest->update([
             'status' => AdminRequestStatus::Completed,
+            'resolution_note' => $note,
             'resolved_at' => AppClock::now(),
             'resolved_by_id' => $admin->id,
         ]);
 
         $fresh = $adminRequest->fresh(['user.studentProfile', 'user.teacherProfile', 'resolvedBy', 'student', 'batch', 'fromLevel', 'targetLevel']);
-
-        if ($applyAction && $fresh?->request_type === AdminRequestType::PromoteStudent) {
-            $this->notifyRequester($fresh, approved: true);
-        }
+        $this->notifyRequester($fresh, approved: true, actionApplied: $applyAction);
 
         return $fresh;
     }
 
-    private function notifyRequester(?AdminRequest $adminRequest, bool $approved): void
+    private function notifyRequester(?AdminRequest $adminRequest, bool $approved, bool $actionApplied = true): void
     {
         if ($adminRequest === null || $adminRequest->user === null) {
             return;
         }
 
-        $from = $adminRequest->fromLevel?->name ?? 'previous level';
-        $to = $adminRequest->targetLevel?->name ?? 'new level';
-        $studentName = $adminRequest->student?->full_name ?? 'the student';
-
-        if ($approved) {
-            $this->notifications->safeExecute(
-                $adminRequest->user,
-                NotificationType::AdminRequestApproved,
-                'Level upgrade approved',
-                "Your request to upgrade {$studentName} from {$from} to {$to} was approved.",
-                [
-                    'admin_request_id' => $adminRequest->id,
-                    'student_id' => $adminRequest->student_id,
-                    'from_level' => $from,
-                    'to_level' => $to,
-                    'link' => '/teacher/requests',
-                ],
-            );
-
-            return;
+        [$title, $body] = $this->notificationCopy($adminRequest, $approved, $actionApplied);
+        $note = $adminRequest->resolution_note;
+        if (is_string($note) && trim($note) !== '') {
+            $body .= "\n\nAdmin message: ".trim($note);
         }
+
+        $link = $adminRequest->requester_type === AdminRequestRequesterType::Student
+            ? '/student/requests'
+            : '/teacher/requests';
 
         $this->notifications->safeExecute(
             $adminRequest->user,
-            NotificationType::AdminRequestRejected,
-            'Level upgrade rejected',
-            "Your request to upgrade {$studentName} from {$from} to {$to} was rejected.",
+            $approved ? NotificationType::AdminRequestApproved : NotificationType::AdminRequestRejected,
+            $title,
+            $body,
             [
                 'admin_request_id' => $adminRequest->id,
                 'student_id' => $adminRequest->student_id,
-                'from_level' => $from,
-                'to_level' => $to,
-                'link' => '/teacher/requests',
+                'request_type' => $adminRequest->request_type?->value,
+                'resolution_note' => $note,
+                'link' => $link,
             ],
         );
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function notificationCopy(AdminRequest $adminRequest, bool $approved, bool $actionApplied): array
+    {
+        $type = $adminRequest->request_type;
+        $studentName = $adminRequest->student?->full_name ?? 'the student';
+        $from = $adminRequest->fromLevel?->name ?? 'previous level';
+        $to = $adminRequest->targetLevel?->name ?? 'new level';
+
+        if ($type === AdminRequestType::PromoteStudent) {
+            return $approved
+                ? [
+                    'Level upgrade approved',
+                    "Your request to upgrade {$studentName} from {$from} to {$to} was approved.",
+                ]
+                : [
+                    'Level upgrade rejected',
+                    "Your request to upgrade {$studentName} from {$from} to {$to} was rejected.",
+                ];
+        }
+
+        if ($type === AdminRequestType::RemoveMentee || $type === AdminRequestType::RemoveBatchStudent) {
+            if (! $approved) {
+                return [
+                    'Request rejected',
+                    "Your request to remove {$studentName} was rejected.",
+                ];
+            }
+
+            if ($actionApplied) {
+                return [
+                    'Request approved',
+                    "Your request to remove {$studentName} was approved.",
+                ];
+            }
+
+            return [
+                'Request resolved',
+                "Your request to remove {$studentName} was marked as resolved without removing the student.",
+            ];
+        }
+
+        $subtitle = $adminRequest->subtitle ?: 'your request';
+
+        return $approved
+            ? [
+                'Request resolved',
+                "Your request ({$subtitle}) was resolved by admin.",
+            ]
+            : [
+                'Request rejected',
+                "Your request ({$subtitle}) was rejected by admin.",
+            ];
     }
 }

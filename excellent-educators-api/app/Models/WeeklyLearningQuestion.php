@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\WeeklyQuestionSection;
 use App\Enums\WeeklyQuestionType;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,7 @@ class WeeklyLearningQuestion extends Model
         'weekly_learning_id',
         'question_text',
         'question_type',
+        'section',
         'display_order',
     ];
 
@@ -23,6 +25,7 @@ class WeeklyLearningQuestion extends Model
     {
         return [
             'question_type' => WeeklyQuestionType::class,
+            'section' => WeeklyQuestionSection::class,
             'display_order' => 'integer',
         ];
     }
@@ -35,6 +38,11 @@ class WeeklyLearningQuestion extends Model
     public function isOptions(): bool
     {
         return $this->question_type === WeeklyQuestionType::Options;
+    }
+
+    public function isComprehension(): bool
+    {
+        return $this->section === WeeklyQuestionSection::Comprehension;
     }
 
     public function weeklyLearning(): BelongsTo

@@ -20,6 +20,91 @@ class NamedRef {
   bool get isEmpty => id.isEmpty;
 }
 
+class OnboardingAnswerItemDto {
+  const OnboardingAnswerItemDto({
+    required this.question,
+    this.values = const [],
+  });
+
+  factory OnboardingAnswerItemDto.fromJson(Map<String, dynamic> json) {
+    return OnboardingAnswerItemDto(
+      question: json['question'] as String? ?? '',
+      values: (json['values'] as List<dynamic>? ?? const [])
+          .map((item) => item.toString())
+          .where((item) => item.isNotEmpty)
+          .toList(),
+    );
+  }
+
+  final String question;
+  final List<String> values;
+}
+
+class InterestProfileSummaryDto {
+  const InterestProfileSummaryDto({
+    required this.completed,
+    this.answers = const [],
+  });
+
+  factory InterestProfileSummaryDto.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return const InterestProfileSummaryDto(completed: false);
+    }
+    return InterestProfileSummaryDto(
+      completed: json['completed'] == true,
+      answers: (json['answers'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => OnboardingAnswerItemDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  final bool completed;
+  final List<OnboardingAnswerItemDto> answers;
+}
+
+class ParentIntakeSummaryDto {
+  const ParentIntakeSummaryDto({
+    required this.completed,
+    required this.skipped,
+    this.available = false,
+    this.answers = const [],
+  });
+
+  factory ParentIntakeSummaryDto.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return const ParentIntakeSummaryDto(completed: false, skipped: false);
+    }
+    return ParentIntakeSummaryDto(
+      available: json['available'] == true,
+      completed: json['completed'] == true,
+      skipped: json['skipped'] == true,
+      answers: (json['answers'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => OnboardingAnswerItemDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  final bool available;
+  final bool completed;
+  final bool skipped;
+  final List<OnboardingAnswerItemDto> answers;
+
+  bool get hasAnswers => completed && answers.isNotEmpty;
+
+  /// Soft reminder on dashboard when parent questions exist but are incomplete.
+  bool get needsReminder => available && !completed;
+}
+
 class StudentDto {
   const StudentDto({
     required this.id,
@@ -32,6 +117,7 @@ class StudentDto {
     this.whatsappNumber,
     this.address,
     this.gender,
+    this.photoUrl,
     this.guardianName,
     this.guardianPhone,
     this.level,
@@ -60,6 +146,8 @@ class StudentDto {
     this.batchStartsOn,
     this.journeyStarted = false,
     this.hasLearningHistory = false,
+    this.interestProfile,
+    this.parentIntake,
   });
 
   factory StudentDto.fromJson(Map<String, dynamic> json) {
@@ -71,6 +159,12 @@ class StudentDto {
         : null;
     final batchJson = json['batch'] is Map
         ? Map<String, dynamic>.from(json['batch'] as Map)
+        : null;
+    final interestJson = json['interest_profile'] is Map
+        ? Map<String, dynamic>.from(json['interest_profile'] as Map)
+        : null;
+    final parentJson = json['parent_intake'] is Map
+        ? Map<String, dynamic>.from(json['parent_intake'] as Map)
         : null;
 
     return StudentDto(
@@ -84,6 +178,7 @@ class StudentDto {
       whatsappNumber: json['whatsapp_number'] as String?,
       address: json['address'] as String?,
       gender: json['gender'] as String?,
+      photoUrl: json['photo_url'] as String?,
       guardianName: json['guardian_name'] as String?,
       guardianPhone: json['guardian_phone'] as String?,
       level: json['level'] is Map
@@ -145,6 +240,8 @@ class StudentDto {
       masterClassOverride: json['master_class'] is Map
           ? (json['master_class']['override'] as num?)?.toInt()
           : null,
+      interestProfile: InterestProfileSummaryDto.fromJson(interestJson),
+      parentIntake: ParentIntakeSummaryDto.fromJson(parentJson),
     );
   }
 
@@ -158,6 +255,7 @@ class StudentDto {
   final String? whatsappNumber;
   final String? address;
   final String? gender;
+  final String? photoUrl;
   final String? guardianName;
   final String? guardianPhone;
   final NamedRef? level;
@@ -186,6 +284,8 @@ class StudentDto {
   final String? batchStartsOn;
   final bool journeyStarted;
   final bool hasLearningHistory;
+  final InterestProfileSummaryDto? interestProfile;
+  final ParentIntakeSummaryDto? parentIntake;
 
   bool get hasSubmittedAptitudeAssessment =>
       aptitudeAssessmentStatus == 'submitted';
@@ -522,6 +622,7 @@ class AcademicLevelDto {
     required this.name,
     required this.academicYear,
     required this.status,
+    this.number,
     this.batches = const [],
     this.masterTeachers = const [],
     this.batchesCount = 0,
@@ -560,6 +661,7 @@ class AcademicLevelDto {
     return AcademicLevelDto(
       id: json['id'] as String,
       name: json['name'] as String? ?? '',
+      number: (json['number'] as num?)?.toInt(),
       academicYear: (json['academic_year'] as num?)?.toInt() ?? 0,
       status: json['status'] as String? ?? 'active',
       batches: batchesList,
@@ -571,8 +673,11 @@ class AcademicLevelDto {
     );
   }
 
+  static const maxLevelNumber = 10;
+
   final String id;
   final String name;
+  final int? number;
   final int academicYear;
   final String status;
   final List<BatchDto> batches;
@@ -580,6 +685,18 @@ class AcademicLevelDto {
   final int batchesCount;
   final int studentsCount;
   final int masterClassesPerMonth;
+
+  /// Remaining Level 1–10 slots not yet created.
+  static List<int> availableNumbers(Iterable<AcademicLevelDto> levels) {
+    final used = levels
+        .map((level) => level.number)
+        .whereType<int>()
+        .toSet();
+    return [
+      for (var n = 1; n <= maxLevelNumber; n++)
+        if (!used.contains(n)) n,
+    ];
+  }
 }
 
 class BatchDto {

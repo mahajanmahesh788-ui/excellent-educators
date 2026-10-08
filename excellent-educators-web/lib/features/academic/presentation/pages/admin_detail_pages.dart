@@ -16,6 +16,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/m
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_ui.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/promote_student_card.dart';
+import 'package:excellent_educators_web/features/academic/presentation/widgets/student_onboarding_profile_section.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
 import 'package:excellent_educators_web/features/payments/presentation/providers/payment_providers.dart';
@@ -110,6 +111,8 @@ class AdminStudentDetailPage extends ConsumerWidget {
                   ],
                 ],
               ),
+              const SizedBox(height: 12),
+              StudentOnboardingProfileSections(student: student),
               const SizedBox(height: 12),
               if (user?.canAnyAdmin(const [
                     AdminPermission.paymentsView,

@@ -102,6 +102,42 @@ class AuthTest extends TestCase
             ->assertUnauthorized();
     }
 
+    public function test_new_login_invalidates_previous_session_token(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'single-session@excellenteducators.test',
+            'password' => 'ChangeMeAdmin1!',
+            'status' => UserStatus::Active,
+        ]);
+        $user->assignRole(RoleName::OperationalAdmin->value);
+
+        $firstToken = $this->postJson('/api/v1/auth/login', [
+            'email' => 'single-session@excellenteducators.test',
+            'password' => 'ChangeMeAdmin1!',
+            'device_name' => 'web',
+        ])->assertOk()->json('data.token');
+
+        $secondToken = $this->postJson('/api/v1/auth/login', [
+            'email' => 'single-session@excellenteducators.test',
+            'password' => 'ChangeMeAdmin1!',
+            'device_name' => 'web',
+        ])->assertOk()->json('data.token');
+
+        $this->assertNotSame($firstToken, $secondToken);
+
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($firstToken)
+            ->getJson('/api/v1/auth/me')
+            ->assertUnauthorized()
+            ->assertJsonPath('error.code', 'UNAUTHENTICATED');
+
+        $this->withToken($secondToken)
+            ->getJson('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonPath('data.email', 'single-session@excellenteducators.test');
+    }
+
     public function test_authenticated_user_can_change_password(): void
     {
         $user = User::factory()->create([

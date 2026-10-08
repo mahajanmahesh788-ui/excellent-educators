@@ -9,6 +9,8 @@ import 'package:excellent_educators_web/features/academic/presentation/providers
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_ui.dart';
+import 'package:excellent_educators_web/features/assessments/data/dto/assessment_dtos.dart';
+import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,14 +29,20 @@ class _AdminBatchesPageState extends ConsumerState<AdminBatchesPage> {
   @override
   Widget build(BuildContext context) {
     final levelsValue = ref.watch(adminLevelsProvider);
+    final canAddLevel = levelsValue.maybeWhen(
+      data: (levels) => AcademicLevelDto.availableNumbers(levels).isNotEmpty,
+      orElse: () => true,
+    );
 
     return AppScaffold(
       title: AppStrings.levels,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go(RoutePaths.adminBatchNew),
-        icon: const Icon(Icons.add),
-        label: const Text(AppStrings.addLevel),
-      ),
+      floatingActionButton: canAddLevel
+          ? FloatingActionButton.extended(
+              onPressed: () => context.go(RoutePaths.adminBatchNew),
+              icon: const Icon(Icons.add),
+              label: const Text(AppStrings.addLevel),
+            )
+          : null,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -113,14 +121,13 @@ class AdminCreateBatchPage extends ConsumerStatefulWidget {
 
 class _AdminCreateBatchPageState extends ConsumerState<AdminCreateBatchPage> {
   final _formKey = GlobalKey<FormState>();
-  final _name = TextEditingController();
   final _year = TextEditingController(text: DateTime.now().year.toString());
   final _masterClasses = TextEditingController(text: '1');
+  int? _selectedNumber;
   bool _saving = false;
 
   @override
   void dispose() {
-    _name.dispose();
     _year.dispose();
     _masterClasses.dispose();
     super.dispose();
@@ -130,10 +137,19 @@ class _AdminCreateBatchPageState extends ConsumerState<AdminCreateBatchPage> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    final levels = ref.read(adminLevelsProvider).asData?.value ?? const [];
+    final available = AcademicLevelDto.availableNumbers(levels);
+    final number = available.contains(_selectedNumber)
+        ? _selectedNumber
+        : (available.isNotEmpty ? available.first : null);
+    if (number == null) {
+      showFailure(context, AppStrings.selectLevel);
+      return;
+    }
     setState(() => _saving = true);
     try {
       final level = await ref.read(academicRepositoryProvider).createLevel({
-        'name': _name.text.trim(),
+        'number': number,
         'academic_year': int.parse(_year.text.trim()),
         'master_classes_per_month': int.tryParse(_masterClasses.text.trim()) ?? 1,
       });
@@ -155,63 +171,95 @@ class _AdminCreateBatchPageState extends ConsumerState<AdminCreateBatchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final levelsValue = ref.watch(adminLevelsProvider);
+
     return AppFormPage(
       title: AppStrings.addLevel,
       backTo: RoutePaths.adminBatches,
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextFormField(
-              controller: _name,
-              decoration: const InputDecoration(
-                labelText: AppStrings.levelName,
-                hintText: AppStrings.eGLevel2Class6,
-              ),
-              validator: (value) =>
-                  value == null || value.trim().isEmpty ? AppStrings.enterALevelName : null,
+      child: AsyncBody(
+        value: levelsValue,
+        onRetry: () => ref.invalidate(adminLevelsProvider),
+        builder: (levels) {
+          final available = AcademicLevelDto.availableNumbers(levels);
+          if (available.isEmpty) {
+            return const EmptyHint(
+              AppStrings.allLevelsCreated,
+              icon: EmptyIcons.batches,
+              subtitle: AppStrings.levels,
+            );
+          }
+
+          final selected = available.contains(_selectedNumber)
+              ? _selectedNumber
+              : available.first;
+
+          return Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DropdownButtonFormField<int>(
+                  initialValue: selected,
+                  decoration: const InputDecoration(
+                    labelText: AppStrings.selectLevel,
+                    helperText: AppStrings.chooseLevelFromList,
+                  ),
+                  items: [
+                    for (final number in available)
+                      DropdownMenuItem(
+                        value: number,
+                        child: Text('Level $number'),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _selectedNumber = value),
+                  validator: (value) =>
+                      value == null ? AppStrings.selectLevel : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _year,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: AppStrings.academicYear,
+                    hintText: AppStrings.eG2026,
+                  ),
+                  validator: (value) =>
+                      int.tryParse(value ?? '') == null
+                          ? AppStrings.enterAValidYear
+                          : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _masterClasses,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: AppStrings.masterClassesPerMonth,
+                    helperText:
+                        AppStrings.everyStudentInThisLevelGetsThisManyEachMonth,
+                  ),
+                  validator: (value) {
+                    final parsed = int.tryParse(value ?? '');
+                    if (parsed == null || parsed < 1 || parsed > 10) {
+                      return AppStrings.enterANumberFrom1To10;
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _saving ? null : _submit,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(AppStrings.createLevel),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _year,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: AppStrings.academicYear,
-                hintText: AppStrings.eG2026,
-              ),
-              validator: (value) =>
-                  int.tryParse(value ?? '') == null ? AppStrings.enterAValidYear : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _masterClasses,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: AppStrings.masterClassesPerMonth,
-                helperText: AppStrings.everyStudentInThisLevelGetsThisManyEachMonth,
-              ),
-              validator: (value) {
-                final parsed = int.tryParse(value ?? '');
-                if (parsed == null || parsed < 1 || parsed > 10) {
-                  return AppStrings.enterANumberFrom1To10;
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _saving ? null : _submit,
-              child: _saving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(AppStrings.createLevel),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -327,6 +375,15 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                                 icon: const Icon(Icons.menu_book_outlined, size: 18),
                                 label: const Text(AppStrings.learningJourney2),
                               ),
+                              FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size(0, 38),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                                ),
+                                onPressed: () => _assignAssessmentsDialog(context, level),
+                                icon: const Icon(Icons.quiz_outlined, size: 18),
+                                label: const Text(AppStrings.assignAssessments),
+                              ),
                               FilledButton.tonalIcon(
                                 style: FilledButton.styleFrom(
                                   minimumSize: const Size(0, 38),
@@ -336,7 +393,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                                 icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
                                 label: const Text(AppStrings.addMasterTeacher),
                               ),
-                              FilledButton.icon(
+                              FilledButton.tonalIcon(
                                 style: FilledButton.styleFrom(
                                   minimumSize: const Size(0, 38),
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
@@ -419,6 +476,157 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                 ),
               ],
             ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _assignAssessmentsDialog(
+    BuildContext context,
+    AcademicLevelDto level,
+  ) async {
+    final repo = ref.read(academicRepositoryProvider);
+    final assessmentRepo = ref.read(assessmentRepositoryProvider);
+
+    List<AptitudeAssessmentDto> assessments = const [];
+    var selected = <String>{};
+    var loading = true;
+    String? loadError;
+    var saving = false;
+
+    try {
+      final page = await assessmentRepo.adminAssessments(page: 1);
+      assessments = assessmentRepo.parseAssessments(page);
+      final assigned = await repo.levelAssessmentIds(level.id);
+      selected = assigned.toSet();
+      loading = false;
+    } catch (error) {
+      loading = false;
+      loadError = '$error';
+    }
+
+    if (!context.mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          // Re-run load inside dialog if first paint was before data arrived.
+          if (loading && loadError == null && assessments.isEmpty) {
+            // no-op; state already set above before dialog
+          }
+
+          return AppModalDialog(
+            title: AppStrings.assignAssessmentsTitle,
+            child: SizedBox(
+              width: 480,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    '${level.name} · ${AppStrings.assignAssessmentsHelp}',
+                    style: const TextStyle(color: Brand.muted, fontSize: 13, height: 1.4),
+                  ),
+                  const SizedBox(height: 14),
+                  if (loading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (loadError != null)
+                    Text(loadError, style: const TextStyle(color: Color(0xFFB42318)))
+                  else if (assessments.isEmpty)
+                    const Text(
+                      AppStrings.noAssessmentsYetCreateInAssessments,
+                      style: TextStyle(color: Brand.muted, fontSize: 13),
+                    )
+                  else
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 360),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: assessments.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 6),
+                        itemBuilder: (context, index) {
+                          final item = assessments[index];
+                          final checked = selected.contains(item.id);
+                          return Material(
+                            color: checked
+                                ? Brand.navy.withValues(alpha: 0.06)
+                                : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            child: CheckboxListTile(
+                              value: checked,
+                              onChanged: saving
+                                  ? null
+                                  : (value) {
+                                      setDialogState(() {
+                                        if (value == true) {
+                                          selected.add(item.id);
+                                        } else {
+                                          selected.remove(item.id);
+                                        }
+                                      });
+                                    },
+                              controlAffinity: ListTileControlAffinity.leading,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              title: Text(
+                                item.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Brand.navy,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${item.status} · ${item.questionsCount} questions',
+                                style: const TextStyle(
+                                  color: Brand.muted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  AppDialogActions(
+                    confirmLabel: AppStrings.saveAssignments,
+                    isConfirming: saving,
+                    onConfirm: assessments.isEmpty || loadError != null
+                        ? null
+                        : () async {
+                            setDialogState(() => saving = true);
+                            try {
+                              await repo.syncLevelAssessments(
+                                levelId: level.id,
+                                assessmentIds: selected.toList(),
+                              );
+                              ref.invalidate(adminLevelProvider(level.id));
+                              if (ctx.mounted) {
+                                Navigator.of(ctx).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(AppStrings.assessmentsAssigned),
+                                  ),
+                                );
+                              }
+                            } catch (error) {
+                              setDialogState(() => saving = false);
+                              if (ctx.mounted) showFailure(ctx, error);
+                            }
+                          },
+                    onCancel: saving ? null : () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+            ),
           );
         },
       ),
@@ -523,7 +731,6 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
   }
 
   Future<void> _editLevelDialog(BuildContext context, AcademicLevelDto level) async {
-    final nameCtrl = TextEditingController(text: level.name);
     final masterCtrl = TextEditingController(text: '${level.masterClassesPerMonth}');
     final formKey = GlobalKey<FormState>();
     bool saving = false;
@@ -539,10 +746,23 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextFormField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: AppStrings.levelName),
-                  validator: (val) => val == null || val.trim().isEmpty ? AppStrings.enterName : null,
+                InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: AppStrings.levelName,
+                    border: OutlineInputBorder(),
+                  ),
+                  child: Text(
+                    level.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Brand.navy,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  AppStrings.levelNameIsFixed,
+                  style: TextStyle(color: Brand.muted.withValues(alpha: 0.9), fontSize: 12),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -568,7 +788,6 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                     setDialogState(() => saving = true);
                     try {
                       await ref.read(academicRepositoryProvider).updateLevel(level.id, {
-                        'name': nameCtrl.text.trim(),
                         'master_classes_per_month': int.parse(masterCtrl.text.trim()),
                       });
                       ref.invalidate(adminLevelProvider(level.id));

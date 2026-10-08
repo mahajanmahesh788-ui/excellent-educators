@@ -67,6 +67,8 @@ abstract final class RoutePaths {
   static const teacherRequestNew = '/teacher/requests/new';
   static const studentDashboard = '/student/dashboard';
   static const studentAcceptTerms = '/student/accept-terms';
+  static const studentInterestProfile = '/student/interest-profile';
+  static const studentParentIntake = '/student/parent-intake';
   static const studentBookings = '/student/bookings';
   static const studentBookNew = '/student/bookings/new';
   static const studentTeachers = '/student/teachers';
@@ -77,6 +79,8 @@ abstract final class RoutePaths {
   static const studentProfile = '/student/profile';
   static const studentPayments = '/student/payments';
   static const studentPrivacy = '/student/privacy-policy';
+  static const studentTerms = '/student/terms-and-conditions';
+  static const studentRefund = '/student/refund-cancellation-policy';
   static const studentAbout = '/student/about-us';
   static const studentFaq = '/student/faq';
   static const studentChildConsent = '/student/child-parental-consent';

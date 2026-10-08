@@ -37,14 +37,36 @@ void _routerPop(BuildContext context) {
   GoRouter.of(context).pop();
 }
 
-/// Open a top-level menu screen. Clears any detail routes (A←B←C → menu only).
+/// Open a top-level menu / bottom-nav screen.
+///
+/// Clears any pushed detail routes, then [replace]s the current history entry
+/// so switching tabs (Dashboard ↔ Notifications ↔ Journal) does not stack in
+/// browser/system Back.
 void goMenu(BuildContext context, String location) {
   dismissOverlayRoutes(context);
   final router = GoRouter.of(context);
   while (router.canPop()) {
     router.pop();
   }
-  context.go(location);
+
+  final target = AppNavHistory.normalize(location);
+  final current = AppNavHistory.normalize(router.state.uri.path);
+  AppNavHistory.instance.track(target);
+  if (current == target) {
+    return;
+  }
+
+  router.replace(target);
+}
+
+/// Navigate to [location]: shell/tab destinations clear history via [goMenu];
+/// detail routes use [goDetail] so Back returns one step.
+void openAppLink(BuildContext context, String location) {
+  if (AppNavHistory.isShellDestination(location)) {
+    goMenu(context, location);
+    return;
+  }
+  goDetail(context, location);
 }
 
 /// Forward navigation into a detail screen (A → B → C).
@@ -69,18 +91,30 @@ void popDetail(BuildContext context, {String? fallback}) {
   }
 }
 
-/// After an action on C (submit/save), return to [parent] and ensure C is not
-/// still behind B in history. Prefer pop; otherwise go to parent.
+/// After an action on C (submit/save), land on [parent] and ensure C is not
+/// left in browser/app history (Back must not reopen the finished screen).
+///
+/// Prefer popping a push-stack first. If this screen was opened with `go`
+/// (no pop), [GoRouter.replace] swaps the history entry so Back skips C.
 void completeAndReturnTo(BuildContext context, String parent) {
   dismissOverlayRoutes(context);
-  if (_routerCanPop(context)) {
-    _routerPop(context);
+  final router = GoRouter.of(context);
+  final parentNorm = AppNavHistory.normalize(parent);
+
+  while (router.canPop()) {
+    router.pop();
+  }
+
+  AppNavHistory.instance.discardCurrent();
+
+  final current = AppNavHistory.normalize(router.state.uri.path);
+  if (current == parentNorm) {
+    AppNavHistory.instance.track(parentNorm);
     return;
   }
-  // Opened without a push stack (e.g. deep link): drop current from our
-  // history then land on parent so Back does not revive this screen.
-  AppNavHistory.instance.discardCurrent();
-  context.go(parent);
+
+  // replace (not go): go() would push parent on top of C in browser history.
+  router.replace(parentNorm);
 }
 
 /// @Deprecated — use [completeAndReturnTo].
@@ -105,10 +139,23 @@ void navigateBack(BuildContext context, String? backTo) {
     return;
   }
 
+  // Bottom-nav / shell screens: never walk to another tab via Back.
+  final currentPath = GoRouterState.of(context).uri.path;
+  if ((backTo == null || backTo.isEmpty) &&
+      AppNavHistory.isShellDestination(currentPath)) {
+    handleDoubleBackToExit(context);
+    return;
+  }
+
   // Legacy go()-based trail tracked in AppNavHistory.
   final previous = AppNavHistory.instance.takeBackTarget();
   if (previous != null) {
-    context.go(previous);
+    // Prefer replace so we do not re-stack the abandoned screen.
+    if (AppNavHistory.isShellDestination(previous)) {
+      goMenu(context, previous);
+    } else {
+      GoRouter.of(context).replace(previous);
+    }
     return;
   }
 

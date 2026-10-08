@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
 
@@ -169,7 +170,8 @@ class WeeklyLearningSection extends StatelessWidget {
             onAction: () {
               final journeyId = week?.journeyId;
               if (journeyId != null && journeyId.isNotEmpty) {
-                context.go(
+                goDetail(
+                  context,
                   RoutePaths.studentJournalWeekFor(journeyId, weekNumber),
                 );
               } else {
@@ -195,14 +197,7 @@ class WeeklyLearningSection extends StatelessWidget {
             actionIcon: Icons.arrow_forward_rounded,
             buttonFilled: false,
             onAction: () {
-              final journeyId = week?.journeyId;
-              if (journeyId != null && journeyId.isNotEmpty) {
-                context.go(
-                  RoutePaths.studentJournalWeekFor(journeyId, weekNumber),
-                );
-              } else {
-                context.go(RoutePaths.studentJournal);
-              }
+              context.go(RoutePaths.studentJournal);
             },
           ),
         ],

@@ -45,6 +45,8 @@ import 'package:excellent_educators_web/features/schedule/presentation/pages/tea
 import 'package:excellent_educators_web/features/schedule/presentation/pages/teacher_student_briefing_page.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/teacher_schedule_page.dart';
 import 'package:excellent_educators_web/features/student/presentation/pages/student_accept_terms_page.dart';
+import 'package:excellent_educators_web/features/onboarding/presentation/pages/student_interest_profile_page.dart';
+import 'package:excellent_educators_web/features/onboarding/presentation/pages/student_parent_intake_page.dart';
 import 'package:excellent_educators_web/features/student/presentation/pages/student_dashboard_page.dart';
 import 'package:excellent_educators_web/features/student/presentation/pages/student_mentor_profile_page.dart';
 import 'package:excellent_educators_web/features/student/presentation/pages/student_teachers_page.dart';
@@ -107,14 +109,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             location == '/' ||
             location == RoutePaths.forgotPassword ||
             location == RoutePaths.resetPassword) {
-          if (user.isStudent && user.mustAcceptTerms) {
-            return RoutePaths.studentAcceptTerms;
+          if (user.isStudent) {
+            return user.nextOnboardingPath ?? home;
           }
           return home;
         }
-        if (user.isStudent && user.mustAcceptTerms) {
-          const allowedWhileGated = {
-            RoutePaths.studentAcceptTerms,
+        if (user.isStudent) {
+          final gate = user.nextOnboardingPath;
+          const policyPages = {
             RoutePaths.privacyPolicy,
             RoutePaths.termsAndConditions,
             RoutePaths.refundPolicy,
@@ -122,15 +124,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             RoutePaths.aboutUs,
             RoutePaths.faq,
             RoutePaths.childParentalConsent,
+            RoutePaths.studentPrivacy,
+            RoutePaths.studentTerms,
+            RoutePaths.studentRefund,
+            RoutePaths.studentAbout,
+            RoutePaths.studentFaq,
+            RoutePaths.studentChildConsent,
           };
-          if (!allowedWhileGated.contains(location)) {
-            return RoutePaths.studentAcceptTerms;
+          if (gate != null) {
+            final allowedGated = <String>{
+              gate,
+              ...policyPages,
+              if (gate == RoutePaths.studentParentIntake ||
+                  gate == RoutePaths.studentInterestProfile) ...[
+                RoutePaths.studentInterestProfile,
+                RoutePaths.studentParentIntake,
+              ],
+            };
+            if (!allowedGated.contains(location)) {
+              return gate;
+            }
+          } else if (location == RoutePaths.studentAcceptTerms) {
+            return RoutePaths.studentDashboard;
           }
-        }
-        if (user.isStudent &&
-            !user.mustAcceptTerms &&
-            location == RoutePaths.studentAcceptTerms) {
-          return RoutePaths.studentDashboard;
         }
         if (location == '/notifications') {
           return RoutePaths.notificationsFor(
@@ -648,6 +664,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const StudentAcceptTermsPage(),
       ),
       GoRoute(
+        path: RoutePaths.studentInterestProfile,
+        builder: (context, state) => const StudentInterestProfilePage(),
+      ),
+      GoRoute(
+        path: RoutePaths.studentParentIntake,
+        builder: (context, state) => const StudentParentIntakePage(),
+      ),
+      GoRoute(
         path: RoutePaths.studentJournal,
         builder: (context, state) => const StudentLearningJournalPage(),
       ),
@@ -671,6 +695,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const StudentSiteContentPage(
           slug: SitePageSlugs.privacy,
           title: AppStrings.privacyPolicy,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.studentTerms,
+        builder: (context, state) => const StudentSiteContentPage(
+          slug: SitePageSlugs.terms,
+          title: AppStrings.termsAndConditions,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.studentRefund,
+        builder: (context, state) => const StudentSiteContentPage(
+          slug: SitePageSlugs.refund,
+          title: AppStrings.refundPolicy,
         ),
       ),
       GoRoute(

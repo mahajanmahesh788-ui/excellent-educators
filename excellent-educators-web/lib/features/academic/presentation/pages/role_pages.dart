@@ -1,7 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
+import 'package:excellent_educators_web/core/utils/image_shrink.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/master_teacher_students_filter.dart';
@@ -9,6 +12,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/mentor_profile_editor.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/mentor_profile_view.dart';
+import 'package:excellent_educators_web/features/academic/presentation/widgets/student_onboarding_profile_section.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/assessment_result_view.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
@@ -17,6 +21,7 @@ import 'package:excellent_educators_web/features/student/presentation/widgets/ac
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_ui.dart';
 import 'package:excellent_educators_web/features/requests/presentation/widgets/request_student_removal_dialog.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -263,11 +268,69 @@ List<Widget> _groupedStudentTiles(
   return widgets;
 }
 
-class StudentProfilePage extends ConsumerWidget {
+class StudentProfilePage extends ConsumerStatefulWidget {
   const StudentProfilePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StudentProfilePage> createState() => _StudentProfilePageState();
+}
+
+class _StudentProfilePageState extends ConsumerState<StudentProfilePage> {
+  Uint8List? _localPreview;
+  bool _uploading = false;
+
+  Future<void> _pickAndUploadPhoto() async {
+    if (_uploading) return;
+
+    final files = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+    );
+    if (files.isEmpty) return;
+
+    final file = files.first;
+    late final Uint8List bytes;
+    try {
+      final raw = await file.readAsBytes();
+      if (raw.isEmpty) {
+        throw StateError('Could not read the selected image.');
+      }
+      bytes = shrinkImageToMaxBytes(raw);
+    } catch (error) {
+      if (mounted) showFailure(context, error);
+      return;
+    }
+
+    setState(() {
+      _localPreview = bytes;
+      _uploading = true;
+    });
+
+    try {
+      final photoUrl = await ref
+          .read(academicRepositoryProvider)
+          .uploadStudentPhoto(
+            bytes: bytes,
+            filename: 'student-photo.jpg',
+          );
+      if (photoUrl.isEmpty) {
+        throw StateError('Upload did not return a photo URL.');
+      }
+      ref.invalidate(studentProfileProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.profilePhotoUploaded)),
+        );
+      }
+    } catch (error) {
+      if (mounted) showFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final profile = ref.watch(studentProfileProvider);
 
     return StudentScaffold(
@@ -282,7 +345,15 @@ class StudentProfilePage extends ConsumerWidget {
               AcademySurface(
                 child: Row(
                   children: [
-                    AcademyAvatar(name: student.fullName, size: 64),
+                    AcademyAvatar(
+                      name: student.fullName,
+                      size: 72,
+                      photoUrl: student.photoUrl,
+                      bytes: _localPreview,
+                      uploading: _uploading,
+                      showEditBadge: true,
+                      onTap: _pickAndUploadPhoto,
+                    ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
@@ -306,6 +377,15 @@ class StudentProfilePage extends ConsumerWidget {
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               color: Brand.navy,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            AppStrings.profilePhotoHint,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                              height: 1.3,
                             ),
                           ),
                         ],
@@ -379,6 +459,14 @@ class StudentProfilePage extends ConsumerWidget {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 16),
+              StudentOnboardingProfileSections(
+                student: student,
+                useStudentCards: true,
+                onEditInterest: () =>
+                    context.go(RoutePaths.studentInterestProfile),
+                onEditParent: () => context.go(RoutePaths.studentParentIntake),
               ),
               const SizedBox(height: 16),
               StudentSectionCard(

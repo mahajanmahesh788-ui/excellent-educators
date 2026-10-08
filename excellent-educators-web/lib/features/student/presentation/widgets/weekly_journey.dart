@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/fresh_student_onboarding.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
@@ -39,7 +40,8 @@ class WeeklyJourneyWidget extends StatelessWidget {
           if (videoUrl != null && videoUrl.isNotEmpty) {
             final journeyId = learning?.week?.journeyId;
             if (journeyId != null) {
-              context.go(
+              goDetail(
+                context,
                 RoutePaths.studentJournalWeekFor(journeyId, currentWeek),
               );
             } else {
@@ -64,7 +66,8 @@ class WeeklyJourneyWidget extends StatelessWidget {
         onTap: () {
           final journeyId = learning?.week?.journeyId;
           if (journeyId != null && journeyId.isNotEmpty) {
-            context.go(
+            goDetail(
+              context,
               RoutePaths.studentJournalWeekFor(journeyId, currentWeek),
             );
           } else {

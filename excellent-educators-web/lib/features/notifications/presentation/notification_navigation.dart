@@ -1,8 +1,8 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/auth/domain/entities/app_user.dart';
 import 'package:excellent_educators_web/features/notifications/data/dto/notification_dtos.dart';
 import 'package:flutter/widgets.dart';
-import 'package:go_router/go_router.dart';
 
 void openNotificationDeepLink(
   BuildContext context,
@@ -14,7 +14,7 @@ void openNotificationDeepLink(
           notification.type == 'teacher_leave_cancelled') &&
       groupId != null &&
       groupId.isNotEmpty) {
-    context.go(RoutePaths.adminLeaveRequest(groupId));
+    openAppLink(context, RoutePaths.adminLeaveRequest(groupId));
     return;
   }
 
@@ -24,14 +24,14 @@ void openNotificationDeepLink(
     final requestId = notification.data?['admin_request_id'] as String?;
     if (requestId != null && requestId.isNotEmpty) {
       if (user?.isAdmin == true && notification.type == 'admin_request_submitted') {
-        context.go(RoutePaths.adminRequestFor(requestId));
+        openAppLink(context, RoutePaths.adminRequestFor(requestId));
         return;
       }
       if (user?.isMasterTeacher == true || user?.isCommonTeacher == true) {
-        context.go(RoutePaths.teacherRequests);
+        openAppLink(context, RoutePaths.teacherRequests);
         return;
       }
-      context.go(RoutePaths.adminRequestFor(requestId));
+      openAppLink(context, RoutePaths.adminRequestFor(requestId));
       return;
     }
   }
@@ -39,7 +39,7 @@ void openNotificationDeepLink(
   if (notification.type == 'agent_registered_student') {
     final studentId = notification.data?['student_id'] as String?;
     if (studentId != null && studentId.isNotEmpty) {
-      context.go(RoutePaths.adminStudent(studentId));
+      openAppLink(context, RoutePaths.adminStudent(studentId));
       return;
     }
   }
@@ -49,14 +49,14 @@ void openNotificationDeepLink(
     if (link.startsWith('/admin/requests/')) {
       final requestId = link.split('/').last;
       if (requestId.isNotEmpty) {
-        context.go(RoutePaths.adminRequestFor(requestId));
+        openAppLink(context, RoutePaths.adminRequestFor(requestId));
       }
       return;
     }
     if (link.startsWith('/admin/students/')) {
       final studentId = link.split('/').last;
       if (studentId.isNotEmpty) {
-        context.go(RoutePaths.adminStudent(studentId));
+        openAppLink(context, RoutePaths.adminStudent(studentId));
       }
       return;
     }
@@ -64,39 +64,39 @@ void openNotificationDeepLink(
         link.startsWith('/admin/schedule/leave-requests/')) {
       final leaveGroupId = link.split('/').last;
       if (leaveGroupId.isNotEmpty) {
-        context.go(RoutePaths.adminLeaveRequest(leaveGroupId));
+        openAppLink(context, RoutePaths.adminLeaveRequest(leaveGroupId));
       }
       return;
     }
     if (link.startsWith('/admin/attendance/')) {
       final issueId = link.split('/').last;
       if (issueId.isNotEmpty) {
-        context.go(RoutePaths.adminAttendanceIssue(issueId));
+        openAppLink(context, RoutePaths.adminAttendanceIssue(issueId));
       } else {
-        context.go(RoutePaths.adminAttendance);
+        openAppLink(context, RoutePaths.adminAttendance);
       }
       return;
     }
     if (link == '/student/payments') {
-      context.go(RoutePaths.studentPayments);
+      openAppLink(context, RoutePaths.studentPayments);
       return;
     }
     if (link == '/student/bookings') {
-      context.go(RoutePaths.studentBookings);
+      openAppLink(context, RoutePaths.studentBookings);
       return;
     }
     if (link == '/student/dashboard') {
-      context.go(RoutePaths.studentDashboard);
+      openAppLink(context, RoutePaths.studentDashboard);
       return;
     }
     if (link.startsWith('/teacher/schedule')) {
-      context.go(RoutePaths.teacherDaySchedule);
+      openAppLink(context, RoutePaths.teacherDaySchedule);
       return;
     }
     if (link.startsWith('/admin/notifications') ||
         link.startsWith('/teacher/notifications') ||
         link.startsWith('/student/notifications')) {
-      context.go(link);
+      openAppLink(context, link);
       return;
     }
   }
@@ -108,46 +108,47 @@ void openNotificationDeepLink(
       notification.type == 'teacher_leave_rejected' ||
       notification.type == 'teacher_leave_cancelled') {
     if ((user?.isCommonTeacher ?? false) || (user?.isMasterTeacher ?? false)) {
-      context.go(RoutePaths.teacherDaySchedule);
+      openAppLink(context, RoutePaths.teacherDaySchedule);
     } else if (user?.isStudent ?? false) {
-      context.go(RoutePaths.studentBookings);
+      openAppLink(context, RoutePaths.studentBookings);
     }
     return;
   }
 
   if (notification.type == 'payment_recorded' ||
       notification.type == 'payment_voided') {
-    context.go(RoutePaths.studentPayments);
+    openAppLink(context, RoutePaths.studentPayments);
     return;
   }
 
   if (notification.type == 'attendance_conflict_reported') {
     final issueId = notification.data?['issue_id'] as String?;
     if (issueId != null && issueId.isNotEmpty) {
-      context.go(RoutePaths.adminAttendanceIssue(issueId));
+      openAppLink(context, RoutePaths.adminAttendanceIssue(issueId));
     } else {
-      context.go(RoutePaths.adminAttendance);
+      openAppLink(context, RoutePaths.adminAttendance);
     }
     return;
   }
 
   if (notification.type == 'attendance_conflict_resolved') {
     if (user?.isStudent ?? false) {
-      context.go(RoutePaths.studentBookings);
+      openAppLink(context, RoutePaths.studentBookings);
     } else if ((user?.isCommonTeacher ?? false) ||
         (user?.isMasterTeacher ?? false)) {
-      context.go(RoutePaths.teacherDaySchedule);
+      openAppLink(context, RoutePaths.teacherDaySchedule);
     }
     return;
   }
 
   if (notification.type == 'student_promoted' ||
       notification.type == 'aptitude_assessment_available') {
-    context.go(RoutePaths.studentDashboard);
+    openAppLink(context, RoutePaths.studentDashboard);
     return;
   }
 
-  context.go(
+  openAppLink(
+    context,
     RoutePaths.notificationsFor(
       isStudent: user?.isStudent ?? false,
       isAdmin: user?.isAdmin ?? false,

@@ -378,10 +378,12 @@ class DetailSection extends StatelessWidget {
     super.key,
     required this.title,
     required this.children,
+    this.trailing,
   });
 
   final String title;
   final List<Widget> children;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -400,9 +402,16 @@ class DetailSection extends StatelessWidget {
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: Color(0xFFE6DCCB))),
             ),
-            child: Text(
-              title,
-              style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: isMobile ? 14 : 15),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(color: Brand.navy, fontWeight: FontWeight.w700, fontSize: isMobile ? 14 : 15),
+                  ),
+                ),
+                if (trailing != null) trailing!,
+              ],
             ),
           ),
           Padding(

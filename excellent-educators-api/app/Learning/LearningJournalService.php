@@ -320,6 +320,8 @@ class LearningJournalService
             'can_submit' => $unlocked && $journey->isCurrent() && $unit !== null && $attemptCount < 2,
             'video_url' => $videoUrl,
             'has_video' => is_string($videoUrl) && $videoUrl !== '',
+            'comprehension_paragraph' => $unit?->comprehension_paragraph,
+            'has_comprehension' => filled($unit?->comprehension_paragraph),
             'score' => null,
             'result' => $latestResult,
         ];
@@ -344,6 +346,7 @@ class LearningJournalService
                 'id' => $question->id,
                 'question_text' => $question->question_text,
                 'question_type' => $question->question_type->value,
+                'section' => ($question->section?->value) ?? 'main',
                 'display_order' => $question->display_order,
                 'options' => $question->options->map(fn ($option) => [
                     'id' => $option->id,

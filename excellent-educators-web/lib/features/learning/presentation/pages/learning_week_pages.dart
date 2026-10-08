@@ -523,7 +523,14 @@ class _StudentLearningWeekPageState
                 const SizedBox(height: 16),
 
                 // Compact Question Cards with selected data
-                for (var i = 0; i < totalQuestions; i++)
+                for (var i = 0; i < totalQuestions; i++) ...[
+                  if (week.hasComprehension &&
+                      (week.comprehensionParagraph ?? '').trim().isNotEmpty &&
+                      week.questions[i].isComprehension &&
+                      (i == 0 || !week.questions[i - 1].isComprehension))
+                    _ComprehensionPassage(
+                      text: week.comprehensionParagraph!.trim(),
+                    ),
                   _CompactQuestionCard(
                     key: _questionKeys[i],
                     index: i,
@@ -562,6 +569,7 @@ class _StudentLearningWeekPageState
                         ? (_) => setState(() => _error = null)
                         : null,
                   ),
+                ],
 
                 // Error message banner
                 if (_error != null) ...[
@@ -982,6 +990,58 @@ class _StudentLearningWeekPageState
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+}
+
+class _ComprehensionPassage extends StatelessWidget {
+  const _ComprehensionPassage({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F3EA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Brand.gold.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.menu_book_outlined,
+                size: 16,
+                color: Brand.navy.withValues(alpha: 0.85),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                AppStrings.comprehensionExercise,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  color: Brand.navy.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: Academy.ink,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1661,7 +1721,14 @@ class _AttemptReview extends StatelessWidget {
               ),
             ],
             SizedBox(height: isMobile ? 12 : 16),
-            for (var i = 0; i < week.questions.length; i++)
+            for (var i = 0; i < week.questions.length; i++) ...[
+              if (week.hasComprehension &&
+                  (week.comprehensionParagraph ?? '').trim().isNotEmpty &&
+                  week.questions[i].isComprehension &&
+                  (i == 0 || !week.questions[i - 1].isComprehension))
+                _ComprehensionPassage(
+                  text: week.comprehensionParagraph!.trim(),
+                ),
               _CompactQuestionCard(
                 index: i,
                 question: week.questions[i],
@@ -1674,6 +1741,7 @@ class _AttemptReview extends StatelessWidget {
                 isReadOnly: true,
                 showResult: true,
               ),
+            ],
           ],
         ),
       ),

@@ -5,6 +5,7 @@ namespace App\Http\Resources\Api\V1;
 use App\Enums\PermissionName;
 use App\Models\User;
 use App\Support\PolicyTerms;
+use App\Support\StudentOnboardingStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,6 +19,10 @@ class UserResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        if ($this->resource->relationLoaded('studentProfile') === false) {
+            $this->resource->loadMissing('studentProfile');
+        }
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -31,6 +36,7 @@ class UserResource extends JsonResource
             'terms_accepted_version' => $this->terms_accepted_version,
             'terms_current_version' => PolicyTerms::currentVersion(),
             'must_accept_terms' => $this->mustAcceptTerms(),
+            ...StudentOnboardingStatus::forUser($this->resource),
         ];
     }
 

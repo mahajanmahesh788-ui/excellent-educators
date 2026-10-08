@@ -55,6 +55,14 @@ abstract final class ApiEndpoints {
       '/api/v1/admin/levels/$levelId/teachers/$teacherId';
   static String adminLevelWeeklyLearnings(String levelId) =>
       '/api/v1/admin/levels/$levelId/weekly-learnings';
+  static String adminLevelAssessments(String levelId) =>
+      '/api/v1/admin/levels/$levelId/assessments';
+  static const adminInterestQuestions = '/api/v1/admin/interest-questions';
+  static const adminParentQuestions = '/api/v1/admin/parent-questions';
+  static const studentInterestProfile = '/api/v1/student/interest-profile';
+  static const studentParentIntake = '/api/v1/student/parent-intake';
+  static const studentParentIntakeSkip =
+      '/api/v1/student/parent-intake/skip';
   static String adminStudentLearningJournal(String studentId) =>
       '/api/v1/admin/students/$studentId/learning-journal';
   static String adminStudentLearningWeek(
@@ -100,6 +108,7 @@ abstract final class ApiEndpoints {
       '/api/v1/master-teacher/students/$id';
 
   static const studentProfile = '/api/v1/student/profile';
+  static const studentProfilePhoto = '/api/v1/student/profile/photo';
   static const studentAcceptTerms = '/api/v1/student/accept-terms';
   static const studentAssessment = '/api/v1/student/assessment';
   static String studentAssessmentSubmit(String id) =>

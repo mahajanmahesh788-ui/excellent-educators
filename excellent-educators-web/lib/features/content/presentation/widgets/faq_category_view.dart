@@ -181,7 +181,7 @@ class _FaqCategoryViewState extends State<FaqCategoryView> {
     final categories = _parseFaq(widget.body);
 
     if (categories.isEmpty) {
-      return SelectableText(
+      return Text(
         widget.body,
         style: const TextStyle(
           fontSize: 15,
@@ -686,7 +686,7 @@ class _FaqExpandableCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  child: SelectableText(
+                  child: Text(
                     item.answer,
                     style: TextStyle(
                       fontSize: 14.5,

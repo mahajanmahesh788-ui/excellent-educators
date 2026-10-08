@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/join_student_session.dart';
@@ -386,7 +387,8 @@ class _StudentHeroSectionState extends ConsumerState<StudentHeroSection> {
                             onPressed: () {
                               final journeyId = learning.week?.journeyId;
                               if (journeyId != null && journeyId.isNotEmpty) {
-                                context.go(
+                                goDetail(
+                                  context,
                                   RoutePaths.studentJournalWeekFor(
                                     journeyId,
                                     learning.currentWeek,

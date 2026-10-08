@@ -168,6 +168,8 @@ class LearningRepository with MapsApiFailures {
     required int weekNumber,
     required String videoUrl,
     required List<Map<String, dynamic>> questions,
+    String? comprehensionParagraph,
+    List<Map<String, dynamic>> comprehensionQuestions = const [],
   }) {
     return runApi(() async {
       final json = await _client.put(
@@ -176,6 +178,8 @@ class LearningRepository with MapsApiFailures {
           'week_number': weekNumber,
           'video_url': videoUrl,
           'questions': questions,
+          'comprehension_paragraph': comprehensionParagraph,
+          'comprehension_questions': comprehensionQuestions,
         },
       );
       return WeeklyLearningContentDto.fromJson(json!);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Actions\Learning\SyncWeeklyOptionDimensionCodes;
+use App\Enums\WeeklyQuestionSection;
 use App\Enums\WeeklyQuestionType;
 use App\Http\Controllers\Api\V1\Concerns\AuthorizesLearningJournal;
 use App\Http\Controllers\Controller;
@@ -39,6 +40,13 @@ class WeeklyLearningController extends Controller
         $data = $request->validated();
 
         $unit = DB::transaction(function () use ($level, $data, $syncDimensionCodes): WeeklyLearning {
+            $paragraph = trim((string) ($data['comprehension_paragraph'] ?? ''));
+            $comprehensionQuestions = $data['comprehension_questions'] ?? [];
+            if ($paragraph === '' || ! is_array($comprehensionQuestions) || $comprehensionQuestions === []) {
+                $paragraph = null;
+                $comprehensionQuestions = [];
+            }
+
             $unit = WeeklyLearning::query()->updateOrCreate(
                 [
                     'level_id' => $level->id,
@@ -46,30 +54,33 @@ class WeeklyLearningController extends Controller
                 ],
                 [
                     'video_url' => $data['video_url'],
+                    'comprehension_paragraph' => $paragraph,
                 ],
             );
 
             $unit->questions()->delete();
 
-            foreach ($data['questions'] as $index => $questionData) {
-                $type = WeeklyQuestionType::from($questionData['question_type']);
-                $question = $unit->questions()->create([
-                    'question_text' => $questionData['question_text'],
-                    'question_type' => $type,
-                    'display_order' => $index + 1,
-                ]);
+            $order = 0;
+            foreach ($data['questions'] as $questionData) {
+                $order++;
+                $this->createQuestion(
+                    $unit,
+                    $questionData,
+                    WeeklyQuestionSection::Main,
+                    $order,
+                    $syncDimensionCodes,
+                );
+            }
 
-                if ($type !== WeeklyQuestionType::Options) {
-                    continue;
-                }
-
-                foreach ($questionData['options'] ?? [] as $optionIndex => $optionData) {
-                    $option = $question->options()->create([
-                        'option_text' => $optionData['option_text'],
-                        'display_order' => $optionIndex + 1,
-                    ]);
-                    $syncDimensionCodes->execute($option, $optionData['dimension_codes']);
-                }
+            foreach ($comprehensionQuestions as $questionData) {
+                $order++;
+                $this->createQuestion(
+                    $unit,
+                    $questionData,
+                    WeeklyQuestionSection::Comprehension,
+                    $order,
+                    $syncDimensionCodes,
+                );
             }
 
             return $unit->fresh(['questions.options.dimensionCodes']);
@@ -79,33 +90,82 @@ class WeeklyLearningController extends Controller
     }
 
     /**
+     * @param  array<string, mixed>  $questionData
+     */
+    private function createQuestion(
+        WeeklyLearning $unit,
+        array $questionData,
+        WeeklyQuestionSection $section,
+        int $displayOrder,
+        SyncWeeklyOptionDimensionCodes $syncDimensionCodes,
+    ): void {
+        $type = WeeklyQuestionType::from($questionData['question_type']);
+        $question = $unit->questions()->create([
+            'question_text' => $questionData['question_text'],
+            'question_type' => $type,
+            'section' => $section,
+            'display_order' => $displayOrder,
+        ]);
+
+        if ($type !== WeeklyQuestionType::Options) {
+            return;
+        }
+
+        foreach ($questionData['options'] ?? [] as $optionIndex => $optionData) {
+            $option = $question->options()->create([
+                'option_text' => $optionData['option_text'],
+                'display_order' => $optionIndex + 1,
+            ]);
+            $syncDimensionCodes->execute($option, $optionData['dimension_codes']);
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function serialize(WeeklyLearning $unit): array
     {
+        $main = $unit->questions
+            ->filter(fn ($question) => ($question->section ?? WeeklyQuestionSection::Main) === WeeklyQuestionSection::Main)
+            ->values();
+        $comprehension = $unit->questions
+            ->filter(fn ($question) => $question->section === WeeklyQuestionSection::Comprehension)
+            ->values();
+
         return [
             'id' => $unit->id,
             'level_id' => $unit->level_id,
             'week_number' => $unit->week_number,
             'video_url' => $unit->video_url,
-            'questions' => $unit->questions->map(fn ($question) => [
-                'id' => $question->id,
-                'question_text' => $question->question_text,
-                'question_type' => $question->question_type->value,
-                'display_order' => $question->display_order,
-                'options' => $question->options->map(fn ($option) => [
-                    'id' => $option->id,
-                    'option_text' => $option->option_text,
-                    'display_order' => $option->display_order,
-                    'dimension_codes' => $option->dimensionCodes
-                        ->map(fn ($dimension) => $dimension->dimension_code->value)
-                        ->values()
-                        ->all(),
-                    'dimension_names' => $option->dimensionCodes
-                        ->map(fn ($dimension) => $dimension->dimension_code->label())
-                        ->values()
-                        ->all(),
-                ])->values()->all(),
+            'comprehension_paragraph' => $unit->comprehension_paragraph,
+            'questions' => $main->map(fn ($question) => $this->serializeQuestion($question))->values()->all(),
+            'comprehension_questions' => $comprehension->map(fn ($question) => $this->serializeQuestion($question))->values()->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeQuestion($question): array
+    {
+        return [
+            'id' => $question->id,
+            'question_text' => $question->question_text,
+            'question_type' => $question->question_type->value,
+            'section' => ($question->section ?? WeeklyQuestionSection::Main)->value,
+            'display_order' => $question->display_order,
+            'options' => $question->options->map(fn ($option) => [
+                'id' => $option->id,
+                'option_text' => $option->option_text,
+                'display_order' => $option->display_order,
+                'dimension_codes' => $option->dimensionCodes
+                    ->map(fn ($dimension) => $dimension->dimension_code->value)
+                    ->values()
+                    ->all(),
+                'dimension_names' => $option->dimensionCodes
+                    ->map(fn ($dimension) => $dimension->dimension_code->label())
+                    ->values()
+                    ->all(),
             ])->values()->all(),
         ];
     }

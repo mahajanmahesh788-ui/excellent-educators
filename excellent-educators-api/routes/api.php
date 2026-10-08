@@ -22,6 +22,8 @@ use App\Http\Controllers\Api\V1\Admin\StudentPaymentController as AdminStudentPa
 use App\Http\Controllers\Api\V1\Admin\SubAdminController;
 use App\Http\Controllers\Api\V1\Admin\TeacherController as AdminTeacherController;
 use App\Http\Controllers\Api\V1\Admin\WeeklyLearningController as AdminWeeklyLearningController;
+use App\Http\Controllers\Api\V1\Admin\InterestProfileController as AdminInterestProfileController;
+use App\Http\Controllers\Api\V1\Admin\ParentIntakeController as AdminParentIntakeController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\LoginPageController;
 use App\Http\Controllers\Api\V1\Public\SitePageController;
@@ -32,6 +34,7 @@ use App\Http\Controllers\Api\V1\MasterTeacher\StudentController as MasterTeacher
 use App\Http\Controllers\Api\V1\MasterTeacher\StudentLearningController as MasterTeacherStudentLearningController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\Student\AcceptTermsController;
+use App\Http\Controllers\Api\V1\Student\OnboardingController as StudentOnboardingController;
 use App\Http\Controllers\Api\V1\Student\AdminRequestController as StudentAdminRequestController;
 use App\Http\Controllers\Api\V1\Student\AssessmentController as StudentAssessmentController;
 use App\Http\Controllers\Api\V1\Student\BookingController as StudentBookingController;
@@ -135,8 +138,14 @@ Route::middleware(['auth:sanctum', 'active', 'admin', 'admin.permission', 'subad
     Route::post('levels/{level}/batches', [AdminBatchController::class, 'storeForLevel']);
     Route::post('levels/{level}/teachers', [AcademicLevelController::class, 'assignTeacher']);
     Route::delete('levels/{level}/teachers/{teacher}', [AcademicLevelController::class, 'unassignTeacher']);
+    Route::get('levels/{level}/assessments', [AcademicLevelController::class, 'assessments']);
+    Route::put('levels/{level}/assessments', [AcademicLevelController::class, 'syncAssessments']);
     Route::get('levels/{level}/weekly-learnings', [AdminWeeklyLearningController::class, 'index']);
     Route::put('levels/{level}/weekly-learnings', [AdminWeeklyLearningController::class, 'upsert']);
+    Route::get('interest-questions', [AdminInterestProfileController::class, 'index']);
+    Route::put('interest-questions', [AdminInterestProfileController::class, 'upsert']);
+    Route::get('parent-questions', [AdminParentIntakeController::class, 'index']);
+    Route::put('parent-questions', [AdminParentIntakeController::class, 'upsert']);
 
     Route::get('assessments', [AdminAptitudeAssessmentController::class, 'index']);
     Route::post('assessments', [AdminAptitudeAssessmentController::class, 'store']);
@@ -257,7 +266,13 @@ Route::middleware(['auth:sanctum', 'active', 'role:master_teacher'])->prefix('ma
 
 Route::middleware(['auth:sanctum', 'active', 'role:student'])->prefix('student')->group(function (): void {
     Route::get('profile', [ProfileController::class, 'show']);
+    Route::post('profile/photo', [ProfileController::class, 'storePhoto']);
     Route::post('accept-terms', [AcceptTermsController::class, 'store']);
+    Route::get('interest-profile', [StudentOnboardingController::class, 'interestShow']);
+    Route::post('interest-profile', [StudentOnboardingController::class, 'interestStore']);
+    Route::get('parent-intake', [StudentOnboardingController::class, 'parentShow']);
+    Route::post('parent-intake', [StudentOnboardingController::class, 'parentStore']);
+    Route::post('parent-intake/skip', [StudentOnboardingController::class, 'parentSkip']);
     Route::get('assessment', [StudentAssessmentController::class, 'show']);
     Route::post('assessment/{aptitudeAssessment}/submit', [StudentAssessmentController::class, 'submit']);
     Route::get('results', [StudentAssessmentController::class, 'results']);

@@ -20,12 +20,13 @@ int _sessionLane(SessionBookingDto booking, DateTime now) {
   if (booking.isCompleted || booking.attendance?.classCompleted == true) {
     return 3;
   }
+  // Ongoing calls always float to the top of Current.
   if (booking.isOngoingAt(now)) {
-    return 1;
+    return 0;
   }
   final start = booking.startsAt;
   if (start != null && start.isAfter(now)) {
-    return 0;
+    return 1;
   }
   return 4;
 }
@@ -94,6 +95,7 @@ class _TeacherDaySchedulePageState extends ConsumerState<TeacherDaySchedulePage>
       if (rank != 0) {
         return rank;
       }
+      // Within the same lane (ongoing / upcoming / …), earliest first.
       return _compareByStartsAt(a, b, descending: false);
     });
 

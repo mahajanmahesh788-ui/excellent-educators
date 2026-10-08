@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/app/theme/breakpoints.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/errors/api_error_message.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_pull_to_refresh.dart';
@@ -11,7 +13,6 @@ import 'package:excellent_educators_web/features/academic/data/academic_reposito
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 export 'package:excellent_educators_web/core/widgets/empty_state.dart' show EmptyIcons, EmptyState;
 
@@ -37,7 +38,13 @@ class AsyncBody<T> extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(error.toString()),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                friendlyErrorMessage(error),
+                textAlign: TextAlign.center,
+              ),
+            ),
             if (onRetry != null) ...[
               const SizedBox(height: 12),
               FilledButton(onPressed: onRetry, child: const Text(AppStrings.retry)),

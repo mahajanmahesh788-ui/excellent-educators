@@ -64,6 +64,7 @@ class LearningJournalTest extends TestCase
         $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
         $level2 = AcademicLevel::query()->create([
             'name' => 'Level 2',
+            'number' => 2,
             'academic_year' => 2026,
             'status' => 'active',
         ]);
@@ -128,7 +129,8 @@ class LearningJournalTest extends TestCase
             ->executeIfBatchActive($student->fresh(), $level1);
 
         $level2 = AcademicLevel::query()->create([
-            'name' => 'Level 2 Waiting',
+            'name' => 'Level 2',
+            'number' => 2,
             'academic_year' => 2026,
             'status' => 'active',
         ]);
@@ -296,6 +298,56 @@ class LearningJournalTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_admin_can_save_comprehension_paragraph_with_questions(): void
+    {
+        $admin = $this->makeAdmin();
+        $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+
+        $unit = $this->withToken($this->tokenFor($admin))->putJson("/api/v1/admin/levels/{$level1->id}/weekly-learnings", [
+            'week_number' => 1,
+            'video_url' => 'https://video.test/comp-week',
+            'questions' => [
+                [
+                    'question_text' => 'After the video, pick one',
+                    'question_type' => 'options',
+                    'options' => [
+                        ['option_text' => 'A', 'dimension_codes' => ['TW']],
+                        ['option_text' => 'B', 'dimension_codes' => ['P']],
+                    ],
+                ],
+            ],
+            'comprehension_paragraph' => 'Rahul walked to school every morning. He liked reading on the bus.',
+            'comprehension_questions' => [
+                [
+                    'question_text' => 'How did Rahul travel?',
+                    'question_type' => 'options',
+                    'options' => [
+                        ['option_text' => 'Bus', 'dimension_codes' => ['L']],
+                        ['option_text' => 'Train', 'dimension_codes' => ['CM']],
+                    ],
+                ],
+            ],
+        ])->assertOk()->json('data');
+
+        $this->assertSame(
+            'Rahul walked to school every morning. He liked reading on the bus.',
+            $unit['comprehension_paragraph'],
+        );
+        $this->assertCount(1, $unit['questions']);
+        $this->assertCount(1, $unit['comprehension_questions']);
+        $this->assertSame('comprehension', $unit['comprehension_questions'][0]['section']);
+        $this->assertSame('main', $unit['questions'][0]['section']);
+
+        $listed = $this->withToken($this->tokenFor($admin))
+            ->getJson("/api/v1/admin/levels/{$level1->id}/weekly-learnings")
+            ->assertOk()
+            ->json('data');
+
+        $weekOne = collect($listed)->firstWhere('week_number', 1);
+        $this->assertNotNull($weekOne);
+        $this->assertSame($unit['comprehension_paragraph'], $weekOne['comprehension_paragraph']);
+    }
+
     public function test_week_assignment_result_matches_assessment_dimension_scores(): void
     {
         [$admin, $student] = $this->makeStudent();
@@ -435,6 +487,15 @@ class LearningJournalTest extends TestCase
     private function makeStudent(): array
     {
         $admin = $this->makeAdmin();
+        $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+        $batch = $level1->batches()->orderBy('created_at')->first();
+        if ($batch !== null) {
+            $batch->update([
+                'status' => BatchStatus::Active,
+                'starts_on' => Carbon::now()->toDateString(),
+            ]);
+        }
+
         $id = $this->withToken($this->tokenFor($admin))->postJson('/api/v1/admin/students', [
             'name' => 'Journal Student '.uniqid(),
             'email' => 'journal-'.uniqid().'@excellenteducators.test',

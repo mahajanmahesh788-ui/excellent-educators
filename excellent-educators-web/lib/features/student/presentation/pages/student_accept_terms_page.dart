@@ -32,7 +32,9 @@ class _StudentAcceptTermsPageState
     }
     setState(() => _submitting = false);
     if (ok) {
-      context.go(RoutePaths.studentDashboard);
+      final next = ref.read(authControllerProvider).user?.nextOnboardingPath ??
+          RoutePaths.studentDashboard;
+      context.go(next);
       return;
     }
     final error = ref.read(authControllerProvider).error;
@@ -79,9 +81,31 @@ class _StudentAcceptTermsPageState
                   children: [
                     // Top Branding & Security Badge
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        AppLogo(height: compact ? 32 : 38),
-                        const Spacer(),
+                        Expanded(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AppLogo(height: compact ? 30 : 36),
+                              const SizedBox(width: 10),
+                              Flexible(
+                                child: Text(
+                                  AppStrings.excellentEducators,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Brand.navy,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: compact ? 15 : 18,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: compact ? 8 : 10,
@@ -102,7 +126,7 @@ class _StudentAcceptTermsPageState
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'Official Portal Verification',
+                                compact ? 'Official Portal' : 'Official Portal Verification',
                                 style: TextStyle(
                                   fontSize: compact ? 10.5 : 11.5,
                                   fontWeight: FontWeight.w700,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
 
@@ -255,7 +256,8 @@ class LearningJournalPreviewWidget extends StatelessWidget {
                         if (journeyId != null &&
                             journeyId.isNotEmpty &&
                             currentWeek > 0) {
-                          context.go(
+                          goDetail(
+                            context,
                             RoutePaths.studentJournalWeekFor(
                               journeyId,
                               currentWeek,

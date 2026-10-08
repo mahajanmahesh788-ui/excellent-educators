@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/theme/breakpoints.dart';
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_info.dart';
+import 'package:excellent_educators_web/core/errors/api_error_message.dart';
 import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
@@ -537,6 +538,7 @@ class _SideNav extends StatelessWidget {
 }
 
 void showFailure(BuildContext context, Object error) {
-  final message = error.toString();
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(friendlyErrorMessage(error))),
+  );
 }

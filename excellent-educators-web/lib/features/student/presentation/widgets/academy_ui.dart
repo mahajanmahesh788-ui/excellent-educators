@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
@@ -200,37 +202,119 @@ class _AcademyButtonState extends State<AcademyButton> {
 }
 
 class AcademyAvatar extends StatelessWidget {
-  const AcademyAvatar({super.key, required this.name, this.size = 64});
+  const AcademyAvatar({
+    super.key,
+    required this.name,
+    this.size = 64,
+    this.photoUrl,
+    this.bytes,
+    this.onTap,
+    this.uploading = false,
+    this.showEditBadge = false,
+  });
 
   final String name;
   final double size;
+  final String? photoUrl;
+  final Uint8List? bytes;
+  final VoidCallback? onTap;
+  final bool uploading;
+  final bool showEditBadge;
 
   @override
   Widget build(BuildContext context) {
     final letter = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
-    return Container(
+    final url = photoUrl?.trim();
+    final hasPhoto =
+        bytes != null || (url != null && url.isNotEmpty);
+
+    Widget avatar = Container(
       width: size,
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [StudentColors.forestMid, StudentColors.textPrimary],
-        ),
+        gradient: hasPhoto
+            ? null
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [StudentColors.forestMid, StudentColors.textPrimary],
+              ),
+        color: hasPhoto ? Colors.grey.shade200 : null,
         border: Border.all(
           color: Brand.gold.withValues(alpha: 0.55),
           width: 1.5,
         ),
+        image: bytes != null
+            ? DecorationImage(
+                image: MemoryImage(bytes!),
+                fit: BoxFit.cover,
+              )
+            : (url != null && url.isNotEmpty)
+                ? DecorationImage(
+                    image: NetworkImage(url),
+                    fit: BoxFit.cover,
+                  )
+                : null,
       ),
-      child: Text(
-        letter,
-        style: TextStyle(
-          color: Brand.gold,
-          fontWeight: FontWeight.w800,
-          fontSize: size * 0.36,
-        ),
+      child: hasPhoto
+          ? null
+          : Text(
+              letter,
+              style: TextStyle(
+                color: Brand.gold,
+                fontWeight: FontWeight.w800,
+                fontSize: size * 0.36,
+              ),
+            ),
+    );
+
+    if (uploading) {
+      avatar = Stack(
+        alignment: Alignment.center,
+        children: [
+          Opacity(opacity: 0.45, child: avatar),
+          SizedBox(
+            width: size * 0.36,
+            height: size * 0.36,
+            child: const CircularProgressIndicator(strokeWidth: 2.5),
+          ),
+        ],
+      );
+    } else if (showEditBadge) {
+      avatar = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          avatar,
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: size * 0.34,
+              height: size * 0.34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Brand.navy,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Icon(
+                Icons.camera_alt_rounded,
+                size: size * 0.18,
+                color: Brand.gold,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (onTap == null) return avatar;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: uploading ? null : onTap,
+        child: avatar,
       ),
     );
   }

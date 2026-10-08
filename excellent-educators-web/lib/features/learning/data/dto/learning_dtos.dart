@@ -28,6 +28,8 @@ class LearningWeekDto {
     required this.canSubmit,
     required this.hasVideo,
     this.videoUrl,
+    this.comprehensionParagraph,
+    this.hasComprehension = false,
     this.studyDate,
     this.month,
     this.year,
@@ -43,6 +45,14 @@ class LearningWeekDto {
     final student = json['student'] is Map
         ? Map<String, dynamic>.from(json['student'] as Map)
         : null;
+    final questions = (json['questions'] as List<dynamic>? ?? const [])
+        .whereType<Map>()
+        .map(
+          (item) =>
+              LearningQuestionDto.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .toList();
+    final paragraph = json['comprehension_paragraph'] as String?;
     return LearningWeekDto(
       journeyId: json['journey_id'] as String? ?? '',
       level: LearningNamedRef.fromJson(
@@ -57,18 +67,17 @@ class LearningWeekDto {
       canSubmit: json['can_submit'] as bool? ?? false,
       hasVideo: json['has_video'] as bool? ?? false,
       videoUrl: json['video_url'] as String?,
+      comprehensionParagraph: paragraph,
+      hasComprehension:
+          json['has_comprehension'] == true ||
+          ((paragraph ?? '').trim().isNotEmpty &&
+              questions.any((q) => q.isComprehension)),
       studyDate: json['study_date'] as String?,
       month: json['month'] as String?,
       year: (json['year'] as num?)?.toInt(),
       studentName: student?['full_name'] as String?,
       currentLevelName: student?['current_level'] as String?,
-      questions: (json['questions'] as List<dynamic>? ?? const [])
-          .whereType<Map>()
-          .map(
-            (item) =>
-                LearningQuestionDto.fromJson(Map<String, dynamic>.from(item)),
-          )
-          .toList(),
+      questions: questions,
       attempts: (json['attempts'] as List<dynamic>? ?? const [])
           .whereType<Map>()
           .map(
@@ -98,6 +107,8 @@ class LearningWeekDto {
   final bool canSubmit;
   final bool hasVideo;
   final String? videoUrl;
+  final String? comprehensionParagraph;
+  final bool hasComprehension;
   final String? studyDate;
   final String? month;
   final int? year;
@@ -112,6 +123,12 @@ class LearningWeekDto {
 
   bool get hasDimensionResult =>
       result != null && result!.dimensions.isNotEmpty;
+
+  List<LearningQuestionDto> get mainQuestions =>
+      questions.where((q) => !q.isComprehension).toList();
+
+  List<LearningQuestionDto> get comprehensionQuestions =>
+      questions.where((q) => q.isComprehension).toList();
 }
 
 class LearningWeekScoreDto {
@@ -146,14 +163,17 @@ class LearningQuestionDto {
     required this.questionText,
     required this.questionType,
     required this.options,
+    this.section = 'main',
   });
 
   factory LearningQuestionDto.fromJson(Map<String, dynamic> json) {
     final rawType = json['question_type'] as String? ?? 'options';
+    final rawSection = json['section'] as String? ?? 'main';
     return LearningQuestionDto(
       id: json['id'] as String? ?? '',
       questionText: json['question_text'] as String? ?? '',
       questionType: rawType == 'text' ? 'text' : 'options',
+      section: rawSection == 'comprehension' ? 'comprehension' : 'main',
       options: (json['options'] as List<dynamic>? ?? const [])
           .whereType<Map>()
           .map(
@@ -167,10 +187,12 @@ class LearningQuestionDto {
   final String id;
   final String questionText;
   final String questionType;
+  final String section;
   final List<LearningOptionDto> options;
 
   bool get isText => questionType == 'text';
   bool get isOptions => !isText;
+  bool get isComprehension => section == 'comprehension';
 }
 
 class LearningOptionDto {
@@ -377,6 +399,8 @@ class WeeklyLearningContentDto {
     required this.weekNumber,
     required this.videoUrl,
     required this.questions,
+    this.comprehensionParagraph,
+    this.comprehensionQuestions = const [],
   });
 
   factory WeeklyLearningContentDto.fromJson(Map<String, dynamic> json) {
@@ -385,6 +409,7 @@ class WeeklyLearningContentDto {
       levelId: json['level_id'] as String? ?? '',
       weekNumber: (json['week_number'] as num?)?.toInt() ?? 0,
       videoUrl: json['video_url'] as String? ?? '',
+      comprehensionParagraph: json['comprehension_paragraph'] as String?,
       questions: (json['questions'] as List<dynamic>? ?? const [])
           .whereType<Map>()
           .map(
@@ -392,6 +417,15 @@ class WeeklyLearningContentDto {
                 LearningQuestionDto.fromJson(Map<String, dynamic>.from(item)),
           )
           .toList(),
+      comprehensionQuestions:
+          (json['comprehension_questions'] as List<dynamic>? ?? const [])
+              .whereType<Map>()
+              .map(
+                (item) => LearningQuestionDto.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList(),
     );
   }
 
@@ -399,5 +433,11 @@ class WeeklyLearningContentDto {
   final String levelId;
   final int weekNumber;
   final String videoUrl;
+  final String? comprehensionParagraph;
   final List<LearningQuestionDto> questions;
+  final List<LearningQuestionDto> comprehensionQuestions;
+
+  bool get hasComprehension =>
+      (comprehensionParagraph ?? '').trim().isNotEmpty &&
+      comprehensionQuestions.isNotEmpty;
 }

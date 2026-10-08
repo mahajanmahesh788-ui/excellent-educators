@@ -97,18 +97,36 @@ class AdminRequestTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.description', 'Please share last month fee receipt.');
 
-        $this->withoutToken()->withToken($adminToken)->postJson("/api/v1/admin/requests/{$requestId}/resolve")
+        $this->withoutToken()->withToken($adminToken)->postJson("/api/v1/admin/requests/{$requestId}/resolve", [
+            'resolution_note' => 'Receipt shared on WhatsApp.',
+        ])
             ->assertOk()
             ->assertJsonPath('data.status', 'completed')
-            ->assertJsonPath('data.resolved_by.name', $admin->name);
+            ->assertJsonPath('data.resolved_by.name', $admin->name)
+            ->assertJsonPath('data.resolution_note', 'Receipt shared on WhatsApp.');
 
         $this->assertDatabaseHas('admin_requests', [
             'id' => $requestId,
             'status' => AdminRequestStatus::Completed->value,
             'resolved_by_id' => $admin->id,
+            'resolution_note' => 'Receipt shared on WhatsApp.',
         ]);
 
-        $this->withoutToken()->withToken($adminToken)->postJson("/api/v1/admin/requests/{$requestId}/resolve")
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $student->id,
+            'type' => 'admin_request_approved',
+        ]);
+        $notification = \App\Models\UserNotification::query()
+            ->where('user_id', $student->id)
+            ->where('type', 'admin_request_approved')
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($notification);
+        $this->assertStringContainsString('Receipt shared on WhatsApp.', (string) $notification->body);
+
+        $this->withoutToken()->withToken($adminToken)->postJson("/api/v1/admin/requests/{$requestId}/resolve", [
+            'resolution_note' => 'Trying again',
+        ])
             ->assertStatus(409)
             ->assertJsonPath('error.code', 'CONFLICT');
 
@@ -167,8 +185,9 @@ class AdminRequestTest extends TestCase
         }
 
         $adminToken = $this->tokenFor($admin->fresh());
-        $this->withoutToken()->withToken($adminToken)->postJson("/api/v1/admin/requests/{$requestIds[0]}/resolve")
-            ->assertOk();
+        $this->withoutToken()->withToken($adminToken)->postJson("/api/v1/admin/requests/{$requestIds[0]}/resolve", [
+            'resolution_note' => 'Resolved so a new request can be submitted.',
+        ])->assertOk();
 
         $studentToken = $this->tokenFor($student->fresh());
         $this->withoutToken()->withToken($studentToken)->postJson('/api/v1/student/requests', [
@@ -207,7 +226,10 @@ class AdminRequestTest extends TestCase
             ->assertJsonPath('data.status', 'pending')
             ->json('data.id');
 
-        $this->withToken($this->tokenFor($admin))->postJson("/api/v1/admin/requests/{$requestId}/resolve")
+        $this->withToken($this->tokenFor($admin))->postJson("/api/v1/admin/requests/{$requestId}/resolve", [
+            'resolution_note' => 'Student removed as requested.',
+            'apply_action' => true,
+        ])
             ->assertOk()
             ->assertJsonPath('data.status', 'completed');
 

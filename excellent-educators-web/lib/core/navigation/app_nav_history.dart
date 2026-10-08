@@ -41,6 +41,8 @@ class AppNavHistory {
     RoutePaths.teacherNotifications,
     RoutePaths.studentDashboard,
     RoutePaths.studentAcceptTerms,
+    RoutePaths.studentInterestProfile,
+    RoutePaths.studentParentIntake,
     RoutePaths.studentBookings,
     RoutePaths.studentJournal,
     RoutePaths.studentFeedback,

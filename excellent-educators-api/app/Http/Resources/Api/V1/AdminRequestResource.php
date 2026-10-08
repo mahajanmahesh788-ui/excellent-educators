@@ -20,6 +20,7 @@ class AdminRequestResource extends JsonResource
             'id' => $this->id,
             'subtitle' => $this->subtitle,
             'description' => $this->description,
+            'resolution_note' => $this->resolution_note,
             'status' => $this->status?->value ?? $this->status,
             'requester_type' => $this->requester_type?->value ?? $this->requester_type,
             'request_type' => $this->request_type?->value ?? $this->request_type ?? 'general',

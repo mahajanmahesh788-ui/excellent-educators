@@ -678,15 +678,31 @@ class AdminRequestDetailPage extends ConsumerStatefulWidget {
 }
 
 class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage> {
+  final _messageController = TextEditingController();
   var _resolving = false;
 
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _resolve({required bool applyAction, bool reject = false}) async {
+    final note = _messageController.text.trim();
+    if (note.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.pleaseWriteAMessageForTheRequester)),
+      );
+      return;
+    }
+
     setState(() => _resolving = true);
     try {
       await ref.read(requestRepositoryProvider).resolveAdminRequest(
             widget.requestId,
             applyAction: applyAction,
             reject: reject,
+            resolutionNote: note,
           );
       ref.invalidate(adminRequestDetailProvider(widget.requestId));
       ref.invalidate(adminRequestsProvider(ref.read(adminRequestsFilterProvider)));
@@ -749,6 +765,12 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                   '${item.resolvedAt != null ? ' on ${_formatDate(item.resolvedAt!)}' : ''}',
                   style: const TextStyle(color: Brand.muted),
                 ),
+                if (item.resolutionNote != null && item.resolutionNote!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(AppStrings.adminMessage, style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: 6),
+                  Text(item.resolutionNote!, style: const TextStyle(height: 1.4)),
+                ],
               ],
               if (item.isPending) ...[
                 if (item.student != null) ...[
@@ -769,7 +791,28 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ],
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
+                if (canResolve) ...[
+                  TextFormField(
+                    controller: _messageController,
+                    maxLines: 3,
+                    maxLength: 2000,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: AppStrings.messageToRequester,
+                      hintText: AppStrings.messageToRequesterHint,
+                      alignLabelWithHint: true,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return AppStrings.pleaseWriteAMessageForTheRequester;
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                const SizedBox(height: 12),
                 if (!canResolve)
                   const Text(
                     AppStrings.youCanViewThisRequestButNeedResolvePermission,

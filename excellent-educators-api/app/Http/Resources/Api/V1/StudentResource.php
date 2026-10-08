@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api\V1;
 
 use App\Models\StudentProfile;
 use App\Scheduling\MasterClassBalance;
+use App\Support\StudentOnboardingSummary;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -36,6 +37,7 @@ class StudentResource extends JsonResource
             'phone' => $this->phone,
             'whatsapp_number' => $this->whatsapp_number,
             'address' => $this->address,
+            'photo_url' => $this->photo_url,
             'class_grade' => $this->class_grade,
             'status' => $this->status?->value ?? $this->status,
             'guardian_name' => $this->guardian_name,
@@ -69,7 +71,20 @@ class StudentResource extends JsonResource
             'feedback' => $this->feedbackSummary(),
             'master_class' => $this->masterClassSummary(),
             'payment' => $this->paymentSummary(),
+            ...($this->onboardingSummary($request)),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function onboardingSummary(Request $request): array
+    {
+        if (! StudentOnboardingSummary::shouldInclude($request)) {
+            return [];
+        }
+
+        return StudentOnboardingSummary::forStudent($this->resource);
     }
 
     /**

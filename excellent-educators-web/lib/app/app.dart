@@ -3,8 +3,10 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/app/theme/breakpoints.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/network/account_inactive_signal.dart';
+import 'package:excellent_educators_web/core/network/session_expired_signal.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/auth/presentation/widgets/account_disabled_dialog.dart';
+import 'package:excellent_educators_web/features/auth/presentation/widgets/session_expired_dialog.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/providers/notification_toast_controller.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/widgets/notification_toast_host.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +28,13 @@ class ExcellentEducatorsApp extends ConsumerWidget {
       }
     });
 
+    ref.listen<bool>(sessionExpiredSignalProvider, (previous, next) {
+      if (next && previous != true) {
+        ref.read(authControllerProvider.notifier).handleSessionExpired();
+        ref.read(sessionExpiredSignalProvider.notifier).state = false;
+      }
+    });
+
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
       if (next.accountDisabled && previous?.accountDisabled != true) {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -35,6 +44,17 @@ class ExcellentEducatorsApp extends ConsumerWidget {
           }
           await showAccountDisabledDialog(ctx);
           ref.read(authControllerProvider.notifier).clearAccountDisabled();
+        });
+      }
+
+      if (next.sessionExpired && previous?.sessionExpired != true) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          final ctx = rootNavigatorKey.currentContext;
+          if (ctx == null || !ctx.mounted) {
+            return;
+          }
+          await showSessionExpiredDialog(ctx);
+          ref.read(authControllerProvider.notifier).clearSessionExpired();
         });
       }
     });

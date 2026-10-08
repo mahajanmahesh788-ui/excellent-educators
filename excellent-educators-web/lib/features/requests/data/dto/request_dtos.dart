@@ -69,6 +69,7 @@ class AdminRequestDto {
     this.requesterPhone,
     this.resolvedAt,
     this.resolvedByName,
+    this.resolutionNote,
     required this.createdAt,
   });
 
@@ -102,6 +103,7 @@ class AdminRequestDto {
       requesterPhone: requester is Map ? requester['phone'] as String? : null,
       resolvedAt: json['resolved_at'] as String?,
       resolvedByName: resolvedBy is Map ? resolvedBy['name'] as String? : null,
+      resolutionNote: json['resolution_note'] as String?,
       createdAt: json['created_at'] as String? ?? '',
     );
   }
@@ -121,6 +123,7 @@ class AdminRequestDto {
   final String? requesterPhone;
   final String? resolvedAt;
   final String? resolvedByName;
+  final String? resolutionNote;
   final String createdAt;
 
   bool get isPending => status == 'pending';

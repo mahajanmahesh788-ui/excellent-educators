@@ -33,7 +33,8 @@ class LoginUser
             );
         }
 
-        $user->tokens()->where('name', $deviceName)->delete();
+        // One active session per account: a new login signs out every other device/tab.
+        $user->tokens()->delete();
 
         $expiresInMinutes = (int) config('sanctum.expiration', 480);
         $expiresAt = now()->addMinutes($expiresInMinutes);

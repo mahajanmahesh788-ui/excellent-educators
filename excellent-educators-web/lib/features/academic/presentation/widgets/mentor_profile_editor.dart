@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/utils/image_shrink.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
@@ -160,16 +161,15 @@ class _MentorProfileEditorState extends ConsumerState<MentorProfileEditor> {
     final file = files.first;
     late final Uint8List bytes;
     try {
-      bytes = await file.readAsBytes();
-    } catch (_) {
-      if (mounted) {
-        showFailure(context, 'Could not read the selected image.');
+      final raw = await file.readAsBytes();
+      if (raw.isEmpty) {
+        throw StateError('Could not read the selected image.');
       }
-      return;
-    }
-    if (bytes.isEmpty) {
+      // Keep uploads ≤ 1 MB so live portal does not hit the 20s timeout.
+      bytes = shrinkImageToMaxBytes(raw);
+    } catch (error) {
       if (mounted) {
-        showFailure(context, 'Could not read the selected image.');
+        showFailure(context, error);
       }
       return;
     }
@@ -184,7 +184,7 @@ class _MentorProfileEditorState extends ConsumerState<MentorProfileEditor> {
           .read(academicRepositoryProvider)
           .uploadTeacherPhoto(
             bytes: bytes,
-            filename: file.name.isEmpty ? 'teacher-photo.jpg' : file.name,
+            filename: 'teacher-photo.jpg',
             teacherId: widget.teacherId,
             asSelf: widget.asSelf,
           );
@@ -252,7 +252,7 @@ class _MentorProfileEditorState extends ConsumerState<MentorProfileEditor> {
                         const SizedBox(height: 4),
                         Text(
                           'Use a clear vertical portrait (JPG, PNG, or WebP). '
-                          'Saved on the server under teacher photos.',
+                          'Images over 1 MB are shrunk automatically before upload.',
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 12.5,

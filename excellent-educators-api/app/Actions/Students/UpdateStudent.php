@@ -53,8 +53,15 @@ class UpdateStudent
         }
         $student->save();
 
-        if (isset($input['name'])) {
-            $student->user->update(['name' => $input['name']]);
+        if (isset($input['name']) || ! empty($input['password'])) {
+            $userUpdates = [];
+            if (isset($input['name'])) {
+                $userUpdates['name'] = $input['name'];
+            }
+            if (! empty($input['password'])) {
+                $userUpdates['password'] = $input['password'];
+            }
+            $student->user->update($userUpdates);
         }
 
         if (isset($input['status'])) {

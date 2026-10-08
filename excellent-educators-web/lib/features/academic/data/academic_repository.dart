@@ -451,6 +451,28 @@ class AcademicRepository with MapsApiFailures {
     });
   }
 
+  Future<List<String>> levelAssessmentIds(String levelId) {
+    return runApi(() async {
+      final json = await _client.get(ApiEndpoints.adminLevelAssessments(levelId));
+      final ids = json?['assessment_ids'] as List<dynamic>? ?? const [];
+      return ids.map((id) => id.toString()).toList();
+    });
+  }
+
+  Future<List<String>> syncLevelAssessments({
+    required String levelId,
+    required List<String> assessmentIds,
+  }) {
+    return runApi(() async {
+      final json = await _client.put(
+        ApiEndpoints.adminLevelAssessments(levelId),
+        data: {'assessment_ids': assessmentIds},
+      );
+      final ids = json?['assessment_ids'] as List<dynamic>? ?? const [];
+      return ids.map((id) => id.toString()).toList();
+    });
+  }
+
   Future<AcademicLevelDto> assignLevelTeacher({
     required String levelId,
     required String teacherId,
@@ -659,6 +681,22 @@ class AcademicRepository with MapsApiFailures {
     return runApi(() async {
       final json = await _client.get(ApiEndpoints.studentProfile);
       return StudentDto.fromJson(json!);
+    });
+  }
+
+  Future<String> uploadStudentPhoto({
+    required Uint8List bytes,
+    required String filename,
+  }) {
+    return runApi(() async {
+      final form = FormData.fromMap({
+        'photo': MultipartFile.fromBytes(bytes, filename: filename),
+      });
+      final json = await _client.post(
+        ApiEndpoints.studentProfilePhoto,
+        data: form,
+      );
+      return (json?['photo_url'] as String?)?.trim() ?? '';
     });
   }
 

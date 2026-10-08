@@ -28,6 +28,12 @@ class StoreStudentRequest extends FormRequest
                 'whatsapp_number' => PhoneNumber::normalize($this->input('whatsapp_number')),
             ]);
         }
+
+        if ($this->has('guardian_phone')) {
+            $this->merge([
+                'guardian_phone' => PhoneNumber::normalize($this->input('guardian_phone')),
+            ]);
+        }
     }
 
     /**

@@ -88,7 +88,7 @@ class StudentScaffold extends ConsumerWidget {
                 pending: pending,
                 journeyWaiting: journeyWaiting,
                 extraActions: actions,
-                title: title,
+      title: title,
                 backTo: effectiveBackTo,
               ),
               Expanded(
@@ -539,9 +539,19 @@ class _SettingsFloatingMenu extends StatefulWidget {
       path: RoutePaths.studentPayments,
     ),
     (
+      label: AppStrings.termsAndConditions,
+      icon: Icons.description_outlined,
+      path: RoutePaths.studentTerms,
+    ),
+    (
       label: AppStrings.privacyPolicy,
       icon: Icons.privacy_tip_outlined,
       path: RoutePaths.studentPrivacy,
+    ),
+    (
+      label: AppStrings.refundPolicy,
+      icon: Icons.receipt_long_outlined,
+      path: RoutePaths.studentRefund,
     ),
     (
       label: AppStrings.childSafetyParentalConsent,

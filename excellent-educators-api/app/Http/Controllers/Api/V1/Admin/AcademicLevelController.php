@@ -4,13 +4,17 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\AcademicLevelResource;
+use App\Http\Resources\Api\V1\AptitudeAssessmentResource;
 use App\Models\AcademicLevel;
+use App\Models\AptitudeAssessment;
 use App\Models\Batch;
 use App\Models\TeacherProfile;
 use App\Support\ApiResponse;
+use App\Support\StaticAcademicLevels;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AcademicLevelController extends Controller
 {
@@ -22,27 +26,38 @@ class AcademicLevelController extends Controller
                 'masterTeachers.user',
             ])
             ->withCount(['batches', 'students'])
+            ->orderByRaw('CASE WHEN number IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('number')
             ->orderBy('created_at')
             ->get();
 
         return ApiResponse::success(
             'Levels fetched successfully.',
             AcademicLevelResource::collection($levels)->resolve(),
+            [
+                'available_numbers' => StaticAcademicLevels::availableNumbers(),
+            ],
         );
     }
 
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:academic_levels,name'],
+            'number' => ['required', 'integer', 'min:'.StaticAcademicLevels::MIN, 'max:'.StaticAcademicLevels::MAX],
             'academic_year' => ['required', 'integer', 'min:2000', 'max:2100'],
             'master_classes_per_month' => ['sometimes', 'integer', 'min:1', 'max:10'],
-        ], [
-            'name.unique' => 'The level name has already been taken.',
         ]);
 
+        $number = (int) $validated['number'];
+        if (AcademicLevel::query()->where('number', $number)->exists()) {
+            throw ValidationException::withMessages([
+                'number' => ['Level '.$number.' already exists. Choose another level.'],
+            ]);
+        }
+
         $level = AcademicLevel::query()->create([
-            'name' => $validated['name'],
+            'name' => StaticAcademicLevels::label($number),
+            'number' => $number,
             'academic_year' => $validated['academic_year'],
             'master_classes_per_month' => (int) ($validated['master_classes_per_month'] ?? 1),
             'status' => 'active',
@@ -87,14 +102,12 @@ class AcademicLevelController extends Controller
     public function update(Request $request, AcademicLevel $level): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255', Rule::unique('academic_levels', 'name')->ignore($level->id)],
             'academic_year' => ['sometimes', 'integer', 'min:2000', 'max:2100'],
             'master_classes_per_month' => ['sometimes', 'integer', 'min:1', 'max:10'],
             'status' => ['sometimes', Rule::in(['active', 'inactive'])],
-        ], [
-            'name.unique' => 'The level name has already been taken.',
         ]);
 
+        // Level name/number are fixed (Level 1 … Level 10).
         $level->update($validated);
         $level->load([
             'batches' => fn ($q) => $q->withCount('activeEnrollments'),
@@ -147,6 +160,46 @@ class AcademicLevelController extends Controller
         return ApiResponse::success(
             'Master Teacher removed from level successfully.',
             AcademicLevelResource::make($level)->resolve(),
+        );
+    }
+
+    public function assessments(AcademicLevel $level): JsonResponse
+    {
+        $assessments = $level->aptitudeAssessments()
+            ->withCount(['questions', 'submittedAttempts'])
+            ->orderBy('title')
+            ->get();
+
+        return ApiResponse::success(
+            'Level assessments fetched successfully.',
+            [
+                'assessment_ids' => $assessments->pluck('id')->values()->all(),
+                'assessments' => AptitudeAssessmentResource::collection($assessments)->resolve(),
+            ],
+        );
+    }
+
+    public function syncAssessments(Request $request, AcademicLevel $level): JsonResponse
+    {
+        $validated = $request->validate([
+            'assessment_ids' => ['present', 'array'],
+            'assessment_ids.*' => ['string', 'distinct', 'exists:aptitude_assessments,id'],
+        ]);
+
+        $ids = $validated['assessment_ids'];
+        $level->aptitudeAssessments()->sync($ids);
+
+        $assessments = $level->aptitudeAssessments()
+            ->withCount(['questions', 'submittedAttempts'])
+            ->orderBy('title')
+            ->get();
+
+        return ApiResponse::success(
+            'Level assessments updated successfully.',
+            [
+                'assessment_ids' => $assessments->pluck('id')->values()->all(),
+                'assessments' => AptitudeAssessmentResource::collection($assessments)->resolve(),
+            ],
         );
     }
 }

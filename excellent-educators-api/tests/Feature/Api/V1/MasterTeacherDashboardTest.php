@@ -155,7 +155,10 @@ class MasterTeacherDashboardTest extends TestCase
 
         $this->withToken($this->tokenFor($admin))->postJson(
             "/api/v1/admin/requests/{$requestId}/resolve",
-            ['apply_action' => true],
+            [
+                'apply_action' => true,
+                'resolution_note' => 'Upgrade approved. Welcome to the next level.',
+            ],
         )->assertOk()->assertJsonPath('data.status', 'completed');
 
         $this->assertSame($target['id'], $student->fresh()->level_id);
@@ -276,8 +279,13 @@ class MasterTeacherDashboardTest extends TestCase
 
         $this->withToken($this->tokenFor($admin))->postJson(
             "/api/v1/admin/requests/{$requestId}/resolve",
-            ['reject' => true],
-        )->assertOk()->assertJsonPath('data.status', 'rejected');
+            [
+                'reject' => true,
+                'resolution_note' => 'Please keep the student on Level 1 for now.',
+            ],
+        )->assertOk()
+            ->assertJsonPath('data.status', 'rejected')
+            ->assertJsonPath('data.resolution_note', 'Please keep the student on Level 1 for now.');
 
         $this->assertSame($level1, $student->fresh()->level_id);
 
@@ -285,6 +293,14 @@ class MasterTeacherDashboardTest extends TestCase
             'user_id' => $master->user_id,
             'type' => 'admin_request_rejected',
         ]);
+
+        $notification = \App\Models\UserNotification::query()
+            ->where('user_id', $master->user_id)
+            ->where('type', 'admin_request_rejected')
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($notification);
+        $this->assertStringContainsString('Please keep the student on Level 1 for now.', (string) $notification->body);
     }
 
     /**

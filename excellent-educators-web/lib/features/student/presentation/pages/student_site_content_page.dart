@@ -26,89 +26,92 @@ class StudentSiteContentPage extends ConsumerWidget {
 
     return StudentScaffold(
       title: title,
-      backTo: RoutePaths.studentProfile,
+      backTo: RoutePaths.studentDashboard,
       body: AsyncBody(
         value: page,
         onRetry: () => ref.invalidate(publicSitePageProvider(slug)),
         builder: (data) {
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 40),
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.primary,
-                      AppColors.primaryDark,
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.22),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      data.title.isNotEmpty ? data.title : title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      AppStrings.excellentEducators,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.78),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (slug == SitePageSlugs.faq)
-                FaqCategoryView(body: data.body)
-              else
+          return SelectionArea(
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 40),
+              children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.primary,
+                        AppColors.primaryDark,
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: StudentColors.border),
                     boxShadow: [
                       BoxShadow(
-                        color: Brand.navy.withValues(alpha: 0.04),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
+                        color: AppColors.primary.withValues(alpha: 0.22),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
-                  child: SelectableText(
-                    data.body,
-                    style: const TextStyle(
-                      fontSize: 14.5,
-                      height: 1.6,
-                      color: StudentColors.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data.title.isNotEmpty ? data.title : title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        AppStrings.excellentEducators,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.78),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-            ],
+                const SizedBox(height: 16),
+                if (slug == SitePageSlugs.faq)
+                  FaqCategoryView(body: data.body)
+                else
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: StudentColors.border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Brand.navy.withValues(alpha: 0.04),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      data.body,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        height: 1.6,
+                        color: StudentColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           );
         },
       ),

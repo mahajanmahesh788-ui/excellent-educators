@@ -14,6 +14,11 @@ class UserDto {
     this.termsAcceptedVersion,
     this.termsCurrentVersion,
     this.mustAcceptTerms = false,
+    this.mustCompleteInterestProfile = false,
+    this.mustCompleteParentIntake = false,
+    this.interestProfileCompleted = false,
+    this.parentIntakeCompleted = false,
+    this.parentIntakeSkipped = false,
   });
 
   factory UserDto.fromJson(Map<String, dynamic> json) {
@@ -34,6 +39,12 @@ class UserDto {
       termsAcceptedVersion: json['terms_accepted_version'] as String?,
       termsCurrentVersion: json['terms_current_version'] as String?,
       mustAcceptTerms: json['must_accept_terms'] == true,
+      mustCompleteInterestProfile:
+          json['must_complete_interest_profile'] == true,
+      mustCompleteParentIntake: json['must_complete_parent_intake'] == true,
+      interestProfileCompleted: json['interest_profile_completed'] == true,
+      parentIntakeCompleted: json['parent_intake_completed'] == true,
+      parentIntakeSkipped: json['parent_intake_skipped'] == true,
     );
   }
 
@@ -49,6 +60,11 @@ class UserDto {
   final String? termsAcceptedVersion;
   final String? termsCurrentVersion;
   final bool mustAcceptTerms;
+  final bool mustCompleteInterestProfile;
+  final bool mustCompleteParentIntake;
+  final bool interestProfileCompleted;
+  final bool parentIntakeCompleted;
+  final bool parentIntakeSkipped;
 
   AppUser toEntity() {
     return AppUser(
@@ -64,6 +80,11 @@ class UserDto {
       termsAcceptedVersion: termsAcceptedVersion,
       termsCurrentVersion: termsCurrentVersion,
       mustAcceptTerms: mustAcceptTerms,
+      mustCompleteInterestProfile: mustCompleteInterestProfile,
+      mustCompleteParentIntake: mustCompleteParentIntake,
+      interestProfileCompleted: interestProfileCompleted,
+      parentIntakeCompleted: parentIntakeCompleted,
+      parentIntakeSkipped: parentIntakeSkipped,
     );
   }
 }
