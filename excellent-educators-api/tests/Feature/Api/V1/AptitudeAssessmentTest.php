@@ -2,7 +2,11 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Enums\BatchStatus;
+use App\Models\AcademicLevel;
 use App\Models\AptitudeAssessment;
+use App\Models\Batch;
+use App\Models\StudentLevelJourney;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
@@ -228,8 +232,77 @@ class AptitudeAssessmentTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
-    private function createActiveAssessment(User $admin, bool $twoQuestions = false): string
+    public function test_promote_to_level_two_requires_level_two_assessment_and_restarts_journey(): void
     {
+        $admin = $this->makeAdmin();
+        $token = $this->tokenFor($admin);
+
+        $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+        $level1Assessment = $this->createActiveAssessment($admin, title: 'Level 1 ACD');
+
+        $studentUser = $this->makeStudent('promote-l2-assess@excellenteducators.test');
+        $student = StudentProfile::query()->where('user_id', $studentUser->id)->firstOrFail();
+        $this->submitAs($studentUser, $level1Assessment)->assertCreated();
+
+        $this->withToken($this->tokenFor($studentUser))->getJson('/api/v1/student/assessment')
+            ->assertOk()
+            ->assertJsonPath('data.available', false)
+            ->assertJsonPath('data.reason', 'already_completed');
+
+        $level2 = AcademicLevel::query()->create([
+            'name' => 'Level 2',
+            'number' => 2,
+            'academic_year' => 2026,
+            'status' => 'active',
+        ]);
+        Batch::query()->create([
+            'level_id' => $level2->id,
+            'name' => 'Batch 1',
+            'academic_year' => 2026,
+            'year' => 2026,
+            'month' => 10,
+            'enrolled_watermark' => 0,
+            'status' => BatchStatus::Active,
+            'starts_on' => now()->toDateString(),
+        ]);
+
+        $level2Assessment = $this->createActiveAssessment(
+            $admin,
+            title: 'Level 2 DDDC',
+            assignToLevel: $level2,
+        );
+
+        $this->withToken($token)->postJson("/api/v1/admin/students/{$student->id}/promote", [
+            'level_id' => $level2->id,
+        ])->assertOk();
+
+        $student->refresh();
+        $this->assertSame($level2->id, $student->level_id);
+
+        $openJourney = StudentLevelJourney::query()
+            ->where('student_id', $student->id)
+            ->whereNull('ended_at')
+            ->first();
+        $this->assertNotNull($openJourney);
+        $this->assertSame($level2->id, $openJourney->level_id);
+
+        $this->withToken($this->tokenFor($studentUser))->getJson('/api/v1/student/assessment')
+            ->assertOk()
+            ->assertJsonPath('data.available', true)
+            ->assertJsonPath('data.assessment.id', $level2Assessment)
+            ->assertJsonPath('data.assessment.title', 'Level 2 DDDC');
+
+        // Level 1 assessment must not be offered again.
+        $this->assertNotSame($level1Assessment, $level2Assessment);
+        $this->assertTrue($level1->aptitudeAssessments()->whereKey($level1Assessment)->exists());
+    }
+
+    private function createActiveAssessment(
+        User $admin,
+        bool $twoQuestions = false,
+        string $title = 'Aptitude Test',
+        ?AcademicLevel $assignToLevel = null,
+    ): string {
         $questions = [$this->questionPayload()];
         if ($twoQuestions) {
             $questions[] = [
@@ -243,13 +316,18 @@ class AptitudeAssessmentTest extends TestCase
 
         $token = $this->tokenFor($admin);
         $id = $this->withToken($token)->postJson('/api/v1/admin/assessments', [
-            'title' => 'Aptitude Test',
+            'title' => $title,
             'questions' => $questions,
         ])->assertCreated()->json('data.id');
 
         $this->withToken($token)->postJson("/api/v1/admin/assessments/{$id}/activate")
             ->assertOk()
             ->assertJsonPath('data.status', 'active');
+
+        $level = $assignToLevel ?? AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+        $this->withToken($token)->putJson("/api/v1/admin/levels/{$level->id}/assessments", [
+            'assessment_ids' => [$id],
+        ])->assertOk();
 
         return $id;
     }

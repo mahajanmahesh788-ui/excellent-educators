@@ -16,6 +16,7 @@ class AcademicLevel extends Model
 
     protected $fillable = [
         'name',
+        'number',
         'academic_year',
         'status',
         'master_classes_per_month',
@@ -24,6 +25,7 @@ class AcademicLevel extends Model
     protected function casts(): array
     {
         return [
+            'number' => 'integer',
             'academic_year' => 'integer',
             'master_classes_per_month' => 'integer',
         ];
@@ -48,5 +50,15 @@ class AcademicLevel extends Model
     public function weeklyLearnings(): HasMany
     {
         return $this->hasMany(WeeklyLearning::class, 'level_id')->orderBy('week_number');
+    }
+
+    public function aptitudeAssessments(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            AptitudeAssessment::class,
+            'academic_level_assessments',
+            'level_id',
+            'aptitude_assessment_id',
+        )->withTimestamps();
     }
 }

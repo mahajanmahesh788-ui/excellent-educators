@@ -7,6 +7,7 @@ use App\Enums\AssessmentAttemptStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -53,6 +54,16 @@ class AptitudeAssessment extends Model
     {
         return $this->hasMany(AptitudeAssessmentAttempt::class)
             ->where('status', AssessmentAttemptStatus::Submitted->value);
+    }
+
+    public function levels(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            AcademicLevel::class,
+            'academic_level_assessments',
+            'aptitude_assessment_id',
+            'level_id',
+        )->withTimestamps();
     }
 
     public function isActive(): bool

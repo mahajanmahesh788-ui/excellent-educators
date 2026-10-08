@@ -125,6 +125,15 @@ class SubmitStudentAssessment
                 422,
             );
         }
+
+        if ($student->level_id === null
+            || ! $assessment->levels()->where('academic_levels.id', $student->level_id)->exists()) {
+            throw new ApiException(
+                ErrorCode::ASSESSMENT_NOT_ACTIVE,
+                'This assessment is not assigned to your level.',
+                422,
+            );
+        }
     }
 
     /**

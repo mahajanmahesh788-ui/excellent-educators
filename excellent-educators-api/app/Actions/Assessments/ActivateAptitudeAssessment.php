@@ -50,8 +50,14 @@ class ActivateAptitudeAssessment
                 ->where('status', AssessmentAttemptStatus::Submitted->value)
                 ->pluck('student_id');
 
+            $levelIds = $assessment->levels()->pluck('academic_levels.id');
+            if ($levelIds->isEmpty()) {
+                return;
+            }
+
             StudentProfile::query()
                 ->where('status', ProfileStatus::Active->value)
+                ->whereIn('level_id', $levelIds)
                 ->whereHas('user', fn ($query) => $query->role(RoleName::Student->value))
                 ->when($submittedStudentIds->isNotEmpty(), fn ($query) => $query->whereNotIn('id', $submittedStudentIds))
                 ->with('user')

@@ -30,6 +30,7 @@ class AcademicLevelResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'number' => $this->number !== null ? (int) $this->number : null,
             'academic_year' => $this->academic_year,
             'master_classes_per_month' => (int) ($this->master_classes_per_month ?? 1),
             'status' => $this->status,
@@ -39,6 +40,10 @@ class AcademicLevelResource extends JsonResource
             'students_count' => $studentCount,
             'batches' => BatchResource::collection($batches)->resolve(),
             'master_teachers' => TeacherResource::collection($masterTeachers)->resolve(),
+            'assessment_ids' => $this->when(
+                $this->relationLoaded('aptitudeAssessments'),
+                fn () => $this->aptitudeAssessments->pluck('id')->values()->all(),
+            ),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
