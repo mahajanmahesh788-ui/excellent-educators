@@ -14,7 +14,6 @@ use App\Models\MonthlyFeedback;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
-use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\LevelSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,7 +27,7 @@ class ClassAttendanceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class, LevelSeeder::class]);
+        $this->seed([RoleSeeder::class, LevelSeeder::class]);
         Carbon::setTestNow(Carbon::parse('2026-09-16 09:50:00', 'Asia/Kolkata'));
         $this->app->instance(GoogleMeetGateway::class, new FakeGoogleMeetGateway);
     }

@@ -8,7 +8,6 @@ use App\Models\Batch;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Models\WeeklyAssignmentAttempt;
-use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -21,7 +20,7 @@ class LearningJournalTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class]);
+        $this->seed([RoleSeeder::class]);
         Carbon::setTestNow(Carbon::parse('2026-07-15 10:00:00', 'Asia/Kolkata'));
     }
 

@@ -5,7 +5,6 @@ namespace Tests\Feature\Api\V1;
 use App\Enums\RoleName;
 use App\Models\AcademicLevel;
 use App\Models\User;
-use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -17,7 +16,7 @@ class AcademicLevelTeachersTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class]);
+        $this->seed([RoleSeeder::class]);
     }
 
     public function test_admin_can_assign_multiple_master_teachers_to_a_level(): void

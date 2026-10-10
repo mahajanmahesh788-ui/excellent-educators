@@ -6,7 +6,6 @@ use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Scheduling\SlotGrid;
-use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -19,7 +18,7 @@ class SchedulingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class]);
+        $this->seed([RoleSeeder::class]);
         Carbon::setTestNow(Carbon::parse('2026-09-15 08:00:00', 'Asia/Kolkata'));
     }
 

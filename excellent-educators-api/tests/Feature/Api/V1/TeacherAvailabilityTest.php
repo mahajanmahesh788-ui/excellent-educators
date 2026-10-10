@@ -8,7 +8,6 @@ use App\Models\StudentProfile;
 use App\Models\TeacherAvailabilityRule;
 use App\Models\TeacherProfile;
 use App\Models\User;
-use Database\Seeders\CareerCompassLevelSeeder;
 use Database\Seeders\LevelSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,7 +21,7 @@ class TeacherAvailabilityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([RoleSeeder::class, CareerCompassLevelSeeder::class, LevelSeeder::class]);
+        $this->seed([RoleSeeder::class, LevelSeeder::class]);
         Carbon::setTestNow(Carbon::parse('2026-09-15 08:00:00', 'Asia/Kolkata'));
     }
 

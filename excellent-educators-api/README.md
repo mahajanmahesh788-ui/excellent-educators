@@ -15,6 +15,22 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 Use `migrate:fresh --seed` only when you want to wipe local data.
 
+Default seed loads roles/site content + local admins + Level 1. Optional full demo pack:
+
+```bash
+php artisan db:seed --class=Database\\Seeders\\DemoDataSeeder
+```
+
+### Production
+
+```bash
+php artisan migrate --force
+php artisan db:seed --force   # bootstrap only (roles, dimensions, site pages)
+php artisan app:create-admin
+```
+
+Demo/admin sample seeders never run when `APP_ENV=production`.
+
 ## Seeded local admins
 
 | Account | Email | Password | Role |
