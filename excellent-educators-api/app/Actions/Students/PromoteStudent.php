@@ -87,13 +87,13 @@ class PromoteStudent
     private function notifyPromotion(StudentProfile $student, ?string $from, string $to): void
     {
         $body = $from !== null && $from !== ''
-            ? "You moved from {$from} to {$to}."
-            : "Your level was updated to {$to}.";
+            ? "Your teachers upgraded you from {$from} to {$to}. Review every {$from} session anytime — now let's move into {$to}. All the best!"
+            : "Your teachers upgraded you to {$to}. Carry what you have learned and step into this next chapter with pride. All the best!";
 
         $this->notifications->safeExecute(
             $student->user,
             NotificationType::StudentPromoted,
-            'Level updated',
+            "Congratulations — welcome to {$to}!",
             $body,
             [
                 'student_id' => $student->id,

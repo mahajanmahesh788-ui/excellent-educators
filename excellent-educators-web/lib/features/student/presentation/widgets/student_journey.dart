@@ -28,7 +28,7 @@ class StudentJourneySnapshot {
     this.joinableSession,
     this.masterClassRemaining = 0,
     this.masterClassAllotment = 1,
-    this.masterClassOpensNextMonth = false,
+    this.masterClassRequiresLevelWeeks = false,
   });
 
   final SessionBookingDto? nextSession;
@@ -42,7 +42,7 @@ class StudentJourneySnapshot {
   final bool canBookMasterClass;
   final int masterClassRemaining;
   final int masterClassAllotment;
-  final bool masterClassOpensNextMonth;
+  final bool masterClassRequiresLevelWeeks;
 
   bool get hasExtraMasterClasses => masterClassAllotment > 1;
 
@@ -195,17 +195,24 @@ StudentJourneySnapshot buildStudentJourney({
     );
   } else if (masterCompleted ||
       (eligibility.introductionCompleted &&
-          !eligibility.masterClassOpensNextMonth &&
+          !eligibility.masterClassRequiresLevelWeeks &&
           eligibility.masterClassRemaining <= 0)) {
     master = const JourneyNode(
       title: AppStrings.masterClass,
       detail: AppStrings.completed,
       phase: JourneyPhase.completed,
     );
-  } else if (eligibility.masterClassOpensNextMonth) {
-    master = const JourneyNode(
+  } else if (eligibility.masterClassRequiresLevelWeeks) {
+    final nextWeek = (eligibility.levelWeeksCompleted + 1)
+        .clamp(1, eligibility.levelWeeksRequired);
+    master = JourneyNode(
       title: AppStrings.masterClass,
-      detail: AppStrings.masterClassOpensNextMonthTitle,
+      detail: eligibility.levelWeeksCompleted > 0
+          ? AppStrings.masterClassCompleteWeekOf(
+              nextWeek,
+              eligibility.levelWeeksRequired,
+            )
+          : AppStrings.masterClassRequiresLevelWeeksTitle,
       phase: JourneyPhase.upcoming,
     );
   } else {
@@ -239,7 +246,7 @@ StudentJourneySnapshot buildStudentJourney({
         !masterScheduled,
     masterClassRemaining: eligibility.masterClassRemaining,
     masterClassAllotment: eligibility.masterClassAttemptsMax,
-    masterClassOpensNextMonth: eligibility.masterClassOpensNextMonth,
+    masterClassRequiresLevelWeeks: eligibility.masterClassRequiresLevelWeeks,
   );
 }
 

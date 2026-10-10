@@ -28,6 +28,7 @@ class LearningWeekDto {
     required this.canSubmit,
     required this.hasVideo,
     this.videoUrl,
+    this.videoTitle,
     this.comprehensionParagraph,
     this.hasComprehension = false,
     this.studyDate,
@@ -67,6 +68,7 @@ class LearningWeekDto {
       canSubmit: json['can_submit'] as bool? ?? false,
       hasVideo: json['has_video'] as bool? ?? false,
       videoUrl: json['video_url'] as String?,
+      videoTitle: json['video_title'] as String?,
       comprehensionParagraph: paragraph,
       hasComprehension:
           json['has_comprehension'] == true ||
@@ -107,6 +109,7 @@ class LearningWeekDto {
   final bool canSubmit;
   final bool hasVideo;
   final String? videoUrl;
+  final String? videoTitle;
   final String? comprehensionParagraph;
   final bool hasComprehension;
   final String? studyDate;
@@ -399,6 +402,7 @@ class WeeklyLearningContentDto {
     required this.weekNumber,
     required this.videoUrl,
     required this.questions,
+    this.videoTitle,
     this.comprehensionParagraph,
     this.comprehensionQuestions = const [],
   });
@@ -409,6 +413,7 @@ class WeeklyLearningContentDto {
       levelId: json['level_id'] as String? ?? '',
       weekNumber: (json['week_number'] as num?)?.toInt() ?? 0,
       videoUrl: json['video_url'] as String? ?? '',
+      videoTitle: json['video_title'] as String?,
       comprehensionParagraph: json['comprehension_paragraph'] as String?,
       questions: (json['questions'] as List<dynamic>? ?? const [])
           .whereType<Map>()
@@ -433,6 +438,7 @@ class WeeklyLearningContentDto {
   final String levelId;
   final int weekNumber;
   final String videoUrl;
+  final String? videoTitle;
   final String? comprehensionParagraph;
   final List<LearningQuestionDto> questions;
   final List<LearningQuestionDto> comprehensionQuestions;

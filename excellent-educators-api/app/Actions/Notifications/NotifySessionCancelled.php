@@ -36,13 +36,17 @@ class NotifySessionCancelled
             array_merge($data, ['link' => '/student/bookings']),
         );
 
-        $studentName = $booking->student?->full_name ?? 'A student';
+        $studentName = $booking->student?->labeledName('A student') ?? 'A student';
         $this->notifications->safeExecute(
             $booking->teacher?->user,
             NotificationType::SessionCancelled,
             'Session cancelled',
             "{$studentName}'s {$label} scheduled for {$when} was cancelled.",
-            array_merge($data, ['link' => '/teacher/schedule/day']),
+            array_merge($data, [
+                'link' => '/teacher/schedule/day',
+                'student_name' => $studentName,
+                'student_code' => $booking->student?->student_code,
+            ]),
         );
     }
 }

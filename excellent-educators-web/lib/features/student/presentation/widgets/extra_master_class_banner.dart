@@ -1,3 +1,4 @@
+import 'package:excellent_educators_web/app/theme/app_colors.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +16,7 @@ class ExtraMasterClassBanner extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF123524), Color(0xFF1B5E3B), Color(0xFF0B1F36)],
+          colors: [AppColors.bannerForest, AppColors.bannerForestMid, AppColors.bannerNavy],
         ),
         boxShadow: [
           BoxShadow(

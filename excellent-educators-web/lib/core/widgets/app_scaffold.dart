@@ -12,6 +12,7 @@ import 'package:excellent_educators_web/features/notifications/presentation/widg
 import 'package:excellent_educators_web/features/auth/domain/admin_permission.dart';
 import 'package:excellent_educators_web/features/auth/domain/entities/app_user.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
+import 'package:excellent_educators_web/features/requests/presentation/providers/request_feature_providers.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -91,7 +92,16 @@ class AppScaffold extends ConsumerWidget {
     final pendingConflicts = user?.isAdmin == true && (user?.canAnyAdmin(const [AdminPermission.queriesView, AdminPermission.queriesResolve]) ?? false)
         ? ref.watch(adminPendingConflictsCountProvider).valueOrNull ?? 0
         : 0;
-    final destinations = _destinations(user, pendingConflicts);
+    final pendingRequests = user != null &&
+            user.isAdmin &&
+            !user.isAgent &&
+            user.canAnyAdmin(const [
+              AdminPermission.requestsView,
+              AdminPermission.requestsResolve,
+            ])
+        ? ref.watch(adminPendingRequestsCountProvider).valueOrNull ?? 0
+        : 0;
+    final destinations = _destinations(user, pendingConflicts, pendingRequests);
     final location = GoRouterState.of(context).uri.path;
     final selected = _selectedNavIndex(destinations, location);
     final wide = MediaQuery.sizeOf(context).width >= Breakpoints.mobile;
@@ -343,7 +353,11 @@ class AppScaffold extends ConsumerWidget {
     );
   }
 
-  List<_NavItem> _destinations(AppUser? user, int pendingConflicts) {
+  List<_NavItem> _destinations(
+    AppUser? user,
+    int pendingConflicts,
+    int pendingRequests,
+  ) {
     if (user == null) {
       return const [];
     }
@@ -396,7 +410,12 @@ class AppScaffold extends ConsumerWidget {
         if (!user.isAgent && user.canAdmin(AdminPermission.settingsManage))
           const _NavItem(AppStrings.settings, Icons.settings_outlined, RoutePaths.adminSettings),
         if (!user.isAgent && user.canAnyAdmin(const [AdminPermission.requestsView, AdminPermission.requestsResolve]))
-          const _NavItem(AppStrings.requests, Icons.support_agent_outlined, RoutePaths.adminRequests),
+          _NavItem(
+            AppStrings.requests,
+            Icons.support_agent_outlined,
+            RoutePaths.adminRequests,
+            badgeCount: pendingRequests > 0 ? pendingRequests : null,
+          ),
         if (!user.isAgent && user.canAdmin(AdminPermission.subAdminsManage))
           const _NavItem(AppStrings.subAdmins, Icons.admin_panel_settings_outlined, RoutePaths.adminSubAdmins),
       ],

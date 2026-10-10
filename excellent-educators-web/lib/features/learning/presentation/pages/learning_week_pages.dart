@@ -6,6 +6,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/assessment_result_view.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
 import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
+import 'package:excellent_educators_web/features/learning/presentation/widgets/weekly_video_lesson_card.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:flutter/material.dart';
@@ -202,77 +203,11 @@ class _StudentLearningWeekPageState
               ),
               const SizedBox(height: 20),
 
-              // Weekly video card (if exists)
+              // Weekly video lesson frame
               if (week.hasVideo && week.videoUrl != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Brand.navy,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Brand.navy.withValues(alpha: 0.12),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Brand.gold.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.play_circle_fill_rounded,
-                          color: Brand.gold,
-                          size: 26,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              AppStrings.weeklyVideoLesson,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              AppStrings.recommendedToWatchBeforeSubmitting,
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Brand.gold,
-                          foregroundColor: Brand.navy,
-                          textStyle: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
-                          ),
-                        ),
-                        onPressed: () => launchUrl(
-                          Uri.parse(week.videoUrl!),
-                          webOnlyWindowName: AppStrings.blank,
-                        ),
-                        icon: const Icon(Icons.open_in_new_rounded, size: 15),
-                        label: const Text(AppStrings.watchVideo),
-                      ),
-                    ],
-                  ),
+                WeeklyVideoLessonCard(
+                  videoUrl: week.videoUrl!,
+                  title: week.videoTitle,
                 ),
                 const SizedBox(height: 20),
               ],
@@ -1516,37 +1451,10 @@ class StaffLearningWeekPage extends ConsumerWidget {
                     ),
                     if (weekData.hasVideo && weekData.videoUrl != null) ...[
                       SizedBox(height: isMobile ? 10 : 14),
-                      SizedBox(
-                        width: isMobile ? double.infinity : null,
-                        child: FilledButton.icon(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Brand.navy,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: isMobile ? 10 : 10,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          onPressed: () => launchUrl(
-                            Uri.parse(weekData.videoUrl!),
-                            webOnlyWindowName: AppStrings.blank,
-                          ),
-                          icon: const Icon(
-                            Icons.play_circle_fill_rounded,
-                            color: Brand.gold,
-                            size: 18,
-                          ),
-                          label: Text(
-                            AppStrings.openLessonVideo,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: isMobile ? 12.5 : 13,
-                            ),
-                          ),
-                        ),
+                      WeeklyVideoLessonCard(
+                        videoUrl: weekData.videoUrl!,
+                        title: weekData.videoTitle,
+                        compact: true,
                       ),
                     ],
                   ],

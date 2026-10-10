@@ -319,6 +319,7 @@ class LearningJournalService
             'attempts_max' => 2,
             'can_submit' => $unlocked && $journey->isCurrent() && $unit !== null && $attemptCount < 2,
             'video_url' => $videoUrl,
+            'video_title' => filled($unit?->video_title) ? $unit->video_title : null,
             'has_video' => is_string($videoUrl) && $videoUrl !== '',
             'comprehension_paragraph' => $unit?->comprehension_paragraph,
             'has_comprehension' => filled($unit?->comprehension_paragraph),

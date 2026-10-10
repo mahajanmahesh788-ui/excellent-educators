@@ -61,7 +61,7 @@ class StudentLearningController extends Controller
             'request_type' => AdminRequestType::PromoteStudent->value,
             'student_id' => $student->id,
             'level_id' => $request->validated('level_id'),
-            'reason' => $request->input('reason'),
+            'reason' => trim((string) $request->validated('reason')),
         ]);
 
         $adminRequest->load(['user.teacherProfile', 'student', 'fromLevel', 'targetLevel']);

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
+import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
 
 /// ---------------------------------------------------------------------------
@@ -23,6 +25,10 @@ class FreshStudentHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final firstName = student.fullName.trim().split(' ').first;
     final isMobile = MediaQuery.sizeOf(context).width < 768;
+    final continuing = student.isContinuingLearner;
+    final levelLabel = student.level?.label.trim().isNotEmpty == true
+        ? student.level!.label
+        : AppStrings.yourNextLevel;
 
     return Container(
       width: double.infinity,
@@ -54,7 +60,7 @@ class FreshStudentHero extends StatelessWidget {
               height: 220,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.12),
+                color: AppColors.textOnPrimary.withValues(alpha: 0.12),
               ),
             ),
           ),
@@ -92,18 +98,22 @@ class FreshStudentHero extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: StudentColors.amberBorder),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.rocket_launch_rounded,
+                            continuing
+                                ? Icons.emoji_events_rounded
+                                : Icons.rocket_launch_rounded,
                             size: 14,
                             color: StudentColors.amberDark,
                           ),
-                          SizedBox(width: 6),
+                          const SizedBox(width: 6),
                           Text(
-                            'STEP 1 OF YOUR JOURNEY',
-                            style: TextStyle(
+                            continuing
+                                ? AppStrings.levelUpCheckIn
+                                : AppStrings.step1OfYourJourney,
+                            style: const TextStyle(
                               color: StudentColors.amberBrown,
                               fontWeight: FontWeight.w800,
                               fontSize: 11,
@@ -119,18 +129,20 @@ class FreshStudentHero extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.22),
+                        color: AppColors.textOnPrimary.withValues(alpha: 0.22),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.45),
+                          color: AppColors.textOnPrimary.withValues(alpha: 0.45),
                         ),
                       ),
                       child: Text(
-                        student.level?.label.isNotEmpty == true
-                            ? student.level!.label
-                            : 'Fresh Student',
+                        continuing
+                            ? levelLabel
+                            : (student.level?.label.isNotEmpty == true
+                                ? student.level!.label
+                                : AppStrings.freshStudent),
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textOnPrimary,
                           fontWeight: FontWeight.w700,
                           fontSize: 11.5,
                         ),
@@ -143,11 +155,13 @@ class FreshStudentHero extends StatelessWidget {
 
                 // Welcome Heading
                 Text(
-                  'Welcome to Excellent Educators, $firstName 👋',
+                  continuing
+                      ? AppStrings.welcomeBackName(firstName)
+                      : AppStrings.welcomeToExcellentEducators(firstName),
                   style: TextStyle(
                     fontSize: isMobile ? 22 : 30,
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: AppColors.textOnPrimary,
                     letterSpacing: -0.5,
                     height: 1.2,
                   ),
@@ -159,10 +173,12 @@ class FreshStudentHero extends StatelessWidget {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 680),
                   child: Text(
-                    "Let's discover what makes you unique. Help us learn about your interests, mindset, and strengths so we can personalize your learning journey and faculty mentors.",
+                    continuing
+                        ? AppStrings.heroReachedLevelCheckIn(levelLabel)
+                        : AppStrings.heroDiscoverTenPillars,
                     style: TextStyle(
                       fontSize: isMobile ? 13.5 : 15,
-                      color: Colors.white.withValues(alpha: 0.95),
+                      color: AppColors.textOnPrimary.withValues(alpha: 0.95),
                       height: 1.5,
                     ),
                   ),
@@ -189,9 +205,11 @@ class FreshStudentHero extends StatelessWidget {
                       size: 16,
                       color: StudentColors.textPrimary,
                     ),
-                    label: const Text(
-                      'Start Questionnaire',
-                      style: TextStyle(
+                    label: Text(
+                      continuing
+                          ? AppStrings.startLevelCheckIn
+                          : AppStrings.startQuestionnaire,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 14,
                       ),
@@ -211,53 +229,94 @@ class FreshStudentHero extends StatelessWidget {
 /// 2. Top-Level Onboarding Stepper (Steps 1 to 4)
 /// ---------------------------------------------------------------------------
 class FreshStudentStepper extends StatelessWidget {
-  const FreshStudentStepper({super.key});
+  const FreshStudentStepper({super.key, this.continuing = false, this.levelLabel});
+
+  final bool continuing;
+  final String? levelLabel;
 
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width < 768;
+    final level = (levelLabel != null && levelLabel!.trim().isNotEmpty)
+        ? levelLabel!.trim()
+        : AppStrings.nextLevel;
 
-    final steps = [
-      (
-        step: 1,
-        title: 'Discover Yourself',
-        subtitle: 'Interests & Mindset',
-        isActive: true,
-        isCompleted: false,
-        isLocked: false,
-      ),
-      (
-        step: 2,
-        title: 'Understand Strengths',
-        subtitle: 'Faculty Insights',
-        isActive: false,
-        isCompleted: false,
-        isLocked: true,
-      ),
-      (
-        step: 3,
-        title: 'Build Your Journey',
-        subtitle: 'Curriculum & Habits',
-        isActive: false,
-        isCompleted: false,
-        isLocked: true,
-      ),
-      (
-        step: 4,
-        title: 'Start Sessions',
-        subtitle: '1-on-1 Mentorship',
-        isActive: false,
-        isCompleted: false,
-        isLocked: true,
-      ),
-    ];
+    final steps = continuing
+        ? [
+            (
+              step: 1,
+              title: AppStrings.levelCheckIn,
+              subtitle: AppStrings.tenGrowthPillars,
+              isActive: true,
+              isCompleted: false,
+              isLocked: false,
+            ),
+            (
+              step: 2,
+              title: AppStrings.mentorInsights,
+              subtitle: AppStrings.facultyGuidance,
+              isActive: false,
+              isCompleted: false,
+              isLocked: true,
+            ),
+            (
+              step: 3,
+              title: AppStrings.levelLearning,
+              subtitle: AppStrings.curriculumAndHabits,
+              isActive: false,
+              isCompleted: false,
+              isLocked: true,
+            ),
+            (
+              step: 4,
+              title: AppStrings.bookSessions,
+              subtitle: AppStrings.oneOnOneMentorship,
+              isActive: false,
+              isCompleted: false,
+              isLocked: true,
+            ),
+          ]
+        : [
+            (
+              step: 1,
+              title: AppStrings.discoverYourself,
+              subtitle: AppStrings.tenGrowthPillars,
+              isActive: true,
+              isCompleted: false,
+              isLocked: false,
+            ),
+            (
+              step: 2,
+              title: AppStrings.understandStrengths,
+              subtitle: AppStrings.facultyInsights,
+              isActive: false,
+              isCompleted: false,
+              isLocked: true,
+            ),
+            (
+              step: 3,
+              title: AppStrings.buildYourJourney,
+              subtitle: AppStrings.curriculumAndHabits,
+              isActive: false,
+              isCompleted: false,
+              isLocked: true,
+            ),
+            (
+              step: 4,
+              title: AppStrings.startSessions,
+              subtitle: AppStrings.oneOnOneMentorship,
+              isActive: false,
+              isCompleted: false,
+              isLocked: true,
+            ),
+          ];
 
     if (isMobile) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.textOnPrimary,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: StudentColors.border),
           boxShadow: StudentColors.cardShadow,
@@ -268,9 +327,11 @@ class FreshStudentStepper extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'YOUR ONBOARDING JOURNEY',
-                  style: TextStyle(
+                Text(
+                  continuing
+                      ? AppStrings.levelJourneyLabel(level)
+                      : AppStrings.yourOnboardingJourney,
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                     color: StudentColors.textMuted,
@@ -286,9 +347,11 @@ class FreshStudentStepper extends StatelessWidget {
                     color: StudentColors.indigoLight,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'Step 1 of 4 Active',
-                    style: TextStyle(
+                  child: Text(
+                    continuing
+                        ? AppStrings.checkInActive
+                        : AppStrings.step1Of4Active,
+                    style: const TextStyle(
                       color: StudentColors.indigoPrimary,
                       fontWeight: FontWeight.w800,
                       fontSize: 10.5,
@@ -310,7 +373,7 @@ class FreshStudentStepper extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.textOnPrimary,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: StudentColors.border),
         boxShadow: StudentColors.cardShadow,
@@ -321,9 +384,11 @@ class FreshStudentStepper extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'YOUR ONBOARDING JOURNEY',
-                style: TextStyle(
+              Text(
+                continuing
+                    ? AppStrings.levelJourneyLabel(level)
+                    : AppStrings.yourOnboardingJourney,
+                style: const TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w800,
                   color: StudentColors.textMuted,
@@ -339,9 +404,11 @@ class FreshStudentStepper extends StatelessWidget {
                   color: StudentColors.indigoLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Complete Step 1 to Unlock Next Stages',
-                  style: TextStyle(
+                child: Text(
+                  continuing
+                      ? AppStrings.completeCheckInToUnlockLevel(level)
+                      : AppStrings.completeStep1ToUnlockNextStages,
+                  style: const TextStyle(
                     color: StudentColors.indigoPrimary,
                     fontWeight: FontWeight.w800,
                     fontSize: 11,
@@ -401,7 +468,7 @@ class _DesktopStepItem extends StatelessWidget {
         ? stepThemeColor
         : (locked ? stepThemeLight : StudentColors.emeraldLight);
     final Color badgeColor = active
-        ? Colors.white
+        ? AppColors.textOnPrimary
         : (locked ? stepThemeColor : StudentColors.emeraldDark);
 
     return Container(
@@ -439,7 +506,7 @@ class _DesktopStepItem extends StatelessWidget {
                         ? const Icon(
                             Icons.check_rounded,
                             size: 18,
-                            color: Colors.white,
+                            color: AppColors.textOnPrimary,
                           )
                         : Text(
                             '${step.step}',
@@ -460,7 +527,7 @@ class _DesktopStepItem extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      'STEP ${step.step}',
+                      AppStrings.stepNumberLabel(step.step),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
@@ -482,9 +549,9 @@ class _DesktopStepItem extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text(
-                          'ACTIVE',
+                          AppStrings.activeBadge,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.textOnPrimary,
                             fontSize: 8.5,
                             fontWeight: FontWeight.w800,
                           ),
@@ -562,7 +629,7 @@ class _MobileStepRow extends StatelessWidget {
                       '${step.step}',
                       style: TextStyle(
                         color: active
-                            ? Colors.white
+                            ? AppColors.textOnPrimary
                             : StudentColors.textSecondary,
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
@@ -599,9 +666,9 @@ class _MobileStepRow extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text(
-                          'ACTIVE',
+                          AppStrings.activeBadge,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.textOnPrimary,
                             fontSize: 8.5,
                             fontWeight: FontWeight.w800,
                           ),
@@ -637,13 +704,24 @@ class _MobileStepRow extends StatelessWidget {
 /// 3. Dashboard Lock Banner (Required First Step Action Banner)
 /// ---------------------------------------------------------------------------
 class FreshStudentLockBanner extends StatelessWidget {
-  const FreshStudentLockBanner({super.key, required this.onContinue});
+  const FreshStudentLockBanner({
+    super.key,
+    required this.onContinue,
+    this.continuing = false,
+    this.levelLabel,
+  });
 
   final VoidCallback onContinue;
+  final bool continuing;
+  final String? levelLabel;
 
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width < 768;
+    final level = (levelLabel != null && levelLabel!.trim().isNotEmpty)
+        ? levelLabel!.trim()
+        : AppStrings.thisLevel;
+    final cta = continuing ? AppStrings.continueLevelCheckIn : AppStrings.continueQuestionnaire;
 
     return Container(
       width: double.infinity,
@@ -671,8 +749,8 @@ class FreshStudentLockBanner extends StatelessWidget {
               color: StudentColors.amberPrimary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
-              Icons.lock_clock_rounded,
+            child: Icon(
+              continuing ? Icons.trending_up_rounded : Icons.lock_clock_rounded,
               color: StudentColors.amberDeep,
               size: 26,
             ),
@@ -682,22 +760,28 @@ class FreshStudentLockBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Text(
-                      'Your first step starts here 🚀',
-                      style: TextStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w800,
-                        color: StudentColors.amberBrown,
+                    Flexible(
+                      child: Text(
+                        continuing
+                            ? AppStrings.unlockLevelToKeepGrowing(level)
+                            : AppStrings.yourFirstStepStartsHere,
+                        style: const TextStyle(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w800,
+                          color: StudentColors.amberBrown,
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Complete your Discovery Questionnaire to unlock your learning journey and booking.',
-                  style: TextStyle(
+                Text(
+                  continuing
+                      ? AppStrings.completeLevelCheckInAcrossPillars(level)
+                      : AppStrings.completeDiscoveryToUnlockJourney,
+                  style: const TextStyle(
                     fontSize: 13,
                     color: StudentColors.amberInk,
                     height: 1.35,
@@ -709,7 +793,7 @@ class FreshStudentLockBanner extends StatelessWidget {
                     onPressed: onContinue,
                     style: FilledButton.styleFrom(
                       backgroundColor: StudentColors.amberDeep,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.textOnPrimary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 10,
@@ -720,9 +804,9 @@ class FreshStudentLockBanner extends StatelessWidget {
                       elevation: 0,
                     ),
                     icon: const Icon(Icons.arrow_downward_rounded, size: 14),
-                    label: const Text(
-                      'Continue Questionnaire',
-                      style: TextStyle(
+                    label: Text(
+                      cta,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12.5,
                       ),
@@ -738,7 +822,7 @@ class FreshStudentLockBanner extends StatelessWidget {
               onPressed: onContinue,
               style: FilledButton.styleFrom(
                 backgroundColor: StudentColors.amberDeep,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.textOnPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 18,
                   vertical: 13,
@@ -749,9 +833,9 @@ class FreshStudentLockBanner extends StatelessWidget {
                 elevation: 0,
               ),
               icon: const Icon(Icons.arrow_downward_rounded, size: 16),
-              label: const Text(
-                'Continue Questionnaire',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+              label: Text(
+                cta,
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
               ),
             ),
           ],
@@ -765,15 +849,26 @@ class FreshStudentLockBanner extends StatelessWidget {
 /// 4. "What Happens Next?" Roadmap Card
 /// ---------------------------------------------------------------------------
 class FreshStudentRoadmapCard extends StatelessWidget {
-  const FreshStudentRoadmapCard({super.key});
+  const FreshStudentRoadmapCard({
+    super.key,
+    this.continuing = false,
+    this.levelLabel,
+  });
+
+  final bool continuing;
+  final String? levelLabel;
 
   @override
   Widget build(BuildContext context) {
+    final level = (levelLabel != null && levelLabel!.trim().isNotEmpty)
+        ? levelLabel!.trim()
+        : AppStrings.thisLevel;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.textOnPrimary,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: StudentColors.border),
         boxShadow: StudentColors.cardShadow,
@@ -796,11 +891,11 @@ class FreshStudentRoadmapCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'WHAT HAPPENS NEXT?',
+                  const Text(
+                    AppStrings.whatHappensNext,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -808,10 +903,12 @@ class FreshStudentRoadmapCard extends StatelessWidget {
                       letterSpacing: 0.8,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Your Path After Completing Discovery',
-                    style: TextStyle(
+                    continuing
+                        ? AppStrings.yourPathThroughLevel(level)
+                        : AppStrings.yourPathAfterCompletingDiscovery,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                       color: StudentColors.textPrimary,
@@ -824,38 +921,46 @@ class FreshStudentRoadmapCard extends StatelessWidget {
           const SizedBox(height: 18),
           const Divider(height: 1, color: StudentColors.border),
           const SizedBox(height: 16),
-          const _MilestoneItem(
+          _MilestoneItem(
             index: '1',
-            title: 'Discover Yourself',
-            subtitle: 'Compulsory first step to map your interests, mindset, and strengths.',
-            status: 'IN PROGRESS',
+            title: continuing ? AppStrings.levelCheckIn : AppStrings.discoverYourself,
+            subtitle: continuing
+                ? AppStrings.mapTenPillarsForLevel(level)
+                : AppStrings.compulsoryFirstStepTenPillars,
+            status: AppStrings.inProgressStatus,
             statusColor: StudentColors.amberPrimary,
             isCurrent: true,
           ),
           const SizedBox(height: 14),
-          const _MilestoneItem(
+          _MilestoneItem(
             index: '2',
-            title: 'Understand Your Strengths',
-            subtitle: 'Faculty mentors review your profile to prepare personalized mentorship.',
-            status: 'LOCKED',
+            title: continuing ? AppStrings.mentorInsights : AppStrings.understandYourStrengths,
+            subtitle: continuing
+                ? AppStrings.facultyReviewLevelCheckIn(level)
+                : AppStrings.facultyMentorsReviewProfile,
+            status: AppStrings.lockedStatus,
             statusColor: StudentColors.textMuted,
             isCurrent: false,
           ),
           const SizedBox(height: 14),
-          const _MilestoneItem(
+          _MilestoneItem(
             index: '3',
-            title: 'Build Your Skills',
-            subtitle: 'Unlock weekly video modules, aptitude questions & reflective journals.',
-            status: 'LOCKED',
+            title: continuing ? AppStrings.levelLearning : AppStrings.buildYourSkills,
+            subtitle: continuing
+                ? AppStrings.unlockLevelWeeklyModules(level)
+                : AppStrings.unlockWeeklyModules,
+            status: AppStrings.lockedStatus,
             statusColor: StudentColors.textMuted,
             isCurrent: false,
           ),
           const SizedBox(height: 14),
-          const _MilestoneItem(
+          _MilestoneItem(
             index: '4',
-            title: 'Start Your Sessions',
-            subtitle: 'Book your 1-on-1 Introduction Call and ongoing Master Classes.',
-            status: 'LOCKED',
+            title: continuing ? AppStrings.bookSessions : AppStrings.startYourSessions,
+            subtitle: continuing
+                ? AppStrings.continueMentorshipInLevel(level)
+                : AppStrings.bookIntroductionAndMasterClasses,
+            status: AppStrings.lockedStatus,
             statusColor: StudentColors.textMuted,
             isCurrent: false,
           ),
@@ -901,7 +1006,7 @@ class _MilestoneItem extends StatelessWidget {
                 ? const Icon(
                     Icons.arrow_forward_rounded,
                     size: 14,
-                    color: Colors.white,
+                    color: AppColors.textOnPrimary,
                   )
                 : const Icon(
                     Icons.lock_rounded,
@@ -990,7 +1095,7 @@ class LockedFeatureNoticeDialog extends StatelessWidget {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       elevation: 16,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 440),
         child: Padding(
@@ -1019,7 +1124,7 @@ class LockedFeatureNoticeDialog extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               const Text(
-                'Complete your Discovery Questionnaire first',
+                AppStrings.completeDiscoveryQuestionnaireFirst,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
@@ -1030,7 +1135,7 @@ class LockedFeatureNoticeDialog extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Access to $featureName and session bookings unlocks as soon as you finish your Interest & Mindset Discovery.',
+                AppStrings.accessUnlocksAfterTenPillarCheckIn(featureName),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 13.5,
@@ -1053,7 +1158,7 @@ class LockedFeatureNoticeDialog extends StatelessWidget {
                         ),
                       ),
                       child: const Text(
-                        'Maybe Later',
+                        AppStrings.maybeLater,
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
@@ -1074,7 +1179,7 @@ class LockedFeatureNoticeDialog extends StatelessWidget {
                         elevation: 0,
                       ),
                       child: const Text(
-                        'Continue Questionnaire',
+                        AppStrings.continueQuestionnaire,
                         style: TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
@@ -1105,7 +1210,7 @@ class JourneyNotStartedDialog extends StatelessWidget {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       elevation: 16,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 440),
         child: Padding(
@@ -1177,14 +1282,14 @@ class JourneyNotStartedDialog extends StatelessWidget {
   }
 }
 
-/// Shown after Introduction when Master Class is locked until the next month.
-class MasterClassOpensNextMonthDialog extends StatelessWidget {
-  const MasterClassOpensNextMonthDialog({super.key});
+/// Shown after Introduction when Master Class is locked until 4 level weeks are done.
+class MasterClassLevelWeeksDialog extends StatelessWidget {
+  const MasterClassLevelWeeksDialog({super.key});
 
   static Future<void> show(BuildContext context) {
     return showDialog<void>(
       context: context,
-      builder: (dialogCtx) => const MasterClassOpensNextMonthDialog(),
+      builder: (dialogCtx) => const MasterClassLevelWeeksDialog(),
     );
   }
 
@@ -1193,7 +1298,7 @@ class MasterClassOpensNextMonthDialog extends StatelessWidget {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       elevation: 16,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 440),
         child: Padding(
@@ -1219,7 +1324,7 @@ class MasterClassOpensNextMonthDialog extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               const Text(
-                AppStrings.masterClassOpensNextMonthTitle,
+                AppStrings.masterClassRequiresLevelWeeksTitle,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
@@ -1230,7 +1335,7 @@ class MasterClassOpensNextMonthDialog extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                AppStrings.masterClassOpensNextMonthBody,
+                AppStrings.masterClassRequiresLevelWeeksBody,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13.5,
@@ -1268,12 +1373,17 @@ class MasterClassOpensNextMonthDialog extends StatelessWidget {
 /// ---------------------------------------------------------------------------
 /// 6. Booking Protection Guard Card (Shown on /student/bookings if questionnaire pending)
 /// ---------------------------------------------------------------------------
-class BookingQuestionnaireGuardCard extends StatelessWidget {
+class BookingQuestionnaireGuardCard extends ConsumerWidget {
   const BookingQuestionnaireGuardCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isMobile = MediaQuery.sizeOf(context).width < 768;
+    final student = ref.watch(studentProfileProvider).asData?.value;
+    final continuing = student?.isContinuingLearner ?? false;
+    final levelLabel = student?.level?.label.trim().isNotEmpty == true
+        ? student!.level!.label
+        : AppStrings.thisLevel;
 
     return Center(
       child: ConstrainedBox(
@@ -1283,7 +1393,7 @@ class BookingQuestionnaireGuardCard extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
           padding: EdgeInsets.all(isMobile ? 24 : 36),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.textOnPrimary,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: StudentColors.amberBorder, width: 1.6),
             boxShadow: [
@@ -1323,9 +1433,11 @@ class BookingQuestionnaireGuardCard extends StatelessWidget {
                   color: StudentColors.amberPrimary.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
-                  'COMPULSORY FOR NEW STUDENTS',
-                  style: TextStyle(
+                child: Text(
+                  continuing
+                      ? AppStrings.requiredForLevelBanner(levelLabel)
+                      : AppStrings.compulsoryForNewStudents,
+                  style: const TextStyle(
                     color: StudentColors.amberDeep,
                     fontWeight: FontWeight.w800,
                     fontSize: 11,
@@ -1334,10 +1446,12 @@ class BookingQuestionnaireGuardCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Complete Your First Step',
+              Text(
+                continuing
+                    ? AppStrings.completeYourLevelCheckIn(levelLabel)
+                    : AppStrings.completeYourFirstStep,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: StudentColors.textPrimary,
@@ -1345,10 +1459,12 @@ class BookingQuestionnaireGuardCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Your Discovery Questionnaire is required before booking your first session. Help our mentors understand your interests, hobbies, and learning mindset.',
+              Text(
+                continuing
+                    ? AppStrings.finishTenPillarCheckInBeforeBooking(levelLabel)
+                    : AppStrings.discoveryRequiredBeforeBookingTenPillars,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14.5,
                   color: StudentColors.textSecondary,
                   height: 1.5,
@@ -1359,7 +1475,7 @@ class BookingQuestionnaireGuardCard extends StatelessWidget {
                 onPressed: () => context.go(RoutePaths.studentDashboard),
                 style: FilledButton.styleFrom(
                   backgroundColor: StudentColors.indigoPrimary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.textOnPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 15,
@@ -1370,9 +1486,9 @@ class BookingQuestionnaireGuardCard extends StatelessWidget {
                   elevation: 0,
                 ),
                 icon: const Icon(Icons.assignment_turned_in_rounded, size: 18),
-                label: const Text(
-                  'Complete Questionnaire',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                label: Text(
+                  continuing ? AppStrings.completeLevelCheckIn : AppStrings.completeQuestionnaire,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                 ),
               ),
             ],

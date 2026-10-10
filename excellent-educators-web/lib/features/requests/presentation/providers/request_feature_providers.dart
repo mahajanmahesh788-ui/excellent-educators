@@ -67,3 +67,12 @@ final adminRequestsProvider = FutureProvider.autoDispose.family<PagedResult, Adm
 final adminRequestDetailProvider = FutureProvider.autoDispose.family<AdminRequestDto, String>((ref, id) {
   return ref.watch(requestRepositoryProvider).adminRequest(id);
 });
+
+/// Pending admin-request count for sidebar badge.
+final adminPendingRequestsCountProvider = FutureProvider.autoDispose<int>((ref) async {
+  final page = await ref.watch(requestRepositoryProvider).adminRequests(
+        page: 1,
+        status: 'pending',
+      );
+  return page.total;
+});

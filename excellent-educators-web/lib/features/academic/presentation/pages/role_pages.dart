@@ -12,6 +12,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/mentor_profile_editor.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/mentor_profile_view.dart';
+import 'package:excellent_educators_web/features/academic/presentation/widgets/student_level_path_graph.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/student_onboarding_profile_section.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/assessment_result_view.dart';
@@ -933,6 +934,10 @@ class TeacherStudentResultsPage extends ConsumerWidget {
           return ListView(
             children: [
               StudentCard(student: studentData, highlightOverallRating: true),
+              if (studentData.levelPath.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                StudentLevelPathGraph(nodes: studentData.levelPath),
+              ],
               const SizedBox(height: 16),
               Text(
                 AppStrings.aptitudeInterestsReferenceOnly,

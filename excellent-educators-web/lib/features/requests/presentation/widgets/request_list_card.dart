@@ -88,7 +88,7 @@ class RequestListCard extends StatelessWidget {
               const SizedBox(height: 8),
               _LabeledField(
                 label: AppStrings.student,
-                value: '${item.student!.fullName} (${item.student!.studentCode})',
+                value: item.student!.labeledName,
               ),
             ],
             if (item.batch != null) ...[
@@ -164,7 +164,7 @@ class RequestListCard extends StatelessWidget {
                           const Icon(Icons.person_outline, size: 12, color: Brand.navy),
                           const SizedBox(width: 4),
                           Text(
-                            '${item.student!.fullName} (${item.student!.studentCode})',
+                            item.student!.labeledName,
                             style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Brand.navy),
                           ),
                         ],

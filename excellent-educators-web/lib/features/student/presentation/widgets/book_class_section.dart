@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
 import 'package:excellent_educators_web/app/theme/student_colors.dart';
@@ -119,7 +120,9 @@ class BookClassSection extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            snapshot.canBookIntroduction
+            student.isBatchWaitingToStart
+                ? AppStrings.youCanStillReviewPreviousJourneyWhileWaiting
+                : snapshot.canBookIntroduction
                 ? 'Schedule your personalized Introduction Call to unlock your learning roadmap.'
                 : snapshot.canBookMasterClass && remaining > 0
                 ? 'Choose an expert master teacher and pick a convenient time slot for your master class.'

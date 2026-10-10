@@ -124,7 +124,10 @@ class _RequestListBody extends StatelessWidget {
 
     final isMobile = MediaQuery.sizeOf(context).width < 600;
     final pending = items.where((item) => item.isPending).toList();
-    final completed = items.where((item) => item.isCompleted).toList();
+    // Include rejected with completed so resolved upgrades are visible (not a blank page).
+    final resolved = items
+        .where((item) => item.isCompleted || item.isRejected)
+        .toList();
 
     return ListView(
       shrinkWrap: nested,
@@ -164,11 +167,11 @@ class _RequestListBody extends StatelessWidget {
             RequestListCard(item: item),
             const SizedBox(height: 8),
           ],
-          if (completed.isNotEmpty) SizedBox(height: isMobile ? 8 : 12),
+          if (resolved.isNotEmpty) SizedBox(height: isMobile ? 8 : 12),
         ],
-        if (completed.isNotEmpty) ...[
-          _SectionHeading(label: AppStrings.completed, count: completed.length),
-          for (final item in completed) ...[
+        if (resolved.isNotEmpty) ...[
+          _SectionHeading(label: AppStrings.completed, count: resolved.length),
+          for (final item in resolved) ...[
             RequestListCard(item: item),
             const SizedBox(height: 8),
           ],
@@ -706,6 +709,7 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
           );
       ref.invalidate(adminRequestDetailProvider(widget.requestId));
       ref.invalidate(adminRequestsProvider(ref.read(adminRequestsFilterProvider)));
+      ref.invalidate(adminPendingRequestsCountProvider);
       ref.invalidate(adminDashboardProvider);
       if (mounted) {
         final message = reject
@@ -728,6 +732,14 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
     }
   }
 
+  String? _extractReason(String description) {
+    const marker = 'Reason:';
+    final index = description.indexOf(marker);
+    if (index < 0) return null;
+    final reason = description.substring(index + marker.length).trim();
+    return reason.isEmpty ? null : reason;
+  }
+
   @override
   Widget build(BuildContext context) {
     final request = ref.watch(adminRequestDetailProvider(widget.requestId));
@@ -743,120 +755,976 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                     AdminPermission.requestsResolve,
                   ) ??
               false;
-          return ListView(
-            children: [
-              RequestListCard(
-                item: item,
-                showRequester: true,
-                wrapInCard: false,
-                showFullDescription: true,
+          final isMobile = MediaQuery.sizeOf(context).width < 640;
+
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 960),
+              child: ListView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 24,
+                  vertical: isMobile ? 14 : 20,
+                ),
+                children: [
+                  // 1. Top Header Banner
+                  _buildRequestHeader(item),
+                  const SizedBox(height: 16),
+
+                  // 2. Proposal / Core Content Card
+                  if (item.isPromoteStudent)
+                    _buildLevelUpgradeCard(item, context)
+                  else if (item.isActionable)
+                    _buildRemovalRequestCard(item, context)
+                  else
+                    _buildGeneralRequestCard(item),
+
+                  const SizedBox(height: 16),
+
+                  // 3. Requester Information Card
+                  _buildRequesterCard(item),
+
+                  const SizedBox(height: 16),
+
+                  // 4. Action / Resolution Decision Card
+                  if (item.isCompleted || item.isRejected)
+                    _buildResolutionSummaryCard(item)
+                  else
+                    _buildDecisionCard(item, canResolve),
+
+                  const SizedBox(height: 32),
+                ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                'Submitted ${_formatDate(item.createdAt)}',
-                style: const TextStyle(color: Brand.muted, fontSize: 13),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildRequestHeader(AdminRequestDto item) {
+    final title = item.isPromoteStudent
+        ? 'Level Upgrade Request'
+        : (item.isRemoveMentee || item.isRemoveBatchStudent
+            ? 'Student Removal Request'
+            : (item.subtitle.isNotEmpty ? item.subtitle : 'Administrative Request'));
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: item.isPromoteStudent
+                  ? const Color(0xFFEEF2FF)
+                  : (item.isActionable ? const Color(0xFFFEF2F2) : const Color(0xFFF1F5F9)),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: item.isPromoteStudent
+                    ? const Color(0xFFC7D2FE)
+                    : (item.isActionable ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0)),
               ),
-              if (item.isCompleted || item.isRejected) ...[
-                const SizedBox(height: 20),
-                Text(AppStrings.resolution, style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 8),
+            ),
+            child: Icon(
+              item.isPromoteStudent
+                  ? Icons.trending_up_rounded
+                  : (item.isActionable ? Icons.person_remove_rounded : Icons.mark_email_read_outlined),
+              color: item.isPromoteStudent
+                  ? const Color(0xFF4F46E5)
+                  : (item.isActionable ? const Color(0xFFDC2626) : const Color(0xFF03162B)),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  '${item.isRejected ? AppStrings.rejected : AppStrings.resolved} by ${item.resolvedByName ?? 'admin'}'
-                  '${item.resolvedAt != null ? ' on ${_formatDate(item.resolvedAt!)}' : ''}',
-                  style: const TextStyle(color: Brand.muted),
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    const Icon(Icons.schedule_rounded, size: 13, color: Color(0xFF94A3B8)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Submitted ${_formatDate(item.createdAt)}',
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          _buildStatusBadge(item.status),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    return switch (status) {
+      'pending' => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF3C7),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFFDE68A)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.hourglass_top_rounded, size: 12, color: Color(0xFFD97706)),
+              SizedBox(width: 4),
+              Text(
+                'Pending Review',
+                style: TextStyle(
+                  color: Color(0xFFB45309),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      'rejected' => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEE2E2),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFFECACA)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cancel_rounded, size: 13, color: Color(0xFFDC2626)),
+              SizedBox(width: 4),
+              Text(
+                'Rejected',
+                style: TextStyle(
+                  color: Color(0xFFB91C1C),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      _ => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFDCFCE7),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFBBF7D0)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle_rounded, size: 13, color: Color(0xFF16A34A)),
+              SizedBox(width: 4),
+              Text(
+                'Completed',
+                style: TextStyle(
+                  color: Color(0xFF15803D),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+    };
+  }
+
+  Widget _buildLevelUpgradeCard(AdminRequestDto item, BuildContext context) {
+    final fromLevelName = item.fromLevel?.name ?? 'Level 1';
+    final targetLevelName = item.targetLevel?.name ?? 'Level 2';
+    final reason = _extractReason(item.description);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.school_outlined, size: 18, color: Color(0xFF2563EB)),
+              SizedBox(width: 8),
+              Text(
+                'Proposed Level Promotion',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Visual Level Transition Banner
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF8FAFC), Color(0xFFEFF6FF)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFDBEAFE)),
+            ),
+            child: Row(
+              children: [
+                // Current Level
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'CURRENT LEVEL',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF64748B),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        fromLevelName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Arrow Transition Circle
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2563EB),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+
+                // Target Level
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'PROPOSED LEVEL',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2563EB),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        targetLevelName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1D4ED8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Student Profile Strip
+          if (item.student != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: const Color(0xFFE0F2FE),
+                    child: Text(
+                      item.student!.fullName.isNotEmpty
+                          ? item.student!.fullName[0].toUpperCase()
+                          : 'S',
+                      style: const TextStyle(
+                        color: Color(0xFF0284C7),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.student!.labeledName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => context.go(RoutePaths.adminStudent(item.student!.id)),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 14),
+                    label: const Text('Open Profile'),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: const Color(0xFF2563EB),
+                      side: const BorderSide(color: Color(0xFFBFDBFE)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Teacher's Recommendation Note Callout
+          if (reason != null && reason.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.format_quote_rounded, size: 16, color: Color(0xFFD97706)),
+                      SizedBox(width: 6),
+                      Text(
+                        "Teacher's Justification / Reason",
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF92400E),
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    reason,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      height: 1.45,
+                      color: Color(0xFF78350F),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (item.description.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Details',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item.description,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      height: 1.45,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRemovalRequestCard(AdminRequestDto item, BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.person_remove_outlined, size: 18, color: Color(0xFFDC2626)),
+              SizedBox(width: 8),
+              Text(
+                'Student Removal Request',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (item.student != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: const Color(0xFFFEE2E2),
+                    child: Text(
+                      item.student!.fullName.isNotEmpty ? item.student!.fullName[0].toUpperCase() : 'S',
+                      style: const TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(item.student!.labeledName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => context.go(RoutePaths.adminStudent(item.student!.id)),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 14),
+                    label: const Text('Open Profile'),
+                    style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+                  ),
+                ],
+              ),
+            ),
+          if (item.batch != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.groups_rounded, size: 16, color: Color(0xFF475569)),
+                  const SizedBox(width: 8),
+                  Text('Batch: ${item.batch!.name}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7ED),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFFEDD5)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Reason / Explanation', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFFC2410C))),
+                const SizedBox(height: 6),
+                Text(item.description, style: const TextStyle(fontSize: 13.5, height: 1.45, color: Color(0xFF9A3412))),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGeneralRequestCard(AdminRequestDto item) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.description_outlined, size: 18, color: Color(0xFF2563EB)),
+              const SizedBox(width: 8),
+              Text(
+                item.subtitle.isNotEmpty ? item.subtitle : 'Request Details',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Text(
+              item.description,
+              style: const TextStyle(fontSize: 13.5, height: 1.5, color: Color(0xFF334155)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequesterCard(AdminRequestDto item) {
+    final name = item.requesterName ?? 'Unknown Requester';
+    final role = item.requesterType == 'teacher'
+        ? 'Teacher'
+        : (item.requesterType == 'student' ? 'Student' : 'User');
+    final email = item.requesterEmail ?? '—';
+    final phone = item.requesterPhone ?? '—';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.person_pin_circle_outlined, size: 18, color: Color(0xFF475569)),
+              SizedBox(width: 8),
+              Text(
+                'Requester Information',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: const Color(0xFF03162B),
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          name,
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEF2FF),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFC7D2FE)),
+                          ),
+                          child: Text(
+                            role,
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF4F46E5)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 4,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.email_outlined, size: 14, color: Color(0xFF64748B)),
+                            const SizedBox(width: 4),
+                            SelectableText(
+                              email,
+                              style: const TextStyle(fontSize: 12.5, color: Color(0xFF475569)),
+                            ),
+                          ],
+                        ),
+                        if (phone != '—')
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.phone_outlined, size: 14, color: Color(0xFF64748B)),
+                              const SizedBox(width: 4),
+                              SelectableText(
+                                phone,
+                                style: const TextStyle(fontSize: 12.5, color: Color(0xFF2563EB), fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDecisionCard(AdminRequestDto item, bool canResolve) {
+    if (!canResolve) {
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.lock_outline_rounded, size: 18, color: Color(0xFF94A3B8)),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                AppStrings.youCanViewThisRequestButNeedResolvePermission,
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final recipientLabel = item.requesterName ?? 'the requester';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.rate_review_outlined, size: 18, color: Color(0xFF03162B)),
+              SizedBox(width: 8),
+              Text(
+                'Review & Decision',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Provide a response message for $recipientLabel and choose your action below.',
+            style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 14),
+
+          // Message input
+          TextFormField(
+            controller: _messageController,
+            maxLines: 3,
+            maxLength: 2000,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              labelText: 'Message to Requester *',
+              hintText: item.isPromoteStudent
+                  ? 'e.g. Approved. Student has successfully advanced to the next level.'
+                  : 'Write your resolution message...',
+              alignLabelWithHint: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Buttons row
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            children: [
+              if (item.isPromoteStudent) ...[
+                FilledButton.icon(
+                  onPressed: _resolving ? null : () => _resolve(applyAction: true),
+                  icon: _resolving
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.check_circle_rounded, size: 18),
+                  label: Text(
+                    'Accept Level Upgrade (${item.targetLevel?.name ?? 'Level 2'})',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF16A34A),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _resolving ? null : () => _resolve(applyAction: false, reject: true),
+                  icon: const Icon(Icons.cancel_outlined, size: 18),
+                  label: const Text(AppStrings.rejectRequest),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFDC2626),
+                    side: const BorderSide(color: Color(0xFFFCA5A5)),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  ),
+                ),
+              ] else if (item.isActionable) ...[
+                FilledButton.icon(
+                  onPressed: _resolving ? null : () => _resolve(applyAction: true),
+                  icon: _resolving
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.person_remove_outlined, size: 18),
+                  label: const Text(AppStrings.approveRemoveStudent),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  ),
+                ),
+                OutlinedButton(
+                  onPressed: _resolving ? null : () => _resolve(applyAction: false),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  child: const Text(AppStrings.markResolvedWithoutRemoving),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _resolving ? null : () => _resolve(applyAction: false, reject: true),
+                  icon: const Icon(Icons.close, size: 18),
+                  label: const Text(AppStrings.rejectRequest),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFDC2626),
+                    side: const BorderSide(color: Color(0xFFFCA5A5)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+              ] else ...[
+                FilledButton.icon(
+                  onPressed: _resolving ? null : () => _resolve(applyAction: false),
+                  icon: _resolving
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.check_circle_outline, size: 18),
+                  label: const Text(AppStrings.markAsResolved),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF03162B),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _resolving ? null : () => _resolve(applyAction: false, reject: true),
+                  icon: const Icon(Icons.close, size: 18),
+                  label: const Text(AppStrings.rejectRequest),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFDC2626),
+                    side: const BorderSide(color: Color(0xFFFCA5A5)),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResolutionSummaryCard(AdminRequestDto item) {
+    final isRejected = item.isRejected;
+    final bg = isRejected ? const Color(0xFFFEF2F2) : const Color(0xFFF0FDF4);
+    final border = isRejected ? const Color(0xFFFECACA) : const Color(0xFFBBF7D0);
+    final primaryColor = isRejected ? const Color(0xFFDC2626) : const Color(0xFF16A34A);
+    final title = isRejected ? 'Request Rejected' : 'Request Approved & Completed';
+    final resolver = item.resolvedByName ?? 'Admin';
+    final date = item.resolvedAt != null ? _formatDate(item.resolvedAt!) : '';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.assignment_turned_in_outlined, size: 18, color: Color(0xFF475569)),
+              SizedBox(width: 8),
+              Text(
+                'Resolution Summary',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isRejected ? Icons.cancel_rounded : Icons.check_circle_rounded,
+                      color: primaryColor,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Processed by $resolver${date.isNotEmpty ? ' on $date' : ''}',
+                  style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
                 ),
                 if (item.resolutionNote != null && item.resolutionNote!.trim().isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text(AppStrings.adminMessage, style: Theme.of(context).textTheme.titleSmall),
-                  const SizedBox(height: 6),
-                  Text(item.resolutionNote!, style: const TextStyle(height: 1.4)),
-                ],
-              ],
-              if (item.isPending) ...[
-                if (item.student != null) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () => context.go(RoutePaths.adminStudent(item.student!.id)),
-                    icon: const Icon(Icons.school_outlined),
-                    label: const Text(AppStrings.openStudentProfile),
-                  ),
-                ],
-                if (item.isPromoteStudent && item.fromLevel != null && item.targetLevel != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    AppStrings.levelUpgradePending(
-                      item.fromLevel!.name,
-                      item.targetLevel!.name,
-                    ),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                if (canResolve) ...[
-                  TextFormField(
-                    controller: _messageController,
-                    maxLines: 3,
-                    maxLength: 2000,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      labelText: AppStrings.messageToRequester,
-                      hintText: AppStrings.messageToRequesterHint,
-                      alignLabelWithHint: true,
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return AppStrings.pleaseWriteAMessageForTheRequester;
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                const SizedBox(height: 12),
-                if (!canResolve)
+                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  const SizedBox(height: 10),
                   const Text(
-                    AppStrings.youCanViewThisRequestButNeedResolvePermission,
-                    style: TextStyle(color: Brand.muted),
-                  )
-                else if (item.isPromoteStudent) ...[
-                  FilledButton.icon(
-                    onPressed: _resolving ? null : () => _resolve(applyAction: true),
-                    icon: _resolving
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.check_circle_outline),
-                    label: const Text(AppStrings.acceptLevelUpgrade),
+                    'Message sent to requester:',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF475569),
+                    ),
                   ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: _resolving ? null : () => _resolve(applyAction: false, reject: true),
-                    icon: const Icon(Icons.close),
-                    label: const Text(AppStrings.rejectRequest),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.resolutionNote!,
+                    style: const TextStyle(fontSize: 13.5, height: 1.45, color: Color(0xFF1E293B)),
                   ),
-                ] else if (item.isActionable) ...[
-                  FilledButton.icon(
-                    onPressed: _resolving ? null : () => _resolve(applyAction: true),
-                    icon: _resolving
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.person_remove_outlined),
-                    label: const Text(AppStrings.approveRemoveStudent),
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton(
-                    onPressed: _resolving ? null : () => _resolve(applyAction: false),
-                    child: const Text(AppStrings.markResolvedWithoutRemoving),
-                  ),
-                ] else
-                  FilledButton.icon(
-                    onPressed: _resolving ? null : () => _resolve(applyAction: false),
-                    icon: _resolving
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.check_circle_outline),
-                    label: const Text(AppStrings.markAsResolved),
-                  ),
+                ],
               ],
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       ),
     );
   }

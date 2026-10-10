@@ -236,6 +236,7 @@ abstract final class ScreenRefresh {
 
   static void _refreshAdmin(WidgetRef ref, String path) {
     ref.invalidate(adminPendingConflictsCountProvider);
+    ref.invalidate(adminPendingRequestsCountProvider);
     ref.invalidate(adminDashboardProvider);
     ref.invalidate(agentDashboardProvider);
     ref.invalidate(adminStudentsProvider);

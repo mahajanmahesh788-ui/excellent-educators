@@ -2,12 +2,17 @@
 
 namespace Tests\Concerns;
 
+use App\Actions\Learning\StartStudentLevelJourney;
 use App\Enums\RoleName;
 use App\Models\AcademicLevel;
 use App\Models\Dimension;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
+use App\Models\WeeklyAssignmentAttempt;
+use App\Models\WeeklyLearning;
+use App\Scheduling\BookingEligibility;
+use App\Support\AppClock;
 
 trait CreatesActors
 {
@@ -74,6 +79,46 @@ trait CreatesActors
             ->masterTeachers()->syncWithoutDetaching([$teacher->id]);
 
         return [$this->makeStudentViaAdmin($admin), $teacher];
+    }
+
+    /**
+     * Mark the student's current level weeks complete so Master Class can unlock.
+     */
+    protected function completeLevelWeeksForMasterClass(
+        StudentProfile $student,
+        int $weeks = BookingEligibility::MASTER_CLASS_REQUIRED_LEVEL_WEEKS,
+    ): void {
+        $student->loadMissing(['currentLevelJourney', 'academicLevel']);
+        $level = $student->academicLevel
+            ?? ($student->level_id !== null ? AcademicLevel::query()->find($student->level_id) : null);
+        if ($level === null) {
+            return;
+        }
+
+        $journey = $student->currentLevelJourney
+            ?? app(StartStudentLevelJourney::class)->execute($student, $level);
+
+        for ($week = 1; $week <= $weeks; $week++) {
+            $learning = WeeklyLearning::query()->firstOrCreate(
+                ['level_id' => $level->id, 'week_number' => $week],
+                ['video_url' => "https://video.test/level-week-{$week}"],
+            );
+
+            WeeklyAssignmentAttempt::query()->firstOrCreate(
+                [
+                    'student_id' => $student->id,
+                    'student_level_journey_id' => $journey->id,
+                    'weekly_learning_id' => $learning->id,
+                    'attempt_number' => 1,
+                ],
+                [
+                    'week_number' => $week,
+                    'answers' => [],
+                    'video_url' => $learning->video_url,
+                    'submitted_at' => AppClock::now(),
+                ],
+            );
+        }
     }
 
     /**

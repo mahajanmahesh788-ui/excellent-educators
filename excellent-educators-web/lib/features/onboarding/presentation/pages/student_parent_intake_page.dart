@@ -247,44 +247,7 @@ class _StudentParentIntakePageState
                 ),
               ),
 
-              const SizedBox(height: 12),
-
-              // Blue Highlight Tip Banner
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFBFDBFE)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 1.5),
-                      child: Icon(
-                        Icons.shield_outlined,
-                        size: 16,
-                        color: Color(0xFF2563EB),
-                      ),
-                    ),
-                    const SizedBox(width: 9),
-                    Expanded(
-                      child: Text(
-                        OnboardingStaticContent.step2TipBanner,
-                        style: TextStyle(
-                          color: const Color(0xFF1E40AF),
-                          fontSize: compact ? 11 : 12,
-                          height: 1.35,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // Questions List
               for (var qIndex = 0; qIndex < intake.questions.length; qIndex++) ...[

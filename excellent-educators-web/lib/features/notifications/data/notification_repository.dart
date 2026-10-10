@@ -32,9 +32,28 @@ class NotificationRepository with MapsApiFailures {
     });
   }
 
+  Future<UserNotificationDto> markUnread(String id) {
+    return runApiSimple(() async {
+      final json = await _client.patch(ApiEndpoints.notificationUnread(id));
+      return UserNotificationDto.fromJson(json!);
+    });
+  }
+
   Future<void> markAllRead() {
     return runApiSimple(() async {
       await _client.post(ApiEndpoints.notificationsReadAll);
+    });
+  }
+
+  Future<void> delete(String id) {
+    return runApiSimple(() async {
+      await _client.delete(ApiEndpoints.notificationDelete(id));
+    });
+  }
+
+  Future<void> clearAll() {
+    return runApiSimple(() async {
+      await _client.delete(ApiEndpoints.notificationsClearAll);
     });
   }
 

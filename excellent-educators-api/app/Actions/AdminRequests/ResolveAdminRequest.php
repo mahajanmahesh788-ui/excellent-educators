@@ -109,7 +109,7 @@ class ResolveAdminRequest
     private function notificationCopy(AdminRequest $adminRequest, bool $approved, bool $actionApplied): array
     {
         $type = $adminRequest->request_type;
-        $studentName = $adminRequest->student?->full_name ?? 'the student';
+        $studentName = $adminRequest->student?->labeledName('the student') ?? 'the student';
         $from = $adminRequest->fromLevel?->name ?? 'previous level';
         $to = $adminRequest->targetLevel?->name ?? 'new level';
 

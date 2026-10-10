@@ -58,6 +58,7 @@ void main() {
     status: 'active',
     level: NamedRef(id: 'lvl_1', label: 'Level 1'),
     batch: NamedRef(id: 'batch_1', label: 'Batch 1'),
+    batchStatus: 'active',
   );
 
   const activeAssessment = AptitudeAssessmentDto(
@@ -169,10 +170,13 @@ void main() {
     expect(find.text('Before you book your first session, help us understand YOU.'), findsOneWidget);
     expect(
       find.text(
-        'Answer these questions about your interests, hobbies, focus and mindset. There are no right or wrong answers — your responses help us understand you and guide your learning journey.',
+        'Answer across the same 10 growth pillars used at every level. There are no right or wrong answers — your responses help us understand you and guide your learning journey.',
       ),
       findsOneWidget,
     );
+    expect(find.text('Personality'), findsWidgets);
+    expect(find.text('Decision-making'), findsWidgets);
+    expect(find.text('Future Aspirations'), findsWidgets);
 
     // 5. Progress Indicator
     expect(find.text('Question 0 of 2 completed'), findsOneWidget);
@@ -194,7 +198,6 @@ void main() {
     // Progress updates to 1 of 2 (50%)
     expect(find.text('Question 1 of 2 completed'), findsOneWidget);
     expect(find.text('50%'), findsOneWidget);
-    expect(find.text('Answered'), findsOneWidget);
 
     // Select Option 2 for Question 2
     final option2Finder = find.text('How things work scientifically or logically');
@@ -283,7 +286,7 @@ void main() {
     // Verify friendly LockedFeatureNoticeDialog appears
     expect(find.text('Complete your Discovery Questionnaire first'), findsOneWidget);
     expect(
-      find.text('Access to My Sessions and session bookings unlocks as soon as you finish your Interest & Mindset Discovery.'),
+      find.text('Access to My Sessions and session bookings unlocks as soon as you finish your 10-pillar growth check-in.'),
       findsOneWidget,
     );
     expect(find.text('Maybe Later'), findsOneWidget);
@@ -340,10 +343,83 @@ void main() {
     expect(find.text('COMPULSORY FOR NEW STUDENTS'), findsOneWidget);
     expect(find.text('Complete Your First Step'), findsOneWidget);
     expect(
-      find.text('Your Discovery Questionnaire is required before booking your first session. Help our mentors understand your interests, hobbies, and learning mindset.'),
+      find.text(
+        'Your Discovery Questionnaire is required before booking your first session. Help our mentors understand you across the same 10 growth pillars used at every level.',
+      ),
       findsOneWidget,
     );
     expect(find.text('Complete Questionnaire'), findsOneWidget);
+  });
+
+  testWidgets('Level-up student sees continuing check-in UI with 10 pillars', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    const levelTwoStudent = StudentDto(
+      id: 's_2',
+      studentCode: '26-0002',
+      fullName: 'Alice Student',
+      email: 'alice@example.com',
+      phone: '9876543210',
+      classGrade: 7,
+      status: 'active',
+      level: NamedRef(id: 'lvl_2', label: 'Level 2'),
+      batch: NamedRef(id: 'batch_2', label: 'Batch 2'),
+      hasLearningHistory: true,
+      journeyStarted: false,
+    );
+
+    final router = GoRouter(
+      initialLocation: RoutePaths.studentDashboard,
+      routes: [
+        GoRoute(
+          path: RoutePaths.studentDashboard,
+          builder: (context, state) => const StudentDashboardPage(),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith((ref) => _FakeAuthController()),
+          studentProfileProvider.overrideWith((ref) => Future.value(levelTwoStudent)),
+          studentAssessmentProvider.overrideWith((ref) => Future.value(pendingPayload)),
+          unreadNotificationCountProvider.overrideWith((ref) => Future.value(0)),
+          studentEligibilityProvider.overrideWith(
+            (ref) => Future.value(
+              const BookingEligibilityDto(
+                introductionCompleted: true,
+                canBookIntroduction: false,
+                canBookMasterClass: false,
+              ),
+            ),
+          ),
+          studentBookingsProvider.overrideWith((ref) => Future.value([])),
+          studentLearningDashboardProvider.overrideWith((ref) => Completer<LearningDashboardDto>().future),
+          studentLearningJournalProvider.overrideWith((ref) => Completer<LearningJournalDto>().future),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Welcome back, Alice 👋'), findsOneWidget);
+    expect(find.text('LEVEL UP CHECK-IN'), findsOneWidget);
+    expect(find.text('Next Level Checkpoint'), findsOneWidget);
+    expect(find.text('Required for Level 2'), findsOneWidget);
+    expect(find.text('Continue into Level 2'), findsOneWidget);
+    expect(find.text('Level Check-in'), findsWidgets);
+    expect(find.text('Personality'), findsWidgets);
+    expect(find.text('Curiosity'), findsWidgets);
+    expect(find.text('Teamwork'), findsWidgets);
+    expect(find.textContaining('Start Your Journey'), findsNothing);
+    expect(find.text('Mandatory for new students'), findsNothing);
   });
 
   testWidgets('Submitting completed questionnaire displays celebration screen', (tester) async {

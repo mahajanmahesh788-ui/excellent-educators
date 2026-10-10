@@ -48,7 +48,7 @@ class NotifyAdminsOfStudentBookingFailure
         $student->loadMissing('user');
         $teacher?->loadMissing('user');
 
-        $studentName = $student->full_name ?: ($student->user?->name ?? 'A student');
+        $studentName = $student->labeledName('A student');
         $teacherName = $teacher?->full_name ?: ($teacher?->user?->name ?? 'unknown teacher');
         $date = isset($context['date']) ? (string) $context['date'] : null;
         $start = isset($context['start']) ? (string) $context['start'] : null;
@@ -70,6 +70,7 @@ class NotifyAdminsOfStudentBookingFailure
             'action' => $verb,
             'student_id' => $student->id,
             'student_name' => $studentName,
+            'student_code' => $student->student_code,
             'teacher_id' => $teacher?->id,
             'teacher_name' => $teacherName,
             'date' => $date,

@@ -5,6 +5,7 @@ import 'package:excellent_educators_web/features/notifications/data/dto/notifica
 import 'package:excellent_educators_web/features/notifications/presentation/providers/browser_os_notification.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/providers/notification_feature_providers.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/providers/notification_sound.dart';
+import 'package:excellent_educators_web/features/requests/presentation/providers/request_feature_providers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -163,6 +164,7 @@ class NotificationToastController extends ChangeNotifier {
       }
 
       _knownIds.addAll(incoming.map((item) => item.id));
+      var refreshPendingRequests = false;
       for (final notification in incoming) {
         _enqueue(notification);
         showBrowserOsNotification(
@@ -170,9 +172,15 @@ class NotificationToastController extends ChangeNotifier {
           body: notification.body,
           tag: 'ee-notif-${notification.id}',
         );
+        if (notification.type == 'admin_request_submitted') {
+          refreshPendingRequests = true;
+        }
       }
       playNotificationSound();
       _ref.invalidate(notificationsProvider);
+      if (refreshPendingRequests) {
+        _ref.invalidate(adminPendingRequestsCountProvider);
+      }
     } catch (_) {
       // Polling must stay quiet on network errors.
     } finally {

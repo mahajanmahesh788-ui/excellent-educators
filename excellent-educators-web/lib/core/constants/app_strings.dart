@@ -37,6 +37,9 @@ abstract final class AppStrings {
   static const assignAssessmentsTitle = 'Assign assessments to this level';
   static const assignAssessmentsHelp =
       'Students in this level’s batches will see the selected assessments from the Assessments page.';
+  static const assignedAssessments = 'Assigned Assessments';
+  static const noAssessmentsAssignedYet =
+      'No assessments assigned to this level yet.';
   static const noAssessmentsYetCreateInAssessments =
       'No assessments yet. Create one under Assessments first.';
   static const saveAssignments = 'Save assignments';
@@ -212,6 +215,9 @@ abstract final class AppStrings {
   static const clear = 'Clear';
   static const clearAll = 'Clear all';
   static const clearAllFilters = 'Clear all filters';
+  static const clearAllNotificationsQuestion = 'Clear all notifications?';
+  static const clearAllNotificationsMessage =
+      'This will permanently remove all notifications for your account. This action cannot be undone.';
   static const clickConnectGoogleSignInWithTheSchoolGoogleAccount = 'Click Connect Google, sign in with the school Google account, then come back and tap Refresh status.';
   static const close = 'Close';
   static const cm = 'CM';
@@ -301,6 +307,157 @@ abstract final class AppStrings {
   static const descriptionOptional = 'Description (optional)';
   static const dimension = 'Dimension';
   static const discoverWhatLightsYouUp = 'Discover what lights you up';
+  static const discoverWhatLightsYouUpBanner = 'DISCOVER WHAT LIGHTS YOU UP ✨';
+  static const sameTenPillarsNewLevelBanner = 'SAME 10 PILLARS · NEW LEVEL ✨';
+  static const startYourJourney = 'Start Your Journey';
+  static const nextLevelCheckpoint = 'Next Level Checkpoint';
+  static const requiredFirstStep = 'Required First Step';
+  static const mandatoryForNewStudents = 'Mandatory for new students';
+  static const beforeYouBookYourFirstSession =
+      'Before you book your first session, help us understand YOU.';
+  static const levelledUpRevisitTenPillars =
+      'You\'ve levelled up. Revisit the 10 growth pillars so mentors can guide your next chapter.';
+  static const answerAcrossSameTenPillars =
+      'Answer across the same 10 growth pillars used at every level. There are no right or wrong answers — your responses help us understand you and guide your learning journey.';
+  static const sameTenPillarsAtEveryLevel =
+      'These are the same 10 pillars at every level — Personality, Interests, Confidence, Leadership, Communication, Decision-making, Creativity, Curiosity, Teamwork, and Future Aspirations. There are no right or wrong answers.';
+  static const submitDiscoveryQuestionnaire = 'Submit Discovery Questionnaire';
+  static const readyToSubmitDiscoveryResponses =
+      'Ready to submit your discovery responses? This will unlock your learning journey, weekly curriculum, and mentor session bookings.';
+  static const completeMyDiscovery = 'Complete My Discovery';
+  static const completeLevelCheckIn = 'Complete Level Check-in';
+  static const requiredBeforeYouCanContinue = 'Required before you can continue.';
+  static const continueToDashboard = 'Continue to Dashboard';
+  static const youreAllSet = '🎉 You\'re all set!';
+  static const weveGotToKnowYouBetter = 'We\'ve got to know you a little better.';
+  static const learningJourneyNowUnlocked =
+      'Your learning journey is now unlocked. You can now access your weekly curriculum, learning journal, and book your first 1-on-1 mentor session!';
+  static const mentorsCanGuideWithLatestCheckIn =
+      'Your mentors can now guide this chapter with your latest pillar check-in.';
+  static const yourNextLevel = 'your next level';
+  static const thisLevel = 'this level';
+  static const nextLevel = 'Next Level';
+  static const levelUpCheckIn = 'LEVEL UP CHECK-IN';
+  static const step1OfYourJourney = 'STEP 1 OF YOUR JOURNEY';
+  static const freshStudent = 'Fresh Student';
+  static const startLevelCheckIn = 'Start Level Check-in';
+  static const startQuestionnaire = 'Start Questionnaire';
+  static const heroDiscoverTenPillars =
+      'Let\'s discover what makes you unique across 10 growth pillars — Personality, Interests, Confidence, Leadership, Communication, Decision-making, Creativity, Curiosity, Teamwork, and Future Aspirations.';
+  static const tenGrowthPillars = '10 Growth Pillars';
+  static const levelCheckIn = 'Level Check-in';
+  static const mentorInsights = 'Mentor Insights';
+  static const facultyGuidance = 'Faculty Guidance';
+  static const levelLearning = 'Level Learning';
+  static const curriculumAndHabits = 'Curriculum & Habits';
+  static const bookSessions = 'Book Sessions';
+  static const oneOnOneMentorship = '1-on-1 Mentorship';
+  static const discoverYourself = 'Discover Yourself';
+  static const understandStrengths = 'Understand Strengths';
+  static const facultyInsights = 'Faculty Insights';
+  static const buildYourJourney = 'Build Your Journey';
+  static const startSessions = 'Start Sessions';
+  static const yourOnboardingJourney = 'YOUR ONBOARDING JOURNEY';
+  static const checkInActive = 'Check-in Active';
+  static const step1Of4Active = 'Step 1 of 4 Active';
+  static const completeStep1ToUnlockNextStages =
+      'Complete Step 1 to Unlock Next Stages';
+  static const continueLevelCheckIn = 'Continue Level Check-in';
+  static const continueQuestionnaire = 'Continue Questionnaire';
+  static const yourFirstStepStartsHere = 'Your first step starts here 🚀';
+  static const completeDiscoveryToUnlockJourney =
+      'Complete your Discovery Questionnaire to unlock your learning journey and booking.';
+  static const whatHappensNext = 'WHAT HAPPENS NEXT?';
+  static const yourPathAfterCompletingDiscovery =
+      'Your Path After Completing Discovery';
+  static const compulsoryFirstStepTenPillars =
+      'Compulsory first step across the same 10 growth pillars used at every level.';
+  static const inProgressStatus = 'IN PROGRESS';
+  static const lockedStatus = 'LOCKED';
+  static const understandYourStrengths = 'Understand Your Strengths';
+  static const facultyMentorsReviewProfile =
+      'Faculty mentors review your profile to prepare personalized mentorship.';
+  static const buildYourSkills = 'Build Your Skills';
+  static const unlockWeeklyModules =
+      'Unlock weekly video modules, aptitude questions & reflective journals.';
+  static const startYourSessions = 'Start Your Sessions';
+  static const bookIntroductionAndMasterClasses =
+      'Book your 1-on-1 Introduction Call and ongoing Master Classes.';
+  static const completeDiscoveryQuestionnaireFirst =
+      'Complete your Discovery Questionnaire first';
+  static const maybeLater = 'Maybe Later';
+  static const compulsoryForNewStudents = 'COMPULSORY FOR NEW STUDENTS';
+  static const completeYourFirstStep = 'Complete Your First Step';
+  static const discoveryRequiredBeforeBookingTenPillars =
+      'Your Discovery Questionnaire is required before booking your first session. Help our mentors understand you across the same 10 growth pillars used at every level.';
+  static const completeQuestionnaire = 'Complete Questionnaire';
+  static const activeBadge = 'ACTIVE';
+
+  static String continueIntoLevel(String level) => 'Continue into $level';
+  static String requiredForLevel(String level) => 'Required for $level';
+  static String submitLevelCheckInTitle(String level) =>
+      'Submit $level check-in';
+  static String readyToSubmitLevelCheckIn(String level) =>
+      'Ready to submit your $level responses across the 10 growth pillars? This unlocks weekly learning and mentor bookings for this level.';
+  static String requiredBeforeLevelUnlocks(String level) =>
+      'Required before $level learning unlocks.';
+  static String levelUnlockedCelebration(String level) =>
+      '🎉 $level unlocked!';
+  static String weeklyCurriculumReadyForLevel(String level) =>
+      'Weekly curriculum, learning journal, and mentor bookings for $level are ready when your batch is active.';
+  static String questionProgressCompleted(int answered, int total) =>
+      'Question $answered of $total completed';
+  static String welcomeBackName(String firstName) =>
+      'Welcome back, $firstName 👋';
+  static String welcomeToExcellentEducators(String firstName) =>
+      'Welcome to Excellent Educators, $firstName 👋';
+  static String heroReachedLevelCheckIn(String level) =>
+      'You\'ve reached $level. Complete a quick check-in across the same 10 growth pillars so mentors can personalize this next chapter.';
+  static String levelJourneyLabel(String level) => '$level JOURNEY';
+  static String completeCheckInToUnlockLevel(String level) =>
+      'Complete check-in to unlock $level';
+  static String unlockLevelToKeepGrowing(String level) =>
+      'Unlock $level to keep growing 🚀';
+  static String completeLevelCheckInAcrossPillars(String level) =>
+      'Complete your $level check-in across the 10 growth pillars to unlock learning and booking.';
+  static String yourPathThroughLevel(String level) =>
+      'Your Path Through $level';
+  static String mapTenPillarsForLevel(String level) =>
+      'Map the same 10 growth pillars for $level so mentors stay aligned with you.';
+  static String facultyReviewLevelCheckIn(String level) =>
+      'Faculty mentors review your $level check-in for personalized guidance.';
+  static String unlockLevelWeeklyModules(String level) =>
+      'Unlock $level weekly modules, aptitude questions & reflective journals.';
+  static String continueMentorshipInLevel(String level) =>
+      'Continue 1-on-1 mentorship and Master Classes in $level.';
+  static String accessUnlocksAfterTenPillarCheckIn(String featureName) =>
+      'Access to $featureName and session bookings unlocks as soon as you finish your 10-pillar growth check-in.';
+  static String requiredForLevelBanner(String level) =>
+      'REQUIRED FOR ${level.toUpperCase()}';
+  static String completeYourLevelCheckIn(String level) =>
+      'Complete Your $level Check-in';
+  static String finishTenPillarCheckInBeforeBooking(String level) =>
+      'Finish the same 10-pillar growth check-in for $level before booking mentor sessions.';
+  static String stepNumberLabel(int step) => 'STEP $step';
+
+  // Level-upgrade celebration (student dashboard, one-time)
+  static const congratulations = 'Congratulations!';
+  static const levelUpBadge = 'LEVEL UP';
+  static const teachersUpgradedYourLevel = 'Your teachers upgraded your level';
+  static const letsBeginThisChapter = 'Let\'s begin this chapter';
+  static const reviewPreviousLevelAnytime =
+      'You can revisit every session from your previous level anytime in your Learning Journal.';
+  static const allTheBest = 'All the best — we believe in you.';
+  static String upgradedToLevelHeadline(String toLevel) =>
+      'Welcome to $toLevel';
+  static String upgradedFromToBody(String fromLevel, String toLevel) =>
+      'Your teachers have upgraded you from $fromLevel to $toLevel. '
+      'You can easily check all sessions from $fromLevel whenever you like — '
+      'now let\'s move into $toLevel with confidence. All the best for this next chapter!';
+  static String upgradedToBody(String toLevel) =>
+      'Your teachers have upgraded you to $toLevel. '
+      'Carry every lesson you have learned so far, and step into this next chapter with pride. All the best!';
+
   static const discussedInThisMasterClass = 'What we discussed in this Master Class';
   static const disputeReportsFiledByStudentsAndTeachers = 'Dispute reports filed by students and teachers';
   static const dm = 'DM';
@@ -513,6 +670,9 @@ abstract final class AppStrings {
   static const levelName = 'Level name';
   static const levelledUp = 'Levelled up';
   static const levelledUpWithThisTeacher = 'levelled up with this teacher';
+  static const levelProgress = 'Level progress';
+  static const levelProgressHelp =
+      'Completed and current levels are green. Upcoming levels stay light gray.';
   static const levels = 'Levels';
   static const loadingStudentSTestResults = 'Loading student\'s test results...';
   static const loginSubtitle = 'Login subtitle';
@@ -525,6 +685,21 @@ abstract final class AppStrings {
   static const march = 'March';
   static const male = 'Male';
   static const markAllRead = 'Mark all read';
+  static const markAsUnread = 'Mark as unread';
+  static const markAsRead = 'Mark as read';
+  static const selectAll = 'Select all';
+  static const unselectAll = 'Unselect all';
+  static const deleteSelected = 'Delete';
+  static const deleteNotificationQuestion = 'Delete notification?';
+  static const deleteNotificationMessage =
+      'This notification will be removed permanently.';
+  static const deleteSelectedNotificationsQuestion =
+      'Delete selected notifications?';
+  static String deleteSelectedNotificationsMessage(int count) =>
+      count == 1
+          ? '1 notification will be removed permanently.'
+          : '$count notifications will be removed permanently.';
+  static const selectedCountLabel = 'selected';
   static const markAsResolved = 'Mark as resolved';
   static const markAtLeastOneCorrectAnswerForEachQuestion = 'Mark at least one correct answer for each question.';
   static const markResolvedWithoutRemoving = 'Mark resolved without removing';
@@ -538,8 +713,14 @@ abstract final class AppStrings {
   static const masterClassesHeldTotal = 'Master Classes (Held / Total)';
   static const masterClassesPerMonth = 'Master Classes per month';
   static const masterClassesThisMonth = 'Master Classes this month';
-  static const masterClassOpensNextMonthTitle = 'Master Class opens next month';
-  static const masterClassOpensNextMonthBody = 'Your Introduction Call is complete. Master Classes begin in the month after your batch starts, so your Master Teacher can review your weekly learning and discuss meaningful progress with you. Keep completing your weekly tasks — booking unlocks next month.';
+  static const masterClassRequiresLevelWeeksTitle =
+      'Master Class unlocks after Week 4';
+  static const masterClassRequiresLevelWeeksBody =
+      'Your Introduction Call is complete. Finish all 4 weeks of this level so your Master Teacher can review your weekly learning — then you can book your Master Class.';
+  static String masterClassCompleteWeekOf(int nextWeek, int required) =>
+      'Complete Week $nextWeek of $required';
+  static const sessionBookingWaitsForBatchActivation =
+      'Your new level batch is not active yet. Session booking unlocks when an admin activates your batch.';
   static const masterTeacher = 'Master Teacher';
   static const masterTeacher2 = 'Master teacher';
   static const masterTeacherRatings = 'Master Teacher ratings';
@@ -574,6 +755,25 @@ abstract final class AppStrings {
   static const monthlyTable = 'Monthly Table';
   static const myBatches = 'My batches';
   static const myLearningJourney = 'My Learning Journey';
+  static const myLearningJourneyLabel = 'MY LEARNING JOURNEY';
+  static String weekLearningPathway(int week) =>
+      'Week $week Learning Pathway';
+  static const weeklyPathwayStep1 = 'STEP 1';
+  static const weeklyPathwayStep2 = 'STEP 2';
+  static const weeklyPathwayStep3 = 'STEP 3';
+  static const weeklyPathwayStep4 = 'STEP 4';
+  static const weeklyVideo = 'Weekly Video';
+  static const coreConcept = 'Core Concept';
+  static const aptitudeChallenge = 'Aptitude Challenge';
+  static const weeklyQuiz = 'Weekly Quiz';
+  static String percentScore(num percentage) => '$percentage% Score';
+  static const oneOnOneMentor = '1-on-1 Mentor';
+  static const mentorReview = 'Mentor Review';
+  static const feedbackAndLevel = 'Feedback & Level';
+  static const guidance = 'Guidance';
+  static const book = 'Book';
+  static const view = 'View';
+  static const start = 'Start';
   static const myProfile = 'My profile';
   static const profilePhotoHint =
       'Tap the photo to update. Images over 1 MB are shrunk automatically.';
@@ -648,6 +848,7 @@ abstract final class AppStrings {
   static const noLevelsMatchYourSearch = 'No levels match your search';
   static const noLevelsYet = 'No levels yet';
   static const noMasterTeacherAssignedYetMonthlyRatingsWillAppearHere = 'No Master Teacher assigned yet. Monthly ratings will appear here once assigned.';
+  static const noMasterTeachersAssignedYet = 'No Master Teachers assigned to this level yet.';
   static const noMasterTeachersAvailableToAssignAllMasterTeachersAre = 'No Master Teachers available to assign. All Master Teachers are already assigned or none exist.';
   static const noMonthlyDataRecordedYet = 'No monthly data recorded yet.';
   static const noMonthlyRating = 'No monthly rating';
@@ -783,6 +984,12 @@ abstract final class AppStrings {
   static const sendUpgradeRequest = 'Send upgrade request';
   static const sendingRequest = 'Sending request…';
   static const levelUpgradeRequestSentToAdmin = 'Level upgrade request sent to admin.';
+  static const upgradeReason = 'Why are you upgrading this student?';
+  static const upgradeReasonHint =
+      'Share progress notes, strengths, or readiness for the next level. Admin will see this message.';
+  static const upgradeReasonRequired =
+      'Please explain why you are upgrading this student (at least 10 characters).';
+  static const yourUpgradeMessage = 'Your message';
   static const requestSendsToAdminWhoMustAcceptBeforeLevelChanges =
       'This sends a request to admin. The student level changes only after admin accepts.';
   static const waitingForAdminToAcceptOrRejectThisUpgrade =
@@ -961,7 +1168,7 @@ abstract final class AppStrings {
   static const parentDetailsMissingBody =
       'You skipped this earlier. Please add your parent or guardian details so we can stay connected and support you better.';
   static const parentDetailsMissingCta = 'Add parent details';
-  static const skipForNow = 'Skip for now';
+  static const skipForNow = 'Skip';
   static const selectUpToThree = 'You can select up to 5 options.';
   static const selectAnOption = 'Please select an option.';
   static const answerCannotBeEmpty = 'Please enter an answer.';
@@ -1185,6 +1392,9 @@ abstract final class AppStrings {
   static const version = 'Version';
   static const videoLesson = 'VIDEO LESSON';
   static const videoLink = 'Video link';
+  static const videoTitle = 'Video title';
+  static const videoTitleHint = 'Shown above the lesson video';
+  static const tapToWatchLesson = 'Tap to watch lesson';
   static const viewAll = 'View all';
   static const viewDetailedScoresDimensions = 'View detailed scores & dimensions';
   static const viewEvents = 'View Events';

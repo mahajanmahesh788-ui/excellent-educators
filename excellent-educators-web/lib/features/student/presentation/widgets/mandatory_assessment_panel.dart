@@ -5,14 +5,18 @@ import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/errors/api_error_message.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/assessments/data/dto/assessment_dtos.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/student_assessment_form.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/ten_growth_pillars.dart';
 
-/// Inline Discovery Questionnaire card shown on the fresh student dashboard until submission.
+/// Inline Discovery Questionnaire card shown until the current-level assessment is submitted.
 class MandatoryAssessmentPanel extends ConsumerStatefulWidget {
-  const MandatoryAssessmentPanel({super.key});
+  const MandatoryAssessmentPanel({super.key, required this.student});
+
+  final StudentDto student;
 
   @override
   ConsumerState<MandatoryAssessmentPanel> createState() =>
@@ -26,6 +30,13 @@ class _MandatoryAssessmentPanelState
   var _submitted = false;
   String? _error;
 
+  bool get _continuing => widget.student.isContinuingLearner;
+
+  String get _levelLabel {
+    final label = widget.student.level?.label.trim() ?? '';
+    return label.isNotEmpty ? label : AppStrings.yourNextLevel;
+  }
+
   Future<void> _submit(AptitudeAssessmentDto assessment) async {
     final error = StudentAssessmentForm.validate(assessment, _selections);
     if (error != null) {
@@ -35,9 +46,15 @@ class _MandatoryAssessmentPanelState
 
     final confirmed = await showAppConfirmDialog(
       context,
-      title: 'Submit Discovery Questionnaire',
-      message: 'Ready to submit your discovery responses? This will unlock your learning journey, weekly curriculum, and mentor session bookings.',
-      confirmLabel: 'Complete My Discovery',
+      title: _continuing
+          ? AppStrings.submitLevelCheckInTitle(_levelLabel)
+          : AppStrings.submitDiscoveryQuestionnaire,
+      message: _continuing
+          ? AppStrings.readyToSubmitLevelCheckIn(_levelLabel)
+          : AppStrings.readyToSubmitDiscoveryResponses,
+      confirmLabel: _continuing
+          ? AppStrings.completeLevelCheckIn
+          : AppStrings.completeMyDiscovery,
       cancelLabel: AppStrings.cancel,
     );
     if (confirmed != true) {
@@ -75,6 +92,8 @@ class _MandatoryAssessmentPanelState
   Widget build(BuildContext context) {
     if (_submitted) {
       return _DiscoveryCompletionCard(
+        continuing: _continuing,
+        levelLabel: _levelLabel,
         onFinished: () => ref.invalidate(studentAssessmentProvider),
       );
     }
@@ -185,18 +204,22 @@ class _MandatoryAssessmentPanelState
                               color: StudentColors.amberBorder,
                             ),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.lock_rounded,
+                                _continuing
+                                    ? Icons.trending_up_rounded
+                                    : Icons.lock_rounded,
                                 size: 12,
                                 color: StudentColors.amberDeep,
                               ),
-                              SizedBox(width: 5),
+                              const SizedBox(width: 5),
                               Text(
-                                'Required First Step',
-                                style: TextStyle(
+                                _continuing
+                                    ? AppStrings.nextLevelCheckpoint
+                                    : AppStrings.requiredFirstStep,
+                                style: const TextStyle(
                                   color: StudentColors.amberDeep,
                                   fontWeight: FontWeight.w800,
                                   fontSize: 11,
@@ -217,9 +240,11 @@ class _MandatoryAssessmentPanelState
                               color: StudentColors.forestBorder,
                             ),
                           ),
-                          child: const Text(
-                            'Mandatory for new students',
-                            style: TextStyle(
+                          child: Text(
+                            _continuing
+                                ? AppStrings.requiredForLevel(_levelLabel)
+                                : AppStrings.mandatoryForNewStudents,
+                            style: const TextStyle(
                               color: StudentColors.forest,
                               fontWeight: FontWeight.w700,
                               fontSize: 11,
@@ -232,12 +257,14 @@ class _MandatoryAssessmentPanelState
                     const SizedBox(height: 16),
 
                     // Main Title
-                    const Row(
+                    Row(
                       children: [
                         Flexible(
                           child: Text(
-                            'DISCOVER WHAT LIGHTS YOU UP ✨',
-                            style: TextStyle(
+                            _continuing
+                                ? AppStrings.sameTenPillarsNewLevelBanner
+                                : AppStrings.discoverWhatLightsYouUpBanner,
+                            style: const TextStyle(
                               color: StudentColors.forest,
                               fontSize: 12.5,
                               fontWeight: FontWeight.w900,
@@ -249,7 +276,9 @@ class _MandatoryAssessmentPanelState
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Start Your Journey',
+                      _continuing
+                          ? AppStrings.continueIntoLevel(_levelLabel)
+                          : AppStrings.startYourJourney,
                       style: TextStyle(
                         color: StudentColors.textPrimary,
                         fontSize: isMobile ? 22 : 28,
@@ -258,9 +287,11 @@ class _MandatoryAssessmentPanelState
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Before you book your first session, help us understand YOU.',
-                      style: TextStyle(
+                    Text(
+                      _continuing
+                          ? AppStrings.levelledUpRevisitTenPillars
+                          : AppStrings.beforeYouBookYourFirstSession,
+                      style: const TextStyle(
                         color: StudentColors.forestDark,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -270,9 +301,11 @@ class _MandatoryAssessmentPanelState
                     const SizedBox(height: 8),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 720),
-                      child: const Text(
-                        'Answer these questions about your interests, hobbies, focus and mindset. There are no right or wrong answers — your responses help us understand you and guide your learning journey.',
-                        style: TextStyle(
+                      child: Text(
+                        _continuing
+                            ? AppStrings.sameTenPillarsAtEveryLevel
+                            : AppStrings.answerAcrossSameTenPillars,
+                        style: const TextStyle(
                           color: StudentColors.textSecondary,
                           fontSize: 13.5,
                           height: 1.45,
@@ -282,41 +315,8 @@ class _MandatoryAssessmentPanelState
 
                     const SizedBox(height: 16),
 
-                    // Spark chips (distinct, cheerful education colors!)
-                    const Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _SparkPill(
-                          label: 'Interests',
-                          icon: Icons.favorite_rounded,
-                          bg: StudentColors.forestLight,
-                          borderColor: StudentColors.forestBorder,
-                          color: StudentColors.forestDark,
-                        ),
-                        _SparkPill(
-                          label: 'Hobbies',
-                          icon: Icons.palette_rounded,
-                          bg: StudentColors.successSoft,
-                          borderColor: StudentColors.successBorder,
-                          color: StudentColors.liveDeep,
-                        ),
-                        _SparkPill(
-                          label: 'Focus',
-                          icon: Icons.center_focus_strong_rounded,
-                          bg: StudentColors.skyLight,
-                          borderColor: StudentColors.skyBorder,
-                          color: StudentColors.skyDark,
-                        ),
-                        _SparkPill(
-                          label: 'Mindset',
-                          icon: Icons.psychology_rounded,
-                          bg: StudentColors.amberLight,
-                          borderColor: StudentColors.amberBorder,
-                          color: StudentColors.amberBrown,
-                        ),
-                      ],
-                    ),
+                    // Same 10 pillars at every level
+                    const TenGrowthPillars(),
 
                     const SizedBox(height: 20),
 
@@ -344,7 +344,10 @@ class _MandatoryAssessmentPanelState
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Question $answered of $total completed',
+                                AppStrings.questionProgressCompleted(
+                                  answered,
+                                  total,
+                                ),
                                 style: const TextStyle(
                                   color: StudentColors.textPrimary,
                                   fontWeight: FontWeight.w800,
@@ -445,17 +448,19 @@ class _MandatoryAssessmentPanelState
                                       color: Colors.white,
                                     ),
                                   )
-                                : const Row(
+                                : Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.check_circle_outline_rounded,
                                         size: 18,
                                       ),
-                                      SizedBox(width: 8),
+                                      const SizedBox(width: 8),
                                       Text(
-                                        'Complete My Discovery',
-                                        style: TextStyle(
+                                        _continuing
+                                            ? AppStrings.completeLevelCheckIn
+                                            : AppStrings.completeMyDiscovery,
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.w800,
                                           fontSize: 15,
                                         ),
@@ -464,9 +469,13 @@ class _MandatoryAssessmentPanelState
                                   ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Required before you can continue.',
-                            style: TextStyle(
+                          Text(
+                            _continuing
+                                ? AppStrings.requiredBeforeLevelUnlocks(
+                                    _levelLabel,
+                                  )
+                                : AppStrings.requiredBeforeYouCanContinue,
+                            style: const TextStyle(
                               color: StudentColors.textMuted,
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
@@ -487,59 +496,18 @@ class _MandatoryAssessmentPanelState
 }
 
 /// ---------------------------------------------------------------------------
-/// Spark Category Pill
-/// ---------------------------------------------------------------------------
-class _SparkPill extends StatelessWidget {
-  const _SparkPill({
-    required this.label,
-    required this.icon,
-    this.bg,
-    this.borderColor,
-    this.color,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color? bg;
-  final Color? borderColor;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = color ?? StudentColors.forest;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg ?? StudentColors.forestLight,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor ?? StudentColors.forestBorder),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: c),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: c,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// ---------------------------------------------------------------------------
 /// Post-Submission Celebration Card
 /// ---------------------------------------------------------------------------
 class _DiscoveryCompletionCard extends StatelessWidget {
-  const _DiscoveryCompletionCard({required this.onFinished});
+  const _DiscoveryCompletionCard({
+    required this.onFinished,
+    required this.continuing,
+    required this.levelLabel,
+  });
 
   final VoidCallback onFinished;
+  final bool continuing;
+  final String levelLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -572,10 +540,12 @@ class _DiscoveryCompletionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          const Text(
-            '🎉 You\'re all set!',
+          Text(
+            continuing
+                ? AppStrings.levelUnlockedCelebration(levelLabel)
+                : AppStrings.youreAllSet,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w900,
               color: StudentColors.textPrimary,
@@ -583,10 +553,12 @@ class _DiscoveryCompletionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'We\'ve got to know you a little better.',
+          Text(
+            continuing
+                ? AppStrings.mentorsCanGuideWithLatestCheckIn
+                : AppStrings.weveGotToKnowYouBetter,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: StudentColors.indigoPrimary,
@@ -595,10 +567,12 @@ class _DiscoveryCompletionCard extends StatelessWidget {
           const SizedBox(height: 6),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
-            child: const Text(
-              'Your learning journey is now unlocked. You can now access your weekly curriculum, learning journal, and book your first 1-on-1 mentor session!',
+            child: Text(
+              continuing
+                  ? AppStrings.weeklyCurriculumReadyForLevel(levelLabel)
+                  : AppStrings.learningJourneyNowUnlocked,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13.5,
                 color: StudentColors.textSecondary,
                 height: 1.45,
@@ -619,7 +593,7 @@ class _DiscoveryCompletionCard extends StatelessWidget {
             ),
             icon: const Icon(Icons.arrow_forward_rounded, size: 16),
             label: const Text(
-              'Continue to Dashboard',
+              AppStrings.continueToDashboard,
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
             ),
           ),

@@ -10,33 +10,36 @@ class LevelSeeder extends Seeder
 {
     public function run(): void
     {
-        $level = AcademicLevel::query()->firstOrCreate(
-            ['number' => 1],
-            [
-                'name' => 'Level 1',
-                'academic_year' => (int) date('Y'),
-                'status' => 'active',
-            ]
-        );
+        foreach ([1, 2] as $number) {
+            $level = AcademicLevel::query()->firstOrCreate(
+                ['number' => $number],
+                [
+                    'name' => "Level {$number}",
+                    'academic_year' => (int) date('Y'),
+                    'status' => 'active',
+                ]
+            );
 
-        if ($level->number === null || $level->name !== 'Level 1') {
-            $level->forceFill([
-                'number' => 1,
-                'name' => 'Level 1',
-            ])->save();
-        }
+            if ($level->number !== $number || $level->name !== "Level {$number}") {
+                $level->forceFill([
+                    'number' => $number,
+                    'name' => "Level {$number}",
+                    'status' => 'active',
+                ])->save();
+            }
 
-        if (! Batch::query()->where('level_id', $level->id)->where('name', 'Batch 1')->exists()) {
-            Batch::query()->create([
-                'level_id' => $level->id,
-                'name' => 'Batch 1',
-                'academic_year' => (int) date('Y'),
-                'year' => (int) date('Y'),
-                'month' => (int) date('n'),
-                'enrolled_watermark' => 0,
-                // Inactive until full (max students) or an admin activates it.
-                'status' => 'inactive',
-            ]);
+            if (! Batch::query()->where('level_id', $level->id)->where('name', 'Batch 1')->exists()) {
+                Batch::query()->create([
+                    'level_id' => $level->id,
+                    'name' => 'Batch 1',
+                    'academic_year' => (int) date('Y'),
+                    'year' => (int) date('Y'),
+                    'month' => (int) date('n'),
+                    'enrolled_watermark' => 0,
+                    // Inactive until full (max students) or an admin activates it.
+                    'status' => 'inactive',
+                ]);
+            }
         }
     }
 }

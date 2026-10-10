@@ -63,35 +63,39 @@ abstract final class StudentColors {
   static const skyBorder = AppColors.infoBorder;
 
   // ── Journal / reflection ───────────────────────────────────────────
-  static const slate = Color(0xFF4E7187);
-  static const slateDark = Color(0xFF36586C);
-  static const slateLight = Color(0xFFEEF4F6);
-  static const slateBorder = Color(0xFFD3E1E6);
-  static const violetPrimary = Color(0xFF8B5CF6);
-  static const violetDark = Color(0xFF7C3AED);
-  static const violetLight = Color(0xFFF5F3FF);
-  static const violetBorder = Color(0xFFDDD6FE);
+  static const slate = AppColors.slate;
+  static const slateDark = AppColors.slateDark;
+  static const slateLight = AppColors.slateLight;
+  static const slateBorder = AppColors.slateBorder;
+  static const violetPrimary = AppColors.violet;
+  static const violetDark = AppColors.violetDark;
+  static const violetLight = AppColors.violetLight;
+  static const violetBorder = AppColors.violetBorder;
 
   // ── Attention / danger ─────────────────────────────────────────────
   static const danger = AppColors.danger;
   static const dangerSoft = AppColors.dangerLight;
   static const dangerBorder = AppColors.dangerBorder;
-  static const bookmark = Color(0xFFE11D48);
-  static const orangeSoft = Color(0xFFFFF7ED);
-  static const orangeBorder = Color(0xFFFED7AA);
-  static const orangeText = Color(0xFFC2410C);
+  static const bookmark = AppColors.bookmark;
+  static const orangeSoft = AppColors.warningOrangeLight;
+  static const orangeBorder = AppColors.warningOrangeSoft;
+  static const orangeText = AppColors.warningOrange;
   static const amberBrown = AppColors.accentDeep;
-  static const amberInk = Color(0xFF78350F);
+  static const amberInk = AppColors.amberInk;
   static const amberWash = AppColors.accentSoft;
   static const live = AppColors.success;
   static const liveDeep = AppColors.successDark;
-  static const liveSoft = Color(0xFF6EE7B7);
+  static const liveSoft = AppColors.liveSoft;
   static const goldBrand = AppColors.accent;
   static const goldBrandSoft = AppColors.accentLight;
-  static const disabled = Color(0xFFD9D3C8);
-  static const skeleton = Color(0xFFEDE7DB);
-  static const hoverMint = Color(0xFFAFCABD);
+  static const disabled = AppColors.disabled;
+  static const skeleton = AppColors.skeleton;
+  static const hoverMint = AppColors.hoverMint;
   static const progressGold = AppColors.accent;
+  static const parchment = AppColors.parchment;
+  static const parchmentBorder = AppColors.parchmentBorder;
+  static const parchmentSoft = AppColors.parchmentSoft;
+  static const surfaceMist = AppColors.surfaceMist;
 
   // ── Typography ─────────────────────────────────────────────────────
   static const textPrimary = AppColors.textPrimary;

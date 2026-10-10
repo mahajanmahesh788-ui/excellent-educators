@@ -31,6 +31,21 @@ class _PromoteStudentCardState extends ConsumerState<PromoteStudentCard> {
   String? _levelId;
   var _saving = false;
   String? _error;
+  final _reasonController = TextEditingController();
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  String? _extractUpgradeReason(String description) {
+    const marker = 'Reason:';
+    final index = description.indexOf(marker);
+    if (index < 0) return null;
+    final reason = description.substring(index + marker.length).trim();
+    return reason.isEmpty ? null : reason;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +102,25 @@ class _PromoteStudentCardState extends ConsumerState<PromoteStudentCard> {
                     AppStrings.waitingForAdminToAcceptOrRejectThisUpgrade,
                     style: TextStyle(color: Color(0xFF6B7280), height: 1.35),
                   ),
+                  if (_extractUpgradeReason(pendingUpgrade.description) != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      AppStrings.yourUpgradeMessage,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _extractUpgradeReason(pendingUpgrade.description)!,
+                      style: const TextStyle(
+                        color: Color(0xFF0E2744),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -126,6 +160,24 @@ class _PromoteStudentCardState extends ConsumerState<PromoteStudentCard> {
                     ],
                     onChanged: (value) => setState(() => _levelId = value),
                   ),
+                  if (widget.masterTeacher) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _reasonController,
+                      minLines: 3,
+                      maxLines: 6,
+                      maxLength: 2000,
+                      textInputAction: TextInputAction.newline,
+                      decoration: const InputDecoration(
+                        labelText: AppStrings.upgradeReason,
+                        hintText: AppStrings.upgradeReasonHint,
+                        alignLabelWithHint: true,
+                      ),
+                      onChanged: (_) {
+                        if (_error != null) setState(() => _error = null);
+                      },
+                    ),
+                  ],
                   if (_error != null) ...[
                     const SizedBox(height: 8),
                     Text(_error!, style: const TextStyle(color: Colors.red)),
@@ -135,6 +187,11 @@ class _PromoteStudentCardState extends ConsumerState<PromoteStudentCard> {
                     onPressed: _saving || _levelId == null
                         ? null
                         : () async {
+                            final reason = _reasonController.text.trim();
+                            if (widget.masterTeacher && reason.length < 10) {
+                              setState(() => _error = AppStrings.upgradeReasonRequired);
+                              return;
+                            }
                             setState(() {
                               _saving = true;
                               _error = null;
@@ -147,6 +204,7 @@ class _PromoteStudentCardState extends ConsumerState<PromoteStudentCard> {
                                     .requestStudentLevelUpgrade(
                                       studentId: widget.studentId,
                                       levelId: _levelId!,
+                                      reason: reason,
                                     );
                                 ref.invalidate(teacherRequestsProvider);
                               } else {
@@ -170,7 +228,10 @@ class _PromoteStudentCardState extends ConsumerState<PromoteStudentCard> {
                                   ),
                                 ),
                               );
-                              setState(() => _levelId = null);
+                              setState(() {
+                                _levelId = null;
+                                _reasonController.clear();
+                              });
                             } catch (error) {
                               setState(() => _error = error.toString());
                             } finally {

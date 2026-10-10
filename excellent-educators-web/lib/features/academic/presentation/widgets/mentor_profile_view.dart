@@ -237,12 +237,13 @@ class _MentorBookingCardState extends State<MentorBookingCard> {
                         onPressed: widget.onViewProfile,
                         icon: const Icon(
                           Icons.person_outline_rounded,
-                          size: 17,
+                          size: 16,
                         ),
                         label: const Text('View profile'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: _navy,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
                           side: BorderSide(color: _navy.withValues(alpha: .18)),
                         ),
                       ),
@@ -257,13 +258,14 @@ class _MentorBookingCardState extends State<MentorBookingCard> {
                           widget.selected
                               ? Icons.schedule_rounded
                               : Icons.calendar_month_rounded,
-                          size: 17,
+                          size: 16,
                         ),
                         label: Text(widget.selected ? 'Choose time' : 'Book'),
                         style: FilledButton.styleFrom(
                           backgroundColor: _navy,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
                         ),
                       ),
                     ),
@@ -763,23 +765,13 @@ class _ProfileOverview extends StatelessWidget {
       icon: Icons.explore_rounded,
       child: teacher.guidanceAreas.isEmpty
           ? const _EmptyLine(text: 'Guidance areas will appear here.')
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                final cardWidth = constraints.maxWidth >= 520
-                    ? (constraints.maxWidth - 10) / 2
-                    : constraints.maxWidth;
-                return Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    for (final area in teacher.guidanceAreas)
-                      SizedBox(
-                        width: cardWidth,
-                        child: _GuidanceCard(area: area),
-                      ),
-                  ],
-                );
-              },
+          : Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final area in teacher.guidanceAreas)
+                  _GuidanceChip(area: area),
+              ],
             ),
     );
 
@@ -853,11 +845,11 @@ class _ProfessionalJourney extends StatelessWidget {
         builder: (context, constraints) {
           final columns = constraints.maxWidth >= 760 ? 2 : 1;
           final width = columns == 2
-              ? (constraints.maxWidth - 14) / 2
+              ? (constraints.maxWidth - 12) / 2
               : constraints.maxWidth;
           return Wrap(
-            spacing: 14,
-            runSpacing: 12,
+            spacing: 12,
+            runSpacing: 8,
             children: [
               for (final item in items)
                 SizedBox(
@@ -880,35 +872,36 @@ class _MentoringImpact extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stats = teacher.mentorStats!;
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: _navy,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0xFF234560)),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final narrow = constraints.maxWidth < 620;
-          final cards = <Widget>[
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        final cards = <Widget>[
+          _ImpactStat(
+            icon: Icons.groups_2_rounded,
+            value: '${stats.studentsGuided}',
+            label: 'Students guided',
+          ),
+          _ImpactStat(
+            icon: Icons.event_available_rounded,
+            value: '${stats.sessionsCompleted}',
+            label: 'Sessions completed',
+          ),
+          if (stats.ratingAverage != null)
             _ImpactStat(
-              icon: Icons.groups_2_rounded,
-              value: '${stats.studentsGuided}',
-              label: 'Students guided',
+              icon: Icons.star_rounded,
+              value: stats.ratingAverage!.toStringAsFixed(1),
+              label: 'Average rating',
             ),
-            _ImpactStat(
-              icon: Icons.event_available_rounded,
-              value: '${stats.sessionsCompleted}',
-              label: 'Sessions completed',
-            ),
-            if (stats.ratingAverage != null)
-              _ImpactStat(
-                icon: Icons.star_rounded,
-                value: stats.ratingAverage!.toStringAsFixed(1),
-                label: 'Average rating',
-              ),
-          ];
-          return Column(
+        ];
+
+        return Container(
+          padding: EdgeInsets.all(isMobile ? 16 : 22),
+          decoration: BoxDecoration(
+            color: _navy,
+            borderRadius: BorderRadius.circular(isMobile ? 20 : 26),
+            border: Border.all(color: const Color(0xFF234560)),
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
@@ -921,30 +914,37 @@ class _MentoringImpact extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 5),
-              const Text(
+              Text(
                 'Progress you can trust',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: isMobile ? 18 : 22,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 18),
-              if (narrow)
-                Wrap(spacing: 10, runSpacing: 10, children: cards)
-              else
-                Row(
-                  children: [
-                    for (var i = 0; i < cards.length; i++) ...[
-                      if (i > 0) const SizedBox(width: 12),
-                      Expanded(child: cards[i]),
+              SizedBox(height: isMobile ? 14 : 18),
+              LayoutBuilder(
+                builder: (context, innerConstraints) {
+                  final spacing = 10.0;
+                  final columns = innerConstraints.maxWidth >= 550 ? cards.length : 2;
+                  final itemWidth = (innerConstraints.maxWidth - (spacing * (columns - 1))) / columns;
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: [
+                      for (final card in cards)
+                        SizedBox(
+                          width: itemWidth,
+                          child: card,
+                        ),
                     ],
-                  ],
-                ),
+                  );
+                },
+              ),
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -994,12 +994,14 @@ class _BookingBanner extends StatelessWidget {
           );
           final button = FilledButton.icon(
             onPressed: onPressed,
-            icon: const Icon(Icons.calendar_month_rounded),
+            icon: const Icon(Icons.calendar_month_rounded, size: 18),
             label: Text(label),
             style: FilledButton.styleFrom(
               backgroundColor: _navy,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              textStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
             ),
           );
           if (narrow) {
@@ -1036,131 +1038,110 @@ class _ProfilePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: _line),
-        boxShadow: [
-          BoxShadow(
-            color: _navy.withValues(alpha: .045),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: _mint,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(icon, color: _emerald, size: 21),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      eyebrow,
-                      style: const TextStyle(
-                        color: _emerald,
-                        fontSize: 10,
-                        letterSpacing: 1.1,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: _navy,
-                        fontSize: 19,
-                        height: 1.15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(isMobile ? 16 : 22),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(isMobile ? 20 : 26),
+            border: Border.all(color: _line),
+            boxShadow: [
+              BoxShadow(
+                color: _navy.withValues(alpha: .045),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          child,
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: isMobile ? 36 : 42,
+                    height: isMobile ? 36 : 42,
+                    decoration: BoxDecoration(
+                      color: _mint,
+                      borderRadius: BorderRadius.circular(isMobile ? 11 : 13),
+                    ),
+                    child: Icon(icon, color: _emerald, size: isMobile ? 18 : 21),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          eyebrow,
+                          style: TextStyle(
+                            color: _emerald,
+                            fontSize: isMobile ? 9.5 : 10,
+                            letterSpacing: 1.1,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: _navy,
+                            fontSize: isMobile ? 17 : 19,
+                            height: 1.15,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: isMobile ? 14 : 20),
+              child,
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
-class _GuidanceCard extends StatefulWidget {
-  const _GuidanceCard({required this.area});
+class _GuidanceChip extends StatelessWidget {
+  const _GuidanceChip({required this.area});
 
   final String area;
 
   @override
-  State<_GuidanceCard> createState() => _GuidanceCardState();
-}
-
-class _GuidanceCardState extends State<_GuidanceCard> {
-  var _hovered = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 170),
-        transform: Matrix4.translationValues(0, _hovered ? -3 : 0, 0),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: _hovered ? _mint : _warm,
-          borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: _hovered ? const Color(0xFFAEDBC5) : _line),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: _hovered ? Colors.white : _mint,
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: Icon(
-                mentorAreaIcon(widget.area),
-                color: _emerald,
-                size: 19,
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6.5),
+      decoration: BoxDecoration(
+        color: _mint.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: const Color(0xFFCCE8D9)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            mentorAreaIcon(area),
+            color: _emerald,
+            size: 15,
+          ),
+          const SizedBox(width: 7),
+          Text(
+            area,
+            style: const TextStyle(
+              color: _navy,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Text(
-                widget.area,
-                style: const TextStyle(
-                  color: _navy,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-            const Icon(
-              Icons.arrow_outward_rounded,
-              size: 16,
-              color: Brand.muted,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1232,62 +1213,94 @@ class _JourneyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasSubtitle = (item.subtitle ?? '').trim().isNotEmpty;
+    final hasMeta = (item.meta ?? '').trim().isNotEmpty;
+
     return Container(
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
       decoration: BoxDecoration(
         color: _warm,
-        borderRadius: BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _line),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: _navy,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(item.icon, color: Brand.gold, size: 20),
+            child: Icon(item.icon, color: Brand.gold, size: 18),
           ),
-          const SizedBox(width: 13),
+          const SizedBox(width: 11),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  item.group,
-                  style: const TextStyle(
-                    color: _emerald,
-                    fontSize: 9.5,
-                    letterSpacing: .9,
-                    fontWeight: FontWeight.w900,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      item.group,
+                      style: const TextStyle(
+                        color: _emerald,
+                        fontSize: 9.5,
+                        letterSpacing: .8,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (hasMeta) ...[
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 1.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFFFDE68A),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          item.meta!.trim(),
+                          style: const TextStyle(
+                            color: Color(0xFFB45309),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
                   item.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: _navy,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w900,
+                    height: 1.2,
                   ),
                 ),
-                if ((item.subtitle ?? '').trim().isNotEmpty) ...[
-                  const SizedBox(height: 3),
+                if (hasSubtitle) ...[
+                  const SizedBox(height: 2),
                   Text(
-                    item.subtitle!,
-                    style: const TextStyle(color: Brand.muted, height: 1.3),
-                  ),
-                ],
-                if ((item.meta ?? '').trim().isNotEmpty) ...[
-                  const SizedBox(height: 7),
-                  Text(
-                    item.meta!,
+                    item.subtitle!.trim(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Brand.goldDark,
+                      color: Brand.muted,
                       fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                      height: 1.25,
                     ),
                   ),
                 ],
@@ -1314,35 +1327,44 @@ class _ImpactStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 145),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: .08),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: .1)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, color: Brand.gold, size: 25),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 23,
-                  height: 1,
-                  fontWeight: FontWeight.w900,
+          Icon(icon, color: Brand.gold, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                label,
-                style: const TextStyle(color: Colors.white70, fontSize: 11.5),
-              ),
-            ],
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

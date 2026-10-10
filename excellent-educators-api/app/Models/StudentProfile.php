@@ -48,6 +48,28 @@ class StudentProfile extends Model
         ];
     }
 
+    /**
+     * Display name with student code for notifications and admin copy.
+     * Example: "Student 1 (26-0001)"
+     */
+    public function labeledName(string $fallback = 'a student'): string
+    {
+        $name = trim((string) ($this->full_name ?: $this->user?->name ?: ''));
+        $code = trim((string) ($this->student_code ?? ''));
+
+        if ($name === '' && $code === '') {
+            return $fallback;
+        }
+        if ($name === '') {
+            return $code;
+        }
+        if ($code === '') {
+            return $name;
+        }
+
+        return "{$name} ({$code})";
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

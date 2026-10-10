@@ -141,14 +141,28 @@ class MasterTeacherDashboardTest extends TestCase
             $target = ['id' => $targetLevel->id];
         }
 
-        $requestId = $this->withToken($this->tokenFor($master->user))->postJson(
+        $this->withToken($this->tokenFor($master->user))->postJson(
             "/api/v1/master-teacher/students/{$student->id}/promote",
             ['level_id' => $target['id']],
+        )->assertStatus(422);
+
+        $promoteResponse = $this->withToken($this->tokenFor($master->user))->postJson(
+            "/api/v1/master-teacher/students/{$student->id}/promote",
+            [
+                'level_id' => $target['id'],
+                'reason' => 'Student completed Level 1 goals and is ready for deeper mentoring.',
+            ],
         )
             ->assertCreated()
             ->assertJsonPath('data.request_type', 'promote_student')
-            ->assertJsonPath('data.status', 'pending')
-            ->json('data.id');
+            ->assertJsonPath('data.status', 'pending');
+
+        $this->assertStringContainsString(
+            'Reason: Student completed Level 1 goals and is ready for deeper mentoring.',
+            (string) $promoteResponse->json('data.description'),
+        );
+
+        $requestId = $promoteResponse->json('data.id');
 
         // Level does not change until admin accepts.
         $this->assertSame($currentLevelId, $student->fresh()->level_id);
@@ -274,7 +288,10 @@ class MasterTeacherDashboardTest extends TestCase
 
         $requestId = $this->withToken($this->tokenFor($master->user))->postJson(
             "/api/v1/master-teacher/students/{$student->id}/promote",
-            ['level_id' => $level2->id],
+            [
+                'level_id' => $level2->id,
+                'reason' => 'Strong weekly progress and consistent class engagement.',
+            ],
         )->assertCreated()->json('data.id');
 
         $this->withToken($this->tokenFor($admin))->postJson(

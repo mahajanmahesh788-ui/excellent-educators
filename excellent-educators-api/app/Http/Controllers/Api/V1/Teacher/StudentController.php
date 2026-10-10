@@ -21,8 +21,12 @@ class StudentController extends Controller
 
         $student->load([
             'user',
+            'academicLevel',
+            'activeEnrollment.batch.level',
             'activeEnrollment.batch.activeTeacherAssignment.teacher',
             'activeMasterTeacherAssignment.teacher',
+            'levelJourneys.level',
+            'currentLevelJourney',
         ])->loadCount([
             'monthlyFeedbacks as feedback_total_sessions',
             'monthlyFeedbacks as feedback_current_month_sessions' => fn ($query) => $query

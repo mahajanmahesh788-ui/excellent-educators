@@ -1,9 +1,10 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
+import 'package:excellent_educators_web/core/widgets/app_status_toggle.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class DirectoryHeader extends StatelessWidget {
   const DirectoryHeader({
@@ -29,6 +30,7 @@ class StudentCard extends StatelessWidget {
     this.action,
     this.trailing,
     this.onTap,
+    this.onStatusChanged,
     this.highlightOverallRating = false,
     this.showMonthRatingStatus = false,
     this.showFacts = true,
@@ -38,6 +40,7 @@ class StudentCard extends StatelessWidget {
   final Widget? action;
   final Widget? trailing;
   final VoidCallback? onTap;
+  final Future<void> Function(bool active)? onStatusChanged;
   final bool highlightOverallRating;
   final bool showMonthRatingStatus;
   final bool showFacts;
@@ -53,10 +56,10 @@ class StudentCard extends StatelessWidget {
 
     final ratingBadge = highlightOverallRating ? _OverallRatingBadge(student: student) : null;
     final statusChips = <Widget>[
-      if (student.status == 'inactive')
-        const _InfoChip(AppStrings.inactive, tone: _ChipTone.neutral)
-      else if (student.status == 'active')
-        const _InfoChip(AppStrings.active, tone: _ChipTone.success),
+      AppStatusToggle(
+        active: student.status == 'active',
+        onChanged: onStatusChanged,
+      ),
       if (assessmentBadge != null) assessmentBadge,
       if (showMonthRatingStatus)
         student.feedbackFilterMonthCompleted
@@ -140,21 +143,28 @@ class StudentCard extends StatelessWidget {
 }
 
 class TeacherCard extends StatelessWidget {
-  const TeacherCard({super.key, required this.teacher, this.onTap, this.action, this.trailing});
+  const TeacherCard({
+    super.key,
+    required this.teacher,
+    this.onTap,
+    this.action,
+    this.trailing,
+    this.onStatusChanged,
+  });
 
   final TeacherDto teacher;
   final VoidCallback? onTap;
   final Widget? action;
   final Widget? trailing;
+  final Future<void> Function(bool active)? onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
-    final statusBadge = teacher.status == 'inactive'
-        ? const _InfoChip(AppStrings.inactive, tone: _ChipTone.neutral)
-        : const _InfoChip(AppStrings.active, tone: _ChipTone.success);
-
     final teacherRightWidgets = <Widget>[
-      statusBadge,
+      AppStatusToggle(
+        active: teacher.status == 'active',
+        onChanged: onStatusChanged,
+      ),
       if (trailing != null) trailing!,
     ];
 
@@ -194,10 +204,16 @@ class TeacherCard extends StatelessWidget {
 }
 
 class AcademicLevelCard extends StatelessWidget {
-  const AcademicLevelCard({super.key, required this.level, this.onTap});
+  const AcademicLevelCard({
+    super.key,
+    required this.level,
+    this.onTap,
+    this.onStatusChanged,
+  });
 
   final AcademicLevelDto level;
   final VoidCallback? onTap;
+  final Future<void> Function(bool active)? onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -208,6 +224,10 @@ class AcademicLevelCard extends StatelessWidget {
       chips: [
         _InfoChip('${level.batchesCount} ${level.batchesCount == 1 ? 'batch' : 'batches'}'),
       ],
+      trailing: AppStatusToggle(
+        active: level.status == 'active',
+        onChanged: onStatusChanged,
+      ),
       facts: [
         _Fact(AppStrings.totalStudents2, '${level.studentsCount}'),
         _Fact(AppStrings.batches, '${level.batchesCount} sections'),

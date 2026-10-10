@@ -4,6 +4,7 @@ import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/core/widgets/app_status_toggle.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/admin_list_providers.dart';
@@ -83,7 +84,17 @@ class AdminSubAdminsPage extends ConsumerWidget {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            _StatusTag(active: admin.isActive),
+                            AppStatusToggle(
+                              active: admin.isActive,
+                              onChanged: (active) async {
+                                await ref
+                                    .read(academicRepositoryProvider)
+                                    .updateSubAdmin(admin.id, {
+                                  'status': active ? 'active' : 'inactive',
+                                });
+                                ref.invalidate(adminSubAdminsProvider(filter));
+                              },
+                            ),
                             IconButton(
                               tooltip: AppStrings.history,
                               icon: const Icon(Icons.history),
@@ -412,11 +423,14 @@ class _SubAdminFormPageState extends ConsumerState<_SubAdminFormPage> {
             ),
           ],
           if (_editing) ...[
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text(AppStrings.active),
-              value: _active,
-              onChanged: (value) => setState(() => _active = value),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: AppStatusToggle(
+                active: _active,
+                onChanged: (value) async {
+                  setState(() => _active = value);
+                },
+              ),
             ),
           ],
           const SizedBox(height: 16),
@@ -494,11 +508,18 @@ class AdminSubAdminHistoryPage extends ConsumerWidget {
                   ),
                   DetailRow(label: AppStrings.email, value: item.email),
                   DetailRow(label: AppStrings.phone, value: item.phone),
-                  DetailRow(
-                    label: AppStrings.status2,
-                    value: item.isActive
-                        ? AppStrings.active
-                        : AppStrings.inactive,
+                  Row(
+                    children: [
+                      Text(
+                        AppStrings.status2,
+                        style: TextStyle(
+                          color: Brand.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      AppStatusToggle(active: item.isActive),
+                    ],
                   ),
                   DetailRow(
                     label: AppStrings.studentsCreated,
@@ -667,32 +688,3 @@ class _AgentStudentHistoryTile extends StatelessWidget {
   }
 }
 
-class _StatusTag extends StatelessWidget {
-  const _StatusTag({required this.active});
-
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final background =
-        active ? const Color(0xFFE8F5E9) : const Color(0xFFF5F0E6);
-    final border = active ? const Color(0xFF81C784) : const Color(0xFFE6DCCB);
-    final color = active ? const Color(0xFF2E7D32) : Brand.muted;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: border),
-      ),
-      child: Text(
-        active ? AppStrings.active : AppStrings.inactive,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w600,
-          fontSize: 11,
-        ),
-      ),
-    );
-  }
-}

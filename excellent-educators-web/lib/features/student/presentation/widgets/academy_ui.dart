@@ -143,31 +143,31 @@ class _AcademyButtonState extends State<AcademyButton> {
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: AnimatedScale(
-        scale: !disabled && _hover ? 1.02 : 1,
-        duration: const Duration(milliseconds: 160),
+        scale: !disabled && _hover ? 1.01 : 1,
+        duration: const Duration(milliseconds: 140),
         child: FilledButton(
           onPressed: disabled ? null : widget.onPressed,
           style: FilledButton.styleFrom(
             backgroundColor: widget.outlined
                 ? Colors.white
-                : (widget.color ?? StudentColors.forest),
+                : (widget.color ?? Brand.navy),
             foregroundColor: widget.outlined
-                ? StudentColors.forest
+                ? Brand.navy
                 : Colors.white,
             disabledBackgroundColor: StudentColors.disabled,
-            minimumSize: Size(0, isMobile ? 38 : 46),
+            minimumSize: Size(0, isMobile ? 36 : 40),
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 12 : 18,
-              vertical: isMobile ? 8 : 12,
+              horizontal: isMobile ? 14 : 18,
+              vertical: isMobile ? 8 : 10,
             ),
             side: BorderSide(
               color: widget.outlined ? Academy.line : Colors.transparent,
             ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(isMobile ? 10 : 12),
+              borderRadius: BorderRadius.circular(isMobile ? 8 : 10),
             ),
             textStyle: TextStyle(
-              fontSize: isMobile ? 13 : 14,
+              fontSize: isMobile ? 13 : 13.5,
               fontWeight: FontWeight.w600,
             ),
           ),

@@ -6,6 +6,7 @@ import 'package:excellent_educators_web/core/network/api_client.dart';
 import 'package:excellent_educators_web/core/network/maps_api_failures.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/master_teacher_students_filter.dart';
+import 'package:excellent_educators_web/features/assessments/data/dto/assessment_dtos.dart';
 
 class AcademicRepository with MapsApiFailures {
   AcademicRepository(this._client);
@@ -451,15 +452,27 @@ class AcademicRepository with MapsApiFailures {
     });
   }
 
-  Future<List<String>> levelAssessmentIds(String levelId) {
+  Future<List<String>> levelAssessmentIds(String levelId) async {
+    final assessments = await levelAssessments(levelId);
+    return assessments.map((item) => item.id).toList();
+  }
+
+  Future<List<AptitudeAssessmentDto>> levelAssessments(String levelId) {
     return runApi(() async {
       final json = await _client.get(ApiEndpoints.adminLevelAssessments(levelId));
-      final ids = json?['assessment_ids'] as List<dynamic>? ?? const [];
-      return ids.map((id) => id.toString()).toList();
+      final items = json?['assessments'] as List<dynamic>? ?? const [];
+      return items
+          .whereType<Map>()
+          .map(
+            (item) => AptitudeAssessmentDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList();
     });
   }
 
-  Future<List<String>> syncLevelAssessments({
+  Future<List<AptitudeAssessmentDto>> syncLevelAssessments({
     required String levelId,
     required List<String> assessmentIds,
   }) {
@@ -468,8 +481,15 @@ class AcademicRepository with MapsApiFailures {
         ApiEndpoints.adminLevelAssessments(levelId),
         data: {'assessment_ids': assessmentIds},
       );
-      final ids = json?['assessment_ids'] as List<dynamic>? ?? const [];
-      return ids.map((id) => id.toString()).toList();
+      final items = json?['assessments'] as List<dynamic>? ?? const [];
+      return items
+          .whereType<Map>()
+          .map(
+            (item) => AptitudeAssessmentDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList();
     });
   }
 

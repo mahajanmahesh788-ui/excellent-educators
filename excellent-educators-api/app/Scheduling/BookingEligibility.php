@@ -3,16 +3,20 @@
 namespace App\Scheduling;
 
 use App\Attendance\AttendanceService;
+use App\Enums\BatchStatus;
 use App\Enums\SessionBookingStatus;
 use App\Enums\SessionBookingType;
 use App\Models\SessionBooking;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
+use App\Models\WeeklyAssignmentAttempt;
 use App\Support\AppClock;
 use Illuminate\Support\Collection;
 
 class BookingEligibility
 {
+    public const MASTER_CLASS_REQUIRED_LEVEL_WEEKS = 4;
+
     /**
      * @return array<string, mixed>
      */
@@ -25,30 +29,34 @@ class BookingEligibility
         $introCount = $this->introductionBookingCount($student);
         $introRebooking = app(AttendanceService::class)
             ->unusedRebookingFor($student->id, SessionBookingType::IntroductionCall);
-        $canBookIntro = ! $hasUpcomingIntro && ! $introCompleted && ($introCount < 2 || $introRebooking !== null);
+        $batchReady = $this->levelBatchReadyForBooking($student);
+        $canBookIntro = $batchReady
+            && ! $hasUpcomingIntro
+            && ! $introCompleted
+            && ($introCount < 2 || $introRebooking !== null);
         $balance = app(MasterClassBalance::class)->snapshot($student);
-        $journeyMonth = $this->journeyMonth($student);
-        $masterOpensNextMonth = $this->masterClassOpensNextMonth($student);
+        $levelWeeksCompleted = $this->levelWeeksCompletedForMasterClass($student);
+        $requiresLevelWeeks = $this->masterClassRequiresLevelWeeks($student);
         $canBookMaster = $this->canBookMasterClass($student);
 
         return [
             'introduction_completed' => $introCompleted,
             'can_book_introduction' => $canBookIntro,
+            'level_batch_ready' => $batchReady,
             'introduction_last_chance' => $canBookIntro && $introCount >= 1,
             'introduction_attempts_used' => $introCount,
             'introduction_attempts_max' => 2,
             'can_book_master_class' => $canBookMaster,
             'has_upcoming_introduction' => $hasUpcomingIntro,
-            'has_master_class_this_month' => $introCompleted && ! $masterOpensNextMonth && ! $canBookMaster,
+            'has_master_class_this_month' => $introCompleted && ! $requiresLevelWeeks && ! $canBookMaster,
             'master_class_rebooking_available' => app(AttendanceService::class)
                 ->unusedRebookingFor($student->id, SessionBookingType::MasterClass) !== null,
             'master_class_attempts_used' => $balance['used'],
             'master_class_attempts_max' => $balance['allotment'],
             'master_class_remaining' => $balance['remaining'],
-            'master_class_opens_next_month' => $masterOpensNextMonth,
-            'journey_month' => $journeyMonth,
-            'master_class_unlocks_on' => $this->masterClassUnlocksOn($student),
-            'level_started_on' => $this->levelStartedOn($student),
+            'master_class_requires_level_weeks' => $requiresLevelWeeks,
+            'level_weeks_completed' => $levelWeeksCompleted,
+            'level_weeks_required' => self::MASTER_CLASS_REQUIRED_LEVEL_WEEKS,
             'current_month' => AppClock::currentYearMonth(),
         ];
     }
@@ -91,10 +99,13 @@ class BookingEligibility
 
     public function canBookMasterClass(StudentProfile $student, ?string $ignoreBookingId = null): bool
     {
+        if (! $this->levelBatchReadyForBooking($student)) {
+            return false;
+        }
         if (! $this->introductionCompleted($student)) {
             return false;
         }
-        if ($this->masterClassOpensNextMonth($student)) {
+        if ($this->masterClassRequiresLevelWeeks($student)) {
             return false;
         }
         if ($this->hasUpcoming($student, SessionBookingType::MasterClass, $ignoreBookingId)) {
@@ -108,65 +119,76 @@ class BookingEligibility
     }
 
     /**
-     * Master Class unlocks from the calendar month after the journey/batch start month.
+     * Booking is allowed when:
+     * - the student has an open level journey (mid-level continuity), or
+     * - the current batch is active, or
+     * - the student is still on Level 1 with no completed journey (onboarding
+     *   may book while Batch 1 waits to fill).
+     *
+     * After promotion into an inactive Level 2+ batch, journeys are closed and
+     * no new journey starts — booking stays locked until that batch activates.
      */
-    public function masterClassOpensNextMonth(StudentProfile $student): bool
+    public function levelBatchReadyForBooking(StudentProfile $student): bool
+    {
+        $student->loadMissing(['activeEnrollment.batch', 'currentLevelJourney', 'academicLevel']);
+
+        if ($student->currentLevelJourney !== null) {
+            return true;
+        }
+
+        $batch = $student->activeEnrollment?->batch;
+        if ($batch !== null) {
+            $status = $batch->status instanceof BatchStatus
+                ? $batch->status
+                : BatchStatus::tryFrom((string) $batch->status);
+            if ($status === BatchStatus::Active) {
+                return true;
+            }
+        }
+
+        $levelNumber = (int) ($student->academicLevel?->number ?? 0);
+        if ($levelNumber > 1) {
+            return false;
+        }
+
+        $completedALevel = $student->levelJourneys()
+            ->whereNotNull('ended_at')
+            ->exists();
+
+        return ! $completedALevel;
+    }
+
+    /**
+     * Master Class stays locked after Introduction until the student completes
+     * the current level's first 4 weekly assignments.
+     */
+    public function masterClassRequiresLevelWeeks(StudentProfile $student): bool
     {
         if (! $this->introductionCompleted($student)) {
             return false;
         }
 
-        return $this->journeyMonth($student) < 2;
+        return $this->levelWeeksCompletedForMasterClass($student) < self::MASTER_CLASS_REQUIRED_LEVEL_WEEKS;
     }
 
-    public function journeyMonth(StudentProfile $student): int
+    public function levelWeeksCompletedForMasterClass(StudentProfile $student): int
     {
-        $started = \App\Models\StudentLevelJourney::query()
+        // Query directly — avoid a stale null currentLevelJourney relation from earlier in the request.
+        $journeyId = \App\Models\StudentLevelJourney::query()
             ->where('student_id', $student->id)
             ->whereNull('ended_at')
-            ->value('started_at');
+            ->value('id');
 
-        if ($started === null) {
-            $student->loadMissing('activeEnrollment.batch');
-            $started = $student->activeEnrollment?->batch?->starts_on;
+        if ($journeyId === null) {
+            return 0;
         }
 
-        if ($started === null) {
-            // No journey/batch start yet — do not permanently block Master Class.
-            return 2;
-        }
-
-        $startedAt = $started instanceof \Illuminate\Support\Carbon
-            ? $started->copy()
-            : \Illuminate\Support\Carbon::parse($started);
-
-        $at = AppClock::now()->copy()->startOfMonth();
-        $start = $startedAt->timezone(config('app.timezone'))->startOfMonth();
-
-        return max(1, ((int) $start->diffInMonths($at)) + 1);
-    }
-
-    public function masterClassUnlocksOn(StudentProfile $student): ?string
-    {
-        $started = \App\Models\StudentLevelJourney::query()
+        return (int) WeeklyAssignmentAttempt::query()
             ->where('student_id', $student->id)
-            ->whereNull('ended_at')
-            ->value('started_at');
-
-        if ($started === null) {
-            $student->loadMissing('activeEnrollment.batch');
-            $started = $student->activeEnrollment?->batch?->starts_on;
-        }
-
-        if ($started === null) {
-            return null;
-        }
-
-        $startedAt = $started instanceof \Illuminate\Support\Carbon
-            ? $started->copy()
-            : \Illuminate\Support\Carbon::parse($started);
-
-        return $startedAt->timezone(config('app.timezone'))->startOfMonth()->addMonth()->toDateString();
+            ->where('student_level_journey_id', $journeyId)
+            ->whereBetween('week_number', [1, self::MASTER_CLASS_REQUIRED_LEVEL_WEEKS])
+            ->distinct()
+            ->count('week_number');
     }
 
     /**
@@ -273,35 +295,5 @@ class BookingEligibility
     public function teacherIsEligible(StudentProfile $student, TeacherProfile $teacher): bool
     {
         return $this->eligibleTeachers($student)->contains(fn (TeacherProfile $item) => $item->id === $teacher->id);
-    }
-
-    public function levelStartedOn(StudentProfile $student): ?string
-    {
-        $started = \App\Models\StudentLevelJourney::query()
-            ->where('student_id', $student->id)
-            ->whereNull('ended_at')
-            ->value('started_at');
-
-        if ($started !== null) {
-            $startedAt = $started instanceof \Illuminate\Support\Carbon
-                ? $started->copy()
-                : \Illuminate\Support\Carbon::parse($started);
-
-            return $startedAt->timezone(config('app.timezone'))->toDateString();
-        }
-
-        $student->loadMissing('activeEnrollment.batch');
-        if ($student->activeEnrollment?->batch?->starts_on !== null) {
-            return $student->activeEnrollment->batch->starts_on
-                ->timezone(config('app.timezone'))
-                ->toDateString();
-        }
-
-        $enrollment = $student->activeEnrollment;
-        if ($enrollment?->enrolled_at !== null) {
-            return $enrollment->enrolled_at->timezone(config('app.timezone'))->toDateString();
-        }
-
-        return $student->created_at?->timezone(config('app.timezone'))->toDateString();
     }
 }

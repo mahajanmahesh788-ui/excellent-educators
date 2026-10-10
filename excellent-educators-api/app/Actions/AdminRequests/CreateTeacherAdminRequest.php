@@ -88,10 +88,11 @@ class CreateTeacherAdminRequest
         $this->assertNoDuplicatePending($user, AdminRequestType::RemoveMentee, $student->id);
 
         $reason = trim((string) ($input['reason'] ?? ''));
-        $subtitle = "Remove student: {$student->full_name}";
+        $studentLabel = $student->labeledName();
+        $subtitle = "Remove student: {$studentLabel}";
         $description = $reason === ''
-            ? "{$teacher->full_name} requested to remove {$student->full_name} ({$student->student_code}) from their mentee list."
-            : "{$teacher->full_name} requested to remove {$student->full_name} ({$student->student_code}) from their mentee list.\n\nReason: {$reason}";
+            ? "{$teacher->full_name} requested to remove {$studentLabel} from their mentee list."
+            : "{$teacher->full_name} requested to remove {$studentLabel} from their mentee list.\n\nReason: {$reason}";
 
         return $this->store(
             $user,
@@ -143,10 +144,11 @@ class CreateTeacherAdminRequest
 
         $reason = trim((string) ($input['reason'] ?? ''));
         $batchLabel = $batch->name;
-        $subtitle = "Remove student from batch: {$student->full_name}";
+        $studentLabel = $student->labeledName();
+        $subtitle = "Remove student from batch: {$studentLabel}";
         $description = $reason === ''
-            ? "{$teacher->full_name} requested to remove {$student->full_name} ({$student->student_code}) from {$batchLabel}."
-            : "{$teacher->full_name} requested to remove {$student->full_name} ({$student->student_code}) from {$batchLabel}.\n\nReason: {$reason}";
+            ? "{$teacher->full_name} requested to remove {$studentLabel} from {$batchLabel}."
+            : "{$teacher->full_name} requested to remove {$studentLabel} from {$batchLabel}.\n\nReason: {$reason}";
 
         return $this->store(
             $user,
@@ -199,10 +201,15 @@ class CreateTeacherAdminRequest
         $fromLevel = $student->academicLevel;
         $fromName = $fromLevel?->name ?? 'current level';
         $reason = trim((string) ($input['reason'] ?? ''));
-        $subtitle = "Level upgrade: {$student->full_name} — {$fromName} → {$targetLevel->name}";
-        $description = $reason === ''
-            ? "{$teacher->full_name} requested to upgrade {$student->full_name} ({$student->student_code}) from {$fromName} to {$targetLevel->name}."
-            : "{$teacher->full_name} requested to upgrade {$student->full_name} ({$student->student_code}) from {$fromName} to {$targetLevel->name}.\n\nReason: {$reason}";
+        if ($reason === '') {
+            throw ValidationException::withMessages([
+                'reason' => 'Please explain why you are upgrading this student.',
+            ]);
+        }
+
+        $studentLabel = $student->labeledName();
+        $subtitle = "Upgrade {$studentLabel}: {$fromName} → {$targetLevel->name}";
+        $description = "{$teacher->full_name} requested to upgrade {$studentLabel} from {$fromName} to {$targetLevel->name}.\n\nReason: {$reason}";
 
         return $this->store(
             $user,

@@ -85,14 +85,14 @@ class LearningRepository with MapsApiFailures {
   Future<Map<String, dynamic>> requestStudentLevelUpgrade({
     required String studentId,
     required String levelId,
-    String? reason,
+    required String reason,
   }) {
     return runApi(() async {
       final json = await _client.post(
         ApiEndpoints.masterTeacherStudentPromote(studentId),
         data: {
           'level_id': levelId,
-          if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+          'reason': reason.trim(),
         },
       );
       return Map<String, dynamic>.from(json!);
@@ -168,6 +168,7 @@ class LearningRepository with MapsApiFailures {
     required int weekNumber,
     required String videoUrl,
     required List<Map<String, dynamic>> questions,
+    String? videoTitle,
     String? comprehensionParagraph,
     List<Map<String, dynamic>> comprehensionQuestions = const [],
   }) {
@@ -177,6 +178,7 @@ class LearningRepository with MapsApiFailures {
         data: {
           'week_number': weekNumber,
           'video_url': videoUrl,
+          'video_title': videoTitle,
           'questions': questions,
           'comprehension_paragraph': comprehensionParagraph,
           'comprehension_questions': comprehensionQuestions,

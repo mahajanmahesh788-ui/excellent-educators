@@ -70,6 +70,71 @@ abstract final class AppColors {
   static const dangerLight = Color(0xFFFEF2F2);  // Soft Red Background
   static const dangerBorder = Color(0xFFFECACA); // Red Border
 
+  static const warningOrange = Color(0xFFC2410C);
+  static const warningOrangeDark = Color(0xFF9A3412);
+  static const warningOrangeLight = Color(0xFFFFF7ED);
+  static const warningOrangeBorder = Color(0xFFFDBA74);
+  static const warningOrangeSoft = Color(0xFFFED7AA);
+
+  static const linkBlue = Color(0xFF1D4ED8);
+  static const linkBlueDark = Color(0xFF1E3A8A);
+  static const linkBlueLight = Color(0xFFEFF6FF);
+  static const linkBlueBorder = Color(0xFFBFDBFE);
+
+  // Journal / reflection accents (student learning surfaces)
+  static const slate = Color(0xFF4E7187);
+  static const slateDark = Color(0xFF36586C);
+  static const slateLight = Color(0xFFEEF4F6);
+  static const slateBorder = Color(0xFFD3E1E6);
+  static const violet = Color(0xFF8B5CF6);
+  static const violetDark = Color(0xFF7C3AED);
+  static const violetLight = Color(0xFFF5F3FF);
+  static const violetBorder = Color(0xFFDDD6FE);
+
+  static const bookmark = Color(0xFFE11D48);
+  static const disabled = Color(0xFFD9D3C8);
+  static const skeleton = Color(0xFFEDE7DB);
+  static const hoverMint = Color(0xFFAFCABD);
+  static const liveSoft = Color(0xFF6EE7B7);
+  static const amberInk = Color(0xFF78350F);
+  static const parchment = Color(0xFFFBF7F0);
+  static const parchmentBorder = Color(0xFFE6DCCB);
+  static const parchmentSoft = Color(0xFFF7F3EA);
+  static const parchmentWarm = Color(0xFFF8F5EF);
+  static const parchmentCream = Color(0xFFFFF8F0);
+  static const parchmentPeach = Color(0xFFFFF1E0);
+  static const parchmentTan = Color(0xFFE8D5B8);
+  static const surfaceMist = Color(0xFFF9FAFC);
+  static const borderNeutral = Color(0xFFE5E7EB);
+  static const borderWarmSoft = Color(0xFFE8E6E0);
+  static const bannerForest = Color(0xFF123524);
+  static const bannerForestMid = Color(0xFF1B5E3B);
+  static const bannerNavy = Color(0xFF0B1F36);
+
+  // Level-upgrade celebration surfaces
+  static const celebrationBarrier = Color(0xCC0B1B2B);
+  static const celebrationInk = Color(0xFF0B1B2B);
+  static const celebrationGold = Color(0xFFFFC857);
+  static const celebrationGoldDeep = Color(0xFFE09A1F);
+  static const celebrationGoldDark = Color(0xFFD4A017);
+  static const celebrationGoldText = Color(0xFFB7791F);
+  static const celebrationGoldInk = Color(0xFF7A4E00);
+  static const celebrationGoldMuted = Color(0xFF8A5A00);
+  static const celebrationGoldBorder = Color(0xFFFFD98A);
+  static const celebrationGoldBorderSoft = Color(0xFFFFE7A3);
+  static const celebrationGoldWash = Color(0xFFFFF3D6);
+  static const celebrationGoldSoft = Color(0xFFFFF0D6);
+  static const celebrationGoldPale = Color(0xFFFFFBF3);
+  static const celebrationGoldGlow = Color(0xFFFFF1C2);
+  static const celebrationGreen = Color(0xFF1F6B4A);
+  static const celebrationGreenMid = Color(0xFF2E8B63);
+  static const celebrationGreenSoft = Color(0xFFE8F5EE);
+  static const celebrationGreenMint = Color(0xFFE8F4EF);
+  static const celebrationGreenBorder = Color(0xFF9FD0B4);
+  static const celebrationGreenGlow = Color(0xFF7ED0A5);
+  static const celebrationNavy = Color(0xFF16324F);
+  static const celebrationWhiteSoft = Color(0x66FFFFFF);
+
   // ── 6. Educational Category / Discovery Sparks ─────────────────────────────
   // Distinct cheerful colors for student interests and discovery categories.
   static const categoryInterests = Color(0xFF1E7654); // Emerald

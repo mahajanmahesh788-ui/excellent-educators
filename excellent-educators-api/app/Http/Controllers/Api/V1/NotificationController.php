@@ -54,6 +54,22 @@ class NotificationController extends Controller
         );
     }
 
+    public function markUnread(Request $request, UserNotification $notification): JsonResponse
+    {
+        if ($notification->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        if ($notification->read_at !== null) {
+            $notification->update(['read_at' => null]);
+        }
+
+        return ApiResponse::success(
+            'Notification marked as unread.',
+            UserNotificationResource::make($notification->refresh())->resolve(),
+        );
+    }
+
     public function markAllRead(Request $request): JsonResponse
     {
         UserNotification::query()
@@ -62,5 +78,25 @@ class NotificationController extends Controller
             ->update(['read_at' => now()]);
 
         return ApiResponse::success('All notifications marked as read.');
+    }
+
+    public function destroy(Request $request, UserNotification $notification): JsonResponse
+    {
+        if ($notification->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        $notification->delete();
+
+        return ApiResponse::success('Notification deleted successfully.');
+    }
+
+    public function clearAll(Request $request): JsonResponse
+    {
+        UserNotification::query()
+            ->where('user_id', $request->user()->id)
+            ->delete();
+
+        return ApiResponse::success('All notifications deleted successfully.');
     }
 }

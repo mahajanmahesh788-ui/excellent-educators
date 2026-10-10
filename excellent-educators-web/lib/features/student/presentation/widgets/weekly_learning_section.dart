@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
-import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
+import 'package:excellent_educators_web/features/learning/presentation/widgets/weekly_video_lesson_card.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
 
 class WeeklyLearningSection extends StatelessWidget {
@@ -106,31 +105,27 @@ class WeeklyLearningSection extends StatelessWidget {
           const SizedBox(height: 14),
 
           // Activity 1: Weekly Video Lesson
-          _LearningActivityTile(
-            icon: Icons.smart_display_rounded,
-            iconBg: StudentColors.skyLight,
-            iconColor: StudentColors.skyDark,
-            title: 'Weekly Concept Video',
-            subtitle: hasVideo
-                ? 'Watch Week $weekNumber interactive video lecture'
-                : 'Video material is being prepared for this week',
-            badge: hasVideo ? 'Ready to Watch' : 'Upcoming',
-            badgeColor: hasVideo
-                ? StudentColors.skyDark
-                : StudentColors.textMuted,
-            badgeBg: hasVideo
-                ? StudentColors.skyLight
-                : StudentColors.surfaceMuted,
-            actionLabel: 'Watch Video',
-            actionIcon: Icons.play_arrow_rounded,
-            buttonFilled: hasVideo,
-            onAction: hasVideo
-                ? () => launchUrl(
-                    Uri.parse(week!.videoUrl!),
-                    webOnlyWindowName: AppStrings.blank,
-                  )
-                : null,
-          ),
+          if (hasVideo && week?.videoUrl != null)
+            WeeklyVideoLessonCard(
+              videoUrl: week!.videoUrl!,
+              title: week.videoTitle,
+              compact: true,
+            )
+          else
+            _LearningActivityTile(
+              icon: Icons.smart_display_rounded,
+              iconBg: StudentColors.skyLight,
+              iconColor: StudentColors.skyDark,
+              title: 'Weekly Concept Video',
+              subtitle: 'Video material is being prepared for this week',
+              badge: 'Upcoming',
+              badgeColor: StudentColors.textMuted,
+              badgeBg: StudentColors.surfaceMuted,
+              actionLabel: 'Watch Video',
+              actionIcon: Icons.play_arrow_rounded,
+              buttonFilled: false,
+              onAction: null,
+            ),
 
           const SizedBox(height: 12),
 

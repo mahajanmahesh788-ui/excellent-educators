@@ -169,6 +169,7 @@ class StudentController extends Controller
             'activeEnrollment.batch.activeTeacherAssignment.teacher',
             'activeMasterTeacherAssignment.teacher',
             'currentLevelJourney',
+            'levelJourneys.level',
             'activePaymentPlan',
             'latestAptitudeAssessmentResult.attempt.assessment',
         ];

@@ -17,15 +17,15 @@ abstract class DemoSeedData
     {
         return [
             [
-                'name' => 'Aisha Rahman',
-                'email' => 'aisha.rahman@excellenteducators.test',
+                'name' => 'Teacher 1',
+                'email' => 'teacher1@yopmail.com',
                 'password' => self::TEACHER_PASSWORD,
                 'gender' => 'female',
                 'employee_code' => 'MT-DEMO-001',
                 'phone' => '+919876543201',
                 'whatsapp_number' => '+919876543201',
                 'address' => '12 Lake View Road, Bengaluru',
-                'photo_url' => 'https://i.pravatar.cc/300?u=aisha.rahman',
+                'photo_url' => 'https://i.pravatar.cc/300?u=teacher1',
                 'professional_title' => 'STEM Career Mentor',
                 'bio' => 'Helps students connect classroom learning with real engineering and science paths.',
                 'experience_summary' => '12 years mentoring STEM aspirants',
@@ -44,15 +44,15 @@ abstract class DemoSeedData
                 ],
             ],
             [
-                'name' => 'Rohan Mehta',
-                'email' => 'rohan.mehta@excellenteducators.test',
+                'name' => 'Teacher 2',
+                'email' => 'teacher2@yopmail.com',
                 'password' => self::TEACHER_PASSWORD,
                 'gender' => 'male',
                 'employee_code' => 'MT-DEMO-002',
                 'phone' => '+919876543202',
                 'whatsapp_number' => '+919876543202',
                 'address' => '88 Marine Drive, Mumbai',
-                'photo_url' => rtrim((string) config('app.url'), '/').'/media/teachers/rohan-mehta.jpg',
+                'photo_url' => 'https://i.pravatar.cc/300?u=teacher2',
                 'professional_title' => 'Leadership & Communication Mentor',
                 'bio' => 'Focuses on confidence, teamwork, and clear communication for school leaders.',
                 'experience_summary' => '9 years in youth leadership programs',
@@ -71,15 +71,15 @@ abstract class DemoSeedData
                 ],
             ],
             [
-                'name' => 'Priya Nair',
-                'email' => 'priya.nair@excellenteducators.test',
+                'name' => 'Teacher 3',
+                'email' => 'teacher3@yopmail.com',
                 'password' => self::TEACHER_PASSWORD,
                 'gender' => 'female',
                 'employee_code' => 'MT-DEMO-003',
                 'phone' => '+919876543203',
                 'whatsapp_number' => '+919876543203',
                 'address' => '5 Palm Grove, Kochi',
-                'photo_url' => 'https://i.pravatar.cc/300?u=priya.nair',
+                'photo_url' => 'https://i.pravatar.cc/300?u=teacher3',
                 'professional_title' => 'Creativity & Future Pathways Mentor',
                 'bio' => 'Guides students exploring design, arts, and interdisciplinary careers.',
                 'experience_summary' => '10 years in creative education',
@@ -111,6 +111,7 @@ abstract class DemoSeedData
             [
                 'week_number' => 1,
                 'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                'video_title' => 'Week 1 · Thinking Foundations',
                 'questions' => [
                     [
                         'question_text' => 'You are given a task you have never done before. What do you naturally do first?',
@@ -159,6 +160,7 @@ abstract class DemoSeedData
             [
                 'week_number' => 2,
                 'video_url' => 'https://www.youtube.com/watch?v=jNQXAC9IVRw',
+                'video_title' => 'Week 2 · Creative Problem Solving',
                 'questions' => [
                     [
                         'question_text' => 'Which kind of challenge energizes you the most?',
@@ -207,6 +209,7 @@ abstract class DemoSeedData
             [
                 'week_number' => 3,
                 'video_url' => 'https://www.youtube.com/watch?v=9bZkp7q19f0',
+                'video_title' => 'Week 3 · Communication Focus',
                 'questions' => [
                     [
                         'question_text' => 'In a classroom discussion, you are most likely to…',
@@ -255,6 +258,7 @@ abstract class DemoSeedData
             [
                 'week_number' => 4,
                 'video_url' => 'https://www.youtube.com/watch?v=kJQP7kiw5Fk',
+                'video_title' => 'Week 4 · Collaboration Habits',
                 'questions' => [
                     [
                         'question_text' => 'A friend asks for help preparing for an interview. You…',
@@ -328,12 +332,13 @@ abstract class DemoSeedData
      * 6. student6 — introduction call scheduled upcoming
      * 7. student7 — payment overdue
      * 8. student8 — intro completed, waiting to book first master class
+     * 9. student9 — fresh enrollee (aptitude pending, no bookings)
      *
      * @return list<array<string, mixed>>
      */
     public static function studentJourneys(): array
     {
-        $teacher = 'aisha.rahman@excellenteducators.test';
+        $teacher = 'teacher1@yopmail.com';
         $basePayment = static fn (string $start, array $followUps = []): array => [
             'payment_type' => 'partial',
             'total_amount' => 12000,
@@ -732,6 +737,344 @@ abstract class DemoSeedData
                         'attendance' => 'attended',
                     ],
                     // No master class yet — can book first MC.
+                ],
+            ],
+            [
+                'key' => 'fresh_enrollee',
+                'label' => 'Fresh enrollee — aptitude pending',
+                'student' => [
+                    'name' => 'Student 9',
+                    'email' => 'student9@yopmail.com',
+                    'password' => self::STUDENT_PASSWORD,
+                    'gender' => 'female',
+                    'class_grade' => 6,
+                    'phone' => '+919876501009',
+                    'whatsapp_number' => '+919876501009',
+                    'address' => '14 Station Road, Indore',
+                    'guardian_name' => 'Parent Nine',
+                    'guardian_phone' => '+919876501019',
+                    'created_at' => '2026-10-08 09:00:00',
+                ],
+                'master_teacher_email' => $teacher,
+                'journey_started_at' => '2026-10-08 00:00:00',
+                'master_teacher_assigned_at' => '2026-10-08 10:00:00',
+                'skip_aptitude' => true,
+                'payment' => $basePayment('2026-10-08'),
+                'weekly_attempts' => [],
+                'bookings' => [],
+            ],
+        ];
+    }
+
+    /**
+     * Level 2 weekly learning journey (weeks 1–4).
+     *
+     * @return list<array{week_number: int, video_url: string, comprehension_paragraph?: string, questions: list<array<string, mixed>>}>
+     */
+    public static function levelTwoWeeklyLearnings(): array
+    {
+        return [
+            [
+                'week_number' => 1,
+                'video_url' => 'https://www.youtube.com/watch?v=3JZ_D3ELwOQ',
+                'video_title' => 'Week 1 · Thinking Foundations',
+                'comprehension_paragraph' => 'At Level 2, students deepen self-awareness by reflecting on how they solve problems with others.',
+                'questions' => [
+                    [
+                        'question_text' => 'When a team goal feels unclear, what do you do first?',
+                        'options' => [
+                            [
+                                'option_text' => 'Clarify the goal and break work into steps.',
+                                'dimension_codes' => ['L', 'DM'],
+                            ],
+                            [
+                                'option_text' => 'Ask teammates what they need before deciding.',
+                                'dimension_codes' => ['CM', 'TW'],
+                            ],
+                            [
+                                'option_text' => 'Sketch a few creative approaches to try.',
+                                'dimension_codes' => ['CR', 'CU'],
+                            ],
+                            [
+                                'option_text' => 'Start a small experiment and learn fast.',
+                                'dimension_codes' => ['P', 'I'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'question_text' => 'Which feedback helps you grow the most?',
+                        'options' => [
+                            [
+                                'option_text' => 'Specific notes on how I communicate.',
+                                'dimension_codes' => ['CM', 'CF'],
+                            ],
+                            [
+                                'option_text' => 'Challenge to lead a part of the work.',
+                                'dimension_codes' => ['L', 'FA'],
+                            ],
+                            [
+                                'option_text' => 'Ideas that stretch my creativity.',
+                                'dimension_codes' => ['CR', 'CU'],
+                            ],
+                            [
+                                'option_text' => 'A clear checklist of next skills to practice.',
+                                'dimension_codes' => ['P', 'DM'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'week_number' => 2,
+                'video_url' => 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
+                'video_title' => 'Week 2 · Creative Problem Solving',
+                'questions' => [
+                    [
+                        'question_text' => 'A classmate disagrees with your plan. You…',
+                        'options' => [
+                            [
+                                'option_text' => 'Listen fully, then find common ground.',
+                                'dimension_codes' => ['CM', 'TW'],
+                            ],
+                            [
+                                'option_text' => 'Explain your reasoning with calm confidence.',
+                                'dimension_codes' => ['CF', 'L'],
+                            ],
+                            [
+                                'option_text' => 'Invite a third idea that blends both views.',
+                                'dimension_codes' => ['CR', 'DM'],
+                            ],
+                            [
+                                'option_text' => 'Gather facts before choosing a path.',
+                                'dimension_codes' => ['P', 'CU'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'question_text' => 'What kind of project feels most meaningful now?',
+                        'options' => [
+                            [
+                                'option_text' => 'One that builds a skill for my future path.',
+                                'dimension_codes' => ['FA', 'P'],
+                            ],
+                            [
+                                'option_text' => 'One where I guide peers toward a goal.',
+                                'dimension_codes' => ['L', 'TW'],
+                            ],
+                            [
+                                'option_text' => 'One that lets me invent something new.',
+                                'dimension_codes' => ['CR', 'I'],
+                            ],
+                            [
+                                'option_text' => 'One that needs clear, careful decisions.',
+                                'dimension_codes' => ['DM', 'CF'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'week_number' => 3,
+                'video_url' => 'https://www.youtube.com/watch?v=lTRiuFIWV54',
+                'video_title' => 'Week 3 · Communication Focus',
+                'questions' => [
+                    [
+                        'question_text' => 'How do you usually prepare for a tough class?',
+                        'options' => [
+                            [
+                                'option_text' => 'Plan questions and practice answers aloud.',
+                                'dimension_codes' => ['CM', 'CF'],
+                            ],
+                            [
+                                'option_text' => 'Map topics and prioritize what matters.',
+                                'dimension_codes' => ['DM', 'P'],
+                            ],
+                            [
+                                'option_text' => 'Explore related examples out of curiosity.',
+                                'dimension_codes' => ['CU', 'I'],
+                            ],
+                            [
+                                'option_text' => 'Study with a peer and share roles.',
+                                'dimension_codes' => ['TW', 'L'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'question_text' => 'When progress feels slow, you tend to…',
+                        'options' => [
+                            [
+                                'option_text' => 'Adjust the plan and keep moving.',
+                                'dimension_codes' => ['DM', 'P'],
+                            ],
+                            [
+                                'option_text' => 'Ask for support and keep morale up.',
+                                'dimension_codes' => ['TW', 'CF'],
+                            ],
+                            [
+                                'option_text' => 'Try a fresh creative angle.',
+                                'dimension_codes' => ['CR', 'CU'],
+                            ],
+                            [
+                                'option_text' => 'Reconnect with why the goal matters.',
+                                'dimension_codes' => ['FA', 'I'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'week_number' => 4,
+                'video_url' => 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ',
+                'video_title' => 'Week 4 · Collaboration Habits',
+                'questions' => [
+                    [
+                        'question_text' => 'What does strong teamwork look like to you?',
+                        'options' => [
+                            [
+                                'option_text' => 'Clear roles and shared ownership.',
+                                'dimension_codes' => ['TW', 'L'],
+                            ],
+                            [
+                                'option_text' => 'Honest talk and careful listening.',
+                                'dimension_codes' => ['CM', 'CF'],
+                            ],
+                            [
+                                'option_text' => 'Room for bold, original ideas.',
+                                'dimension_codes' => ['CR', 'I'],
+                            ],
+                            [
+                                'option_text' => 'Decisions backed by evidence.',
+                                'dimension_codes' => ['DM', 'P'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'question_text' => 'Looking at Level 2 goals, you most want to grow in…',
+                        'options' => [
+                            [
+                                'option_text' => 'Leading with confidence.',
+                                'dimension_codes' => ['L', 'CF'],
+                            ],
+                            [
+                                'option_text' => 'Communicating ideas clearly.',
+                                'dimension_codes' => ['CM', 'TW'],
+                            ],
+                            [
+                                'option_text' => 'Creative problem solving.',
+                                'dimension_codes' => ['CR', 'CU'],
+                            ],
+                            [
+                                'option_text' => 'Planning my next learning steps.',
+                                'dimension_codes' => ['FA', 'DM'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Two aptitude assessments: Level 1 and Level 2.
+     *
+     * @return list<array{title: string, description: string, level_number: int, questions: list<array<string, mixed>>}>
+     */
+    public static function aptitudeAssessments(): array
+    {
+        return [
+            [
+                'title' => 'Level 1 Aptitude Assessment',
+                'description' => 'Baseline strengths check for students starting Level 1.',
+                'level_number' => 1,
+                'questions' => [
+                    [
+                        'question_text' => 'Which activity do you enjoy most after school?',
+                        'options' => [
+                            ['option_text' => 'Solving puzzles or building something', 'dimension_codes' => ['CR', 'P']],
+                            ['option_text' => 'Talking through ideas with friends', 'dimension_codes' => ['CM', 'TW']],
+                            ['option_text' => 'Organizing a group activity', 'dimension_codes' => ['L', 'DM']],
+                            ['option_text' => 'Trying a hobby I have never done', 'dimension_codes' => ['CU', 'I']],
+                        ],
+                    ],
+                    [
+                        'question_text' => 'When homework feels hard, what do you do first?',
+                        'options' => [
+                            ['option_text' => 'Break it into smaller steps', 'dimension_codes' => ['P', 'DM']],
+                            ['option_text' => 'Ask a friend or teacher for help', 'dimension_codes' => ['CM', 'TW']],
+                            ['option_text' => 'Look for a creative way to understand it', 'dimension_codes' => ['CR', 'CU']],
+                            ['option_text' => 'Encourage myself and keep going', 'dimension_codes' => ['CF', 'I']],
+                        ],
+                    ],
+                    [
+                        'question_text' => 'In a group project, you usually…',
+                        'options' => [
+                            ['option_text' => 'Take the lead and assign roles', 'dimension_codes' => ['L', 'DM']],
+                            ['option_text' => 'Make sure everyone feels included', 'dimension_codes' => ['TW', 'CM']],
+                            ['option_text' => 'Bring new ideas to the table', 'dimension_codes' => ['CR', 'CU']],
+                            ['option_text' => 'Research carefully before deciding', 'dimension_codes' => ['P', 'FA']],
+                        ],
+                    ],
+                    [
+                        'question_text' => 'What feels most exciting about your future?',
+                        'options' => [
+                            ['option_text' => 'Learning skills for a career I care about', 'dimension_codes' => ['FA', 'P']],
+                            ['option_text' => 'Leading people toward a shared goal', 'dimension_codes' => ['L', 'TW']],
+                            ['option_text' => 'Inventing or designing new things', 'dimension_codes' => ['CR', 'I']],
+                            ['option_text' => 'Meeting people and sharing stories', 'dimension_codes' => ['CM', 'CF']],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'title' => 'Level 2 Aptitude Assessment',
+                'description' => 'Deeper strengths check for students promoted to Level 2.',
+                'level_number' => 2,
+                'questions' => [
+                    [
+                        'question_text' => 'You are asked to improve a school event. Where do you start?',
+                        'options' => [
+                            ['option_text' => 'Interview people and gather feedback', 'dimension_codes' => ['CM', 'CU']],
+                            ['option_text' => 'Map goals, owners, and deadlines', 'dimension_codes' => ['L', 'DM']],
+                            ['option_text' => 'Sketch bold new formats to try', 'dimension_codes' => ['CR', 'I']],
+                            ['option_text' => 'Study what worked last year carefully', 'dimension_codes' => ['P', 'FA']],
+                        ],
+                    ],
+                    [
+                        'question_text' => 'A teammate is stuck and frustrated. You…',
+                        'options' => [
+                            ['option_text' => 'Listen first, then coach them calmly', 'dimension_codes' => ['CM', 'CF']],
+                            ['option_text' => 'Help reorganize the shared plan', 'dimension_codes' => ['L', 'TW']],
+                            ['option_text' => 'Offer a fresh creative approach', 'dimension_codes' => ['CR', 'CU']],
+                            ['option_text' => 'Break their task into clearer steps', 'dimension_codes' => ['P', 'DM']],
+                        ],
+                    ],
+                    [
+                        'question_text' => 'Which decision style fits you best at Level 2?',
+                        'options' => [
+                            ['option_text' => 'Weigh options with clear criteria', 'dimension_codes' => ['DM', 'P']],
+                            ['option_text' => 'Discuss with trusted peers first', 'dimension_codes' => ['TW', 'CM']],
+                            ['option_text' => 'Trust instincts, then refine', 'dimension_codes' => ['CF', 'I']],
+                            ['option_text' => 'Imagine long-term impact before choosing', 'dimension_codes' => ['FA', 'CR']],
+                        ],
+                    ],
+                    [
+                        'question_text' => 'What growth goal matters most to you now?',
+                        'options' => [
+                            ['option_text' => 'Speak up with more confidence', 'dimension_codes' => ['CF', 'CM']],
+                            ['option_text' => 'Lead small teams effectively', 'dimension_codes' => ['L', 'TW']],
+                            ['option_text' => 'Solve problems more creatively', 'dimension_codes' => ['CR', 'CU']],
+                            ['option_text' => 'Plan learning for my next path', 'dimension_codes' => ['FA', 'DM']],
+                        ],
+                    ],
+                    [
+                        'question_text' => 'When exploring a new subject, you prefer to…',
+                        'options' => [
+                            ['option_text' => 'Ask many questions and dig deeper', 'dimension_codes' => ['CU', 'CM']],
+                            ['option_text' => 'Practice until the method feels solid', 'dimension_codes' => ['P', 'CF']],
+                            ['option_text' => 'Connect it to a future goal', 'dimension_codes' => ['FA', 'I']],
+                            ['option_text' => 'Teach someone else what you learned', 'dimension_codes' => ['L', 'TW']],
+                        ],
+                    ],
                 ],
             ],
         ];

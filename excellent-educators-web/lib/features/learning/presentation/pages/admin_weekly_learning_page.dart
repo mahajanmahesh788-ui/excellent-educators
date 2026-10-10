@@ -25,6 +25,7 @@ class _AdminWeeklyLearningPageState
     extends ConsumerState<AdminWeeklyLearningPage> {
   var _week = 1;
   final _video = TextEditingController();
+  final _videoTitle = TextEditingController();
   final _questions = <_QuestionDraft>[];
   var _hasComprehension = false;
   final _comprehensionParagraph = TextEditingController();
@@ -35,6 +36,7 @@ class _AdminWeeklyLearningPageState
   @override
   void dispose() {
     _video.dispose();
+    _videoTitle.dispose();
     _comprehensionParagraph.dispose();
     for (final question in _questions) {
       question.dispose();
@@ -48,6 +50,7 @@ class _AdminWeeklyLearningPageState
   void _loadWeek(List<WeeklyLearningContentDto> content) {
     final unit = content.where((item) => item.weekNumber == _week).firstOrNull;
     _video.text = unit?.videoUrl ?? '';
+    _videoTitle.text = unit?.videoTitle ?? '';
     for (final question in _questions) {
       question.dispose();
     }
@@ -175,6 +178,9 @@ class _AdminWeeklyLearningPageState
             levelId: widget.levelId,
             weekNumber: _week,
             videoUrl: _video.text.trim(),
+            videoTitle: _videoTitle.text.trim().isEmpty
+                ? null
+                : _videoTitle.text.trim(),
             questions: _questionPayload(_questions),
             comprehensionParagraph: _hasComprehension
                 ? _comprehensionParagraph.text.trim()
@@ -240,6 +246,16 @@ class _AdminWeeklyLearningPageState
                     }),
                   ),
                   const SizedBox(height: 12),
+                  TextField(
+                    controller: _videoTitle,
+                    decoration: const InputDecoration(
+                      labelText: AppStrings.videoTitle,
+                      hintText: AppStrings.videoTitleHint,
+                    ),
+                    textCapitalization: TextCapitalization.sentences,
+                    maxLength: 180,
+                  ),
+                  const SizedBox(height: 8),
                   TextField(
                     controller: _video,
                     decoration: const InputDecoration(

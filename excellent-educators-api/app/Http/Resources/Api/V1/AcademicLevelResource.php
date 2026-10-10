@@ -44,6 +44,10 @@ class AcademicLevelResource extends JsonResource
                 $this->relationLoaded('aptitudeAssessments'),
                 fn () => $this->aptitudeAssessments->pluck('id')->values()->all(),
             ),
+            'assessments' => $this->when(
+                $this->relationLoaded('aptitudeAssessments'),
+                fn () => AptitudeAssessmentResource::collection($this->aptitudeAssessments)->resolve(),
+            ),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

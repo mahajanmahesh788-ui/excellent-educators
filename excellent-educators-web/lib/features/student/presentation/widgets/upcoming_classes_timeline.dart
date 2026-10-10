@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/app/theme/app_colors.dart';
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/fresh_student_onboarding.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
@@ -172,15 +173,15 @@ class UpcomingClassesTimeline extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () {
-              if (snapshot.masterClassOpensNextMonth) {
-                MasterClassOpensNextMonthDialog.show(context);
+              if (snapshot.masterClassRequiresLevelWeeks) {
+                MasterClassLevelWeeksDialog.show(context);
                 return;
               }
               context.go('${RoutePaths.studentBookNew}?type=master_class');
             },
             style: FilledButton.styleFrom(
               backgroundColor: StudentColors.indigoPrimary,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.textOnPrimary,
               minimumSize: const Size(0, 36),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -280,7 +281,7 @@ class _TimelineItem extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: dotColor,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: AppColors.textOnPrimary, width: 2),
                   boxShadow: [
                     BoxShadow(
                       color: dotColor.withValues(alpha: 0.35),

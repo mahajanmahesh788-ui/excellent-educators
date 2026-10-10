@@ -849,15 +849,15 @@ class BookingEligibilityDto {
     required this.introductionCompleted,
     required this.canBookIntroduction,
     required this.canBookMasterClass,
+    this.levelBatchReady = true,
     this.introductionLastChance = false,
     this.masterClassRebookingAvailable = false,
     this.masterClassRemaining = 0,
     this.masterClassAttemptsMax = 1,
     this.masterClassAttemptsUsed = 0,
-    this.masterClassOpensNextMonth = false,
-    this.journeyMonth = 1,
-    this.masterClassUnlocksOn,
-    this.levelStartedOn,
+    this.masterClassRequiresLevelWeeks = false,
+    this.levelWeeksCompleted = 0,
+    this.levelWeeksRequired = 4,
   });
 
   factory BookingEligibilityDto.fromJson(Map<String, dynamic> json) {
@@ -865,30 +865,31 @@ class BookingEligibilityDto {
       introductionCompleted: json['introduction_completed'] as bool? ?? false,
       canBookIntroduction: json['can_book_introduction'] as bool? ?? false,
       canBookMasterClass: json['can_book_master_class'] as bool? ?? false,
+      levelBatchReady: json['level_batch_ready'] as bool? ?? true,
       introductionLastChance: json['introduction_last_chance'] as bool? ?? false,
       masterClassRebookingAvailable: json['master_class_rebooking_available'] as bool? ?? false,
       masterClassRemaining: (json['master_class_remaining'] as num?)?.toInt() ?? 0,
       masterClassAttemptsMax: (json['master_class_attempts_max'] as num?)?.toInt() ?? 1,
       masterClassAttemptsUsed: (json['master_class_attempts_used'] as num?)?.toInt() ?? 0,
-      masterClassOpensNextMonth: json['master_class_opens_next_month'] == true,
-      journeyMonth: (json['journey_month'] as num?)?.toInt() ?? 1,
-      masterClassUnlocksOn: json['master_class_unlocks_on'] as String?,
-      levelStartedOn: json['level_started_on'] as String?,
+      masterClassRequiresLevelWeeks:
+          json['master_class_requires_level_weeks'] as bool? ?? false,
+      levelWeeksCompleted: (json['level_weeks_completed'] as num?)?.toInt() ?? 0,
+      levelWeeksRequired: (json['level_weeks_required'] as num?)?.toInt() ?? 4,
     );
   }
 
   final bool introductionCompleted;
   final bool canBookIntroduction;
   final bool canBookMasterClass;
+  final bool levelBatchReady;
   final bool introductionLastChance;
   final bool masterClassRebookingAvailable;
   final int masterClassRemaining;
   final int masterClassAttemptsMax;
   final int masterClassAttemptsUsed;
-  final bool masterClassOpensNextMonth;
-  final int journeyMonth;
-  final String? masterClassUnlocksOn;
-  final String? levelStartedOn;
+  final bool masterClassRequiresLevelWeeks;
+  final int levelWeeksCompleted;
+  final int levelWeeksRequired;
 }
 
 class GoogleMeetConnectionDto {

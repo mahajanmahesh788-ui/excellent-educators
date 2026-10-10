@@ -101,6 +101,14 @@ class NotificationTest extends TestCase
         $this->withToken($token)->getJson('/api/v1/notifications/unread-count')
             ->assertOk()
             ->assertJsonPath('data.unread_count', 0);
+
+        $this->withToken($token)->patchJson("/api/v1/notifications/{$notificationId}/unread")
+            ->assertOk()
+            ->assertJsonPath('data.read_at', null);
+
+        $this->withToken($token)->getJson('/api/v1/notifications/unread-count')
+            ->assertOk()
+            ->assertJsonPath('data.unread_count', 1);
     }
 
     /**

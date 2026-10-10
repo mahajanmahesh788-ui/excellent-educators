@@ -105,6 +105,37 @@ class ParentIntakeSummaryDto {
   bool get needsReminder => available && !completed;
 }
 
+class StudentLevelPathNodeDto {
+  const StudentLevelPathNodeDto({
+    required this.number,
+    required this.name,
+    required this.status,
+    this.levelId,
+    this.date,
+  });
+
+  factory StudentLevelPathNodeDto.fromJson(Map<String, dynamic> json) {
+    return StudentLevelPathNodeDto(
+      levelId: json['level_id'] as String?,
+      number: (json['number'] as num?)?.toInt() ?? 0,
+      name: json['name'] as String? ?? '',
+      status: json['status'] as String? ?? 'upcoming',
+      date: json['date'] as String?,
+    );
+  }
+
+  final String? levelId;
+  final int number;
+  final String name;
+  final String status;
+  final String? date;
+
+  bool get isCompleted => status == 'completed';
+  bool get isCurrent => status == 'current';
+  bool get isUpcoming => status == 'upcoming';
+  bool get isReached => isCompleted || isCurrent;
+}
+
 class StudentDto {
   const StudentDto({
     required this.id,
@@ -124,6 +155,7 @@ class StudentDto {
     this.batch,
     this.masterTeacher,
     this.masterTeachers = const [],
+    this.levelPath = const [],
     this.aptitudeAssessmentStatus,
     this.aptitudeAssessmentSubmittedAt,
     this.aptitudeAssessmentTitle,
@@ -204,6 +236,14 @@ class StudentDto {
           .whereType<Map>()
           .map((item) => TeacherDto.fromJson(Map<String, dynamic>.from(item)))
           .toList(),
+      levelPath: (json['level_path'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => StudentLevelPathNodeDto.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(),
       aptitudeAssessmentStatus: aptitude?['status'] as String?,
       aptitudeAssessmentSubmittedAt: aptitude?['submitted_at'] as String?,
       aptitudeAssessmentTitle: aptitude?['assessment_title'] as String?,
@@ -262,6 +302,7 @@ class StudentDto {
   final NamedRef? batch;
   final NamedRef? masterTeacher;
   final List<TeacherDto> masterTeachers;
+  final List<StudentLevelPathNodeDto> levelPath;
   final String? aptitudeAssessmentStatus;
   final String? aptitudeAssessmentSubmittedAt;
   final String? aptitudeAssessmentTitle;
@@ -289,6 +330,25 @@ class StudentDto {
 
   bool get hasSubmittedAptitudeAssessment =>
       aptitudeAssessmentStatus == 'submitted';
+
+  /// Parses `Level 2` / `Level 10` style labels; null when unknown.
+  int? get levelNumber {
+    final label = level?.label.trim() ?? '';
+    if (label.isEmpty) {
+      return null;
+    }
+    final match = RegExp(r'(\d+)').firstMatch(label);
+    if (match == null) {
+      return null;
+    }
+    return int.tryParse(match.group(1)!);
+  }
+
+  /// True after promotion or any prior journey — not a brand-new Level 1 start.
+  bool get isContinuingLearner =>
+      hasLearningHistory ||
+      journeyStarted ||
+      (levelNumber != null && levelNumber! > 1);
 
   /// True only while the student has no open level journey and their current
   /// batch is still inactive — e.g. after promote into a Level 2 batch that
@@ -616,6 +676,35 @@ class MentorExperienceDto {
   final String? duration;
 }
 
+class LevelAssessmentSummaryDto {
+  const LevelAssessmentSummaryDto({
+    required this.id,
+    required this.title,
+    required this.status,
+    this.questionsCount = 0,
+    this.submittedAttemptsCount = 0,
+  });
+
+  factory LevelAssessmentSummaryDto.fromJson(Map<String, dynamic> json) {
+    return LevelAssessmentSummaryDto(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      status: json['status'] as String? ?? 'draft',
+      questionsCount: (json['questions_count'] as num?)?.toInt() ??
+          (json['questions'] as List?)?.length ??
+          0,
+      submittedAttemptsCount:
+          (json['submitted_attempts_count'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  final String id;
+  final String title;
+  final String status;
+  final int questionsCount;
+  final int submittedAttemptsCount;
+}
+
 class AcademicLevelDto {
   const AcademicLevelDto({
     required this.id,
@@ -625,6 +714,7 @@ class AcademicLevelDto {
     this.number,
     this.batches = const [],
     this.masterTeachers = const [],
+    this.assessments = const [],
     this.batchesCount = 0,
     this.studentsCount = 0,
     this.masterClassesPerMonth = 1,
@@ -641,6 +731,15 @@ class AcademicLevelDto {
             .whereType<Map>()
             .map((item) => TeacherDto.fromJson(Map<String, dynamic>.from(item)))
             .toList();
+
+    final assessmentsList = (json['assessments'] as List<dynamic>? ?? const [])
+        .whereType<Map>()
+        .map(
+          (item) => LevelAssessmentSummaryDto.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+        .toList();
 
     final parsedBatchesCount =
         (json['batches_count'] as num?)?.toInt() ??
@@ -666,6 +765,7 @@ class AcademicLevelDto {
       status: json['status'] as String? ?? 'active',
       batches: batchesList,
       masterTeachers: masterTeachersList,
+      assessments: assessmentsList,
       batchesCount: parsedBatchesCount,
       studentsCount: parsedStudentsCount,
       masterClassesPerMonth:
@@ -682,6 +782,7 @@ class AcademicLevelDto {
   final String status;
   final List<BatchDto> batches;
   final List<TeacherDto> masterTeachers;
+  final List<LevelAssessmentSummaryDto> assessments;
   final int batchesCount;
   final int studentsCount;
   final int masterClassesPerMonth;

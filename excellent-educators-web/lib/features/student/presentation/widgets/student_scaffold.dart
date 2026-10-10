@@ -1,4 +1,5 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/app/theme/app_colors.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';
@@ -614,7 +615,7 @@ class _SettingsFloatingMenuState extends State<_SettingsFloatingMenu> {
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
-            side: const BorderSide(color: Color(0xFFE5E7EB)),
+            side: const BorderSide(color: AppColors.borderNeutral),
           ),
         ),
         padding: const WidgetStatePropertyAll(EdgeInsets.zero),
@@ -678,7 +679,7 @@ class _SettingsFloatingMenuState extends State<_SettingsFloatingMenu> {
               ),
               for (var i = 0; i < _SettingsFloatingMenu._items.length; i++) ...[
                 if (i > 0)
-                  const Divider(height: 1, thickness: 1, color: Color(0xFFE8E6E0)),
+                  const Divider(height: 1, thickness: 1, color: AppColors.borderWarmSoft),
                 _SettingsMenuRow(
                   label: _SettingsFloatingMenu._items[i].label,
                   icon: _SettingsFloatingMenu._items[i].icon,

@@ -13,9 +13,12 @@ class DemoTeacherSeeder extends Seeder
 {
     public function run(): void
     {
-        $level = AcademicLevel::query()->where('name', 'Level 1')->first();
-        if ($level === null) {
-            $this->command?->warn('Level 1 missing — run LevelSeeder first. Skipping demo teachers.');
+        $levels = AcademicLevel::query()
+            ->whereIn('name', ['Level 1', 'Level 2'])
+            ->get();
+
+        if ($levels->isEmpty()) {
+            $this->command?->warn('Levels missing — run LevelSeeder first. Skipping demo teachers.');
 
             return;
         }
@@ -39,7 +42,12 @@ class DemoTeacherSeeder extends Seeder
         }
 
         if ($teacherIds !== []) {
-            $level->masterTeachers()->syncWithoutDetaching($teacherIds);
+            foreach ($levels as $level) {
+                $level->masterTeachers()->syncWithoutDetaching($teacherIds);
+            }
         }
+
+        $this->command?->info('Seeded '.count($teacherIds).' demo teacher(s). Password: '.DemoSeedData::TEACHER_PASSWORD);
+        $this->command?->info('Logins: teacher1@yopmail.com … teacher3@yopmail.com');
     }
 }

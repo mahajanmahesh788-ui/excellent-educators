@@ -1,6 +1,7 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/core/widgets/app_status_toggle.dart';
 import 'package:excellent_educators_web/core/widgets/phone_whatsapp_address_fields.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
@@ -161,15 +162,14 @@ class _AdminEditStudentPageState extends ConsumerState<AdminEditStudentPage> {
                     onChanged: (value) => setState(() => _classGrade = value),
                   ),
                   const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    key: ValueKey(_status),
-                    value: _status,
-                    decoration: const InputDecoration(labelText: AppStrings.status2),
-                    items: const [
-                      DropdownMenuItem(value: 'active', child: Text(AppStrings.active)),
-                      DropdownMenuItem(value: 'inactive', child: Text(AppStrings.inactive)),
-                    ],
-                    onChanged: (value) => setState(() => _status = value),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: AppStatusToggle(
+                      active: _status == 'active',
+                      onChanged: (active) async {
+                        setState(() => _status = active ? 'active' : 'inactive');
+                      },
+                    ),
                   ),
                   const SizedBox(height: 14),
                   TextFormField(

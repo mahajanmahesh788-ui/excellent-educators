@@ -126,10 +126,12 @@ class SchedulingTest extends TestCase
             'date' => '2026-09-10',
         ]);
 
-        // Journey started this month → Master Class opens next month
+        // Intro done but level weeks incomplete → Master Class stays locked
         $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
             ->assertOk()
-            ->assertJsonPath('data.master_class_opens_next_month', true)
+            ->assertJsonPath('data.master_class_requires_level_weeks', true)
+            ->assertJsonPath('data.level_weeks_completed', 0)
+            ->assertJsonPath('data.level_weeks_required', 4)
             ->assertJsonPath('data.can_book_master_class', false);
 
         $this->withToken($token)->postJson('/api/v1/student/bookings', [
@@ -139,17 +141,15 @@ class SchedulingTest extends TestCase
             'start' => '11:00',
         ])
             ->assertUnprocessable()
-            ->assertJsonPath('error.code', 'MASTER_CLASS_OPENS_NEXT_MONTH');
+            ->assertJsonPath('error.code', 'MASTER_CLASS_LEVEL_WEEKS_INCOMPLETE');
 
-        // Simulate batch activated previous month so Master Class is unlocked
-        \App\Models\StudentLevelJourney::query()
-            ->where('student_id', $student->id)
-            ->whereNull('ended_at')
-            ->update(['started_at' => Carbon::parse('2026-08-01 00:00:00', 'Asia/Kolkata')]);
+        // Complete all 4 level weeks → Master Class unlocks (even in the same calendar month)
+        $this->completeLevelWeeksForMasterClass($student);
 
         $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
             ->assertOk()
-            ->assertJsonPath('data.master_class_opens_next_month', false)
+            ->assertJsonPath('data.master_class_requires_level_weeks', false)
+            ->assertJsonPath('data.level_weeks_completed', 4)
             ->assertJsonPath('data.can_book_master_class', true);
 
         $first = $this->withToken($token)->postJson('/api/v1/student/bookings', [
@@ -203,10 +203,7 @@ class SchedulingTest extends TestCase
 
         $intro = $this->book($student, $teacher, 'introduction_call', '2026-09-16', '11:00');
         $intro->update(['status' => 'completed']);
-        \App\Models\StudentLevelJourney::query()
-            ->where('student_id', $student->id)
-            ->whereNull('ended_at')
-            ->update(['started_at' => Carbon::parse('2026-08-01 00:00:00', 'Asia/Kolkata')]);
+        $this->completeLevelWeeksForMasterClass($student);
 
         $this->book($student, $teacher, 'master_class', '2026-09-18', '11:00');
         SessionBooking::query()->where('type', 'master_class')->latest('starts_at')->first()?->update(['status' => 'completed']);
@@ -408,15 +405,74 @@ class SchedulingTest extends TestCase
             ->assertStatus(409);
     }
 
+    public function test_promoted_student_cannot_book_master_class_while_new_batch_inactive(): void
+    {
+        [$student, $teacher] = $this->makeStudentWithTeacher();
+        $admin = $this->makeAdmin();
+
+        $intro = $this->book($student, $teacher, 'introduction_call', '2026-09-16', '11:00');
+        $intro->update(['status' => 'completed']);
+        $this->completeLevelWeeksForMasterClass($student);
+
+        $this->withToken($this->tokenFor($student->user))->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.can_book_master_class', true)
+            ->assertJsonPath('data.level_batch_ready', true);
+
+        $level2 = \App\Models\AcademicLevel::query()->firstOrCreate(
+            ['number' => 2],
+            [
+                'name' => 'Level 2',
+                'academic_year' => 2026,
+                'status' => 'active',
+            ],
+        );
+        $level2->masterTeachers()->syncWithoutDetaching([$teacher->id]);
+        \App\Models\Batch::query()->firstOrCreate(
+            ['level_id' => $level2->id, 'name' => 'Batch 1'],
+            [
+                'academic_year' => 2026,
+                'year' => 2026,
+                'month' => 10,
+                'enrolled_watermark' => 0,
+                'status' => \App\Enums\BatchStatus::Inactive,
+                'starts_on' => null,
+            ],
+        );
+
+        $this->withToken($this->tokenFor($admin))->postJson("/api/v1/admin/students/{$student->id}/promote", [
+            'level_id' => $level2->id,
+        ])->assertOk();
+
+        $student->refresh()->load('activeEnrollment.batch');
+        $student->activeEnrollment?->batch?->update([
+            'status' => \App\Enums\BatchStatus::Inactive,
+            'starts_on' => null,
+        ]);
+
+        $token = $this->tokenFor($student->user);
+
+        $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.level_batch_ready', false)
+            ->assertJsonPath('data.can_book_master_class', false);
+
+        $this->withToken($token)->postJson('/api/v1/student/bookings', [
+            'teacher_id' => $teacher->id,
+            'type' => 'master_class',
+            'date' => '2026-09-18',
+            'start' => '11:00',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('error.code', 'LEVEL_BATCH_NOT_ACTIVE');
+    }
+
     public function test_teacher_can_fetch_all_booking_history_across_dates(): void
     {
         [$student, $teacher] = $this->makeStudentWithTeacher();
         $intro = $this->book($student, $teacher, 'introduction_call', '2026-09-16', '10:00');
         $intro->update(['status' => 'completed']);
-        \App\Models\StudentLevelJourney::query()
-            ->where('student_id', $student->id)
-            ->whereNull('ended_at')
-            ->update(['started_at' => Carbon::parse('2026-08-01 00:00:00', 'Asia/Kolkata')]);
+        $this->completeLevelWeeksForMasterClass($student);
         $this->book($student, $teacher, 'master_class', '2026-09-18', '11:00');
 
         $token = $this->tokenFor($teacher->user);

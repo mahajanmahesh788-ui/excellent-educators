@@ -22,17 +22,46 @@ void openNotificationDeepLink(
       notification.type == 'admin_request_approved' ||
       notification.type == 'admin_request_rejected') {
     final requestId = notification.data?['admin_request_id'] as String?;
-    if (requestId != null && requestId.isNotEmpty) {
-      if (user?.isAdmin == true && notification.type == 'admin_request_submitted') {
-        openAppLink(context, RoutePaths.adminRequestFor(requestId));
-        return;
-      }
-      if (user?.isMasterTeacher == true || user?.isCommonTeacher == true) {
-        openAppLink(context, RoutePaths.teacherRequests);
-        return;
-      }
+    final studentId = notification.data?['student_id'] as String?;
+    final requestType = notification.data?['request_type'] as String?;
+    final isTeacher =
+        (user?.isMasterTeacher ?? false) || (user?.isCommonTeacher ?? false);
+
+    if (user?.isAdmin == true &&
+        notification.type == 'admin_request_submitted' &&
+        requestId != null &&
+        requestId.isNotEmpty) {
       openAppLink(context, RoutePaths.adminRequestFor(requestId));
       return;
+    }
+
+    // Teachers: rejected upgrade → student profile (still on roster).
+    // Approved upgrade → stay on notifications (student may have left this teacher).
+    if (isTeacher) {
+      if (notification.type == 'admin_request_rejected' &&
+          studentId != null &&
+          studentId.isNotEmpty &&
+          (user?.isMasterTeacher ?? false)) {
+        openAppLink(context, RoutePaths.masterTeacherStudentFor(studentId));
+        return;
+      }
+      // No dedicated screen needed for approved/other teacher request outcomes.
+      return;
+    }
+
+    if (user?.isAdmin == true &&
+        requestId != null &&
+        requestId.isNotEmpty) {
+      openAppLink(context, RoutePaths.adminRequestFor(requestId));
+      return;
+    }
+
+    // Students / agents: open their requests list when linked.
+    if (requestType != null || requestId != null) {
+      if (user?.isStudent ?? false) {
+        openAppLink(context, RoutePaths.studentRequests);
+        return;
+      }
     }
   }
 
@@ -46,10 +75,24 @@ void openNotificationDeepLink(
 
   final link = notification.data?['link'] as String?;
   if (link != null && link.isNotEmpty) {
-    if (link.startsWith('/admin/requests/')) {
-      final requestId = link.split('/').last;
-      if (requestId.isNotEmpty) {
-        openAppLink(context, RoutePaths.adminRequestFor(requestId));
+    // Teachers must never open admin request detail (blank / redirected junk).
+    if (link.startsWith('/admin/requests/') || link == '/teacher/requests') {
+      final isTeacher =
+          (user?.isMasterTeacher ?? false) || (user?.isCommonTeacher ?? false);
+      if (isTeacher) {
+        return;
+      }
+      if (link.startsWith('/admin/requests/')) {
+        final requestId = link.split('/').last;
+        if (requestId.isNotEmpty && (user?.isAdmin ?? false)) {
+          openAppLink(context, RoutePaths.adminRequestFor(requestId));
+        }
+      }
+      return;
+    }
+    if (link == '/student/requests') {
+      if (user?.isStudent ?? false) {
+        openAppLink(context, RoutePaths.studentRequests);
       }
       return;
     }

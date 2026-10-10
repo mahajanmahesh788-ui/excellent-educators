@@ -19,13 +19,13 @@ class NotifyAdminsOfAgentStudentRegistration
         }
 
         $student->loadMissing('user');
-        $studentName = $student->full_name ?: ($student->user?->name ?? 'A student');
+        $studentName = $student->labeledName('A student');
         $agentName = $agent->name ?: 'An agent';
 
         $this->notifyAdmins->execute(
             NotificationType::AgentRegisteredStudent,
             'New student registered by agent',
-            "{$agentName} registered {$studentName} ({$student->student_code}).",
+            "{$agentName} registered {$studentName}.",
             [
                 'student_id' => $student->id,
                 'student_name' => $studentName,

@@ -31,7 +31,7 @@ class NotifyTeacherOfStudentBooking
             $teacherUser,
             NotificationType::SessionBooked,
             'New session booked',
-            "{$student->full_name} booked a {$label} with you for {$when}.",
+            "{$student->labeledName()} booked a {$label} with you for {$when}.",
             $this->payload($booking),
         );
     }
@@ -58,7 +58,7 @@ class NotifyTeacherOfStudentBooking
                 $teacherUser,
                 NotificationType::SessionRescheduled,
                 'Session assigned to you',
-                "{$student->full_name}'s {$label} was moved to you for {$when}.",
+                "{$student->labeledName()}'s {$label} was moved to you for {$when}.",
                 $this->payload($booking),
             );
 
@@ -69,11 +69,12 @@ class NotifyTeacherOfStudentBooking
                     $previousTeacher->user,
                     NotificationType::SessionRescheduled,
                     'Session moved',
-                    "{$student->full_name}'s {$label} ({$from}) was rescheduled to another mentor.",
+                    "{$student->labeledName()}'s {$label} ({$from}) was rescheduled to another mentor.",
                     [
                         'booking_id' => $booking->id,
                         'student_id' => $student->id,
-                        'student_name' => $student->full_name,
+                        'student_name' => $student->labeledName(),
+                        'student_code' => $student->student_code,
                     ],
                 );
             }
@@ -89,7 +90,7 @@ class NotifyTeacherOfStudentBooking
             $teacherUser,
             NotificationType::SessionRescheduled,
             'Session rescheduled',
-            "{$student->full_name} rescheduled their {$label}{$from} to {$when}.",
+            "{$student->labeledName()} rescheduled their {$label}{$from} to {$when}.",
             $this->payload($booking),
         );
     }
@@ -102,7 +103,8 @@ class NotifyTeacherOfStudentBooking
         return [
             'booking_id' => $booking->id,
             'student_id' => $booking->student_id,
-            'student_name' => $booking->student?->full_name,
+            'student_name' => $booking->student?->labeledName(),
+            'student_code' => $booking->student?->student_code,
             'teacher_id' => $booking->teacher_id,
             'type' => $booking->type?->value ?? $booking->type,
             'date' => $booking->date?->toDateString(),

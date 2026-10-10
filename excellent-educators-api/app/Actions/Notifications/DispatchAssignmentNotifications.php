@@ -43,8 +43,8 @@ class DispatchAssignmentNotifications
         );
 
         $teacherBody = $previousTeacher === null
-            ? "{$student->full_name} ({$student->student_code}) was assigned to you as a mentee."
-            : "{$student->full_name} ({$student->student_code}) was reassigned to you as a mentee.";
+            ? "{$student->labeledName()} was assigned to you as a mentee."
+            : "{$student->labeledName()} was reassigned to you as a mentee.";
 
         $this->notify(
             $teacher->user,
@@ -63,7 +63,7 @@ class DispatchAssignmentNotifications
                 $previousTeacher->user,
                 NotificationType::MasterTeacherRemoved,
                 'Mentee reassigned',
-                "{$student->full_name} ({$student->student_code}) is no longer assigned to you.",
+                "{$student->labeledName()} is no longer assigned to you.",
                 [
                     'student_id' => $student->id,
                     'teacher_id' => $previousTeacher->id,
@@ -89,7 +89,7 @@ class DispatchAssignmentNotifications
             $previousTeacher->user,
             NotificationType::MasterTeacherRemoved,
             'Mentee removed',
-            "{$student->full_name} ({$student->student_code}) is no longer assigned to you.",
+            "{$student->labeledName()} is no longer assigned to you.",
             [
                 'student_id' => $student->id,
                 'teacher_id' => $previousTeacher->id,
@@ -218,7 +218,7 @@ class DispatchAssignmentNotifications
                 $commonTeacher->user,
                 NotificationType::StudentEnrolledInBatch,
                 'New batch student',
-                "{$student->full_name} ({$student->student_code}) was enrolled in {$batch->name}.",
+                "{$student->labeledName()} was enrolled in {$batch->name}.",
                 [
                     'batch_id' => $batch->id,
                     'student_id' => $student->id,
@@ -251,7 +251,7 @@ class DispatchAssignmentNotifications
                 $commonTeacher->user,
                 NotificationType::StudentUnenrolledFromBatch,
                 'Student removed from batch',
-                "{$student->full_name} ({$student->student_code}) was removed from {$batch->name}.",
+                "{$student->labeledName()} was removed from {$batch->name}.",
                 [
                     'batch_id' => $batch->id,
                     'student_id' => $student->id,

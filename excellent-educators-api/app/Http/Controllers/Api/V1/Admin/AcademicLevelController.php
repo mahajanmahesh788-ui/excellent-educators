@@ -74,10 +74,7 @@ class AcademicLevelController extends Controller
             'enrolled_watermark' => 0,
         ]);
 
-        $level->load([
-            'batches' => fn ($q) => $q->withCount('activeEnrollments'),
-            'masterTeachers.user',
-        ])->loadCount(['batches', 'students']);
+        $this->loadLevelDetail($level);
 
         return ApiResponse::success(
             'Level created successfully.',
@@ -88,10 +85,7 @@ class AcademicLevelController extends Controller
 
     public function show(AcademicLevel $level): JsonResponse
     {
-        $level->load([
-            'batches' => fn ($q) => $q->withCount('activeEnrollments'),
-            'masterTeachers.user',
-        ])->loadCount(['batches', 'students']);
+        $this->loadLevelDetail($level);
 
         return ApiResponse::success(
             'Level fetched successfully.',
@@ -109,10 +103,7 @@ class AcademicLevelController extends Controller
 
         // Level name/number are fixed (Level 1 … Level 10).
         $level->update($validated);
-        $level->load([
-            'batches' => fn ($q) => $q->withCount('activeEnrollments'),
-            'masterTeachers.user',
-        ])->loadCount(['batches', 'students']);
+        $this->loadLevelDetail($level);
 
         return ApiResponse::success(
             'Level updated successfully.',
@@ -137,10 +128,7 @@ class AcademicLevelController extends Controller
 
         $level->masterTeachers()->syncWithoutDetaching([$teacher->id]);
 
-        $level->load([
-            'batches' => fn ($q) => $q->withCount('activeEnrollments'),
-            'masterTeachers.user',
-        ])->loadCount(['batches', 'students']);
+        $this->loadLevelDetail($level);
 
         return ApiResponse::success(
             'Master Teacher assigned to level successfully.',
@@ -152,10 +140,7 @@ class AcademicLevelController extends Controller
     {
         $level->masterTeachers()->detach($teacher->id);
 
-        $level->load([
-            'batches' => fn ($q) => $q->withCount('activeEnrollments'),
-            'masterTeachers.user',
-        ])->loadCount(['batches', 'students']);
+        $this->loadLevelDetail($level);
 
         return ApiResponse::success(
             'Master Teacher removed from level successfully.',
@@ -201,5 +186,16 @@ class AcademicLevelController extends Controller
                 'assessments' => AptitudeAssessmentResource::collection($assessments)->resolve(),
             ],
         );
+    }
+
+    private function loadLevelDetail(AcademicLevel $level): void
+    {
+        $level->load([
+            'batches' => fn ($q) => $q->withCount('activeEnrollments'),
+            'masterTeachers.user',
+            'aptitudeAssessments' => fn ($q) => $q
+                ->withCount(['questions', 'submittedAttempts'])
+                ->orderBy('title'),
+        ])->loadCount(['batches', 'students']);
     }
 }

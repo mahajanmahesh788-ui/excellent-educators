@@ -54,6 +54,9 @@ class WeeklyLearningController extends Controller
                 ],
                 [
                     'video_url' => $data['video_url'],
+                    'video_title' => filled($data['video_title'] ?? null)
+                        ? trim((string) $data['video_title'])
+                        : null,
                     'comprehension_paragraph' => $paragraph,
                 ],
             );
@@ -137,6 +140,7 @@ class WeeklyLearningController extends Controller
             'level_id' => $unit->level_id,
             'week_number' => $unit->week_number,
             'video_url' => $unit->video_url,
+            'video_title' => $unit->video_title,
             'comprehension_paragraph' => $unit->comprehension_paragraph,
             'questions' => $main->map(fn ($question) => $this->serializeQuestion($question))->values()->all(),
             'comprehension_questions' => $comprehension->map(fn ($question) => $this->serializeQuestion($question))->values()->all(),

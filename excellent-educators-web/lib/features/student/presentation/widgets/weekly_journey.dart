@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/fresh_student_onboarding.dart';
@@ -29,12 +30,12 @@ class WeeklyJourneyWidget extends StatelessWidget {
     // Define the weekly pathway milestones
     final steps = [
       _JourneyStepData(
-        day: 'STEP 1',
-        title: 'Weekly Video',
-        subtitle: 'Core Concept',
+        day: AppStrings.weeklyPathwayStep1,
+        title: AppStrings.weeklyVideo,
+        subtitle: AppStrings.coreConcept,
         icon: Icons.play_circle_fill_rounded,
         status: hasVideo ? _StepStatus.completed : _StepStatus.current,
-        actionLabel: 'Watch Video',
+        actionLabel: AppStrings.watchVideo,
         onTap: () {
           final videoUrl = learning?.week?.videoUrl;
           if (videoUrl != null && videoUrl.isNotEmpty) {
@@ -53,16 +54,17 @@ class WeeklyJourneyWidget extends StatelessWidget {
         },
       ),
       _JourneyStepData(
-        day: 'STEP 2',
-        title: 'Aptitude Challenge',
+        day: AppStrings.weeklyPathwayStep2,
+        title: AppStrings.aptitudeChallenge,
         subtitle: hasScore
-            ? '${learning!.week!.score!.percentage}% Score'
-            : 'Weekly Quiz',
+            ? AppStrings.percentScore(learning!.week!.score!.percentage)
+            : AppStrings.weeklyQuiz,
         icon: Icons.psychology_rounded,
         status: isAssignmentCompleted
             ? _StepStatus.completed
             : (hasVideo ? _StepStatus.current : _StepStatus.upcoming),
-        actionLabel: isAssignmentCompleted ? 'Review' : 'Start',
+        actionLabel:
+            isAssignmentCompleted ? AppStrings.review : AppStrings.start,
         onTap: () {
           final journeyId = learning?.week?.journeyId;
           if (journeyId != null && journeyId.isNotEmpty) {
@@ -76,11 +78,13 @@ class WeeklyJourneyWidget extends StatelessWidget {
         },
       ),
       _JourneyStepData(
-        day: 'STEP 3',
-        title: 'Master Class',
+        day: AppStrings.weeklyPathwayStep3,
+        title: AppStrings.masterClass,
         subtitle: isMasterScheduled
-            ? 'Scheduled'
-            : (isMasterCompleted ? 'Completed' : '1-on-1 Mentor'),
+            ? AppStrings.scheduled
+            : (isMasterCompleted
+                  ? AppStrings.completed
+                  : AppStrings.oneOnOneMentor),
         icon: Icons.record_voice_over_rounded,
         status: isMasterCompleted
             ? _StepStatus.completed
@@ -88,13 +92,13 @@ class WeeklyJourneyWidget extends StatelessWidget {
                   ? _StepStatus.current
                   : _StepStatus.upcoming),
         actionLabel: isMasterCompleted || isMasterScheduled
-            ? 'View'
-            : (snapshot.canBookMasterClass ? 'Book' : 'View'),
+            ? AppStrings.view
+            : (snapshot.canBookMasterClass ? AppStrings.book : AppStrings.view),
         onTap: () {
           if (isMasterScheduled || isMasterCompleted) {
             context.go(RoutePaths.studentBookings);
-          } else if (snapshot.masterClassOpensNextMonth) {
-            MasterClassOpensNextMonthDialog.show(context);
+          } else if (snapshot.masterClassRequiresLevelWeeks) {
+            MasterClassLevelWeeksDialog.show(context);
           } else if (snapshot.canBookMasterClass) {
             context.go('${RoutePaths.studentBookNew}?type=master_class');
           } else {
@@ -103,14 +107,14 @@ class WeeklyJourneyWidget extends StatelessWidget {
         },
       ),
       _JourneyStepData(
-        day: 'STEP 4',
-        title: 'Mentor Review',
-        subtitle: 'Feedback & Level',
+        day: AppStrings.weeklyPathwayStep4,
+        title: AppStrings.mentorReview,
+        subtitle: AppStrings.feedbackAndLevel,
         icon: Icons.military_tech_rounded,
         status: isMasterCompleted
             ? _StepStatus.completed
             : _StepStatus.upcoming,
-        actionLabel: 'Guidance',
+        actionLabel: AppStrings.guidance,
         onTap: () => context.go(RoutePaths.studentFeedback),
       ),
     ];
@@ -146,7 +150,7 @@ class WeeklyJourneyWidget extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'MY LEARNING JOURNEY',
+                            AppStrings.myLearningJourneyLabel,
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
@@ -155,7 +159,7 @@ class WeeklyJourneyWidget extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Week $currentWeek Learning Pathway',
+                            AppStrings.weekLearningPathway(currentWeek),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -315,8 +319,8 @@ class _JourneyNodeCardState extends State<_JourneyNodeCard> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isCurrent
-                ? Colors.white
-                : (_hover ? Colors.white : const Color(0xFFF9FAFC)),
+                ? AppColors.textOnPrimary
+                : (_hover ? AppColors.textOnPrimary : StudentColors.surfaceMist),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isCurrent

@@ -197,7 +197,10 @@ class JoinMeetButton extends StatelessWidget {
       style: FilledButton.styleFrom(
         backgroundColor: Brand.navy,
         foregroundColor: Colors.white,
-        minimumSize: Size(compact ? 0 : 140, 42),
+        minimumSize: Size(compact ? 0 : 130, 38),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
       ),
     );
   }

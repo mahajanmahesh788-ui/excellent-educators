@@ -45,7 +45,13 @@ class StoreTeacherAdminRequestRequest extends FormRequest
                 'ulid',
                 'exists:academic_levels,id',
             ],
-            'reason' => ['nullable', 'string', 'max:5000'],
+            'reason' => [
+                Rule::requiredIf($type === AdminRequestType::PromoteStudent),
+                'nullable',
+                'string',
+                'min:10',
+                'max:2000',
+            ],
             'subtitle' => [
                 Rule::requiredIf($type === AdminRequestType::General),
                 'nullable',

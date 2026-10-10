@@ -16,6 +16,16 @@ class AdminRequestStudentRefDto {
   final String id;
   final String fullName;
   final String studentCode;
+
+  /// Prefer this in UI when names may collide.
+  String get labeledName {
+    final name = fullName.trim();
+    final code = studentCode.trim();
+    if (name.isEmpty && code.isEmpty) return 'Student';
+    if (name.isEmpty) return code;
+    if (code.isEmpty) return name;
+    return '$name ($code)';
+  }
 }
 
 class AdminRequestBatchRefDto {
@@ -153,7 +163,7 @@ class AdminRequestDto {
     return switch (requestType) {
       'remove_mentee' => 'Remove student',
       'remove_batch_student' => 'Remove student',
-      'promote_student' => 'Level upgrade',
+      'promote_student' => 'Level upgrade request',
       _ => 'General',
     };
   }

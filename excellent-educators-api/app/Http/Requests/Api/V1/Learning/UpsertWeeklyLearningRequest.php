@@ -23,6 +23,7 @@ class UpsertWeeklyLearningRequest extends FormRequest
         return [
             'week_number' => ['required', 'integer', 'min:1', 'max:52'],
             'video_url' => ['required', 'url', 'max:2048'],
+            'video_title' => ['nullable', 'string', 'max:180'],
             'comprehension_paragraph' => ['nullable', 'string', 'max:20000'],
             'questions' => ['required', 'array', 'min:1'],
             'questions.*.question_text' => ['required', 'string', 'max:2000'],

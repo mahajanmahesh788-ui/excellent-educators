@@ -16,6 +16,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/m
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_cards.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/directory_ui.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/promote_student_card.dart';
+import 'package:excellent_educators_web/features/academic/presentation/widgets/student_level_path_graph.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/student_onboarding_profile_section.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
@@ -58,6 +59,18 @@ class AdminStudentDetailPage extends ConsumerWidget {
                 highlightOverallRating: true,
                 showMonthRatingStatus: false,
                 showFacts: false,
+                onStatusChanged:
+                    (user?.canAdmin(AdminPermission.studentsEdit) ?? false)
+                    ? (active) async {
+                        await ref
+                            .read(academicRepositoryProvider)
+                            .updateStudent(student.id, {
+                          'status': active ? 'active' : 'inactive',
+                        });
+                        ref.invalidate(adminStudentProvider(studentId));
+                        ref.invalidate(adminStudentsProvider);
+                      }
+                    : null,
                 action: _StudentDetailActions(
                   student: student,
                   user: user,
@@ -111,6 +124,10 @@ class AdminStudentDetailPage extends ConsumerWidget {
                   ],
                 ],
               ),
+              if (student.levelPath.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                StudentLevelPathGraph(nodes: student.levelPath),
+              ],
               const SizedBox(height: 12),
               StudentOnboardingProfileSections(student: student),
               const SizedBox(height: 12),
@@ -1110,6 +1127,18 @@ class AdminTeacherDetailPage extends ConsumerWidget {
             children: [
               TeacherCard(
                 teacher: teacher,
+                onStatusChanged:
+                    (user?.canAdmin(AdminPermission.teachersEdit) ?? false)
+                    ? (active) async {
+                        await ref
+                            .read(academicRepositoryProvider)
+                            .updateTeacher(teacher.id, {
+                          'status': active ? 'active' : 'inactive',
+                        });
+                        ref.invalidate(adminTeacherProvider(teacherId));
+                        ref.invalidate(adminTeachersProvider);
+                      }
+                    : null,
                 action: Wrap(
                   spacing: 8,
                   children: [

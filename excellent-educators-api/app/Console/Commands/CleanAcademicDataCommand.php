@@ -9,50 +9,104 @@ use Illuminate\Support\Facades\Schema;
 
 class CleanAcademicDataCommand extends Command
 {
-    protected $signature = 'app:clean-academic-data';
+    protected $signature = 'app:clean-academic-data
+                            {--force : Run without confirmation}
+                            {--seed : After clean, reseed demo teachers/students/levels/weeks/assessments}';
 
-    protected $description = 'Clean all students, teachers, and their related records from the database.';
+    protected $description = 'Clean all students, teachers, assessments, levels, and related records. Keeps admin users and system config. Use --seed to reload DemoSeedData.';
 
     public function handle(): int
     {
-        $this->info('Cleaning student, teacher, and related records...');
+        if (! $this->option('force') && ! $this->confirm('This will delete ALL students, teachers, assessments, and levels. Continue?')) {
+            $this->warn('Cancelled.');
+
+            return self::SUCCESS;
+        }
+
+        $this->info('Cleaning students, teachers, assessments, levels, and related records...');
 
         DB::transaction(function () {
-            // Delete child feedback records
-            DB::table('monthly_feedback_items')->delete();
-            DB::table('monthly_feedbacks')->delete();
+            $this->deleteIfExists([
+                // Feedback
+                'monthly_feedback_items',
+                'monthly_feedbacks',
 
-            // Delete aptitude attempts and answers
-            DB::table('aptitude_assessment_answers')->delete();
-            DB::table('aptitude_assessment_result_dimensions')->delete();
-            DB::table('aptitude_assessment_results')->delete();
-            DB::table('aptitude_assessment_attempts')->delete();
+                // Weekly learning attempts + content
+                'weekly_assignment_attempts',
+                'weekly_learning_option_dimensions',
+                'weekly_learning_options',
+                'weekly_learning_questions',
+                'weekly_learnings',
 
-            // Delete assessment scores
-            DB::table('assessment_scores')->delete();
+                // Student onboarding responses
+                'interest_response_answer_options',
+                'interest_response_answers',
+                'interest_responses',
+                'parent_response_answers',
+                'parent_responses',
 
-            // Delete batch and teacher assignments
-            DB::table('batch_students')->delete();
-            DB::table('batch_teachers')->delete();
-            DB::table('master_teacher_assignments')->delete();
-            DB::table('batches')->delete();
-            if (Schema::hasTable('academic_levels')) {
-                DB::table('academic_levels')->delete();
-            }
+                // Aptitude assessments (full tree)
+                'aptitude_assessment_answers',
+                'aptitude_assessment_result_dimensions',
+                'aptitude_assessment_results',
+                'aptitude_assessment_attempts',
+                'aptitude_assessment_option_dimensions',
+                'aptitude_assessment_options',
+                'aptitude_assessment_questions',
+                'academic_level_assessments',
+                'aptitude_assessments',
 
-            // Delete admin requests and notifications
-            DB::table('admin_requests')->delete();
-            DB::table('user_notifications')->delete();
-            DB::table('audit_logs')->delete();
+                // Legacy assessments
+                'assessment_scores',
+                'assessment_versions',
+                'assessments',
 
-            // Delete profiles
-            DB::table('student_profiles')->delete();
-            DB::table('teacher_profiles')->delete();
+                // Scheduling / attendance tied to students & teachers
+                'class_join_events',
+                'class_attendances',
+                'attendance_issues',
+                'session_bookings',
+                'teacher_leave_reassignments',
+                'teacher_leaves',
+                'teacher_breaks',
+                'teacher_weekly_offs',
+                'teacher_availability_overrides',
+                'teacher_availability_rules',
+                'teacher_daily_meetings',
 
-            // Find all admin user IDs
+                // Payments
+                'student_payment_plan_audits',
+                'student_payments',
+                'student_payment_plans',
+                'student_master_class_balances',
+
+                // Journeys / activity
+                'student_level_journeys',
+                'student_activity_events',
+                'admin_activity_events',
+
+                // Level / batch / mentoring
+                'batch_students',
+                'batch_teachers',
+                'master_teacher_assignments',
+                'academic_level_teachers',
+                'batches',
+                'academic_levels',
+
+                // Requests / notifications / audit
+                'admin_requests',
+                'user_notifications',
+                'audit_logs',
+
+                // Profiles
+                'student_profiles',
+                'teacher_profiles',
+            ]);
+
+            // Find all admin user IDs (keep these)
             $adminUserIds = DB::table('model_has_roles')
                 ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                ->whereIn('roles.name', ['super_admin', 'operational_admin'])
+                ->whereIn('roles.name', ['super_admin', 'operational_admin', 'sub_admin'])
                 ->where('model_type', User::class)
                 ->pluck('model_id')
                 ->all();
@@ -62,21 +116,27 @@ class CleanAcademicDataCommand extends Command
                 ->pluck('id')
                 ->all();
 
-            if (! empty($nonAdminUserIds)) {
+            if ($nonAdminUserIds !== []) {
                 DB::table('model_has_roles')->whereIn('model_id', $nonAdminUserIds)->delete();
                 DB::table('model_has_permissions')->whereIn('model_id', $nonAdminUserIds)->delete();
                 DB::table('personal_access_tokens')
                     ->where('tokenable_type', User::class)
                     ->whereIn('tokenable_id', $nonAdminUserIds)
                     ->delete();
-                DB::table('sessions')->whereIn('user_id', $nonAdminUserIds)->delete();
+                if (Schema::hasTable('sessions')) {
+                    DB::table('sessions')->whereIn('user_id', $nonAdminUserIds)->delete();
+                }
                 DB::table('users')->whereIn('id', $nonAdminUserIds)->delete();
             }
 
-            // Reset student code sequence
-            DB::table('student_code_sequences')->truncate();
+            // Shared Google Meet tokens are not per-user; leave them unless wiping all.
+            // (table has no user_id column)
 
-            // Re-create default "Level 1" and "Batch 1"
+            if (Schema::hasTable('student_code_sequences')) {
+                DB::table('student_code_sequences')->truncate();
+            }
+
+            // Re-create default Level 1 + Batch 1
             if (Schema::hasTable('academic_levels')) {
                 $levelId = (string) new \Symfony\Component\Uid\Ulid();
                 $currentYear = (int) date('Y');
@@ -88,6 +148,7 @@ class CleanAcademicDataCommand extends Command
                     'number' => 1,
                     'academic_year' => $currentYear,
                     'status' => 'active',
+                    'master_classes_per_month' => 1,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -107,8 +168,38 @@ class CleanAcademicDataCommand extends Command
             }
         });
 
-        $this->info('Database successfully cleaned of all student and teacher records.');
+        $this->info('Done. Students, teachers, assessments, and levels cleared. Fresh Level 1 / Batch 1 created. Admin accounts kept.');
+
+        if ($this->option('seed')) {
+            if (app()->environment('production')) {
+                $this->error('Refusing to seed demo data in production.');
+
+                return self::FAILURE;
+            }
+
+            $this->newLine();
+            $this->info('Reseeding demo static data from DemoSeedData...');
+            $this->call('db:seed', [
+                '--class' => \Database\Seeders\DemoDataSeeder::class,
+                '--force' => true,
+            ]);
+        }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @param  list<string>  $tables
+     */
+    private function deleteIfExists(array $tables): void
+    {
+        foreach ($tables as $table) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
+            DB::table($table)->delete();
+            $this->line("  cleared {$table}");
+        }
     }
 }

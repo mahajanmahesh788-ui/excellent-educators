@@ -174,7 +174,10 @@ abstract final class ApiEndpoints {
   static const notifications = '/api/v1/notifications';
   static const notificationsUnreadCount = '/api/v1/notifications/unread-count';
   static const notificationsReadAll = '/api/v1/notifications/read-all';
+  static const notificationsClearAll = '/api/v1/notifications/clear-all';
   static String notificationRead(String id) => '/api/v1/notifications/$id/read';
+  static String notificationUnread(String id) => '/api/v1/notifications/$id/unread';
+  static String notificationDelete(String id) => '/api/v1/notifications/$id';
 
   static const teacherScheduleDay = '/api/v1/teacher/schedule/day';
   static const teacherScheduleWeek = '/api/v1/teacher/schedule/week';

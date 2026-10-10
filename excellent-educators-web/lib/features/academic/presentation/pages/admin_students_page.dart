@@ -135,6 +135,13 @@ class _AdminStudentsPageState extends ConsumerState<AdminStudentsPage> {
                     return StudentCard(
                       student: student,
                       onTap: () => context.go(RoutePaths.adminStudent(student.id)),
+                      onStatusChanged: (active) async {
+                        await ref.read(academicRepositoryProvider).updateStudent(
+                          student.id,
+                          {'status': active ? 'active' : 'inactive'},
+                        );
+                        ref.invalidate(adminStudentsProvider(filter));
+                      },
                     );
                   },
                 );

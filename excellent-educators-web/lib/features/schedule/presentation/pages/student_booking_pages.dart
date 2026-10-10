@@ -369,9 +369,9 @@ class _ReportSessionHint extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
+        color: StudentColors.orangeSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFDBA74)),
+        border: Border.all(color: AppColors.warningOrangeBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,7 +379,7 @@ class _ReportSessionHint extends StatelessWidget {
           const Icon(
             Icons.report_problem_outlined,
             size: 20,
-            color: Color(0xFFC2410C),
+            color: StudentColors.orangeText,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -389,7 +389,7 @@ class _ReportSessionHint extends StatelessWidget {
                 fontSize: 13,
                 height: 1.35,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF9A3412),
+                color: AppColors.warningOrangeDark,
               ),
             ),
           ),
@@ -481,7 +481,7 @@ class _SessionsHeader extends StatelessWidget {
                         style: TextStyle(
                           fontSize: isMobile ? 22 : 28,
                           fontWeight: FontWeight.w900,
-                          color: Colors.white,
+                          color: AppColors.textOnPrimary,
                           letterSpacing: -0.4,
                         ),
                       ),
@@ -490,7 +490,7 @@ class _SessionsHeader extends StatelessWidget {
                         'Keep track of your classes, mentoring sessions, and learning progress.',
                         style: TextStyle(
                           fontSize: isMobile ? 12.5 : 14,
-                          color: Colors.white.withValues(alpha: 0.82),
+                          color: AppColors.textOnPrimary.withValues(alpha: 0.82),
                           height: 1.35,
                         ),
                       ),
@@ -675,7 +675,7 @@ class _OverviewCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.textOnPrimary,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: StudentColors.border),
         boxShadow: StudentColors.cardShadow,
@@ -774,7 +774,7 @@ class _NextSessionFeatureCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 16 : 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.textOnPrimary,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isLive
@@ -847,9 +847,9 @@ class _NextSessionFeatureCard extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 14),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
+                color: AppColors.linkBlueLight,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFBFDBFE)),
+                border: Border.all(color: AppColors.linkBlueBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -858,7 +858,7 @@ class _NextSessionFeatureCard extends StatelessWidget {
                     AppStrings.sessionUpdated,
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF1D4ED8),
+                      color: AppColors.linkBlue,
                       fontSize: 13,
                     ),
                   ),
@@ -866,7 +866,7 @@ class _NextSessionFeatureCard extends StatelessWidget {
                   Text(
                     '${AppStrings.yourMentorWasChangedDueToAnUnexpectedAvailabilityIssue} ${booking.teacherName ?? AppStrings.teacher}.',
                     style: const TextStyle(
-                      color: Color(0xFF1E3A8A),
+                      color: AppColors.linkBlueDark,
                       fontSize: 12.5,
                       height: 1.35,
                     ),
@@ -964,7 +964,7 @@ class _NextSessionFeatureCard extends StatelessWidget {
                     onPressed: onJoin,
                     style: FilledButton.styleFrom(
                       backgroundColor: StudentColors.emeraldDark,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.textOnPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -1077,7 +1077,7 @@ class _SessionsFilterBar extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.textOnPrimary,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: StudentColors.border),
         boxShadow: StudentColors.cardShadow,
@@ -1143,7 +1143,7 @@ class _FilterTabPill extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : StudentColors.textSecondary,
+                color: isSelected ? AppColors.textOnPrimary : StudentColors.textSecondary,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 fontSize: 12.5,
               ),
@@ -1153,14 +1153,14 @@ class _FilterTabPill extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? Colors.white.withValues(alpha: 0.25)
-                    : Colors.black.withValues(alpha: 0.06),
+                    ? AppColors.textOnPrimary.withValues(alpha: 0.25)
+                    : AppColors.textPrimary.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '$count',
                 style: TextStyle(
-                  color: isSelected ? Colors.white : StudentColors.textMuted,
+                  color: isSelected ? AppColors.textOnPrimary : StudentColors.textMuted,
                   fontWeight: FontWeight.w800,
                   fontSize: 11,
                 ),
@@ -1254,7 +1254,7 @@ class _SessionTimelineCardState extends ConsumerState<_SessionTimelineCard> {
       width: isMobile ? 54 : 64,
       height: isMobile ? 60 : 72,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.textOnPrimary,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isToday
@@ -1285,7 +1285,7 @@ class _SessionTimelineCardState extends ConsumerState<_SessionTimelineCard> {
               child: Text(
                 isToday ? 'TODAY' : month,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textOnPrimary,
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.8,
@@ -1574,7 +1574,7 @@ class _SessionTimelineCardState extends ConsumerState<_SessionTimelineCard> {
             },
             style: FilledButton.styleFrom(
               backgroundColor: StudentColors.emeraldDark,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.textOnPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -1745,7 +1745,7 @@ class _SessionTimelineCardState extends ConsumerState<_SessionTimelineCard> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: EdgeInsets.all(isMobile ? 12 : 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.textOnPrimary,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _hovered
@@ -1830,7 +1830,7 @@ class _SessionEmptyState extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 36),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.textOnPrimary,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: StudentColors.border),
         boxShadow: StudentColors.cardShadow,
@@ -1893,7 +1893,7 @@ class _SessionEmptyState extends StatelessWidget {
               onPressed: onBook,
               style: FilledButton.styleFrom(
                 backgroundColor: StudentColors.indigoPrimary,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.textOnPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 18,
                   vertical: 10,
@@ -2073,7 +2073,7 @@ class _StudentBookingWizardPageState
         data: (state) {
           if (!_reschedule &&
               widget.type == 'master_class' &&
-              state.masterClassOpensNextMonth) {
+              state.masterClassRequiresLevelWeeks) {
             if (!_shownMasterClassLockDialog) {
               _shownMasterClassLockDialog = true;
               WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -2081,17 +2081,17 @@ class _StudentBookingWizardPageState
                   return;
                 }
                 final nav = GoRouter.of(context);
-                await MasterClassOpensNextMonthDialog.show(context);
+                await MasterClassLevelWeeksDialog.show(context);
                 if (!mounted) {
                   return;
                 }
                 nav.go(RoutePaths.studentBookings);
               });
             }
-            return const AcademySurface(
+            return AcademySurface(
               child: Text(
-                AppStrings.masterClassOpensNextMonthBody,
-                style: TextStyle(
+                AppStrings.masterClassRequiresLevelWeeksBody,
+                style: const TextStyle(
                   color: Academy.ink,
                   fontSize: 16,
                   height: 1.45,
@@ -2109,11 +2109,14 @@ class _StudentBookingWizardPageState
               !_reschedule && canIntro && canMaster && !_typeLocked;
           final isMobile = MediaQuery.sizeOf(context).width < 768;
           if (!_reschedule && !canIntro && !canMaster) {
+            final blockedMessage = !state.levelBatchReady
+                ? AppStrings.sessionBookingWaitsForBatchActivation
+                : state.masterClassRequiresLevelWeeks
+                ? AppStrings.masterClassRequiresLevelWeeksBody
+                : AppStrings.noSessionsLeftToBookThisMonth;
             return AcademySurface(
               child: Text(
-                state.masterClassOpensNextMonth
-                    ? AppStrings.masterClassOpensNextMonthBody
-                    : AppStrings.noSessionsLeftToBookThisMonth,
+                blockedMessage,
                 style: const TextStyle(
                   color: Academy.ink,
                   fontSize: 16,
@@ -2704,7 +2707,7 @@ class _BookingConfirmedDialog extends StatelessWidget {
     final end = _slotEnd(start);
 
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       surfaceTintColor: Colors.transparent,
       insetPadding: EdgeInsets.symmetric(
         horizontal: MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
@@ -2764,7 +2767,7 @@ class _BookingConfirmedDialog extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F3EA),
+                  color: StudentColors.parchmentSoft,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: Brand.gold.withValues(alpha: 0.35)),
                 ),
@@ -2809,12 +2812,17 @@ class _BookingConfirmedDialog extends StatelessWidget {
                     ),
                   ),
               ],
-              const SizedBox(height: 22),
-              SizedBox(
-                width: double.infinity,
-                child: AcademyButton(
-                  label: AppStrings.viewMySessions,
-                  onPressed: onContinue,
+              const SizedBox(height: 20),
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 180, maxWidth: 260),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: AcademyButton(
+                      label: AppStrings.viewMySessions,
+                      onPressed: onContinue,
+                    ),
+                  ),
                 ),
               ),
             ],

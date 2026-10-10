@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
+import 'package:excellent_educators_web/app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -35,12 +36,12 @@ class ParentIntakeReminderBanner extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFFFFF8F0),
-                Color(0xFFFFF1E0),
-                Color(0xFFF8F5EF),
+                AppColors.parchmentCream,
+                AppColors.parchmentPeach,
+                AppColors.parchmentWarm,
               ],
             ),
-            border: Border.all(color: const Color(0xFFE8D5B8)),
+            border: Border.all(color: AppColors.parchmentTan),
             boxShadow: [
               BoxShadow(
                 color: StudentColors.forestDeep.withValues(alpha: 0.06),
@@ -83,10 +84,10 @@ class ParentIntakeReminderBanner extends StatelessWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFB45309).withValues(alpha: 0.12),
+                              color: AppColors.accentDark.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(99),
                               border: Border.all(
-                                color: const Color(0xFFB45309).withValues(alpha: 0.28),
+                                color: AppColors.accentDark.withValues(alpha: 0.28),
                               ),
                             ),
                             child: Text(
@@ -94,7 +95,7 @@ class ParentIntakeReminderBanner extends StatelessWidget {
                                   ? AppStrings.skippedForNow
                                   : AppStrings.parentDetailsMissingBadge,
                               style: const TextStyle(
-                                color: Color(0xFF9A3412),
+                                color: AppColors.warningOrangeDark,
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.3,

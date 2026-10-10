@@ -13,6 +13,7 @@ import 'package:excellent_educators_web/features/student/presentation/widgets/ac
 import 'package:excellent_educators_web/features/student/presentation/widgets/book_class_section.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/fresh_student_onboarding.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/learning_journal_preview.dart';
+import 'package:excellent_educators_web/features/student/presentation/widgets/level_upgrade_celebration_host.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/mandatory_assessment_panel.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/next_class_card.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/parent_intake_reminder_banner.dart';
@@ -44,143 +45,146 @@ class StudentDashboardPage extends ConsumerWidget {
       orElse: () => false,
     );
 
-    return StudentScaffold(
-      title: AppStrings.dashboard,
-      body: profile.when(
-        skipLoadingOnReload: true,
-        loading: () => ListView(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          children: const [
-            AcademySkeleton(height: 240),
-            SizedBox(height: 18),
-            AcademySkeleton(height: 160),
-            SizedBox(height: 18),
-            AcademySkeleton(height: 200),
-          ],
-        ),
-        error: (_, _) =>
-            AcademyError(onRetry: () => ref.invalidate(studentProfileProvider)),
-        data: (student) {
-          if (student.locksFeaturesForWaitingBatch) {
-            return const _JourneyNotStartedView();
-          }
+    return LevelUpgradeCelebrationHost(
+      child: StudentScaffold(
+        title: AppStrings.dashboard,
+        body: profile.when(
+          skipLoadingOnReload: true,
+          loading: () => ListView(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            children: const [
+              AcademySkeleton(height: 240),
+              SizedBox(height: 18),
+              AcademySkeleton(height: 160),
+              SizedBox(height: 18),
+              AcademySkeleton(height: 200),
+            ],
+          ),
+          error: (_, _) => AcademyError(
+            onRetry: () => ref.invalidate(studentProfileProvider),
+          ),
+          data: (student) {
+            if (student.locksFeaturesForWaitingBatch) {
+              return const _JourneyNotStartedView();
+            }
 
-          if (assessmentPending) {
-            return _FreshStudentOnboardingView(student: student);
-          }
+            if (assessmentPending) {
+              return _FreshStudentOnboardingView(student: student);
+            }
 
-          final loadingJourney = eligibility.isLoading || bookings.isLoading;
-          if (eligibility.hasError || bookings.hasError) {
-            return ListView(
-              children: [
-                if (student.isBatchWaitingToStart)
-                  _NewLevelBatchWaitingBanner(student: student),
-                StudentHeroSection(
-                  student: student,
-                  snapshot: StudentJourneySnapshot(
-                    nextSession: null,
-                    introduction: const JourneyNode(
-                      title: AppStrings.introduction,
-                      detail: '—',
-                      phase: JourneyPhase.upcoming,
+            final loadingJourney = eligibility.isLoading || bookings.isLoading;
+            if (eligibility.hasError || bookings.hasError) {
+              return ListView(
+                children: [
+                  if (student.isBatchWaitingToStart)
+                    _NewLevelBatchWaitingBanner(student: student),
+                  StudentHeroSection(
+                    student: student,
+                    snapshot: StudentJourneySnapshot(
+                      nextSession: null,
+                      introduction: const JourneyNode(
+                        title: AppStrings.introduction,
+                        detail: '—',
+                        phase: JourneyPhase.upcoming,
+                      ),
+                      masterClass: const JourneyNode(
+                        title: AppStrings.masterClass,
+                        detail: '—',
+                        phase: JourneyPhase.upcoming,
+                      ),
+                      nextMonth: const JourneyNode(
+                        title: AppStrings.nextMonth,
+                        detail: '—',
+                        phase: JourneyPhase.upcoming,
+                      ),
+                      masterThisMonth: 0,
+                      introductionCompleted: false,
+                      canBookIntroduction: false,
+                      canBookMasterClass: false,
                     ),
-                    masterClass: const JourneyNode(
-                      title: AppStrings.masterClass,
-                      detail: '—',
-                      phase: JourneyPhase.upcoming,
-                    ),
-                    nextMonth: const JourneyNode(
-                      title: AppStrings.nextMonth,
-                      detail: '—',
-                      phase: JourneyPhase.upcoming,
-                    ),
-                    masterThisMonth: 0,
-                    introductionCompleted: false,
-                    canBookIntroduction: false,
-                    canBookMasterClass: false,
                   ),
-                ),
-                const SizedBox(height: 24),
-                AcademyError(
-                  message:
-                      AppStrings.somethingWentWrongWhileLoadingYourSessions,
-                  onRetry: () {
-                    ref.invalidate(studentEligibilityProvider);
-                    ref.invalidate(studentBookingsProvider);
-                  },
-                ),
-              ],
-            );
-          }
-
-          final snapshot = loadingJourney
-              ? null
-              : buildStudentJourney(
-                  eligibility: eligibility.requireValue,
-                  bookings: bookings.requireValue,
-                );
-
-          final learningDashboard = learning.valueOrNull;
-          final journalData = journal.valueOrNull;
-          final bookingsList = bookings.valueOrNull ?? const [];
-
-          if (snapshot == null) {
-            return ListView(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              children: [
-                if (student.isBatchWaitingToStart)
-                  _NewLevelBatchWaitingBanner(student: student),
-                const AcademySkeleton(height: 240),
-                const SizedBox(height: 18),
-                const AcademySkeleton(height: 160),
-                const SizedBox(height: 18),
-                const AcademySkeleton(height: 200),
-              ],
-            );
-          }
-
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final isDesktop = constraints.maxWidth >= 1080;
-              final isTablet =
-                  constraints.maxWidth >= 680 && constraints.maxWidth < 1080;
-              final waitingBanner = student.isBatchWaitingToStart
-                  ? _NewLevelBatchWaitingBanner(student: student)
-                  : null;
-
-              if (isDesktop) {
-                return _buildDesktopLayout(
-                  student: student,
-                  snapshot: snapshot,
-                  learningDashboard: learningDashboard,
-                  journalData: journalData,
-                  bookingsList: bookingsList,
-                  waitingBanner: waitingBanner,
-                );
-              }
-
-              if (isTablet) {
-                return _buildTabletLayout(
-                  student: student,
-                  snapshot: snapshot,
-                  learningDashboard: learningDashboard,
-                  journalData: journalData,
-                  bookingsList: bookingsList,
-                  waitingBanner: waitingBanner,
-                );
-              }
-
-              return _buildMobileLayout(
-                student: student,
-                snapshot: snapshot,
-                learningDashboard: learningDashboard,
-                journalData: journalData,
-                bookingsList: bookingsList,
-                waitingBanner: waitingBanner,
+                  const SizedBox(height: 24),
+                  AcademyError(
+                    message:
+                        AppStrings.somethingWentWrongWhileLoadingYourSessions,
+                    onRetry: () {
+                      ref.invalidate(studentEligibilityProvider);
+                      ref.invalidate(studentBookingsProvider);
+                    },
+                  ),
+                ],
               );
-            },
-          );
-        },
+            }
+
+            final snapshot = loadingJourney
+                ? null
+                : buildStudentJourney(
+                    eligibility: eligibility.requireValue,
+                    bookings: bookings.requireValue,
+                  );
+
+            final learningDashboard = learning.valueOrNull;
+            final journalData = journal.valueOrNull;
+            final bookingsList = bookings.valueOrNull ?? const [];
+
+            if (snapshot == null) {
+              return ListView(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                children: [
+                  if (student.isBatchWaitingToStart)
+                    _NewLevelBatchWaitingBanner(student: student),
+                  const AcademySkeleton(height: 240),
+                  const SizedBox(height: 18),
+                  const AcademySkeleton(height: 160),
+                  const SizedBox(height: 18),
+                  const AcademySkeleton(height: 200),
+                ],
+              );
+            }
+
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktop = constraints.maxWidth >= 1080;
+                final isTablet =
+                    constraints.maxWidth >= 680 && constraints.maxWidth < 1080;
+                final waitingBanner = student.isBatchWaitingToStart
+                    ? _NewLevelBatchWaitingBanner(student: student)
+                    : null;
+
+                if (isDesktop) {
+                  return _buildDesktopLayout(
+                    student: student,
+                    snapshot: snapshot,
+                    learningDashboard: learningDashboard,
+                    journalData: journalData,
+                    bookingsList: bookingsList,
+                    waitingBanner: waitingBanner,
+                  );
+                }
+
+                if (isTablet) {
+                  return _buildTabletLayout(
+                    student: student,
+                    snapshot: snapshot,
+                    learningDashboard: learningDashboard,
+                    journalData: journalData,
+                    bookingsList: bookingsList,
+                    waitingBanner: waitingBanner,
+                  );
+                }
+
+                return _buildMobileLayout(
+                  student: student,
+                  snapshot: snapshot,
+                  learningDashboard: learningDashboard,
+                  journalData: journalData,
+                  bookingsList: bookingsList,
+                  waitingBanner: waitingBanner,
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -534,16 +538,26 @@ class _FreshStudentOnboardingViewState
           ParentIntakeReminderBanner(student: widget.student),
         ],
         const SizedBox(height: 14),
-        const FreshStudentStepper(),
+        FreshStudentStepper(
+          continuing: widget.student.isContinuingLearner,
+          levelLabel: widget.student.level?.label,
+        ),
         const SizedBox(height: 18),
-        FreshStudentLockBanner(onContinue: _scrollToQuestionnaire),
+        FreshStudentLockBanner(
+          onContinue: _scrollToQuestionnaire,
+          continuing: widget.student.isContinuingLearner,
+          levelLabel: widget.student.level?.label,
+        ),
         const SizedBox(height: 24),
         KeyedSubtree(
           key: _questionnaireKey,
-          child: const MandatoryAssessmentPanel(),
+          child: MandatoryAssessmentPanel(student: widget.student),
         ),
         const SizedBox(height: 24),
-        const FreshStudentRoadmapCard(),
+        FreshStudentRoadmapCard(
+          continuing: widget.student.isContinuingLearner,
+          levelLabel: widget.student.level?.label,
+        ),
       ],
     );
   }

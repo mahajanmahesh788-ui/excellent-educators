@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/core/widgets/app_status_toggle.dart';
 import 'package:excellent_educators_web/core/widgets/phone_whatsapp_address_fields.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
@@ -105,6 +106,13 @@ class AdminTeachersPage extends ConsumerWidget {
                       teacher: teacher,
                       onTap: () =>
                           context.go(RoutePaths.adminTeacher(teacher.id)),
+                      onStatusChanged: (active) async {
+                        await ref.read(academicRepositoryProvider).updateTeacher(
+                          teacher.id,
+                          {'status': active ? 'active' : 'inactive'},
+                        );
+                        ref.invalidate(adminTeachersProvider(filter));
+                      },
                     );
                   },
                 );
@@ -402,23 +410,14 @@ class _AdminEditTeacherPageState extends ConsumerState<AdminEditTeacherPage> {
                     fieldSpacing: 12,
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    key: ValueKey(_status),
-                    value: _status,
-                    decoration: const InputDecoration(
-                      labelText: AppStrings.status2,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: AppStatusToggle(
+                      active: _status == 'active',
+                      onChanged: (active) async {
+                        setState(() => _status = active ? 'active' : 'inactive');
+                      },
                     ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'active',
-                        child: Text(AppStrings.active),
-                      ),
-                      DropdownMenuItem(
-                        value: 'inactive',
-                        child: Text(AppStrings.inactive),
-                      ),
-                    ],
-                    onChanged: (value) => setState(() => _status = value),
                   ),
                   const SizedBox(height: 28),
                   MentorProfileEditor(

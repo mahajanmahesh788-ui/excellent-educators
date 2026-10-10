@@ -3,6 +3,7 @@ import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
+import 'package:excellent_educators_web/core/widgets/app_status_toggle.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/admin_list_providers.dart';
@@ -100,6 +101,13 @@ class _AdminBatchesPageState extends ConsumerState<AdminBatchesPage> {
                     return AcademicLevelCard(
                       level: level,
                       onTap: () => context.go(RoutePaths.adminBatch(level.id)),
+                      onStatusChanged: (active) async {
+                        await ref.read(academicRepositoryProvider).updateLevel(
+                          level.id,
+                          {'status': active ? 'active' : 'inactive'},
+                        );
+                        ref.invalidate(adminLevelsProvider);
+                      },
                     );
                   },
                 );
@@ -286,9 +294,19 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
         value: levelValue,
         onRetry: () => ref.invalidate(adminLevelProvider(widget.batchId)),
         builder: (level) {
-          return ListView(
+          final sectionTitleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              );
+          final compactBtn = FilledButton.styleFrom(
+            minimumSize: const Size(0, 36),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          );
+
+          return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            children: [
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               Card(
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -301,6 +319,7 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: Column(
@@ -327,10 +346,12 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                               ],
                             ),
                           ),
-                          OutlinedButton.icon(
+                          IconButton(
+                            tooltip: AppStrings.editLevel,
                             onPressed: () => _editLevelDialog(context, level),
-                            icon: const Icon(Icons.edit_outlined, size: 16),
-                            label: const Text(AppStrings.editLevel),
+                            icon: const Icon(Icons.edit_outlined),
+                            color: Brand.navy,
+                            visualDensity: VisualDensity.compact,
                           ),
                         ],
                       ),
@@ -367,46 +388,20 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                             runSpacing: 8,
                             children: [
                               FilledButton.tonalIcon(
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size(0, 38),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                ),
-                                onPressed: () => context.go(RoutePaths.adminLevelLearning(level.id)),
+                                style: compactBtn,
+                                onPressed: () =>
+                                    context.go(RoutePaths.adminLevelLearning(level.id)),
                                 icon: const Icon(Icons.menu_book_outlined, size: 18),
                                 label: const Text(AppStrings.learningJourney2),
                               ),
-                              FilledButton.icon(
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size(0, 38),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                ),
-                                onPressed: () => _assignAssessmentsDialog(context, level),
-                                icon: const Icon(Icons.quiz_outlined, size: 18),
-                                label: const Text(AppStrings.assignAssessments),
-                              ),
-                              FilledButton.tonalIcon(
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size(0, 38),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                ),
-                                onPressed: () => _assignMasterTeacher(context, level),
-                                icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
-                                label: const Text(AppStrings.addMasterTeacher),
-                              ),
-                              FilledButton.tonalIcon(
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size(0, 38),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                ),
-                                onPressed: () => _addBatchDialog(context, level),
-                                icon: const Icon(Icons.add, size: 18),
-                                label: const Text(AppStrings.addBatch),
-                              ),
                               OutlinedButton.icon(
                                 style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size(0, 38),
+                                  minimumSize: const Size(0, 36),
                                   foregroundColor: const Color(0xFFB42318),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 0,
+                                  ),
                                 ),
                                 onPressed: () => _deleteLevel(context, level),
                                 icon: const Icon(Icons.delete_outline, size: 18),
@@ -420,26 +415,30 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.end,
-                spacing: 8,
-                runSpacing: 4,
+              const SizedBox(height: 24),
+              Row(
                 children: [
-                  Text(
-                    AppStrings.batchesSections,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(AppStrings.batchesSections, style: sectionTitleStyle),
+                        const SizedBox(height: 2),
+                        Text(
+                          AppStrings.max50StudentsBatch,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                          ),
                         ),
-                  ),
-                  Text(
-                    AppStrings.max50StudentsBatch,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
+                      ],
                     ),
+                  ),
+                  FilledButton.tonalIcon(
+                    style: compactBtn,
+                    onPressed: () => _addBatchDialog(context, level),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text(AppStrings.addBatch),
                   ),
                 ],
               ),
@@ -458,15 +457,32 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                     batch: batch,
                   ),
                 ),
-              if (level.masterTeachers.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text(
-                  'Master Teachers (${level.masterTeachers.length})',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 10),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Master Teachers (${level.masterTeachers.length})',
+                      style: sectionTitleStyle,
+                    ),
+                  ),
+                  FilledButton.tonalIcon(
+                    style: compactBtn,
+                    onPressed: () => _assignMasterTeacher(context, level),
+                    icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
+                    label: const Text(AppStrings.addMasterTeacher),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (level.masterTeachers.isEmpty)
+                const EmptyHint(
+                  AppStrings.noMasterTeachersAssignedYet,
+                  icon: EmptyIcons.teachers,
+                  subtitle: AppStrings.addMasterTeachersToMentorStudents,
+                  fillHeight: false,
+                )
+              else
                 ...level.masterTeachers.map(
                   (teacher) => _LevelMasterTeacherCard(
                     levelId: level.id,
@@ -474,8 +490,40 @@ class _AdminBatchDetailPageState extends ConsumerState<AdminBatchDetailPage> {
                     onUnassign: () => _unassignMasterTeacher(context, level, teacher),
                   ),
                 ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${AppStrings.assignedAssessments} (${level.assessments.length})',
+                      style: sectionTitleStyle,
+                    ),
+                  ),
+                  FilledButton.icon(
+                    style: compactBtn,
+                    onPressed: () => _assignAssessmentsDialog(context, level),
+                    icon: const Icon(Icons.quiz_outlined, size: 18),
+                    label: const Text(AppStrings.assignAssessments),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (level.assessments.isEmpty)
+                const EmptyHint(
+                  AppStrings.noAssessmentsAssignedYet,
+                  icon: EmptyIcons.assessments,
+                  subtitle: AppStrings.assignAssessmentsHelp,
+                  fillHeight: false,
+                )
+              else
+                ...level.assessments.map(
+                  (item) => _LevelAssessmentCard(
+                    assessment: item,
+                    onTap: () => context.go(RoutePaths.adminAssessmentFor(item.id)),
+                  ),
+                ),
               ],
-            ],
+            ),
           );
         },
       ),
@@ -923,19 +971,11 @@ class _BatchRowCard extends ConsumerStatefulWidget {
 
 class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
   bool _expanded = false;
-  bool _toggling = false;
 
-  Future<void> _toggleStatus() async {
-    setState(() => _toggling = true);
-    try {
-      await ref.read(academicRepositoryProvider).toggleBatchStatus(widget.batch.id);
-      ref.invalidate(adminLevelProvider(widget.levelId));
-      ref.invalidate(adminLevelsProvider);
-    } catch (e) {
-      if (mounted) showFailure(context, e);
-    } finally {
-      if (mounted) setState(() => _toggling = false);
-    }
+  Future<void> _toggleStatus(bool _) async {
+    await ref.read(academicRepositoryProvider).toggleBatchStatus(widget.batch.id);
+    ref.invalidate(adminLevelProvider(widget.levelId));
+    ref.invalidate(adminLevelsProvider);
   }
 
   Future<void> _deleteBatch() async {
@@ -1100,20 +1140,9 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
                           ),
                         ),
                       ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isActive ? Colors.green.shade50 : Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        isActive ? AppStrings.active : AppStrings.inactive,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: isActive ? Colors.green.shade700 : Colors.orange.shade800,
-                        ),
-                      ),
+                    AppStatusToggle(
+                      active: isActive,
+                      onChanged: _toggleStatus,
                     ),
                   ],
                 );
@@ -1163,33 +1192,6 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
                     ],
                   ],
                 );
-                final toggle = OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: isActive ? Colors.orange.shade800 : Colors.green.shade700,
-                    side: BorderSide(
-                      color: isActive ? Colors.orange.shade300 : Colors.green.shade300,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    minimumSize: const Size(0, 32),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  onPressed: _toggling ? null : _toggleStatus,
-                  icon: _toggling
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          isActive ? Icons.pause_circle_outline : Icons.play_circle_outline,
-                          size: 16,
-                        ),
-                  label: Text(
-                    isActive ? AppStrings.deactivate : AppStrings.activate,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                );
                 final iconActions = Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1230,8 +1232,6 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
                       ),
                       const SizedBox(height: 8),
                       occupancy,
-                      const SizedBox(height: 8),
-                      Align(alignment: Alignment.centerLeft, child: toggle),
                     ],
                   );
                 }
@@ -1250,8 +1250,6 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    toggle,
                     iconActions,
                   ],
                 );
@@ -1419,6 +1417,94 @@ class _BatchStudentList extends ConsumerWidget {
   }
 }
 
+class _LevelAssessmentCard extends StatelessWidget {
+  const _LevelAssessmentCard({
+    required this.assessment,
+    required this.onTap,
+  });
+
+  final LevelAssessmentSummaryDto assessment;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = assessment.status == 'active'
+        ? const Color(0xFF2E7D52)
+        : Brand.muted;
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: Color(0xFFE6DCCB)),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: Brand.navy.withValues(alpha: 0.08),
+                child: const Icon(
+                  Icons.quiz_outlined,
+                  color: Brand.navy,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      assessment.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Brand.navy,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${assessment.questionsCount} questions'
+                      '${assessment.submittedAttemptsCount > 0 ? ' · ${assessment.submittedAttemptsCount} submissions' : ''}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  assessment.status,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, color: Colors.grey.shade500),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _LevelMasterTeacherCard extends StatelessWidget {
   const _LevelMasterTeacherCard({
     required this.levelId,
@@ -1445,7 +1531,7 @@ class _LevelMasterTeacherCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: const Color(0xFF5BB98C).withOpacity(0.15),
+              backgroundColor: const Color(0xFF5BB98C).withValues(alpha: 0.15),
               child: const Icon(
                 Icons.psychology_alt_rounded,
                 color: Color(0xFF2E7D52),

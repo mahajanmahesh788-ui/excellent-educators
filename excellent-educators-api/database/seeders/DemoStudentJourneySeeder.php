@@ -60,7 +60,13 @@ class DemoStudentJourneySeeder extends Seeder
             return;
         }
 
-        $assessment = AptitudeAssessment::query()->where('status', 'active')->orderBy('created_at')->first();
+        $assessment = AptitudeAssessment::query()
+            ->where('status', 'active')
+            ->whereHas('levels', fn ($q) => $q->where('academic_levels.id', $level->id))
+            ->orderBy('created_at')
+            ->first()
+            ?? AptitudeAssessment::query()->where('status', 'active')->orderBy('created_at')->first();
+
         if ($assessment === null) {
             $this->command?->warn('No active aptitude assessment — aptitude steps will be skipped.');
         }

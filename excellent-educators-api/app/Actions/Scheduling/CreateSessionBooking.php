@@ -152,6 +152,14 @@ class CreateSessionBooking
             throw new ApiException(ErrorCode::TEACHER_NOT_ELIGIBLE, 'This teacher is not assigned to the student\'s level.', 422);
         }
 
+        if (! $this->eligibility->levelBatchReadyForBooking($student)) {
+            throw new ApiException(
+                ErrorCode::LEVEL_BATCH_NOT_ACTIVE,
+                'Your new level batch is not active yet. Session booking unlocks when an admin activates your batch.',
+                422,
+            );
+        }
+
         if ($type === SessionBookingType::IntroductionCall) {
             $state = $this->eligibility->forStudent($student);
             if (! $state['can_book_introduction']) {
@@ -176,13 +184,12 @@ class CreateSessionBooking
             );
         }
 
-        if ($this->eligibility->masterClassOpensNextMonth($student)) {
-            $unlocksOn = $this->eligibility->masterClassUnlocksOn($student);
+        if ($this->eligibility->masterClassRequiresLevelWeeks($student)) {
+            $completed = $this->eligibility->levelWeeksCompletedForMasterClass($student);
+            $required = BookingEligibility::MASTER_CLASS_REQUIRED_LEVEL_WEEKS;
             throw new ApiException(
-                ErrorCode::MASTER_CLASS_OPENS_NEXT_MONTH,
-                $unlocksOn !== null
-                    ? "Master Class booking opens next month (from {$unlocksOn}). Complete your weekly learning this month so your Master Teacher can review your progress."
-                    : 'Master Class booking opens next month. Complete your weekly learning this month so your Master Teacher can review your progress.',
+                ErrorCode::MASTER_CLASS_LEVEL_WEEKS_INCOMPLETE,
+                "Master Class unlocks after you complete all {$required} weeks of this level. You have finished {$completed} of {$required}.",
                 422,
             );
         }

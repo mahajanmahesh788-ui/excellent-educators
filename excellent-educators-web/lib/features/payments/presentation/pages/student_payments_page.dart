@@ -756,7 +756,8 @@ class StudentPaymentDashboardCard extends ConsumerWidget {
       error: (_, _) => const SizedBox.shrink(),
       data: (data) {
         final plan = data.plan;
-        if (plan == null) {
+        // Fully paid students don't need a payment card on the dashboard.
+        if (plan == null || plan.isPaid) {
           return const SizedBox.shrink();
         }
         return Padding(

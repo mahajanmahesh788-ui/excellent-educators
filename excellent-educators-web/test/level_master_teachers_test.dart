@@ -66,6 +66,14 @@ class _FakeAcademicRepo extends Fake implements AcademicRepository {
         roles: ['master_teacher'],
       ),
     ],
+    assessments: [
+      LevelAssessmentSummaryDto(
+        id: 'a_1',
+        title: 'Level 1 Aptitude Assessment',
+        status: 'active',
+        questionsCount: 4,
+      ),
+    ],
   );
 
   @override
@@ -204,6 +212,11 @@ void main() {
     expect(find.text('Master Teachers (1)'), findsOneWidget);
     expect(find.text('Master John Doe'), findsOneWidget);
     expect(find.text('Add Master Teacher'), findsOneWidget);
+    expect(find.text('Add Batch'), findsOneWidget);
+    expect(find.byTooltip('Edit Level'), findsOneWidget);
+    expect(find.text('Assigned Assessments (1)'), findsOneWidget);
+    expect(find.text('Level 1 Aptitude Assessment'), findsOneWidget);
+    expect(find.text('Assign Assessments'), findsOneWidget);
   });
 
   testWidgets('Student Dashboard does not show teacher grid', (tester) async {

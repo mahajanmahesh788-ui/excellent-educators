@@ -2,8 +2,11 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Models\AcademicLevel;
+use App\Models\StudentLevelJourney;
 use App\Models\StudentProfile;
 use App\Scheduling\MasterClassBalance;
+use App\Support\StaticAcademicLevels;
 use App\Support\StudentOnboardingSummary;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -59,6 +62,10 @@ class StudentResource extends JsonResource
             'has_learning_history' => $this->relationLoaded('levelJourneys')
                 ? $this->levelJourneys->isNotEmpty()
                 : $this->levelJourneys()->exists(),
+            'level_path' => $this->when(
+                $this->relationLoaded('levelJourneys'),
+                fn () => $this->levelPath(),
+            ),
             'master_teacher' => $master === null ? null : [
                 'id' => $master->id,
                 'full_name' => $master->full_name,
@@ -195,5 +202,90 @@ class StudentResource extends JsonResource
             'submitted_at' => $attempt?->submitted_at?->toIso8601String(),
             'assessment_title' => $assessment?->title,
         ];
+    }
+
+    /**
+     * Single-line level progress for admin/teacher student profiles.
+     *
+     * @return list<array{level_id: ?string, number: int, name: string, status: string, date: ?string}>
+     */
+    private function levelPath(): array
+    {
+        $journeys = $this->levelJourneys
+            ->loadMissing('level')
+            ->sortBy(fn (StudentLevelJourney $journey) => $journey->started_at?->timestamp ?? 0)
+            ->values();
+
+        /** @var array<int, array{level_id: ?string, number: int, name: string, status: string, date: ?string}> $byNumber */
+        $byNumber = [];
+
+        foreach ($journeys as $journey) {
+            $level = $journey->level;
+            $number = $level?->number
+                ?? StaticAcademicLevels::parseNumberFromName($level?->name);
+            if ($number === null) {
+                continue;
+            }
+
+            $completed = $journey->ended_at !== null;
+            $byNumber[(int) $number] = [
+                'level_id' => $level?->id,
+                'number' => (int) $number,
+                'name' => $level?->name ?? StaticAcademicLevels::label((int) $number),
+                'status' => $completed ? 'completed' : 'current',
+                // Completion date for finished levels; current/upcoming omit a date.
+                'date' => $completed ? $journey->ended_at?->toDateString() : null,
+            ];
+        }
+
+        $level = $this->academicLevel ?? $this->activeEnrollment?->batch?->level;
+        $currentNumber = $level?->number
+            ?? StaticAcademicLevels::parseNumberFromName($level?->name);
+
+        if ($byNumber === [] && $currentNumber !== null) {
+            $byNumber[(int) $currentNumber] = [
+                'level_id' => $level?->id,
+                'number' => (int) $currentNumber,
+                'name' => $level?->name ?? StaticAcademicLevels::label((int) $currentNumber),
+                'status' => 'current',
+                'date' => null,
+            ];
+        } elseif ($currentNumber !== null && ! isset($byNumber[(int) $currentNumber])) {
+            $byNumber[(int) $currentNumber] = [
+                'level_id' => $level?->id,
+                'number' => (int) $currentNumber,
+                'name' => $level?->name ?? StaticAcademicLevels::label((int) $currentNumber),
+                'status' => 'current',
+                'date' => null,
+            ];
+        }
+
+        $maxReached = $byNumber === [] ? 0 : (int) max(array_keys($byNumber));
+        $maxShow = min(StaticAcademicLevels::MAX, max($maxReached + 1, 1));
+
+        $existing = AcademicLevel::query()
+            ->whereNotNull('number')
+            ->whereBetween('number', [1, $maxShow])
+            ->get()
+            ->keyBy('number');
+
+        $nodes = [];
+        for ($number = 1; $number <= $maxShow; $number++) {
+            if (isset($byNumber[$number])) {
+                $nodes[] = $byNumber[$number];
+                continue;
+            }
+
+            $existingLevel = $existing->get($number);
+            $nodes[] = [
+                'level_id' => $existingLevel?->id,
+                'number' => $number,
+                'name' => $existingLevel?->name ?? StaticAcademicLevels::label($number),
+                'status' => 'upcoming',
+                'date' => null,
+            ];
+        }
+
+        return $nodes;
     }
 }
