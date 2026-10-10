@@ -1,8 +1,8 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/onboarding/presentation/widgets/onboarding_static_content.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 class OnboardingStepperHeader extends StatelessWidget {
   const OnboardingStepperHeader({
@@ -25,7 +25,10 @@ class OnboardingStepperHeader extends StatelessWidget {
         // Step 1: Interests (Clickable from Step 2 to go back)
         InkWell(
           onTap: currentStep != 1
-              ? () => context.go(RoutePaths.studentInterestProfile)
+              ? () => switchOnboardingStep(
+                    context,
+                    RoutePaths.studentInterestProfile,
+                  )
               : null,
           borderRadius: BorderRadius.circular(10),
           child: Padding(
@@ -140,7 +143,10 @@ class OnboardingStepperHeader extends StatelessWidget {
         // Step 2: Parent Details (Clickable from Step 1)
         InkWell(
           onTap: currentStep != 2
-              ? () => context.go(RoutePaths.studentParentIntake)
+              ? () => switchOnboardingStep(
+                    context,
+                    RoutePaths.studentParentIntake,
+                  )
               : null,
           borderRadius: BorderRadius.circular(10),
           child: Padding(

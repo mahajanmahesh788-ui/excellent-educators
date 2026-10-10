@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
-import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 const _navy = Color(0xFF091C32);
 const _emerald = Color(0xFF1E7654);
@@ -43,6 +44,8 @@ class MentorAvatar extends StatelessWidget {
     this.height,
     this.borderRadius,
     this.bytes,
+    this.fit = BoxFit.cover,
+    this.transparentCutout = false,
   });
 
   final String name;
@@ -52,14 +55,15 @@ class MentorAvatar extends StatelessWidget {
   final double? height;
   final double? borderRadius;
   final Uint8List? bytes;
+  final BoxFit fit;
+  final bool transparentCutout;
 
   @override
   Widget build(BuildContext context) {
     final url = photoUrl?.trim();
     final w = width ?? size;
     final h = height ?? size;
-    final radius = borderRadius ?? math.min(w, h) * 0.28;
-    final fallback = AcademyAvatar(name: name, size: math.min(w, h));
+    final radius = borderRadius ?? (transparentCutout ? 14.0 : math.min(w, h) * 0.18);
 
     Widget image;
     if (bytes != null && bytes!.isNotEmpty) {
@@ -67,31 +71,52 @@ class MentorAvatar extends StatelessWidget {
         bytes!,
         width: w,
         height: h,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => fallback,
+        fit: fit,
+        alignment: Alignment.topCenter,
+        errorBuilder: (_, _, _) => _letterBox(w, h, radius),
       );
     } else if (url != null && url.isNotEmpty) {
       image = Image.network(
         url,
         width: w,
         height: h,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => fallback,
+        fit: fit,
+        alignment: Alignment.topCenter,
+        errorBuilder: (_, _, _) => _letterBox(w, h, radius),
       );
     } else {
-      image = SizedBox(
-        width: w,
-        height: h,
-        child: ColoredBox(
-          color: const Color(0xFFF3EFE7),
-          child: Center(child: fallback),
-        ),
-      );
+      image = _letterBox(w, h, radius);
     }
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: image,
+      child: SizedBox(width: w, height: h, child: image),
+    );
+  }
+
+  Widget _letterBox(double w, double h, double radius) {
+    final letter = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    return Container(
+      width: w,
+      height: h,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF15533F), _navy],
+        ),
+      ),
+      child: Text(
+        letter,
+        style: TextStyle(
+          color: Brand.gold,
+          fontSize: math.min(w, h) * 0.42,
+          fontWeight: FontWeight.w900,
+          height: 1,
+        ),
+      ),
     );
   }
 }
@@ -100,12 +125,14 @@ class MentorBookingCard extends StatefulWidget {
   const MentorBookingCard({
     super.key,
     required this.teacher,
+    this.index,
     this.selected = false,
     this.onSelect,
     this.onViewProfile,
   });
 
   final TeacherDto teacher;
+  final int? index;
   final bool selected;
   final VoidCallback? onSelect;
   final VoidCallback? onViewProfile;
@@ -117,211 +144,579 @@ class MentorBookingCard extends StatefulWidget {
 class _MentorBookingCardState extends State<MentorBookingCard> {
   var _hovered = false;
 
+  static const _bronze = Color(0xFF6B3F1F);
+  static const _cream = Color(0xFFFFF7EA);
+  static const _creamDeep = Color(0xFFF3E2C4);
+  static const _goldLine = Color(0xFFE2C48A);
+  static const _tagBg = Color(0xFFF0E2CB);
+  static const _tagInk = Color(0xFF5C3A1E);
+
   @override
   Widget build(BuildContext context) {
     final teacher = widget.teacher;
+    final indexLabel = widget.index == null
+        ? null
+        : (widget.index! + 1).toString().padLeft(2, '0');
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedScale(
-        scale: _hovered ? 1.005 : 1,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: widget.selected ? const Color(0xFFF1F8F5) : Colors.white,
-            border: Border.all(
-              color: widget.selected ? _emerald : _line,
-              width: widget.selected ? 1.5 : 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: _navy.withValues(alpha: _hovered ? 0.1 : 0.045),
-                blurRadius: _hovered ? 20 : 12,
-                offset: const Offset(0, 6),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final narrow = constraints.maxWidth < 560;
+          final portraitW = narrow ? 108.0 : 132.0;
+          final portraitH = narrow ? 148.0 : 178.0;
+          final cardH = narrow ? 132.0 : 148.0;
+          final popOut = portraitH - cardH + 8;
+          final overlap = portraitW * 0.42;
+
+          return AnimatedScale(
+            scale: _hovered ? 1.01 : 1,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            child: SizedBox(
+              height: cardH + popOut + 8,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: overlap,
+                    right: 0,
+                    bottom: 0,
+                    height: cardH,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: widget.selected
+                              ? const [
+                                  Color(0xFFFFF1D6),
+                                  Color(0xFFE8F7F0),
+                                  Color(0xFFF8F1E4),
+                                ]
+                              : const [
+                                  _cream,
+                                  Color(0xFFFFF1D8),
+                                  _creamDeep,
+                                ],
+                        ),
+                        border: Border.all(
+                          color: widget.selected ? _emerald : _goldLine,
+                          width: widget.selected ? 1.6 : 1.1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _navy.withValues(
+                              alpha: _hovered ? 0.14 : 0.07,
+                            ),
+                            blurRadius: _hovered ? 26 : 16,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(22),
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              right: -12,
+                              top: -8,
+                              bottom: -16,
+                              width: narrow ? 140 : 210,
+                              child: Opacity(
+                                opacity: 0.22,
+                                child: Image.asset(
+                                  'assets/images/learning_pathway.png',
+                                  fit: BoxFit.contain,
+                                  alignment: Alignment.centerRight,
+                                  errorBuilder: (_, _, _) =>
+                                      const SizedBox.shrink(),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              right: 28,
+                              top: 18,
+                              child: CustomPaint(
+                                size: Size(narrow ? 70 : 96, narrow ? 54 : 72),
+                                painter: _PathwayAccentPainter(
+                                  color: Brand.gold.withValues(alpha: 0.35),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                portraitW - overlap + (narrow ? 10 : 16),
+                                narrow ? 14 : 16,
+                                narrow ? 12 : 18,
+                                narrow ? 12 : 14,
+                              ),
+                              child: narrow
+                                  ? _NarrowCardBody(
+                                      teacher: teacher,
+                                      onViewProfile: widget.onViewProfile,
+                                      onSelect: widget.onSelect,
+                                      selected: widget.selected,
+                                      bronze: _bronze,
+                                      tagBg: _tagBg,
+                                      tagInk: _tagInk,
+                                    )
+                                  : _WideCardBody(
+                                      teacher: teacher,
+                                      onViewProfile: widget.onViewProfile,
+                                      onSelect: widget.onSelect,
+                                      selected: widget.selected,
+                                      bronze: _bronze,
+                                      tagBg: _tagBg,
+                                      tagInk: _tagInk,
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (indexLabel != null)
+                    Positioned(
+                      left: 2,
+                      top: 0,
+                      child: Text(
+                        indexLabel,
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          height: 1,
+                          color: _navy.withValues(alpha: 0.22),
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    left: 0,
+                    bottom: 6,
+                    width: portraitW,
+                    height: portraitH,
+                    child: _PopOutPortrait(
+                      name: teacher.fullName,
+                      photoUrl: teacher.photoUrl,
+                      hovered: _hovered,
+                    ),
+                  ),
+                ],
               ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PopOutPortrait extends StatelessWidget {
+  const _PopOutPortrait({
+    required this.name,
+    required this.photoUrl,
+    required this.hovered,
+  });
+
+  final String name;
+  final String? photoUrl;
+  final bool hovered;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      scale: hovered ? 1.03 : 1,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: _navy.withValues(alpha: hovered ? 0.22 : 0.14),
+                  blurRadius: hovered ? 18 : 12,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: MentorAvatar(
+              name: name,
+              photoUrl: photoUrl,
+              width: constraints.maxWidth,
+              height: constraints.maxHeight,
+              borderRadius: 16,
+              fit: BoxFit.cover,
+              transparentCutout: true,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _WideCardBody extends StatelessWidget {
+  const _WideCardBody({
+    required this.teacher,
+    required this.onViewProfile,
+    required this.onSelect,
+    required this.selected,
+    required this.bronze,
+    required this.tagBg,
+    required this.tagInk,
+  });
+
+  final TeacherDto teacher;
+  final VoidCallback? onViewProfile;
+  final VoidCallback? onSelect;
+  final bool selected;
+  final Color bronze;
+  final Color tagBg;
+  final Color tagInk;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 5,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                teacher.fullName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 26,
+                  height: 1.05,
+                  fontWeight: FontWeight.w700,
+                  color: _navy,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                teacher.displayTitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Brand.goldDark,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if ((teacher.experienceSummary ?? '').trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  teacher.experienceSummary!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Brand.muted.withValues(alpha: 0.95),
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
+              if (teacher.guidanceAreas.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final area in teacher.guidanceAreas.take(3))
+                      _WarmTag(label: area, bg: tagBg, ink: tagInk),
+                  ],
+                ),
+              ],
             ],
           ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final stacked = constraints.maxWidth < 680;
-              final identity = Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: _emerald, width: 1.5),
-                        ),
-                        child: MentorAvatar(
-                          name: teacher.fullName,
-                          photoUrl: teacher.photoUrl,
-                          size: stacked ? 58 : 66,
-                          borderRadius: 15,
-                        ),
-                      ),
-                      const Positioned(
-                        right: -4,
-                        bottom: -3,
-                        child: CircleAvatar(
-                          radius: 9,
-                          backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.verified_rounded,
-                            size: 17,
-                            color: _emerald,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          teacher.fullName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            height: 1.15,
-                            fontWeight: FontWeight.w900,
-                            color: _navy,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          teacher.displayTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Brand.goldDark,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        if ((teacher.experienceSummary ?? '')
-                            .trim()
-                            .isNotEmpty) ...[
-                          const SizedBox(height: 5),
-                          Text(
-                            teacher.experienceSummary!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Brand.muted,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              );
-              final actions = Row(
-                children: [
-                  if (widget.onViewProfile != null)
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: widget.onViewProfile,
-                        icon: const Icon(
-                          Icons.person_outline_rounded,
-                          size: 16,
-                        ),
-                        label: const Text('View profile'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _navy,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                          side: BorderSide(color: _navy.withValues(alpha: .18)),
-                        ),
-                      ),
-                    ),
-                  if (widget.onViewProfile != null && widget.onSelect != null)
-                    const SizedBox(width: 8),
-                  if (widget.onSelect != null)
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: widget.onSelect,
-                        icon: Icon(
-                          widget.selected
-                              ? Icons.schedule_rounded
-                              : Icons.calendar_month_rounded,
-                          size: 16,
-                        ),
-                        label: Text(widget.selected ? 'Choose time' : 'Book'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: _navy,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                        ),
-                      ),
-                    ),
-                ],
-              );
+        ),
+        const SizedBox(width: 12),
+        Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            const Spacer(),
+            _MentorCtaRow(
+              onViewProfile: onViewProfile,
+              onSelect: onSelect,
+              selected: selected,
+              bronze: bronze,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (stacked) ...[
-                    identity,
-                    if (teacher.guidanceAreas.isNotEmpty) ...[
-                      const SizedBox(height: 11),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          for (final area in teacher.guidanceAreas.take(3))
-                            _MiniTag(label: area, dark: false),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 13),
-                    actions,
-                  ] else
-                    Row(
-                      children: [
-                        Expanded(flex: 5, child: identity),
-                        if (teacher.guidanceAreas.isNotEmpty) ...[
-                          const SizedBox(width: 18),
-                          Expanded(
-                            flex: 3,
-                            child: Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: [
-                                for (final area in teacher.guidanceAreas.take(
-                                  3,
-                                ))
-                                  _MiniTag(label: area, dark: false),
-                              ],
-                            ),
-                          ),
-                        ],
-                        const SizedBox(width: 18),
-                        SizedBox(width: 290, child: actions),
-                      ],
-                    ),
-                ],
-              );
-            },
+class _NarrowCardBody extends StatelessWidget {
+  const _NarrowCardBody({
+    required this.teacher,
+    required this.onViewProfile,
+    required this.onSelect,
+    required this.selected,
+    required this.bronze,
+    required this.tagBg,
+    required this.tagInk,
+  });
+
+  final TeacherDto teacher;
+  final VoidCallback? onViewProfile;
+  final VoidCallback? onSelect;
+  final bool selected;
+  final Color bronze;
+  final Color tagBg;
+  final Color tagInk;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          teacher.fullName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.playfairDisplay(
+            fontSize: 20,
+            height: 1.05,
+            fontWeight: FontWeight.w700,
+            color: _navy,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          teacher.displayTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Brand.goldDark,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        if (teacher.guidanceAreas.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              for (final area in teacher.guidanceAreas.take(2))
+                _WarmTag(label: area, bg: tagBg, ink: tagInk, compact: true),
+            ],
+          ),
+        ],
+        const Spacer(),
+        _MentorCtaRow(
+          onViewProfile: onViewProfile,
+          onSelect: onSelect,
+          selected: selected,
+          bronze: bronze,
+          compact: true,
+        ),
+      ],
+    );
+  }
+}
+
+class _MentorCtaRow extends StatelessWidget {
+  const _MentorCtaRow({
+    required this.onViewProfile,
+    required this.onSelect,
+    required this.selected,
+    required this.bronze,
+    this.compact = false,
+  });
+
+  final VoidCallback? onViewProfile;
+  final VoidCallback? onSelect;
+  final bool selected;
+  final Color bronze;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final gap = compact ? 6.0 : 8.0;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (onViewProfile != null)
+          _PillCta(
+            label: 'View profile',
+            icon: Icons.person_outline_rounded,
+            trailing: Icons.arrow_forward_rounded,
+            filled: true,
+            color: bronze,
+            onTap: onViewProfile!,
+            compact: compact,
+          ),
+        if (onViewProfile != null && onSelect != null) SizedBox(width: gap),
+        if (onSelect != null)
+          _PillCta(
+            label: selected ? 'Choose time' : 'Book',
+            icon: selected
+                ? Icons.schedule_rounded
+                : Icons.calendar_month_rounded,
+            filled: false,
+            color: bronze,
+            onTap: onSelect!,
+            compact: compact,
+          ),
+      ],
+    );
+  }
+}
+
+class _PillCta extends StatelessWidget {
+  const _PillCta({
+    required this.label,
+    required this.icon,
+    required this.filled,
+    required this.color,
+    required this.onTap,
+    this.trailing,
+    this.compact = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final IconData? trailing;
+  final bool filled;
+  final Color color;
+  final VoidCallback onTap;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = filled ? Colors.white : color;
+    return Material(
+      color: filled ? color : Colors.white.withValues(alpha: 0.72),
+      borderRadius: BorderRadius.circular(99),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(99),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 12 : 16,
+            vertical: compact ? 8 : 10,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(99),
+            border: filled
+                ? null
+                : Border.all(color: color.withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: compact ? 14 : 15, color: fg),
+              SizedBox(width: compact ? 5 : 7),
+              Text(
+                label,
+                style: TextStyle(
+                  color: fg,
+                  fontSize: compact ? 11.5 : 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if (trailing != null) ...[
+                SizedBox(width: compact ? 4 : 6),
+                Icon(trailing, size: compact ? 13 : 14, color: fg),
+              ],
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+class _WarmTag extends StatelessWidget {
+  const _WarmTag({
+    required this.label,
+    required this.bg,
+    required this.ink,
+    this.compact = false,
+  });
+
+  final String label;
+  final Color bg;
+  final Color ink;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 7 : 9,
+        vertical: compact ? 4 : 5,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: ink,
+          fontSize: compact ? 10 : 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _PathwayAccentPainter extends CustomPainter {
+  const _PathwayAccentPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path()
+      ..moveTo(size.width * 0.1, size.height * 0.85)
+      ..quadraticBezierTo(
+        size.width * 0.35,
+        size.height * 0.55,
+        size.width * 0.55,
+        size.height * 0.62,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.75,
+        size.height * 0.7,
+        size.width * 0.88,
+        size.height * 0.28,
+      );
+    canvas.drawPath(path, paint);
+
+    final peak = Offset(size.width * 0.9, size.height * 0.18);
+    canvas.drawCircle(peak, 5, Paint()..color = color.withValues(alpha: 0.85));
+    canvas.drawCircle(
+      peak,
+      10,
+      Paint()
+        ..color = color.withValues(alpha: 0.25)
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 4),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _PathwayAccentPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class MentorProfileContent extends StatefulWidget {
@@ -441,74 +836,83 @@ class _MentorHero extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final desktop = constraints.maxWidth >= 760;
-        return Container(
-          constraints: BoxConstraints(minHeight: desktop ? 280 : 0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [_navy, Color(0xFF102F4C), Color(0xFF15533F)],
-              stops: [0, .56, 1],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: _navy.withValues(alpha: .2),
-                blurRadius: 34,
-                offset: const Offset(0, 16),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
+        final portraitW = desktop ? 200.0 : 120.0;
+        final portraitH = desktop ? 260.0 : 168.0;
+        final popTop = desktop ? 48.0 : 36.0;
+
+        return Padding(
+          padding: EdgeInsets.only(top: popTop, bottom: 8),
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              const Positioned(
-                right: -75,
-                top: -95,
-                child: _GlowOrb(size: 250, color: Color(0x3349D58A)),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: -6,
+                height: 18,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8EEF2),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                ),
               ),
-              const Positioned(
-                left: -55,
-                bottom: -100,
-                child: _GlowOrb(size: 230, color: Color(0x22E8B54A)),
-              ),
-              Padding(
-                padding: EdgeInsets.all(desktop ? 34 : 22),
-                child: desktop
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          _HeroPortrait(teacher: teacher, width: 168, height: 224),
-                          const SizedBox(width: 36),
-                          Expanded(child: _HeroIdentity(teacher: teacher)),
-                        ],
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _HeroPortrait(
-                                teacher: teacher,
-                                width: 92,
-                                height: 122,
-                              ),
-                              const SizedBox(width: 18),
-                              Expanded(
-                                child: _HeroIdentity(
-                                  teacher: teacher,
-                                  compact: true,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (teacher.guidanceAreas.isNotEmpty) ...[
-                            const SizedBox(height: 22),
-                            _HeroTags(areas: teacher.guidanceAreas),
-                          ],
-                        ],
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [_navy, Color(0xFF102F4C), Color(0xFF15533F)],
+                    stops: [0, .56, 1],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _navy.withValues(alpha: 0.2),
+                      blurRadius: 28,
+                      offset: const Offset(0, 14),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      right: desktop ? 28 : 8,
+                      top: 10,
+                      child: const _GlowOrb(
+                        size: 180,
+                        color: Color(0x3349D58A),
                       ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        desktop ? 32 : 18,
+                        desktop ? 26 : 18,
+                        desktop ? portraitW * 0.62 + 20 : portraitW * 0.5 + 12,
+                        desktop ? 26 : 18,
+                      ),
+                      child: _HeroIdentity(
+                        teacher: teacher,
+                        compact: !desktop,
+                        showTags: true,
+                        showStats: desktop,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                right: desktop ? 22 : 10,
+                top: -popTop + 8,
+                width: portraitW,
+                height: portraitH,
+                child: _HeroPopPortrait(
+                  teacher: teacher,
+                  width: portraitW,
+                  height: portraitH,
+                ),
               ),
             ],
           ),
@@ -518,8 +922,8 @@ class _MentorHero extends StatelessWidget {
   }
 }
 
-class _HeroPortrait extends StatelessWidget {
-  const _HeroPortrait({
+class _HeroPopPortrait extends StatelessWidget {
+  const _HeroPopPortrait({
     required this.teacher,
     required this.width,
     required this.height,
@@ -531,43 +935,35 @@ class _HeroPortrait extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = math.min(width, height) * 0.22;
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(radius + 4),
-            gradient: const LinearGradient(
-              colors: [Brand.gold, Color(0xFF55C98C)],
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 22,
-                offset: Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(3),
+        Positioned.fill(
+          child: DecoratedBox(
             decoration: BoxDecoration(
-              color: _navy,
-              borderRadius: BorderRadius.circular(radius + 1),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.28),
+                  blurRadius: 22,
+                  offset: const Offset(0, 12),
+                ),
+              ],
             ),
             child: MentorAvatar(
               name: teacher.fullName,
               photoUrl: teacher.photoUrl,
               width: width,
               height: height,
-              borderRadius: radius,
+              borderRadius: 18,
+              fit: BoxFit.cover,
+              transparentCutout: true,
             ),
           ),
         ),
         Positioned(
-          right: -8,
-          bottom: 14,
+          right: 0,
+          bottom: height * 0.18,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
@@ -580,7 +976,7 @@ class _HeroPortrait extends StatelessWidget {
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.verified_rounded, size: 17, color: _emerald),
+                Icon(Icons.verified_rounded, size: 16, color: _emerald),
                 SizedBox(width: 5),
                 Text(
                   'VERIFIED',
@@ -601,81 +997,161 @@ class _HeroPortrait extends StatelessWidget {
 }
 
 class _HeroIdentity extends StatelessWidget {
-  const _HeroIdentity({required this.teacher, this.compact = false});
+  const _HeroIdentity({
+    required this.teacher,
+    this.compact = false,
+    this.showTags = false,
+    this.showStats = false,
+  });
 
   final TeacherDto teacher;
   final bool compact;
+  final bool showTags;
+  final bool showStats;
 
   @override
   Widget build(BuildContext context) {
+    final stats = teacher.mentorStats;
+    final rating = stats?.ratingAverage;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          'PROFESSIONAL MENTOR',
-          style: TextStyle(
-            color: Brand.gold,
-            fontSize: compact ? 10 : 12,
-            letterSpacing: 1.5,
-            fontWeight: FontWeight.w900,
+        if (rating != null && rating > 0) ...[
+          Row(
+            children: [
+              ...List.generate(
+                5,
+                (i) => Icon(
+                  i < rating.round()
+                      ? Icons.star_rounded
+                      : Icons.star_outline_rounded,
+                  size: compact ? 14 : 16,
+                  color: Brand.gold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  '${rating.toStringAsFixed(1)} Star'
+                  '${stats!.sessionsCompleted > 0 ? ' · ${stats.sessionsCompleted}+ sessions' : ''}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: compact ? 11 : 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        SizedBox(height: compact ? 7 : 12),
+          SizedBox(height: compact ? 6 : 10),
+        ] else ...[
+          Text(
+            'PROFESSIONAL MENTOR',
+            style: TextStyle(
+              color: Brand.gold,
+              fontSize: compact ? 10 : 12,
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          SizedBox(height: compact ? 6 : 10),
+        ],
         Text(
           teacher.fullName,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
+          style: GoogleFonts.playfairDisplay(
             color: Colors.white,
-            fontSize: compact ? 24 : 38,
-            height: 1.05,
-            letterSpacing: -.6,
-            fontWeight: FontWeight.w900,
+            fontSize: compact ? 24 : 36,
+            height: 1.08,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: compact ? 5 : 7),
         Text(
           teacher.displayTitle,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: const Color(0xFFBDE8D2),
-            fontSize: compact ? 14 : 18,
+            fontSize: compact ? 13 : 16,
             fontWeight: FontWeight.w700,
           ),
         ),
         if ((teacher.experienceSummary ?? '').trim().isNotEmpty) ...[
-          const SizedBox(height: 13),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .09),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: .12)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.workspace_premium_rounded,
-                  color: Brand.gold,
-                  size: 18,
-                ),
-                const SizedBox(width: 7),
-                Flexible(
-                  child: Text(
-                    teacher.experienceSummary!,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
+          SizedBox(height: compact ? 6 : 8),
+          Text(
+            teacher.experienceSummary!,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.78),
+              fontSize: compact ? 12 : 13.5,
+              height: 1.35,
             ),
           ),
         ],
-        if (!compact && teacher.guidanceAreas.isNotEmpty) ...[
-          const SizedBox(height: 22),
+        if (showTags && teacher.guidanceAreas.isNotEmpty) ...[
+          SizedBox(height: compact ? 10 : 14),
           _HeroTags(areas: teacher.guidanceAreas),
+        ],
+        if (showStats && stats != null) ...[
+          SizedBox(height: compact ? 12 : 16),
+          _HeroStatsRow(stats: stats, compact: compact),
+        ],
+      ],
+    );
+  }
+}
+
+class _HeroStatsRow extends StatelessWidget {
+  const _HeroStatsRow({required this.stats, required this.compact});
+
+  final MentorStatsDto stats;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <(String, String)>[
+      ('${stats.studentsGuided}+', 'Students'),
+      ('${stats.sessionsCompleted}+', 'Sessions'),
+      if (stats.ratingAverage != null)
+        (stats.ratingAverage!.toStringAsFixed(1), 'Rating'),
+    ];
+
+    return Row(
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0)
+            Container(
+              width: 1,
+              height: compact ? 28 : 34,
+              margin: EdgeInsets.symmetric(horizontal: compact ? 10 : 16),
+              color: Colors.white.withValues(alpha: 0.22),
+            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                items[i].$1,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: compact ? 16 : 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                items[i].$2,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.65),
+                  fontSize: compact ? 10 : 11.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ],
       ],
     );
@@ -1367,32 +1843,6 @@ class _ImpactStat extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _MiniTag extends StatelessWidget {
-  const _MiniTag({required this.label, required this.dark});
-
-  final String label;
-  final bool dark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: dark ? Colors.white.withValues(alpha: .1) : _mint,
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: dark ? Colors.white : _emerald,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-        ),
       ),
     );
   }

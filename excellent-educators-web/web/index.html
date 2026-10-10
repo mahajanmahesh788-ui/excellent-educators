@@ -20,7 +20,7 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="description" content="Excellent Educators student and teacher portal.">
-  <meta name="theme-color" content="#0E2744">
+  <meta name="theme-color" content="#03162B">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -34,6 +34,174 @@
 
   <title>Excellent Educators</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #03162B;
+    }
+
+    #ee-boot-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background:
+        radial-gradient(ellipse 80% 55% at 50% 0%, rgba(229, 160, 36, 0.18), transparent 55%),
+        linear-gradient(165deg, #091C32 0%, #03162B 48%, #071424 100%);
+      color: #F8FAFC;
+      font-family: Georgia, "Times New Roman", Times, serif;
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+    }
+
+    #ee-boot-splash.ee-boot-splash--hide {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #ee-boot-splash .ee-mark {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      object-fit: contain;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(229, 160, 36, 0.45);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    #ee-boot-splash .ee-brand {
+      margin: 0;
+      font-size: clamp(1.35rem, 4vw, 1.75rem);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-align: center;
+      color: #FFFBF4;
+    }
+
+    #ee-boot-splash .ee-brand span {
+      color: #E5A024;
+    }
+
+    #ee-boot-splash .ee-sub {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(189, 232, 210, 0.75);
+      text-align: center;
+    }
+
+    #ee-boot-splash .ee-pillar-stage {
+      position: relative;
+      width: min(88vw, 320px);
+      height: 88px;
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #ee-boot-splash .ee-pillar {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      opacity: 0;
+      transform: translateY(18px) scale(0.96);
+      pointer-events: none;
+    }
+
+    #ee-boot-splash .ee-pillar.is-active {
+      animation: ee-pillar-in 1.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    #ee-boot-splash .ee-pillar.is-leaving {
+      animation: ee-pillar-out 0.45s ease forwards;
+    }
+
+    #ee-boot-splash .ee-pillar-name {
+      margin: 0;
+      font-size: clamp(1.45rem, 5.5vw, 1.85rem);
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      text-align: center;
+      color: #FFFBF4;
+      text-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    #ee-boot-splash .ee-pillar-bar {
+      width: 0;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, #E5A024, #FBBF24, transparent);
+      box-shadow: 0 0 18px rgba(229, 160, 36, 0.55);
+    }
+
+    #ee-boot-splash .ee-pillar.is-active .ee-pillar-bar {
+      animation: ee-bar-grow 1.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    #ee-boot-splash .ee-dots {
+      display: flex;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    #ee-boot-splash .ee-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(229, 160, 36, 0.28);
+      transition: background 0.25s ease, transform 0.25s ease;
+    }
+
+    #ee-boot-splash .ee-dots span.is-on {
+      background: #E5A024;
+      transform: scale(1.25);
+    }
+
+    @keyframes ee-pillar-in {
+      0% {
+        opacity: 0;
+        transform: translateY(22px) scale(0.94);
+        filter: blur(4px);
+      }
+      55% {
+        opacity: 1;
+        filter: blur(0);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+      }
+    }
+
+    @keyframes ee-pillar-out {
+      to {
+        opacity: 0;
+        transform: translateY(-14px) scale(0.98);
+        filter: blur(2px);
+      }
+    }
+
+    @keyframes ee-bar-grow {
+      from { width: 0; }
+      to { width: min(52vw, 168px); }
+    }
+  </style>
 
   <!-- Capture install prompt early (before Flutter loads) so the login Install button can use it. -->
   <script>
@@ -132,18 +300,113 @@
           return false;
         }
       };
+
+      var pillars = [
+        'Interests',
+        'Confidence',
+        'Leadership',
+        'Communication',
+        'Decision-making',
+        'Creativity',
+        'Curiosity',
+        'Teamwork',
+        'Future Aspirations'
+      ];
+      var pillarTimer = null;
+      var pillarIndex = 0;
+
+      function renderPillars() {
+        var stage = document.getElementById('ee-pillar-stage');
+        var dots = document.getElementById('ee-pillar-dots');
+        if (!stage || !dots) return;
+
+        stage.innerHTML = '';
+        dots.innerHTML = '';
+        pillars.forEach(function (name, i) {
+          var card = document.createElement('div');
+          card.className = 'ee-pillar';
+          card.setAttribute('data-i', String(i));
+          card.innerHTML =
+            '<p class="ee-pillar-name"></p><div class="ee-pillar-bar"></div>';
+          card.querySelector('.ee-pillar-name').textContent = name;
+          stage.appendChild(card);
+
+          var dot = document.createElement('span');
+          dot.setAttribute('aria-hidden', 'true');
+          dots.appendChild(dot);
+        });
+      }
+
+      function showPillar(next) {
+        var stage = document.getElementById('ee-pillar-stage');
+        var dots = document.getElementById('ee-pillar-dots');
+        if (!stage || !dots) return;
+        var cards = stage.querySelectorAll('.ee-pillar');
+        var dotEls = dots.querySelectorAll('span');
+        if (!cards.length) return;
+
+        var prev = pillarIndex;
+        pillarIndex = ((next % cards.length) + cards.length) % cards.length;
+
+        cards.forEach(function (card, i) {
+          card.classList.remove('is-active', 'is-leaving');
+          if (i === prev && prev !== pillarIndex) {
+            card.classList.add('is-leaving');
+          }
+        });
+        // Restart enter animation cleanly.
+        var active = cards[pillarIndex];
+        void active.offsetWidth;
+        active.classList.add('is-active');
+
+        dotEls.forEach(function (dot, i) {
+          if (i === pillarIndex) dot.classList.add('is-on');
+          else dot.classList.remove('is-on');
+        });
+      }
+
+      function startPillarCycle() {
+        renderPillars();
+        showPillar(0);
+        pillarTimer = window.setInterval(function () {
+          showPillar(pillarIndex + 1);
+        }, 1400);
+      }
+
+      function hideBootSplash() {
+        var el = document.getElementById('ee-boot-splash');
+        if (!el || el.classList.contains('ee-boot-splash--hide')) return;
+        if (pillarTimer) {
+          window.clearInterval(pillarTimer);
+          pillarTimer = null;
+        }
+        el.classList.add('ee-boot-splash--hide');
+        window.setTimeout(function () {
+          try { el.remove(); } catch (_) {}
+        }, 400);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startPillarCycle);
+      } else {
+        startPillarCycle();
+      }
+
+      window.addEventListener('flutter-first-frame', hideBootSplash);
+      // Fallback if the event is missed on an older engine build.
+      window.setTimeout(hideBootSplash, 20000);
     })();
   </script>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <div id="ee-boot-splash" aria-busy="true" aria-live="polite">
+    <img class="ee-mark" src="icons/Icon-192.png" alt="" width="72" height="72">
+    <p class="ee-brand">Excellent <span>Educators</span></p>
+    <p class="ee-sub">Growing every pillar</p>
+    <div id="ee-pillar-stage" class="ee-pillar-stage" aria-live="polite"></div>
+    <div id="ee-pillar-dots" class="ee-dots" aria-hidden="true"></div>
+  </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

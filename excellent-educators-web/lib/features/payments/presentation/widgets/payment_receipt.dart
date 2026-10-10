@@ -782,15 +782,18 @@ class PaymentReceiptBuilder {
                 ],
               ),
 
-              pw.Spacer(),
+              pw.SizedBox(height: 36),
 
-              // Institutional Terms & Guidelines (Left) & Official Stamp + Signatory (Right)
+              // Divider closes the content block so footer is not floating in empty space
+              pw.Container(height: 0.8, color: borderLine),
+              pw.SizedBox(height: 20),
+
+              // Stamp on top-right, terms left, system notice under stamp
               pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  // Left: Terms & Conditions
                   pw.Expanded(
-                    flex: 5,
+                    flex: 6,
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
@@ -805,7 +808,7 @@ class PaymentReceiptBuilder {
                         ),
                         pw.SizedBox(height: 4),
                         _termBullet(
-                          '1. This receipt is an official computer-generated fee acknowledgement issued by Excellent Educators.',
+                          '1. This is a system-generated bill/receipt and does not require a physical or digital signature.',
                           textSubtle,
                         ),
                         _termBullet(
@@ -832,82 +835,47 @@ class PaymentReceiptBuilder {
                     ),
                   ),
                   pw.SizedBox(width: 14),
-                  // Right: Stamp & Signature Block
-                  pw.Expanded(
-                    flex: 4,
-                    child: pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.end,
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  pw.SizedBox(
+                    width: 168,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.center,
                       children: [
                         _companyStamp(),
-                        pw.SizedBox(width: 12),
-                        pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.center,
-                          children: [
-                            pw.Text(
-                              'Munish Sharma',
-                              style: pw.TextStyle(
-                                color: primaryNavy,
-                                fontSize: 13.5,
-                                fontWeight: pw.FontWeight.bold,
-                                fontStyle: pw.FontStyle.italic,
-                              ),
+                        pw.SizedBox(height: 8),
+                        pw.Container(
+                          width: double.infinity,
+                          padding: const pw.EdgeInsets.fromLTRB(8, 8, 8, 8),
+                          decoration: pw.BoxDecoration(
+                            color: const PdfColor.fromInt(0xFFF8FAFC),
+                            borderRadius: pw.BorderRadius.circular(6),
+                            border: pw.Border.all(
+                              color: borderLine,
+                              width: 0.7,
                             ),
-                            pw.SizedBox(height: 2),
-                            pw.Container(
-                              width: 105,
-                              height: 1,
-                              color: primaryNavy,
-                            ),
-                            pw.SizedBox(height: 3),
-                            pw.Text(
-                              'MUNISH SHARMA',
-                              style: pw.TextStyle(
-                                color: primaryNavy,
-                                fontSize: 8.5,
-                                fontWeight: pw.FontWeight.bold,
-                                letterSpacing: 0.4,
-                              ),
-                            ),
-                            pw.Text(
-                              'Co-founder & Director',
-                              style: pw.TextStyle(
-                                color: textMuted,
-                                fontSize: 7.2,
-                              ),
-                            ),
-                            pw.Text(
-                              'Excellent Educators',
-                              style: pw.TextStyle(
-                                color: textMuted,
-                                fontSize: 6.8,
-                              ),
-                            ),
-                            pw.SizedBox(height: 3),
-                            pw.Container(
-                              padding: const pw.EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 1.5,
-                              ),
-                              decoration: pw.BoxDecoration(
-                                color: const PdfColor.fromInt(0xFFF1F5F9),
-                                borderRadius: pw.BorderRadius.circular(3),
-                                border: pw.Border.all(
-                                  color: borderLine,
-                                  width: 0.6,
-                                ),
-                              ),
-                              child: pw.Text(
-                                'AUTHORIZED SIGNATORY',
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text(
+                                'SYSTEM GENERATED',
                                 style: pw.TextStyle(
                                   color: primaryNavy,
-                                  fontSize: 5.8,
+                                  fontSize: 7.2,
                                   fontWeight: pw.FontWeight.bold,
                                   letterSpacing: 0.5,
                                 ),
                               ),
-                            ),
-                          ],
+                              pw.SizedBox(height: 4),
+                              pw.Text(
+                                'Computer-generated bill. No signature required.',
+                                style: pw.TextStyle(
+                                  color: textMuted,
+                                  fontSize: 6.6,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -915,7 +883,7 @@ class PaymentReceiptBuilder {
                 ],
               ),
 
-              pw.SizedBox(height: 12),
+              pw.SizedBox(height: 10),
 
               // Page Footer Bar
               pw.Container(
@@ -933,7 +901,7 @@ class PaymentReceiptBuilder {
                       style: pw.TextStyle(color: textSubtle, fontSize: 6.8),
                     ),
                     pw.Text(
-                      'Official Authenticated Fee Voucher · Page 1 of 1',
+                      'System-generated bill · No signature required · Page 1 of 1',
                       style: pw.TextStyle(color: textSubtle, fontSize: 6.8),
                     ),
                   ],
@@ -1122,102 +1090,114 @@ class PaymentReceiptBuilder {
     );
   }
 
-  /// Official institutional seal stamp with clean, normal, ultra-clear text.
+  /// Official institutional seal stamp — text kept inside the circle.
   static pw.Widget _companyStamp() {
-    const stampInk = PdfColor.fromInt(0xFF0F3664); // Deep Navy Stamp Ink
-
-    const size = 118.0;
+    const stampInk = PdfColor.fromInt(0xFF0F3664);
+    const size = 112.0;
+    // Safe inner diameter so text never clips the ring.
+    const inner = 72.0;
 
     return pw.Transform.rotate(
-      angle: -0.04, // Very subtle realistic stamp tilt (~2.3 degrees)
+      angle: -0.03,
       child: pw.Container(
         width: size,
         height: size,
         decoration: pw.BoxDecoration(
           shape: pw.BoxShape.circle,
-          border: pw.Border.all(color: stampInk, width: 2.2),
+          border: pw.Border.all(color: stampInk, width: 2.0),
         ),
         child: pw.Center(
           child: pw.Container(
-            width: 108.0,
-            height: 108.0,
+            width: size - 10,
+            height: size - 10,
             decoration: pw.BoxDecoration(
               shape: pw.BoxShape.circle,
-              border: pw.Border.all(color: stampInk, width: 0.8),
+              border: pw.Border.all(color: stampInk, width: 0.7),
             ),
-            child: pw.Padding(
-              padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: pw.Column(
-                mainAxisAlignment: pw.MainAxisAlignment.center,
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                children: [
-                  pw.Text(
-                    'EXCELLENT EDUCATORS',
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      color: stampInk,
-                      fontSize: 7.2,
-                      fontWeight: pw.FontWeight.bold,
-                      letterSpacing: 0.5,
+            child: pw.Center(
+              child: pw.SizedBox(
+                width: inner,
+                child: pw.Column(
+                  mainAxisSize: pw.MainAxisSize.min,
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Text(
+                      'EXCELLENT',
+                      textAlign: pw.TextAlign.center,
+                      maxLines: 1,
+                      style: pw.TextStyle(
+                        color: stampInk,
+                        fontSize: 6.2,
+                        fontWeight: pw.FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
                     ),
-                  ),
-                  pw.SizedBox(height: 1.5),
-                  pw.Text(
-                    'ACCOUNTS DEPT',
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      color: stampInk,
-                      fontSize: 5.0,
-                      fontWeight: pw.FontWeight.bold,
-                      letterSpacing: 0.5,
+                    pw.Text(
+                      'EDUCATORS',
+                      textAlign: pw.TextAlign.center,
+                      maxLines: 1,
+                      style: pw.TextStyle(
+                        color: stampInk,
+                        fontSize: 6.2,
+                        fontWeight: pw.FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
                     ),
-                  ),
-                  pw.SizedBox(height: 4),
-                  pw.Container(
-                    width: 68,
-                    height: 1.0,
-                    color: stampInk,
-                  ),
-                  pw.SizedBox(height: 2.5),
-                  pw.Text(
-                    'PAID',
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      color: stampInk,
-                      fontSize: 18.0,
-                      fontWeight: pw.FontWeight.bold,
-                      letterSpacing: 3.0,
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      'ACCOUNTS DEPT',
+                      textAlign: pw.TextAlign.center,
+                      maxLines: 1,
+                      style: pw.TextStyle(
+                        color: stampInk,
+                        fontSize: 4.6,
+                        fontWeight: pw.FontWeight.bold,
+                        letterSpacing: 0.3,
+                      ),
                     ),
-                  ),
-                  pw.SizedBox(height: 1.5),
-                  pw.Container(
-                    width: 68,
-                    height: 1.0,
-                    color: stampInk,
-                  ),
-                  pw.SizedBox(height: 3.5),
-                  pw.Text(
-                    'FEES RECEIVED',
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      color: stampInk,
-                      fontSize: 6.0,
-                      fontWeight: pw.FontWeight.bold,
-                      letterSpacing: 0.8,
+                    pw.SizedBox(height: 3),
+                    pw.Container(width: 48, height: 0.9, color: stampInk),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      'PAID',
+                      textAlign: pw.TextAlign.center,
+                      maxLines: 1,
+                      style: pw.TextStyle(
+                        color: stampInk,
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                        letterSpacing: 1.8,
+                      ),
                     ),
-                  ),
-                  pw.SizedBox(height: 1),
-                  pw.Text(
-                    'OFFICIAL SEAL',
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      color: stampInk,
-                      fontSize: 4.8,
-                      fontWeight: pw.FontWeight.bold,
-                      letterSpacing: 0.6,
+                    pw.SizedBox(height: 2),
+                    pw.Container(width: 48, height: 0.9, color: stampInk),
+                    pw.SizedBox(height: 3),
+                    pw.Text(
+                      'FEES RECEIVED',
+                      textAlign: pw.TextAlign.center,
+                      maxLines: 1,
+                      style: pw.TextStyle(
+                        color: stampInk,
+                        fontSize: 5.0,
+                        fontWeight: pw.FontWeight.bold,
+                        letterSpacing: 0.4,
+                      ),
                     ),
-                  ),
-                ],
+                    pw.SizedBox(height: 1),
+                    pw.Text(
+                      'OFFICIAL SEAL',
+                      textAlign: pw.TextAlign.center,
+                      maxLines: 1,
+                      style: pw.TextStyle(
+                        color: stampInk,
+                        fontSize: 4.2,
+                        fontWeight: pw.FontWeight.bold,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

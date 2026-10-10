@@ -1,4 +1,5 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -7,7 +8,6 @@ import 'package:excellent_educators_web/features/schedule/presentation/providers
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 final studentMentorProfileProvider = FutureProvider.autoDispose
     .family<TeacherDto, String>((ref, teacherId) {
@@ -42,7 +42,7 @@ class StudentMentorProfilePage extends ConsumerWidget {
 
     return StudentScaffold(
       title: 'Meet Your Mentor',
-      backTo: RoutePaths.studentBookNew,
+      backTo: RoutePaths.studentTeachers,
       body: AsyncBody(
         value: profile,
         onRetry: () => ref.invalidate(studentMentorProfileProvider(teacherId)),
@@ -73,7 +73,8 @@ class StudentMentorProfilePage extends ConsumerWidget {
                                           : 'master_class',
                                       orElse: () => 'master_class',
                                     );
-                                context.go(
+                                openAppLink(
+                                  context,
                                   '${RoutePaths.studentBookNew}?type=$type&teacher=${teacher.id}',
                                 );
                               }

@@ -8,6 +8,7 @@ use App\Models\StudentProfile;
 use App\Scheduling\MasterClassBalance;
 use App\Support\StaticAcademicLevels;
 use App\Support\StudentOnboardingSummary;
+use App\Support\StudentPhotoStorage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -40,7 +41,7 @@ class StudentResource extends JsonResource
             'phone' => $this->phone,
             'whatsapp_number' => $this->whatsapp_number,
             'address' => $this->address,
-            'photo_url' => $this->photo_url,
+            'photo_url' => StudentPhotoStorage::accessibleUrl($this->photo_url),
             'class_grade' => $this->class_grade,
             'status' => $this->status?->value ?? $this->status,
             'guardian_name' => $this->guardian_name,

@@ -11,11 +11,11 @@ class FakeGoogleMeetGateway implements GoogleMeetGateway
     public function createDailyMeet(TeacherProfile $teacher, string $date): CreatedGoogleMeet
     {
         $this->createCount++;
-        $slug = substr(hash('sha256', $teacher->id.'|'.$date), 0, 12);
+        $slug = substr(hash('sha256', $teacher->id.'|'.$date.'|'.$this->createCount), 0, 12);
 
         return new CreatedGoogleMeet(
             meetUrl: 'https://meet.google.com/'.$slug,
-            googleEventId: 'fake-event-'.$teacher->id.'-'.$date,
+            googleEventId: 'fake-event-'.$teacher->id.'-'.$date.'-'.$this->createCount,
             googleMeetingSpaceId: 'fake-space-'.$slug,
         );
     }

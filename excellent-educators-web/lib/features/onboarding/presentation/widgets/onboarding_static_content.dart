@@ -30,26 +30,37 @@ class OnboardingStaticContent {
     'Succeed',
   ];
 
-  // Step 2: Parent Details Header & Side Card
-  static const step2Title = 'Parent Details';
-  static const step2Subtitle = 'Help us know better';
+  // Step 2: Parent Perspective Header & Side Card
+  static const step2Title = 'Parent Perspective';
+  static const step2Subtitle = 'Help us know your child';
   static const step2Kicker = 'STEP 2 OF 2';
   static const step2HeadingPrefix = 'Parent ';
-  static const step2HeadingHighlight = 'Details';
-  static const step2Description =
-      'Help us stay connected with your parent or guardian for key updates and fee receipts.';
+  static const step2HeadingHighlight = 'Insights';
   static const step2TipBanner =
-      'Guardian details are used for official receipts and term alerts. You can also skip and update anytime in settings.';
+      'Your answers help mentors understand habits, challenges, and thinking at home. You can skip and update anytime in settings.';
 
   // Step 2 Side Showcase
-  static const step2SideTitlePrefix = 'Connect\n';
-  static const step2SideTitleHighlight = 'With Parents';
+  static const step2SideTitlePrefix = 'Know\n';
+  static const step2SideTitleHighlight = 'the Student';
   static const step2SideDescription =
-      'Keeping guardians informed helps build a strong foundation of support throughout your learning journey.';
+      'A parent’s view of daily habits, challenges, and thinking helps mentors personalize learning.';
   static const step2StickyWords = [
+    'Habits',
     'Support',
-    'Connect',
-    'Empower',
-    'Thrive',
+    'Understand',
+    'Guide',
+  ];
+
+  /// Nine learning pillars shown on onboarding side art + boot splash.
+  static const learningPillars = [
+    'Interests',
+    'Confidence',
+    'Leadership',
+    'Communication',
+    'Decision-making',
+    'Creativity',
+    'Curiosity',
+    'Teamwork',
+    'Future Aspirations',
   ];
 }

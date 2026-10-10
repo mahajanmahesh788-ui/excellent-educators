@@ -222,18 +222,26 @@ class AcademicCoreTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonPath('data.photo_url', fn ($url) => is_string($url) && str_contains($url, '/media/students/'));
+            ->assertJsonPath('data.photo_url', fn ($url) => is_string($url)
+                && str_contains($url, '/media/students/')
+                && str_contains($url, 'signature='));
+
+        $signedFromUpload = (string) $response->json('data.photo_url');
 
         $student->refresh();
         $this->assertNotNull($student->photo_url);
         $this->assertStringContainsString('/media/students/', $student->photo_url);
+        $this->assertStringNotContainsString('signature=', $student->photo_url);
 
-        $this->withToken($token)->getJson('/api/v1/student/profile')
+        $profile = $this->withToken($token)->getJson('/api/v1/student/profile')
             ->assertOk()
-            ->assertJsonPath('data.photo_url', $student->photo_url);
+            ->json('data.photo_url');
+        $this->assertIsString($profile);
+        $this->assertStringContainsString('signature=', $profile);
 
-        $path = parse_url($student->photo_url, PHP_URL_PATH);
-        $this->get($path)->assertOk();
+        $unsignedPath = parse_url($student->photo_url, PHP_URL_PATH);
+        $this->get($unsignedPath)->assertForbidden();
+        $this->get($signedFromUpload)->assertOk();
     }
 
     public function test_student_photo_rejects_files_over_one_megabyte(): void

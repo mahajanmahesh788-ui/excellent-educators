@@ -60,7 +60,7 @@ class LeaveRequestAssembler
                     ->map(fn ($candidate) => [
                         'id' => $candidate->id,
                         'full_name' => $candidate->full_name,
-                        'photo_url' => $candidate->photo_url,
+                        'photo_url' => \App\Support\TeacherPhotoStorage::accessibleUrl($candidate->photo_url),
                         'phone' => $candidate->phone,
                         'whatsapp_number' => $candidate->whatsapp_number,
                     ])
@@ -110,7 +110,7 @@ class LeaveRequestAssembler
             'request_group_id' => $groupId,
             'teacher_id' => $primary->teacher_id,
             'teacher_name' => $teacher?->full_name,
-            'teacher_photo_url' => $teacher?->photo_url ?? null,
+            'teacher_photo_url' => \App\Support\TeacherPhotoStorage::accessibleUrl($teacher?->photo_url),
             'teacher_phone' => $teacher?->phone,
             'teacher_whatsapp' => $teacher?->whatsapp_number,
             'teacher_email' => $teacher?->user?->email,

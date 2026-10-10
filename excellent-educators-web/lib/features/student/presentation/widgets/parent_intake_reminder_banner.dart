@@ -1,10 +1,9 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_theme_colors.dart';
-import 'package:excellent_educators_web/app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 /// Soft dashboard prompt when parent intake was skipped or never completed.
 class ParentIntakeReminderBanner extends StatelessWidget {
@@ -27,7 +26,7 @@ class ParentIntakeReminderBanner extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => context.go(RoutePaths.studentParentIntake),
+        onTap: () => openOnboarding(context, RoutePaths.studentParentIntake),
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           decoration: BoxDecoration(
@@ -128,8 +127,10 @@ class ParentIntakeReminderBanner extends StatelessWidget {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: FilledButton.icon(
-                          onPressed: () =>
-                              context.go(RoutePaths.studentParentIntake),
+                          onPressed: () => openOnboarding(
+                                context,
+                                RoutePaths.studentParentIntake,
+                              ),
                           style: FilledButton.styleFrom(
                             backgroundColor: StudentColors.forest,
                             foregroundColor: Colors.white,

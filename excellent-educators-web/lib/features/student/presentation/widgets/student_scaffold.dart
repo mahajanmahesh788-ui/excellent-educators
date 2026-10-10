@@ -1,5 +1,4 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
-import 'package:excellent_educators_web/app/theme/app_colors.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/widgets/app_logo.dart';

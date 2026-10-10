@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
@@ -264,7 +263,7 @@ class LearningJournalPreviewWidget extends StatelessWidget {
                             ),
                           );
                         } else {
-                          context.go(RoutePaths.studentJournal);
+                          openAppLink(context, RoutePaths.studentJournal);
                         }
                       },
                       style: TextButton.styleFrom(

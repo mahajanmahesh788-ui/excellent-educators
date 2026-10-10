@@ -10,6 +10,12 @@ class AppNavHistory {
 
   final List<String> _stack = <String>[];
 
+  /// Interest ↔ Parent onboarding steps share one history slot (never stack).
+  static const Set<String> onboardingFlowDestinations = {
+    RoutePaths.studentInterestProfile,
+    RoutePaths.studentParentIntake,
+  };
+
   /// Top-level sidebar / bottom-nav destinations (replace history).
   static const Set<String> shellDestinations = {
     RoutePaths.login,
@@ -41,8 +47,6 @@ class AppNavHistory {
     RoutePaths.teacherNotifications,
     RoutePaths.studentDashboard,
     RoutePaths.studentAcceptTerms,
-    RoutePaths.studentInterestProfile,
-    RoutePaths.studentParentIntake,
     RoutePaths.studentBookings,
     RoutePaths.studentJournal,
     RoutePaths.studentFeedback,
@@ -73,6 +77,24 @@ class AppNavHistory {
     return shellDestinations.contains(normalize(location).split('?').first);
   }
 
+  static bool isOnboardingFlow(String location) {
+    return onboardingFlowDestinations
+        .contains(normalize(location).split('?').first);
+  }
+
+  /// Swap the current stack entry (Interest ↔ Parent) without growing history.
+  void replaceCurrent(String location) {
+    final normalized = normalize(location);
+    if (normalized.isEmpty || normalized == '/') {
+      return;
+    }
+    if (_stack.isEmpty) {
+      _stack.add(normalized);
+      return;
+    }
+    _stack[_stack.length - 1] = normalized;
+  }
+
   /// Keep the stack aligned with the current router location.
   void track(String location) {
     final normalized = normalize(location);
@@ -81,6 +103,25 @@ class AppNavHistory {
     }
 
     if (_stack.isNotEmpty && _stack.last == normalized) {
+      return;
+    }
+
+    // Interest ↔ Parent: one slot only — never Interest → Parent → Interest.
+    if (isOnboardingFlow(normalized)) {
+      if (_stack.isNotEmpty && isOnboardingFlow(_stack.last)) {
+        replaceCurrent(normalized);
+        return;
+      }
+      if (_stack.isEmpty) {
+        _stack.add(normalized);
+        return;
+      }
+      final existing = _stack.lastIndexOf(normalized);
+      if (existing >= 0) {
+        _stack.removeRange(existing + 1, _stack.length);
+        return;
+      }
+      _stack.add(normalized);
       return;
     }
 

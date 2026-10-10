@@ -1125,6 +1125,8 @@ abstract final class AppStrings {
   static const sessionHistory = 'Session History';
   static const sessionRescheduled = 'Session rescheduled';
   static const setNewPassword = 'Set new password';
+  static const resetLinkInvalidOrExpired =
+      'This reset link is invalid or incomplete. Request a new one from Forgot Password.';
   static const setRecurringBreakfastAndLunchForTheSelectedTeacher = 'Set recurring breakfast and lunch for the selected teacher.';
   static const setTheHoursThisTeacherCanBeBookedStudentsOnly = 'Set the hours this teacher can be booked. Students only see available 30-minute slots inside these ranges.';
   static const settings = 'Settings';
@@ -1164,10 +1166,10 @@ abstract final class AppStrings {
   static const noParentAnswersYet = 'No parent answers yet.';
   static const saveAndReturnToProfile = 'Save and return to profile';
   static const parentDetailsMissingBadge = 'Action needed';
-  static const parentDetailsMissingTitle = 'Parent details are missing';
+  static const parentDetailsMissingTitle = 'Parent perspective is missing';
   static const parentDetailsMissingBody =
-      'You skipped this earlier. Please add your parent or guardian details so we can stay connected and support you better.';
-  static const parentDetailsMissingCta = 'Add parent details';
+      'You skipped this earlier. Please share habits, routines, and what matters most so we can support your child better.';
+  static const parentDetailsMissingCta = 'Add parent perspective';
   static const skipForNow = 'Skip';
   static const selectUpToThree = 'You can select up to 5 options.';
   static const selectAnOption = 'Please select an option.';
@@ -1373,6 +1375,11 @@ abstract final class AppStrings {
   static const tryADifferentSearchQuery = 'Try a different search query.';
   static const tryADifferentSearchTermOrFilter = 'Try a different search term or filter.';
   static const tryAgain = 'Try again';
+  static const bookingCouldNotComplete = 'Could not complete booking';
+  static const bookingIssueSentToAdmin =
+      'We have sent this issue to the admin. They will look into it — please try again after some time.';
+  static const bookingTryAnotherSlot =
+      'If this slot is taken, pick another available time and try again.';
   static const tryAnotherLevelBatchMonthOrRatedFilter = 'Try another level, batch, month, or rated filter.';
   static const tryChangingSearchTermsDatePeriodsOrEventCategoryFilters = 'Try changing search terms, date periods, or event category filters.';
   static const tue = 'TUE';
@@ -1433,7 +1440,9 @@ abstract final class AppStrings {
   static const wrongAnswer = 'Wrong answer';
   static const year = 'Year';
   static const yes = 'Yes';
-  static const youAndYourTeacherJoinTheSameGoogleMeetFor = 'You and your teacher join the same Google Meet for this day.';
+  static const youAndYourTeacherJoinTheSameGoogleMeetFor =
+      'You and your teacher join this Google Meet for your session.';
+  static const addToCalendar = 'Add to calendar';
   static const youAreReadyToSubmitYourAssignment = 'You are ready to submit your assignment.';
   static const youDonTHaveASessionScheduledYet = 'You don’t have a session scheduled yet.';
   static const youHaveBeenHeard = 'You have been heard';
@@ -1534,9 +1543,13 @@ abstract final class AppStrings {
   static const saveMeetingLink = 'Save meeting link';
   static const clearManualMeetingLink = 'Use Google Meet link';
   static const meetingLinkHelp =
-      'If Google Meet fails, paste your own link. Students open this link for classes on this day.';
-  static const meetingLinkSaved = 'Meeting link saved for this day.';
+      'Optional override for joining classes on this day only. New bookings still get their own Meet link. This manual link expires the next day.';
+  static const meetingLinkSaved = 'Meeting link saved for this day only.';
   static const meetingLinkCleared = 'Meeting link reset.';
+  static const meetingLinkExpired =
+      'Expired — this manual link was only valid for that day. Students now use each session’s Meet link.';
+  static const usingManualLinkForThisDay =
+      'Using your manual link for joining today. It expires tomorrow.';
   static const editPayment = 'Edit payment';
   static const voidPayment = 'Void payment';
   static const voidPaymentHelp =

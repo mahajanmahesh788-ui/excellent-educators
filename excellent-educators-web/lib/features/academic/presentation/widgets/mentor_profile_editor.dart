@@ -158,28 +158,28 @@ class _MentorProfileEditorState extends ConsumerState<MentorProfileEditor> {
     if (files.isEmpty) {
       return;
     }
-    final file = files.first;
-    late final Uint8List bytes;
+
+    // Show a small loader immediately — read/shrink can take a moment.
+    setState(() => _uploading = true);
+
     try {
-      final raw = await file.readAsBytes();
+      final raw = await files.first.readAsBytes();
       if (raw.isEmpty) {
         throw StateError('Could not read the selected image.');
       }
-      // Keep uploads ≤ 1 MB so live portal does not hit the 20s timeout.
-      bytes = shrinkImageToMaxBytes(raw);
-    } catch (error) {
+
+      // Paint the selected image right away, then shrink for upload.
       if (mounted) {
-        showFailure(context, error);
+        setState(() => _localPreview = raw);
       }
-      return;
-    }
+      await Future<void>.delayed(Duration.zero);
 
-    setState(() {
-      _localPreview = bytes;
-      _uploading = true;
-    });
+      // Keep uploads ≤ 1 MB so live portal does not hit the 20s timeout.
+      final bytes = await Future(() => shrinkImageToMaxBytes(raw));
+      if (mounted && !identical(bytes, raw)) {
+        setState(() => _localPreview = bytes);
+      }
 
-    try {
       final photoUrl = await ref
           .read(academicRepositoryProvider)
           .uploadTeacherPhoto(
@@ -581,15 +581,18 @@ class _PhotoPreview extends StatelessWidget {
                   borderRadius: 18,
                 ),
                 if (uploading)
-                  ColoredBox(
-                    color: Colors.black45,
-                    child: const Center(
-                      child: SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: const ColoredBox(
+                      color: Colors.black45,
+                      child: Center(
+                        child: SizedBox(
+                          width: 26,
+                          height: 26,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),

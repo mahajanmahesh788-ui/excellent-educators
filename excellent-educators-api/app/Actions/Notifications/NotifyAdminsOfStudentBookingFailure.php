@@ -28,10 +28,6 @@ class NotifyAdminsOfStudentBookingFailure
         string $action = 'book',
         array $context = [],
     ): void {
-        if (! $this->shouldNotify($error)) {
-            return;
-        }
-
         $errorCode = $error instanceof ApiException
             ? $error->errorCode
             : ErrorCode::SERVER_ERROR;
@@ -39,9 +35,17 @@ class NotifyAdminsOfStudentBookingFailure
             ? $error->getMessage()
             : 'An unexpected booking error occurred.';
 
-        // Avoid flooding admins when many students hit the same outage.
-        $throttleKey = 'admin.notify.student_booking_failed.'.$errorCode;
-        if (! Cache::add($throttleKey, true, now()->addMinutes(5))) {
+        // Soft-dedupe double-taps; still notify for each distinct student attempt.
+        $throttleKey = implode('.', [
+            'notify.student_booking_failed',
+            $student->id,
+            $teacher?->id ?? 'none',
+            $errorCode,
+            (string) ($context['date'] ?? ''),
+            (string) ($context['start'] ?? ''),
+            $action,
+        ]);
+        if (! Cache::add($throttleKey, true, now()->addSeconds(45))) {
             return;
         }
 
@@ -58,16 +62,21 @@ class NotifyAdminsOfStudentBookingFailure
 
         $verb = $action === 'reschedule' ? 'reschedule' : 'book';
         $title = $this->titleFor($errorCode);
-        $body = $studentName.' could not '.$verb.' a session with '.$teacherName
+        $reason = $message;
+        $adminBody = $studentName.' could not '.$verb.' a session with '.$teacherName
             .($when ? ' ('.$when.')' : '')
-            .'. '.$message
+            .'. Reason: '.$reason
             .($this->isMeetIssue($errorCode)
                 ? ' Open Admin → Google Meet and reconnect if needed.'
                 : '');
+        $teacherBody = $studentName.' tried to '.$verb
+            .($when ? ' for '.$when : '')
+            .' but could not. Reason: '.$reason;
 
         $data = [
             'error_code' => $errorCode,
             'action' => $verb,
+            'reason' => $reason,
             'student_id' => $student->id,
             'student_name' => $studentName,
             'student_code' => $student->student_code,
@@ -84,35 +93,26 @@ class NotifyAdminsOfStudentBookingFailure
                     RoleName::OperationalAdmin->value,
                 ])
                 ->get()
-                ->each(function (User $admin) use ($title, $body, $data): void {
+                ->each(function (User $admin) use ($title, $adminBody, $data): void {
                     $this->notifications->execute(
                         $admin,
                         NotificationType::StudentBookingFailed,
                         $title,
-                        $body,
+                        $adminBody,
                         $data,
                     );
                 });
+
+            $this->notifications->safeExecute(
+                $teacher?->user,
+                NotificationType::StudentBookingFailed,
+                'Student could not '.$verb,
+                $teacherBody,
+                $data + ['link' => '/teacher/schedule'],
+            );
         } catch (Throwable) {
-            // Never mask the original booking failure if admin notify fails.
+            // Never mask the original booking failure if notify fails.
         }
-    }
-
-    private function shouldNotify(Throwable $error): bool
-    {
-        if (! $error instanceof ApiException) {
-            return true;
-        }
-
-        if (in_array($error->errorCode, [
-            ErrorCode::GOOGLE_NOT_CONNECTED,
-            ErrorCode::MEETING_CREATE_FAILED,
-            ErrorCode::SERVER_ERROR,
-        ], true)) {
-            return true;
-        }
-
-        return $error->getStatusCode() >= 500;
     }
 
     private function isMeetIssue(string $errorCode): bool
@@ -128,7 +128,13 @@ class NotifyAdminsOfStudentBookingFailure
         return match ($errorCode) {
             ErrorCode::GOOGLE_NOT_CONNECTED => 'Google Meet needs reconnect',
             ErrorCode::MEETING_CREATE_FAILED => 'Student booking failed (Meet)',
-            default => 'Student booking failed',
+            ErrorCode::SLOT_UNAVAILABLE => 'Student could not book (slot taken)',
+            ErrorCode::BOOKING_OVERLAP => 'Student could not book (overlap)',
+            ErrorCode::TEACHER_NOT_ELIGIBLE => 'Student could not book (teacher)',
+            ErrorCode::INTRODUCTION_REQUIRED => 'Student could not book (intro required)',
+            ErrorCode::MASTER_CLASS_MONTHLY_LIMIT => 'Student could not book (master class limit)',
+            ErrorCode::MASTER_CLASS_LEVEL_WEEKS_INCOMPLETE => 'Student could not book (weeks incomplete)',
+            default => 'Student could not book',
         };
     }
 }

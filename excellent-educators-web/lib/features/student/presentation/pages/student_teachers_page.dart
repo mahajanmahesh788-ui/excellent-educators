@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/mentor_profile_view.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
@@ -7,7 +8,6 @@ import 'package:excellent_educators_web/features/student/presentation/widgets/ac
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class StudentTeachersPage extends ConsumerWidget {
   const StudentTeachersPage({super.key});
@@ -19,7 +19,8 @@ class StudentTeachersPage extends ConsumerWidget {
 
     return StudentScaffold(
       title: AppStrings.teachers,
-      backTo: RoutePaths.studentBookings,
+      // Opened from Dashboard → View Teachers; never dump users on My Sessions.
+      backTo: RoutePaths.studentDashboard,
       body: profile.when(
         skipLoadingOnReload: true,
         loading: () => const AcademySkeleton(height: 280),
@@ -61,19 +62,27 @@ class StudentTeachersPage extends ConsumerWidget {
                   body: AppStrings.masterTeachersForYourLevelWillBeShownAsSoon,
                 )
               else
-                for (final teacher in student.masterTeachers) ...[
-                  MentorBookingCard(
-                    teacher: teacher,
-                    onViewProfile: () => context.go(
-                      '${RoutePaths.studentMentorProfileFor(teacher.id)}${type == null ? '' : '?type=$type'}',
-                    ),
-                    onSelect: type == null
-                        ? null
-                        : () => context.go(
-                            '${RoutePaths.studentBookNew}?type=$type&teacher=${teacher.id}',
-                          ),
-                  ),
-                  const SizedBox(height: 14),
+                for (var i = 0; i < student.masterTeachers.length; i++) ...[
+                  () {
+                    final teacher = student.masterTeachers[i];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 22),
+                      child: MentorBookingCard(
+                        teacher: teacher,
+                        index: i,
+                        onViewProfile: () => openAppLink(
+                          context,
+                          '${RoutePaths.studentMentorProfileFor(teacher.id)}${type == null ? '' : '?type=$type'}',
+                        ),
+                        onSelect: type == null
+                            ? null
+                            : () => openAppLink(
+                                context,
+                                '${RoutePaths.studentBookNew}?type=$type&teacher=${teacher.id}',
+                              ),
+                      ),
+                    );
+                  }(),
                 ],
             ],
           );

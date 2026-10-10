@@ -1,13 +1,32 @@
 <?php
 
+$isProduction = env('APP_ENV') === 'production';
+$rawOrigins = trim((string) env('CORS_ALLOWED_ORIGINS', $isProduction ? '' : '*'));
 $origins = array_values(array_filter(array_map(
     'trim',
-    explode(',', (string) env('CORS_ALLOWED_ORIGINS', '*')),
+    $rawOrigins === '' ? [] : explode(',', $rawOrigins),
 )));
 
-$frontend = trim((string) env('FRONTEND_URL', ''));
-if ($frontend !== '' && ! in_array($frontend, $origins, true) && ! in_array('*', $origins, true)) {
+// Never allow wildcard CORS in production — browsers would accept any site.
+if ($isProduction) {
+    $origins = array_values(array_filter(
+        $origins,
+        static fn (string $origin): bool => $origin !== '*',
+    ));
+}
+
+$frontend = rtrim(trim((string) env('FRONTEND_URL', '')), '/');
+if (
+    $frontend !== ''
+    && ! in_array($frontend, $origins, true)
+    && ! in_array('*', $origins, true)
+) {
     $origins[] = $frontend;
+}
+
+if ($origins === []) {
+    // Local/dev fallback keeps DX; production with empty list blocks unknown sites.
+    $origins = $isProduction ? [] : ['*'];
 }
 
 return [
@@ -15,13 +34,15 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => $origins === [] ? ['*'] : $origins,
+    'allowed_origins' => $origins,
 
-    'allowed_origins_patterns' => [
-        '#^https?://localhost(:\d+)?$#',
-        '#^https?://127\.0\.0\.1(:\d+)?$#',
-        '#^https?://\[::1\](:\d+)?$#',
-    ],
+    'allowed_origins_patterns' => $isProduction
+        ? []
+        : [
+            '#^https?://localhost(:\d+)?$#',
+            '#^https?://127\.0\.0\.1(:\d+)?$#',
+            '#^https?://\[::1\](:\d+)?$#',
+        ],
 
     'allowed_headers' => ['*'],
 

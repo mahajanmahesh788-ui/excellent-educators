@@ -48,7 +48,7 @@ class LeaveRequestController extends Controller
             'teachers' => $teachers->map(fn ($teacher) => [
                 'id' => $teacher->id,
                 'full_name' => $teacher->full_name,
-                'photo_url' => $teacher->photo_url,
+                'photo_url' => \App\Support\TeacherPhotoStorage::accessibleUrl($teacher->photo_url),
             ])->values()->all(),
         ]);
     }

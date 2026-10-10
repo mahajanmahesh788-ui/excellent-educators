@@ -25,6 +25,8 @@ class SessionBooking extends Model
         'starts_at',
         'ends_at',
         'status',
+        'meet_url',
+        'google_meeting_space_id',
     ];
 
     protected function casts(): array

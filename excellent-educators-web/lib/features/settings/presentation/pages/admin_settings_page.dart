@@ -4,6 +4,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/a
 import 'package:excellent_educators_web/features/auth/presentation/pages/admin_login_page_editor.dart';
 import 'package:excellent_educators_web/features/content/presentation/pages/admin_site_pages_editor.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/pages/admin_google_meet_page.dart';
+import 'package:excellent_educators_web/features/payments/presentation/widgets/admin_generate_bills_panel.dart';
 import 'package:excellent_educators_web/features/settings/data/dto/app_settings_dto.dart';
 import 'package:excellent_educators_web/features/settings/presentation/providers/settings_providers.dart';
 import 'package:flutter/material.dart';
@@ -88,7 +89,7 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
     return AppScaffold(
       title: AppStrings.settings,
       body: DefaultTabController(
-        length: 4,
+        length: 5,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -100,6 +101,7 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
               indicatorColor: Brand.gold,
               tabs: [
                 Tab(text: AppStrings.organisation),
+                Tab(text: 'Generate bill'),
                 Tab(text: AppStrings.content),
                 Tab(text: AppStrings.legalPages),
                 Tab(text: AppStrings.meet),
@@ -127,6 +129,7 @@ class _AdminSettingsPageState extends ConsumerState<AdminSettingsPage> {
                       );
                     },
                   ),
+                  const AdminGenerateBillsPanel(),
                   const AdminLoginPageEditor(embedded: true),
                   const AdminSitePagesEditor(),
                   const AdminGoogleMeetConnectPanel(),

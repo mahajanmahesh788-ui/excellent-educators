@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api\V1;
 
 use App\Actions\Teachers\BuildMentorProfileStats;
 use App\Models\TeacherProfile;
+use App\Support\TeacherPhotoStorage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -30,7 +31,7 @@ class TeacherResource extends JsonResource
             'phone' => $this->phone,
             'whatsapp_number' => $this->whatsapp_number,
             'address' => $this->address,
-            'photo_url' => $this->photo_url,
+            'photo_url' => TeacherPhotoStorage::accessibleUrl($this->photo_url),
             'professional_title' => $this->professional_title,
             'bio' => $this->bio,
             'experience_summary' => $this->experience_summary,

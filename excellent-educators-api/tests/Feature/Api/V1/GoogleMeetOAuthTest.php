@@ -72,6 +72,17 @@ class GoogleMeetOAuthTest extends TestCase
                 'name' => 'spaces/abc-def-ghi',
                 'meetingUri' => 'https://meet.google.com/abc-defg-hij',
                 'meetingCode' => 'abc-defg-hij',
+                'config' => [
+                    'accessType' => 'OPEN',
+                    'entryPointAccess' => 'ALL',
+                ],
+            ], 200),
+            'meet.googleapis.com/v2/spaces/*' => Http::response([
+                'name' => 'spaces/abc-def-ghi',
+                'config' => [
+                    'accessType' => 'OPEN',
+                    'entryPointAccess' => 'ALL',
+                ],
             ], 200),
         ]);
 

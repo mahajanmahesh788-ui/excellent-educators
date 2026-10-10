@@ -265,11 +265,9 @@ class _SideShowcaseCard extends StatelessWidget {
 
         const SizedBox(height: 24),
 
-        // Educational Illustration Widget
-        Center(
-          child: OnboardingIllustrationWidget(
-            stickyWords: stickyWords,
-          ),
+        // Cinematic 9-pillar fan with app logo (replaces old book art)
+        const Center(
+          child: OnboardingIllustrationWidget(),
         ),
       ],
     );

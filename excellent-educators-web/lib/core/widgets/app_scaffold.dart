@@ -71,6 +71,8 @@ class AppScaffold extends ConsumerWidget {
     this.floatingActionButton,
     this.disabledNavPaths = const [],
     this.backTo,
+    this.onBack,
+    this.forceShowBack = false,
     this.onRefresh,
     this.enablePullToRefresh = true,
   });
@@ -82,6 +84,10 @@ class AppScaffold extends ConsumerWidget {
   final List<String> disabledNavPaths;
   /// When set, shows a back arrow in the app bar that navigates to this route.
   final String? backTo;
+  /// Optional custom back handler (e.g. cancel in-page edit mode).
+  final VoidCallback? onBack;
+  /// Force the app-bar back chevron even on shell destinations.
+  final bool forceShowBack;
   /// Optional screen-specific reload. When null, path-based provider refresh is used.
   final Future<void> Function()? onRefresh;
   final bool enablePullToRefresh;
@@ -145,6 +151,17 @@ class AppScaffold extends ConsumerWidget {
       );
     }
 
+    void handleBack() {
+      if (onBack != null) {
+        onBack!();
+        return;
+      }
+      navigateBack(context, backTo);
+    }
+
+    final showBack =
+        forceShowBack || onBack != null || shouldShowAppBack(context, backTo: backTo);
+
     return PopScope(
       // Always intercept so browser/system back cannot reopen finished detail
       // screens (e.g. journey ← week after submit). Menu roots use double-back exit.
@@ -153,19 +170,18 @@ class AppScaffold extends ConsumerWidget {
         if (didPop) {
           return;
         }
-        navigateBack(context, backTo);
+        handleBack();
       },
       child: Scaffold(
       appBar: AppBar(
-        leading: shouldShowAppBack(context, backTo: backTo)
+        leading: showBack
             ? IconButton(
                 tooltip: AppStrings.back,
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => navigateBack(context, backTo),
+                onPressed: handleBack,
               )
             : null,
-        automaticallyImplyLeading: !shouldShowAppBack(context, backTo: backTo) &&
-            useDrawer,
+        automaticallyImplyLeading: !showBack && useDrawer,
         title: Text(title, overflow: TextOverflow.ellipsis),
         actions: [
           ...?actions,

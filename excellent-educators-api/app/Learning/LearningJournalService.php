@@ -95,10 +95,12 @@ class LearningJournalService
         $journeys = StudentLevelJourney::query()
             ->with('level')
             ->where('student_id', $student->id)
-            ->orderByRaw('ended_at is null')
             ->orderBy('started_at')
             ->orderBy('created_at')
-            ->get();
+            ->get()
+            // Highest level first (Level 5, 4, 3, 2, 1).
+            ->sortByDesc(fn (StudentLevelJourney $journey) => (int) ($journey->level?->number ?? 0))
+            ->values();
 
         $levels = [];
         $maxWeekByJourney = [];

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
-import 'package:excellent_educators_web/app/theme/app_colors.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/fresh_student_onboarding.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
@@ -92,7 +91,8 @@ class UpcomingClassesTimeline extends StatelessWidget {
                 ],
               ),
               TextButton(
-                onPressed: () => context.go(RoutePaths.studentBookings),
+                onPressed: () =>
+                    openAppLink(context, RoutePaths.studentBookings),
                 style: TextButton.styleFrom(
                   foregroundColor: StudentColors.indigoPrimary,
                   textStyle: const TextStyle(
@@ -177,7 +177,10 @@ class UpcomingClassesTimeline extends StatelessWidget {
                 MasterClassLevelWeeksDialog.show(context);
                 return;
               }
-              context.go('${RoutePaths.studentBookNew}?type=master_class');
+              openAppLink(
+                context,
+                '${RoutePaths.studentBookNew}?type=master_class',
+              );
             },
             style: FilledButton.styleFrom(
               backgroundColor: StudentColors.indigoPrimary,

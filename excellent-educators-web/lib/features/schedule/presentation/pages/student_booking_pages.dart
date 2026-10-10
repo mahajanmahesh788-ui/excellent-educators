@@ -9,6 +9,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/errors/api_error_message.dart';
+import 'package:excellent_educators_web/core/network/api_exception.dart';
 import 'package:excellent_educators_web/core/utils/session_labels.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/portal_chrome.dart';
@@ -2209,63 +2211,76 @@ class _StudentBookingWizardPageState
                 ),
                 data: (items) => Column(
                   children: [
-                    for (final teacher in items) ...[
-                      MentorBookingCard(
-                        teacher: teacher,
-                        selected: _teacher?.id == teacher.id,
-                        onSelect: () => setState(() {
-                          _teacher = teacher;
-                          _date ??= DateTime.now();
-                          _start = null;
-                        }),
-                        onViewProfile: () => context.go(
-                          '${RoutePaths.studentMentorProfileFor(teacher.id)}?type=${_type ?? 'master_class'}',
-                        ),
-                      ),
-                      if (_teacher?.id == teacher.id) ...[
-                        SizedBox(height: isMobile ? 8 : 10),
-                        _TimeStep(
-                          teacherName: teacher.fullName,
-                          teacherId: teacher.id,
-                          date: formatScheduleDate(_date ?? DateTime.now()),
-                          selected: _start,
-                          onSelect: (start) => setState(() => _start = start),
-                          onChangeDate: () async {
-                            final today = DateTime.now();
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: _date ?? today,
-                              firstDate: today,
-                              lastDate: today.add(const Duration(days: 120)),
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                _date = picked;
+                    for (var i = 0; i < items.length; i++) ...[
+                      () {
+                        final teacher = items[i];
+                        return Column(
+                          children: [
+                            MentorBookingCard(
+                              teacher: teacher,
+                              index: i,
+                              selected: _teacher?.id == teacher.id,
+                              onSelect: () => setState(() {
+                                _teacher = teacher;
+                                _date ??= DateTime.now();
                                 _start = null;
-                              });
-                            }
-                          },
-                        ),
-                        if (_date != null && _start != null) ...[
-                          const SizedBox(height: 10),
-                          _SummaryStep(
-                            type: type,
-                            lastChance:
-                                type == 'introduction_call' &&
-                                state.introductionLastChance,
-                            teacher: teacher,
-                            date: _date,
-                            start: _start,
-                            busy: _saving,
-                            onBack: () => setState(() => _start = null),
-                            onConfirm: () {
-                              _type = type;
-                              _confirm();
-                            },
-                          ),
-                        ],
-                      ],
-                      SizedBox(height: isMobile ? 10 : 14),
+                              }),
+                              onViewProfile: () => context.go(
+                                '${RoutePaths.studentMentorProfileFor(teacher.id)}?type=${_type ?? 'master_class'}',
+                              ),
+                            ),
+                            if (_teacher?.id == teacher.id) ...[
+                              SizedBox(height: isMobile ? 8 : 10),
+                              _TimeStep(
+                                teacherName: teacher.fullName,
+                                teacherId: teacher.id,
+                                date: formatScheduleDate(
+                                  _date ?? DateTime.now(),
+                                ),
+                                selected: _start,
+                                onSelect: (start) =>
+                                    setState(() => _start = start),
+                                onChangeDate: () async {
+                                  final today = DateTime.now();
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: _date ?? today,
+                                    firstDate: today,
+                                    lastDate: today.add(
+                                      const Duration(days: 120),
+                                    ),
+                                  );
+                                  if (picked != null) {
+                                    setState(() {
+                                      _date = picked;
+                                      _start = null;
+                                    });
+                                  }
+                                },
+                              ),
+                              if (_date != null && _start != null) ...[
+                                const SizedBox(height: 10),
+                                _SummaryStep(
+                                  type: type,
+                                  lastChance:
+                                      type == 'introduction_call' &&
+                                      state.introductionLastChance,
+                                  teacher: teacher,
+                                  date: _date,
+                                  start: _start,
+                                  busy: _saving,
+                                  onBack: () => setState(() => _start = null),
+                                  onConfirm: () {
+                                    _type = type;
+                                    _confirm();
+                                  },
+                                ),
+                              ],
+                            ],
+                            SizedBox(height: isMobile ? 10 : 14),
+                          ],
+                        );
+                      }(),
                     ],
                   ],
                 ),
@@ -2339,10 +2354,51 @@ class _StudentBookingWizardPageState
     } catch (error) {
       if (mounted) {
         setState(() => _saving = false);
-        showFailure(context, error);
+        await _showBookingFailureDialog(context, error);
       }
     }
   }
+}
+
+Future<void> _showBookingFailureDialog(BuildContext context, Object error) async {
+  final reason = friendlyErrorMessage(error);
+  final code = error is ApiException ? error.code : null;
+  final suggestOtherSlot = code == 'SLOT_UNAVAILABLE' ||
+      code == 'BOOKING_OVERLAP' ||
+      reason.toLowerCase().contains('no longer available') ||
+      reason.toLowerCase().contains('already has a booking');
+
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text(AppStrings.bookingCouldNotComplete),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(reason, style: const TextStyle(height: 1.45)),
+          const SizedBox(height: 12),
+          const Text(
+            AppStrings.bookingIssueSentToAdmin,
+            style: TextStyle(height: 1.45, color: Academy.muted),
+          ),
+          if (suggestOtherSlot) ...[
+            const SizedBox(height: 10),
+            const Text(
+              AppStrings.bookingTryAnotherSlot,
+              style: TextStyle(height: 1.45, color: Academy.muted),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text(AppStrings.ok),
+        ),
+      ],
+    ),
+  );
 }
 
 class _TypeStep extends StatelessWidget {
@@ -2812,7 +2868,36 @@ class _BookingConfirmedDialog extends StatelessWidget {
                     ),
                   ),
               ],
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => launchUrl(
+                    _googleCalendarUri(
+                      title: '$session with $teacherName',
+                      date: date,
+                      start: start,
+                      end: end,
+                      details: (meetingUrl ?? '').isNotEmpty
+                          ? 'Join Google Meet: $meetingUrl'
+                          : 'Excellent Educators session with $teacherName',
+                      location: meetingUrl,
+                    ),
+                    webOnlyWindowName: AppStrings.blank,
+                  ),
+                  icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                  label: const Text(AppStrings.addToCalendar),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Brand.navy,
+                    side: BorderSide(color: Brand.gold.withValues(alpha: 0.55)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(minWidth: 180, maxWidth: 260),
@@ -2858,6 +2943,38 @@ class _BookingConfirmedDialog extends StatelessWidget {
       ),
     );
   }
+}
+
+Uri _googleCalendarUri({
+  required String title,
+  required String date,
+  required String start,
+  required String end,
+  required String details,
+  String? location,
+}) {
+  String compact(String day, String hm) {
+    final time = hm.length >= 5 ? hm.substring(0, 5) : hm;
+    final parts = time.split(':');
+    final h = (parts.isNotEmpty ? parts[0] : '00').padLeft(2, '0');
+    final m = (parts.length > 1 ? parts[1] : '00').padLeft(2, '0');
+    final d = day.replaceAll('-', '');
+    return '${d}T${h}${m}00';
+  }
+
+  final params = <String, String>{
+    'action': 'TEMPLATE',
+    'text': title,
+    'dates': '${compact(date, start)}/${compact(date, end)}',
+    'ctz': 'Asia/Kolkata',
+    'details': details,
+  };
+  final meet = (location ?? '').trim();
+  if (meet.isNotEmpty) {
+    params['location'] = meet;
+  }
+
+  return Uri.https('calendar.google.com', '/calendar/render', params);
 }
 
 String _slotEnd(String start) {

@@ -1,3 +1,4 @@
+import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/navigation/app_nav_history.dart';
 import 'package:flutter/material.dart';
@@ -61,12 +62,69 @@ void goMenu(BuildContext context, String location) {
 
 /// Navigate to [location]: shell/tab destinations clear history via [goMenu];
 /// detail routes use [goDetail] so Back returns one step.
+///
+/// Prefer this over raw `context.go` — `go` stacks browser history and makes
+/// Back walk Dashboard → Bookings → Journal → … like a broken trail.
 void openAppLink(BuildContext context, String location) {
+  if (AppNavHistory.isOnboardingFlow(location)) {
+    openOnboarding(context, location);
+    return;
+  }
   if (AppNavHistory.isShellDestination(location)) {
     goMenu(context, location);
     return;
   }
   goDetail(context, location);
+}
+
+/// Open Interest / Parent once (push). Further step changes [switchOnboardingStep].
+void openOnboarding(BuildContext context, String location) {
+  dismissOverlayRoutes(context);
+  final router = GoRouter.of(context);
+  final current = AppNavHistory.normalize(router.state.uri.path);
+  if (AppNavHistory.isOnboardingFlow(current)) {
+    switchOnboardingStep(context, location);
+    return;
+  }
+  goDetail(context, location);
+}
+
+/// Switch Interest ↔ Parent without stacking browser/app Back history.
+void switchOnboardingStep(BuildContext context, String location) {
+  dismissOverlayRoutes(context);
+  final router = GoRouter.of(context);
+  final target = AppNavHistory.normalize(location);
+  final current = AppNavHistory.normalize(router.state.uri.path);
+  if (current == target) {
+    return;
+  }
+  AppNavHistory.instance.replaceCurrent(target);
+  router.replace(target);
+}
+
+/// Leave onboarding for good — never Interest ← Parent ← Interest.
+///
+/// Pops back to the screen that opened the flow (Profile). If the flow was
+/// opened with a bare `go` / deep link, [goMenu] lands on [fallback] as root.
+void exitOnboarding(
+  BuildContext context, {
+  String fallback = RoutePaths.studentProfile,
+}) {
+  dismissOverlayRoutes(context);
+  final router = GoRouter.of(context);
+
+  var safety = 0;
+  while (router.canPop() && safety < 12) {
+    safety++;
+    router.pop();
+    final path = router.state.uri.path;
+    if (!AppNavHistory.isOnboardingFlow(path)) {
+      AppNavHistory.instance.track(path);
+      return;
+    }
+  }
+
+  goMenu(context, fallback);
 }
 
 /// Forward navigation into a detail screen (A → B → C).
@@ -124,6 +182,12 @@ void replaceWithMenu(BuildContext context, String location) {
 
 bool shouldShowAppBack(BuildContext context, {String? backTo}) {
   if (backTo != null && backTo.isNotEmpty) return true;
+  final currentPath = GoRouterState.of(context).uri.path;
+  // Shell / bottom-nav roots never show a Back chevron — browser history
+  // must not pull teachers off Profile into Schedule (student sessions).
+  if (AppNavHistory.isShellDestination(currentPath)) {
+    return false;
+  }
   if (_routerCanPop(context)) return true;
   return AppNavHistory.instance.canGoBack;
 }
@@ -133,17 +197,43 @@ void navigateBack(BuildContext context, String? backTo) {
     return;
   }
 
-  // Real navigator/go_router stack (from goDetail/push): C → B, C gone.
-  if (_routerCanPop(context)) {
-    _routerPop(context);
+  final currentPath = GoRouterState.of(context).uri.path;
+
+  // Onboarding is one flow — Back exits to Profile/Dashboard, never step-reverses.
+  if (AppNavHistory.isOnboardingFlow(currentPath)) {
+    final editingFallback = backTo?.isNotEmpty == true
+        ? backTo!
+        : RoutePaths.studentProfile;
+    exitOnboarding(context, fallback: editingFallback);
     return;
   }
 
-  // Bottom-nav / shell screens: never walk to another tab via Back.
-  final currentPath = GoRouterState.of(context).uri.path;
+  // Bottom-nav / shell screens: never pop browser history into another tab
+  // (e.g. Profile → login/session → redirect → teacher day schedule).
   if ((backTo == null || backTo.isEmpty) &&
       AppNavHistory.isShellDestination(currentPath)) {
     handleDoubleBackToExit(context);
+    return;
+  }
+
+  // Explicit parent wins over stale browser history (change-password, etc.).
+  if (backTo != null && backTo.isNotEmpty) {
+    if (_routerCanPop(context)) {
+      _routerPop(context);
+      final after = GoRouter.of(context).state.uri.path;
+      // Don't land back on an onboarding step after leaving a nested screen.
+      if (AppNavHistory.isOnboardingFlow(after)) {
+        exitOnboarding(context, fallback: backTo);
+      }
+      return;
+    }
+    goMenu(context, backTo);
+    return;
+  }
+
+  // Real navigator/go_router stack (from goDetail/push): C → B, C gone.
+  if (_routerCanPop(context)) {
+    _routerPop(context);
     return;
   }
 
@@ -156,11 +246,6 @@ void navigateBack(BuildContext context, String? backTo) {
     } else {
       GoRouter.of(context).replace(previous);
     }
-    return;
-  }
-
-  if (backTo != null && backTo.isNotEmpty) {
-    goMenu(context, backTo);
     return;
   }
 

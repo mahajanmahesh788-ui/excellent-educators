@@ -4,6 +4,7 @@ namespace Tests\Feature\Api\V1;
 
 use App\Enums\PaymentPlanStatus;
 use App\Enums\PaymentPlanType;
+use App\Models\StudentPayment;
 use App\Models\StudentPaymentPlan;
 use App\Models\StudentProfile;
 use App\Models\User;
@@ -11,6 +12,7 @@ use App\Payments\PaymentPlanService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class StudentPaymentTest extends TestCase
@@ -279,8 +281,36 @@ class StudentPaymentTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.payment.id', $paymentId);
 
-        $this->assertNotEmpty($response->json('data.payment.receipt_url'));
-        $this->assertStringContainsString('/storage/', (string) $response->json('data.payment.receipt_url'));
+        $receiptUrl = (string) $response->json('data.payment.receipt_url');
+        $this->assertNotEmpty($receiptUrl);
+        $this->assertStringContainsString(
+            "/api/v1/admin/payments/students/{$student->id}/payments/{$paymentId}/receipt",
+            $receiptUrl,
+        );
+        $this->assertStringNotContainsString('/storage/', $receiptUrl);
+
+        $receiptPath = parse_url($receiptUrl, PHP_URL_PATH) ?: $receiptUrl;
+
+        $this->flushHeaders();
+        $this->app['auth']->forgetGuards();
+        $this->getJson($receiptPath)->assertUnauthorized();
+
+        $download = $this->withToken($this->tokenFor($admin))->get($receiptPath);
+        $download->assertOk();
+        $this->assertStringContainsString(
+            'pdf',
+            strtolower((string) $download->headers->get('content-type')),
+        );
+
+        $other = $this->makeStudent()[1];
+        $this->app['auth']->forgetGuards();
+        $this->withToken($this->tokenFor($other->user))
+            ->getJson("/api/v1/student/payments/{$paymentId}/receipt")
+            ->assertNotFound();
+
+        $storedPath = StudentPayment::query()->findOrFail($paymentId)->receipt_path;
+        Storage::disk('local')->assertExists($storedPath);
+        Storage::disk('public')->assertMissing($storedPath);
     }
 
     /**

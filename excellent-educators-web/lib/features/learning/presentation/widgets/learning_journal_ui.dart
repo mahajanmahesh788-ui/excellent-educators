@@ -133,11 +133,13 @@ class LearningJournalTable extends StatelessWidget {
       );
     }
 
+    final orderedLevels = journal.levelsNewestFirst;
+
     if (!staffView) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final group in journal.levels) ...[
+          for (final group in orderedLevels) ...[
             _StudentJourneyGrid(group: group, onOpenWeek: onOpenWeek),
             const SizedBox(height: 24),
           ],
@@ -147,7 +149,7 @@ class LearningJournalTable extends StatelessWidget {
 
     return Column(
       children: [
-        for (final group in journal.levels) ...[
+        for (final group in orderedLevels) ...[
           _LevelHeader(group: group),
           const SizedBox(height: 8),
           LayoutBuilder(

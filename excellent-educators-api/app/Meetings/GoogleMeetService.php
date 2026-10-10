@@ -128,10 +128,17 @@ class GoogleMeetService implements GoogleMeetGateway
     public function createSpace(): CreatedGoogleMeet
     {
         try {
+            // OPEN + ALL: teacher/student can join via the shared link without
+            // "Ask to join". Default Workspace access is often RESTRICTED, and
+            // the host is the admin OAuth account (not in class), so nobody can admit.
             $response = Http::withToken($this->accessToken())
                 ->acceptJson()
-                ->withBody('{}', 'application/json')
-                ->post('https://meet.googleapis.com/v2/spaces');
+                ->post('https://meet.googleapis.com/v2/spaces', [
+                    'config' => [
+                        'accessType' => 'OPEN',
+                        'entryPointAccess' => 'ALL',
+                    ],
+                ]);
 
             if (! $response->successful()) {
                 Log::error('Google Meet space create failed.', [
@@ -150,6 +157,10 @@ class GoogleMeetService implements GoogleMeetGateway
                 throw $this->createFailed();
             }
 
+            if (is_string($spaceName) && $spaceName !== '') {
+                $this->ensureOpenAccess($spaceName);
+            }
+
             return new CreatedGoogleMeet(
                 meetUrl: $meetUrl,
                 googleMeetingSpaceId: is_string($spaceName) ? $spaceName : null,
@@ -159,6 +170,56 @@ class GoogleMeetService implements GoogleMeetGateway
         } catch (Throwable $exception) {
             Log::error('Google Meet space creation threw.', ['message' => $exception->getMessage()]);
             throw $this->createFailed();
+        }
+    }
+
+    /**
+     * Force an existing Meet space to allow anyone with the link to join.
+     * Safe to call repeatedly; failures are logged and do not throw.
+     */
+    public function ensureOpenAccess(string $spaceName): void
+    {
+        $spaceName = trim($spaceName);
+        if ($spaceName === '') {
+            return;
+        }
+
+        $cacheKey = 'google.meet.open_access.'.md5($spaceName);
+        if (Cache::get($cacheKey) === true) {
+            return;
+        }
+
+        try {
+            $encoded = implode('/', array_map('rawurlencode', explode('/', $spaceName)));
+            $response = Http::withToken($this->accessToken())
+                ->acceptJson()
+                ->patch(
+                    'https://meet.googleapis.com/v2/'.$encoded
+                        .'?updateMask=config.accessType,config.entryPointAccess',
+                    [
+                        'config' => [
+                            'accessType' => 'OPEN',
+                            'entryPointAccess' => 'ALL',
+                        ],
+                    ],
+                );
+
+            if (! $response->successful()) {
+                Log::warning('Google Meet open-access update failed.', [
+                    'space' => $spaceName,
+                    'status' => $response->status(),
+                    'body' => $response->json(),
+                ]);
+
+                return;
+            }
+
+            Cache::put($cacheKey, true, now()->addDay());
+        } catch (Throwable $exception) {
+            Log::warning('Google Meet open-access update threw.', [
+                'space' => $spaceName,
+                'message' => $exception->getMessage(),
+            ]);
         }
     }
 

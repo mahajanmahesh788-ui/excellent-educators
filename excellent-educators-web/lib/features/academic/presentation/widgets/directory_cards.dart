@@ -92,8 +92,8 @@ class StudentCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  if (ratingBadge != null) ratingBadge,
-                  if (trailing != null) trailing!,
+                  ratingBadge,
+                  ?trailing,
                 ],
               )
             : Row(

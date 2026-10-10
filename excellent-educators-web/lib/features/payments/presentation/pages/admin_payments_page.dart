@@ -596,27 +596,30 @@ class _PaymentPlanCard extends StatelessWidget {
                             ],
                           ],
                         ),
-                        if ((student?.email != null &&
-                                student!.email!.isNotEmpty) ||
-                            (student?.courseLabel != null &&
-                                student!.courseLabel != '—')) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            [
-                              if (student?.email != null &&
-                                  student!.email!.isNotEmpty)
-                                student.email!,
-                              if (student?.courseLabel != null &&
-                                  student!.courseLabel != '—')
-                                student.courseLabel,
-                            ].join(' '),
-                            style: const TextStyle(
-                              color: Brand.muted,
-                              fontSize: 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                        Builder(
+                          builder: (context) {
+                            final email = (student?.email ?? '').trim();
+                            final course = (student?.courseLabel ?? '').trim();
+                            final parts = <String>[
+                              if (email.isNotEmpty) email,
+                              if (course.isNotEmpty && course != '—') course,
+                            ];
+                            if (parts.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                parts.join(' '),
+                                style: const TextStyle(
+                                  color: Brand.muted,
+                                  fontSize: 12,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),

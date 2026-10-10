@@ -89,6 +89,7 @@ final class AdminPermissionMap
             [$get, 'admin/batches*', [PermissionName::LevelsView, PermissionName::LevelsManage]],
 
             [$all, 'admin/settings*', [PermissionName::SettingsManage]],
+            [$all, 'admin/generated-bills*', [PermissionName::SettingsManage, PermissionName::PaymentsManage, PermissionName::PaymentsRecord]],
             [$all, 'admin/login-page*', [PermissionName::SettingsManage]],
             [$all, 'admin/site-pages*', [PermissionName::SettingsManage]],
             [$all, 'admin/google*', [PermissionName::SettingsManage]],

@@ -1,9 +1,13 @@
 import 'dart:async';
 
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
+import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
+import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
 import 'package:excellent_educators_web/features/notifications/data/dto/notification_dtos.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/providers/notification_feature_providers.dart';
 import 'package:excellent_educators_web/features/notifications/presentation/providers/notification_toast_controller.dart';
+import 'package:excellent_educators_web/features/schedule/presentation/providers/schedule_providers.dart';
 import 'package:excellent_educators_web/features/student/data/level_upgrade_celebration_store.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/level_upgrade_celebration_dialog.dart';
 import 'package:flutter/material.dart';
@@ -132,11 +136,22 @@ class _LevelUpgradeCelebrationHostState
     await store.markSeen(notificationId);
     try {
       await ref.read(notificationRepositoryProvider).markRead(notificationId);
-      ref.invalidate(notificationsProvider);
-      ref.invalidate(unreadNotificationCountProvider);
     } catch (_) {
       // Local markSeen already prevents repeat popups.
     }
+    // Refresh dashboard so the new level/journey shows without a manual reload.
+    _refreshStudentDashboard();
+  }
+
+  void _refreshStudentDashboard() {
+    ref.invalidate(notificationsProvider);
+    ref.invalidate(unreadNotificationCountProvider);
+    ref.invalidate(studentProfileProvider);
+    ref.invalidate(studentLearningDashboardProvider);
+    ref.invalidate(studentLearningJournalProvider);
+    ref.invalidate(studentAssessmentProvider);
+    ref.invalidate(studentEligibilityProvider);
+    ref.invalidate(studentBookingsProvider);
   }
 
   String? _stringData(UserNotificationDto notification, String key) {

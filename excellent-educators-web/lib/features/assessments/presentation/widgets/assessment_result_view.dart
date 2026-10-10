@@ -25,6 +25,7 @@ class AssessmentResultView extends StatelessWidget {
     final showHeading = showTitle && title != null && title.isNotEmpty;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (showHeading && !compact)
@@ -52,7 +53,7 @@ class AssessmentResultView extends StatelessWidget {
           ),
         ],
         if (showHeading || (result.submittedAt != null && !compact))
-          SizedBox(height: compact ? 8 : 16),
+          SizedBox(height: compact ? 6 : 16),
         if (showCharts && !compact && result.dimensions.isNotEmpty) ...[
           Center(child: DimensionRadarChart(dimensions: result.dimensions, size: 220)),
           const SizedBox(height: 20),

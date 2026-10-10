@@ -1,6 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
-import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/onboarding/data/dto/onboarding_dtos.dart';
@@ -9,9 +9,7 @@ import 'package:excellent_educators_web/features/onboarding/presentation/widgets
 import 'package:excellent_educators_web/features/onboarding/presentation/widgets/onboarding_static_content.dart';
 import 'package:excellent_educators_web/features/onboarding/presentation/widgets/onboarding_stepper_header.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class StudentParentIntakePage extends ConsumerStatefulWidget {
   const StudentParentIntakePage({super.key});
@@ -104,8 +102,9 @@ class _StudentParentIntakePageState
       ref.read(authControllerProvider.notifier).applyUser(user);
       ref.invalidate(studentProfileProvider);
       if (!mounted) return;
-      context.go(
-        returnToProfile
+      exitOnboarding(
+        context,
+        fallback: returnToProfile
             ? RoutePaths.studentProfile
             : RoutePaths.studentDashboard,
       );
@@ -137,7 +136,7 @@ class _StudentParentIntakePageState
       ref.read(authControllerProvider.notifier).applyUser(user);
       ref.invalidate(studentProfileProvider);
       if (!mounted) return;
-      context.go(RoutePaths.studentDashboard);
+      exitOnboarding(context, fallback: RoutePaths.studentDashboard);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -155,8 +154,20 @@ class _StudentParentIntakePageState
   Widget build(BuildContext context) {
     final async = ref.watch(studentParentIntakeProvider);
     final compact = MediaQuery.sizeOf(context).width < 640;
+    final editing = _editingExisting;
 
-    return OnboardingScaffoldLayout(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        exitOnboarding(
+          context,
+          fallback: editing
+              ? RoutePaths.studentProfile
+              : RoutePaths.studentDashboard,
+        );
+      },
+      child: OnboardingScaffoldLayout(
       sideTitlePrefix: OnboardingStaticContent.step2SideTitlePrefix,
       sideTitleHighlight: OnboardingStaticContent.step2SideTitleHighlight,
       sideDescription: OnboardingStaticContent.step2SideDescription,
@@ -189,7 +200,7 @@ class _StudentParentIntakePageState
           if (intake.questions.isEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
-              context.go(RoutePaths.studentDashboard);
+              goMenu(context, RoutePaths.studentDashboard);
             });
             return const SizedBox.shrink();
           }
@@ -235,15 +246,6 @@ class _StudentParentIntakePageState
                       style: TextStyle(color: Color(0xFFF59E0B)),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                OnboardingStaticContent.step2Description,
-                style: TextStyle(
-                  fontSize: compact ? 12 : 13,
-                  color: const Color(0xFF64748B),
-                  height: 1.35,
                 ),
               ),
 
@@ -307,15 +309,18 @@ class _StudentParentIntakePageState
 
               const SizedBox(height: 8),
 
-              // Bottom Actions: Back to Interests & Skip for Now
+              // Bottom Actions: Back exits flow; use stepper to change steps.
               Row(
                 children: [
                   TextButton.icon(
                     onPressed: _submitting
                         ? null
-                        : () => (intake.completed || intake.skipped)
-                            ? context.go(RoutePaths.studentProfile)
-                            : context.go(RoutePaths.studentInterestProfile),
+                        : () => exitOnboarding(
+                              context,
+                              fallback: (intake.completed || intake.skipped)
+                                  ? RoutePaths.studentProfile
+                                  : RoutePaths.studentDashboard,
+                            ),
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -328,7 +333,7 @@ class _StudentParentIntakePageState
                     label: Text(
                       (intake.completed || intake.skipped)
                           ? '← Back to Profile'
-                          : '← Back to Interests',
+                          : '← Back',
                       style: const TextStyle(
                         color: Color(0xFF0B192C),
                         fontWeight: FontWeight.w700,
@@ -358,6 +363,7 @@ class _StudentParentIntakePageState
             ],
           );
         },
+      ),
       ),
     );
   }

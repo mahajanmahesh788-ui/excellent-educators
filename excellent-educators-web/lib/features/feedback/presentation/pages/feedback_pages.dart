@@ -9,7 +9,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/d
 import 'package:excellent_educators_web/features/academic/presentation/widgets/promote_student_card.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/student_level_path_graph.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
-import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
+import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_results_scroller.dart';
 import 'package:excellent_educators_web/features/feedback/data/dto/feedback_dtos.dart';
 import 'package:excellent_educators_web/features/feedback/domain/feedback_form_value.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/dimension_factor_profile.dart';
@@ -99,14 +99,7 @@ class MasterTeacherStudentDetailPage extends ConsumerWidget {
                     );
                   }
 
-                  return Column(
-                    children: [
-                      for (final result in resultItems) ...[
-                        CompactAssessmentCard(result: result),
-                        const SizedBox(height: 8),
-                      ],
-                    ],
-                  );
+                  return CompactAssessmentResultsScroller(results: resultItems);
                 },
               ),
               const SizedBox(height: 16),

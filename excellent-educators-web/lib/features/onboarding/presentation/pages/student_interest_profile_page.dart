@@ -1,5 +1,7 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/navigation/app_nav_history.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/academic_providers.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/onboarding/data/dto/onboarding_dtos.dart';
@@ -9,7 +11,6 @@ import 'package:excellent_educators_web/features/onboarding/presentation/widgets
 import 'package:excellent_educators_web/features/onboarding/presentation/widgets/onboarding_stepper_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class StudentInterestProfilePage extends ConsumerStatefulWidget {
   const StudentInterestProfilePage({super.key});
@@ -143,7 +144,11 @@ class _StudentInterestProfilePageState
       ref.invalidate(studentProfileProvider);
       if (!mounted) return;
       final next = user.nextOnboardingPath;
-      context.go(next ?? RoutePaths.studentProfile);
+      if (next != null && AppNavHistory.isOnboardingFlow(next)) {
+        switchOnboardingStep(context, next);
+      } else {
+        exitOnboarding(context, fallback: RoutePaths.studentProfile);
+      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -161,8 +166,20 @@ class _StudentInterestProfilePageState
   Widget build(BuildContext context) {
     final async = ref.watch(studentInterestProfileProvider);
     final compact = MediaQuery.sizeOf(context).width < 640;
+    final editing = async.asData?.value.completed == true;
 
-    return OnboardingScaffoldLayout(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        exitOnboarding(
+          context,
+          fallback: editing
+              ? RoutePaths.studentProfile
+              : RoutePaths.studentDashboard,
+        );
+      },
+      child: OnboardingScaffoldLayout(
       sideTitlePrefix: OnboardingStaticContent.step1SideTitlePrefix,
       sideTitleHighlight: OnboardingStaticContent.step1SideTitleHighlight,
       sideDescription: OnboardingStaticContent.step1SideDescription,
@@ -195,7 +212,7 @@ class _StudentInterestProfilePageState
           if (profile.questions.isEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
-              context.go(RoutePaths.studentDashboard);
+              goMenu(context, RoutePaths.studentDashboard);
             });
             return const SizedBox.shrink();
           }
@@ -331,7 +348,7 @@ class _StudentInterestProfilePageState
                           Text(
                             profile.completed
                                 ? AppStrings.saveAndReturnToProfile
-                                : 'Continue to Parent Details',
+                                : 'Continue to Parent Perspective',
                             style: const TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
@@ -347,9 +364,45 @@ class _StudentInterestProfilePageState
                         ],
                       ),
               ),
+
+              if (profile.completed) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: _submitting
+                        ? null
+                        : () => exitOnboarding(
+                              context,
+                              fallback: RoutePaths.studentProfile,
+                            ),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      size: 14,
+                      color: Color(0xFF0B192C),
+                    ),
+                    label: const Text(
+                      '← Back to Profile',
+                      style: TextStyle(
+                        color: Color(0xFF0B192C),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           );
         },
+      ),
       ),
     );
   }

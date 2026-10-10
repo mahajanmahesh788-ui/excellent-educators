@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_journey.dart';
 import 'package:excellent_educators_web/app/theme/student_colors.dart';
@@ -172,9 +172,12 @@ class BookClassSection extends StatelessWidget {
                     final type = snapshot.canBookIntroduction
                         ? 'introduction_call'
                         : 'master_class';
-                    context.go('${RoutePaths.studentBookNew}?type=$type');
+                    openAppLink(
+                      context,
+                      '${RoutePaths.studentBookNew}?type=$type',
+                    );
                   } else {
-                    context.go(RoutePaths.studentBookings);
+                    openAppLink(context, RoutePaths.studentBookings);
                   }
                 },
                 style: FilledButton.styleFrom(
@@ -212,7 +215,8 @@ class BookClassSection extends StatelessWidget {
                 ),
               ),
               OutlinedButton.icon(
-                onPressed: () => context.go(RoutePaths.studentTeachers),
+                onPressed: () =>
+                    openAppLink(context, RoutePaths.studentTeachers),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),

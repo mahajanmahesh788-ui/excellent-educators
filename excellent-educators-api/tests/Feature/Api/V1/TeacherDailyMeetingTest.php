@@ -34,7 +34,7 @@ class TeacherDailyMeetingTest extends TestCase
         $this->app->instance(GoogleMeetGateway::class, new FakeGoogleMeetGateway);
     }
 
-    public function test_first_booking_creates_daily_meet_and_student_receives_url(): void
+    public function test_first_booking_creates_per_slot_meet_and_student_receives_url(): void
     {
         [$student, $teacher] = $this->makeStudentWithTeacher();
         $payload = $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
@@ -46,16 +46,18 @@ class TeacherDailyMeetingTest extends TestCase
 
         $this->assertNotEmpty($payload['meeting_url']);
         $this->assertStringStartsWith('https://meet.google.com/', $payload['meeting_url']);
-        $this->assertSame(1, TeacherDailyMeeting::query()->count());
-        $this->assertSame($payload['meeting_url'], TeacherDailyMeeting::query()->first()->meet_url);
+        $this->assertSame(0, TeacherDailyMeeting::query()->count());
+
+        $booking = SessionBooking::query()->findOrFail($payload['id']);
+        $this->assertSame($payload['meeting_url'], $booking->meet_url);
+        $this->assertNotEmpty($booking->google_meeting_space_id);
     }
 
-    public function test_second_booking_same_teacher_date_reuses_meet(): void
+    public function test_second_booking_same_teacher_date_gets_different_meet(): void
     {
         [$student, $teacher] = $this->makeStudentWithTeacher();
         $first = $this->book($student, $teacher, 'introduction_call', '2026-09-16', '10:00');
         $other = $this->makeSecondStudent();
-        // Reuse via a second introduction_call — master_class is blocked until next month.
         $second = $this->withToken($this->tokenFor($other->user))->postJson('/api/v1/student/bookings', [
             'teacher_id' => $teacher->id,
             'type' => 'introduction_call',
@@ -63,10 +65,11 @@ class TeacherDailyMeetingTest extends TestCase
             'start' => '11:00',
         ])->assertCreated()->json('data');
 
-        $this->assertSame(1, TeacherDailyMeeting::query()->count());
+        $this->assertSame(0, TeacherDailyMeeting::query()->count());
         $firstUrl = $this->withToken($this->tokenFor($student->user))
             ->getJson('/api/v1/student/bookings')->json('data.0.meeting_url');
-        $this->assertSame($firstUrl, $second['meeting_url']);
+        $this->assertNotSame($firstUrl, $second['meeting_url']);
+        $this->assertNotSame($first->meet_url, $second['meeting_url']);
         $this->assertNotNull(SessionBooking::query()->find($first->id));
     }
 
@@ -88,7 +91,7 @@ class TeacherDailyMeetingTest extends TestCase
         ])->assertCreated()->json('data.meeting_url');
 
         $this->assertNotSame($urlA, $urlB);
-        $this->assertSame(2, TeacherDailyMeeting::query()->count());
+        $this->assertSame(0, TeacherDailyMeeting::query()->count());
     }
 
     public function test_same_teacher_different_date_creates_different_meet(): void
@@ -110,7 +113,7 @@ class TeacherDailyMeetingTest extends TestCase
             ->getJson('/api/v1/student/bookings')->assertOk()->json('data.0.meeting_url');
 
         $this->assertNotSame($first, $second);
-        $this->assertSame(2, TeacherDailyMeeting::query()->count());
+        $this->assertSame(0, TeacherDailyMeeting::query()->count());
     }
 
     public function test_get_or_create_does_not_create_two_records_for_same_teacher_date(): void
@@ -176,9 +179,16 @@ class TeacherDailyMeetingTest extends TestCase
         $this->assertStringContainsString('Meet', $notification->title);
         $this->assertSame(ErrorCode::MEETING_CREATE_FAILED, $notification->data['error_code'] ?? null);
         $this->assertSame($student->id, $notification->data['student_id'] ?? null);
+
+        $teacherNote = UserNotification::query()
+            ->where('user_id', $teacher->user_id)
+            ->where('type', NotificationType::StudentBookingFailed)
+            ->first();
+        $this->assertNotNull($teacherNote);
+        $this->assertStringContainsString('Reason:', $teacherNote->body);
     }
 
-    public function test_slot_conflict_does_not_notify_admins(): void
+    public function test_slot_conflict_notifies_admin_and_teacher_with_reason(): void
     {
         [$student, $teacher] = $this->makeStudentWithTeacher();
         $admin = $this->makeAdmin();
@@ -198,16 +208,71 @@ class TeacherDailyMeetingTest extends TestCase
             'start' => '10:00',
         ])->assertStatus(409);
 
-        $this->assertSame(
-            0,
-            UserNotification::query()
-                ->where('user_id', $admin->id)
-                ->where('type', NotificationType::StudentBookingFailed)
-                ->count(),
-        );
+        $adminNote = UserNotification::query()
+            ->where('user_id', $admin->id)
+            ->where('type', NotificationType::StudentBookingFailed)
+            ->first();
+        $this->assertNotNull($adminNote);
+        $this->assertStringContainsString('Reason:', $adminNote->body);
+        $this->assertSame(ErrorCode::SLOT_UNAVAILABLE, $adminNote->data['error_code'] ?? null);
+
+        $teacherNote = UserNotification::query()
+            ->where('user_id', $teacher->user_id)
+            ->where('type', NotificationType::StudentBookingFailed)
+            ->where('body', 'like', '%'.$other->full_name.'%')
+            ->first();
+        $this->assertNotNull($teacherNote);
+        $this->assertStringContainsString('Reason:', $teacherNote->body);
     }
 
-    public function test_reschedule_same_date_keeps_same_meet(): void
+    public function test_teacher_manual_meet_link_overrides_join_only_not_booking_create(): void
+    {
+        [$student, $teacher] = $this->makeStudentWithTeacher();
+        $manual = 'https://meet.google.com/manual-day-link';
+        // "Today" in this test suite is 2026-09-15.
+        Carbon::setTestNow(Carbon::parse('2026-09-16 09:00:00', 'Asia/Kolkata'));
+
+        $this->withToken($this->tokenFor($teacher->user))->putJson('/api/v1/teacher/schedule/meeting', [
+            'date' => '2026-09-16',
+            'meet_url' => $manual,
+        ])->assertOk();
+
+        $gateway = new FakeGoogleMeetGateway;
+        $this->app->instance(GoogleMeetGateway::class, $gateway);
+
+        $created = $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
+            'teacher_id' => $teacher->id,
+            'type' => 'introduction_call',
+            'date' => '2026-09-16',
+            'start' => '10:00',
+        ])->assertCreated()->json('data');
+
+        // Booking still creates its own per-slot Meet on the row.
+        $this->assertSame(1, $gateway->createCount);
+        $booking = SessionBooking::query()->findOrFail($created['id']);
+        $this->assertNotSame($manual, $booking->meet_url);
+        $this->assertNotEmpty($booking->google_meeting_space_id);
+
+        // Join/list uses the active manual day link.
+        $this->assertSame($manual, $created['meeting_url']);
+
+        // Next day: manual expires; student sees per-slot link again.
+        Carbon::setTestNow(Carbon::parse('2026-09-17 09:00:00', 'Asia/Kolkata'));
+        $listed = $this->withToken($this->tokenFor($student->user))
+            ->getJson('/api/v1/student/bookings')
+            ->assertOk()
+            ->json('data.0.meeting_url');
+        $this->assertSame($booking->meet_url, $listed);
+
+        $day = $this->withToken($this->tokenFor($teacher->user))
+            ->getJson('/api/v1/teacher/schedule/day?date=2026-09-16')
+            ->assertOk()
+            ->json('data.meeting');
+        $this->assertTrue($day['is_expired'] ?? false);
+        $this->assertSame($manual, $day['expired_manual_url'] ?? null);
+    }
+
+    public function test_reschedule_same_date_creates_new_meet(): void
     {
         [$student, $teacher] = $this->makeStudentWithTeacher();
         $created = $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
@@ -223,11 +288,12 @@ class TeacherDailyMeetingTest extends TestCase
             'start' => '12:00',
         ])->assertOk()->json('data');
 
-        $this->assertSame($created['meeting_url'], $moved['meeting_url']);
-        $this->assertSame(1, TeacherDailyMeeting::query()->count());
+        $this->assertNotSame($created['meeting_url'], $moved['meeting_url']);
+        $this->assertSame(0, TeacherDailyMeeting::query()->count());
+        $this->assertSame($moved['meeting_url'], SessionBooking::query()->findOrFail($created['id'])->meet_url);
     }
 
-    public function test_reschedule_to_another_date_gets_or_creates_daily_meet(): void
+    public function test_reschedule_to_another_date_creates_new_meet(): void
     {
         [$student, $teacher] = $this->makeStudentWithTeacher();
         $created = $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
@@ -244,10 +310,10 @@ class TeacherDailyMeetingTest extends TestCase
         ])->assertOk()->json('data');
 
         $this->assertNotSame($created['meeting_url'], $moved['meeting_url']);
-        $this->assertSame(2, TeacherDailyMeeting::query()->count());
+        $this->assertSame(0, TeacherDailyMeeting::query()->count());
     }
 
-    public function test_reschedule_to_another_teacher_uses_that_teacher_daily_meet(): void
+    public function test_reschedule_to_another_teacher_creates_new_meet(): void
     {
         [$student, $teacherA] = $this->makeStudentWithTeacher();
         $teacherB = $this->makeMasterTeacher();
@@ -268,12 +334,10 @@ class TeacherDailyMeetingTest extends TestCase
         ])->assertOk()->json('data');
 
         $this->assertNotSame($created['meeting_url'], $moved['meeting_url']);
-        $this->assertTrue(
-            TeacherDailyMeeting::query()->where('teacher_id', $teacherB->id)->whereDate('date', '2026-09-16')->exists(),
-        );
+        $this->assertSame($moved['meeting_url'], SessionBooking::query()->findOrFail($created['id'])->meet_url);
     }
 
-    public function test_cancelled_booking_does_not_delete_daily_meeting(): void
+    public function test_cancelled_booking_keeps_meet_url_on_booking(): void
     {
         [$student, $teacher] = $this->makeStudentWithTeacher();
         $created = $this->withToken($this->tokenFor($student->user))->postJson('/api/v1/student/bookings', [
@@ -287,9 +351,10 @@ class TeacherDailyMeetingTest extends TestCase
         $this->withToken($this->tokenFor($admin))->deleteJson('/api/v1/admin/schedule/bookings/'.$created['id'])
             ->assertOk();
 
-        $this->assertSame(SessionBookingStatus::Cancelled, SessionBooking::query()->find($created['id'])->status);
-        $this->assertSame(1, TeacherDailyMeeting::query()->count());
-        $this->assertSame($created['meeting_url'], TeacherDailyMeeting::query()->first()->meet_url);
+        $booking = SessionBooking::query()->find($created['id']);
+        $this->assertSame(SessionBookingStatus::Cancelled, $booking->status);
+        $this->assertSame($created['meeting_url'], $booking->meet_url);
+        $this->assertSame(0, TeacherDailyMeeting::query()->count());
     }
 
     public function test_teacher_and_admin_receive_the_same_meet_url(): void

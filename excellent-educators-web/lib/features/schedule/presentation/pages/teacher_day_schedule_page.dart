@@ -310,6 +310,8 @@ class _TeacherDaySchedulePageState extends ConsumerState<TeacherDaySchedulePage>
                       date: date,
                       meetingUrl: schedule.meetingUrl,
                       isManual: schedule.isManualMeeting,
+                      isExpired: schedule.isMeetingExpired,
+                      expiredManualUrl: schedule.expiredManualUrl,
                       onChanged: () =>
                           ref.invalidate(teacherDayScheduleProvider),
                     ),
@@ -338,12 +340,16 @@ class _TeacherMeetingLinkCard extends ConsumerStatefulWidget {
     required this.date,
     required this.meetingUrl,
     required this.isManual,
+    required this.isExpired,
     required this.onChanged,
+    this.expiredManualUrl,
   });
 
   final String date;
   final String? meetingUrl;
   final bool isManual;
+  final bool isExpired;
+  final String? expiredManualUrl;
   final VoidCallback onChanged;
 
   @override
@@ -440,10 +446,32 @@ class _TeacherMeetingLinkCardState
               AppStrings.meetingLinkHelp,
               style: TextStyle(color: Brand.muted, fontSize: 13, height: 1.4),
             ),
-            if (widget.isManual) ...[
+            if (widget.isExpired) ...[
               const SizedBox(height: 8),
               const Text(
-                'Using your manual link for this day.',
+                AppStrings.meetingLinkExpired,
+                style: TextStyle(
+                  color: Color(0xFFB91C1C),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+              if ((widget.expiredManualUrl ?? '').isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  widget.expiredManualUrl!,
+                  style: const TextStyle(
+                    color: Brand.muted,
+                    fontSize: 12,
+                    decoration: TextDecoration.lineThrough,
+                  ),
+                ),
+              ],
+            ] else if (widget.isManual) ...[
+              const SizedBox(height: 8),
+              const Text(
+                AppStrings.usingManualLinkForThisDay,
                 style: TextStyle(
                   color: Color(0xFFB45309),
                   fontWeight: FontWeight.w600,
@@ -451,32 +479,34 @@ class _TeacherMeetingLinkCardState
                 ),
               ),
             ],
-            const SizedBox(height: 12),
-            TextField(
-              controller: _controller,
-              decoration: const InputDecoration(
-                labelText: 'https://meet.google.com/...',
-                border: AppOutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: Text(
-                    _saving ? AppStrings.saving : AppStrings.saveMeetingLink,
-                  ),
+            if (!widget.isExpired) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _controller,
+                decoration: const InputDecoration(
+                  labelText: 'https://meet.google.com/...',
+                  border: AppOutlineInputBorder(),
                 ),
-                if (widget.isManual)
-                  OutlinedButton(
-                    onPressed: _saving ? null : _clear,
-                    child: const Text(AppStrings.clearManualMeetingLink),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton(
+                    onPressed: _saving ? null : _save,
+                    child: Text(
+                      _saving ? AppStrings.saving : AppStrings.saveMeetingLink,
+                    ),
                   ),
-              ],
-            ),
+                  if (widget.isManual)
+                    OutlinedButton(
+                      onPressed: _saving ? null : _clear,
+                      child: const Text(AppStrings.clearManualMeetingLink),
+                    ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

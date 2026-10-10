@@ -19,7 +19,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/p
 import 'package:excellent_educators_web/features/academic/presentation/widgets/student_level_path_graph.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/student_onboarding_profile_section.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
-import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
+import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_results_scroller.dart';
 import 'package:excellent_educators_web/features/payments/presentation/providers/payment_providers.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/add_payment_modal.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_history.dart';
@@ -166,14 +166,8 @@ class AdminStudentDetailPage extends ConsumerWidget {
                         if (results.isEmpty) {
                           return const SizedBox.shrink();
                         }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            for (final result in results) ...[
-                              CompactAssessmentCard(result: result),
-                              const SizedBox(height: 8),
-                            ],
-                          ],
+                        return CompactAssessmentResultsScroller(
+                          results: results,
                         );
                       },
                     ),

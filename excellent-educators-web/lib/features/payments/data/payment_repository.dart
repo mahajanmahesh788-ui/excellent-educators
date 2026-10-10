@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:excellent_educators_web/core/constants/api_endpoints.dart';
 import 'package:excellent_educators_web/core/network/api_client.dart';
 import 'package:excellent_educators_web/core/network/maps_api_failures.dart';
+import 'package:excellent_educators_web/features/payments/data/dto/generated_bill_dto.dart';
 import 'package:excellent_educators_web/features/payments/data/dto/payment_dtos.dart';
 
 class PaymentRepository with MapsApiFailures {
@@ -253,6 +254,52 @@ class PaymentRepository with MapsApiFailures {
             : null,
         onlineEnabled: json?['online_enabled'] == true,
       );
+    });
+  }
+
+  Future<List<GeneratedBillDto>> listGeneratedBills({String? search}) {
+    return runApiSimple(() async {
+      final list = await _client.getList(
+        ApiEndpoints.adminGeneratedBills,
+        query: {
+          if (search != null && search.trim().isNotEmpty) 'q': search.trim(),
+        },
+      );
+      return list
+          .whereType<Map>()
+          .map((item) => GeneratedBillDto.fromJson(
+                Map<String, dynamic>.from(item),
+              ))
+          .toList();
+    });
+  }
+
+  Future<GeneratedBillDto> createGeneratedBill(Map<String, dynamic> data) {
+    return runApiSimple(() async {
+      final json = await _client.post(
+        ApiEndpoints.adminGeneratedBills,
+        data: data,
+      );
+      return GeneratedBillDto.fromJson(json ?? const {});
+    });
+  }
+
+  Future<GeneratedBillDto> updateGeneratedBill(
+    String id,
+    Map<String, dynamic> data,
+  ) {
+    return runApiSimple(() async {
+      final json = await _client.put(
+        ApiEndpoints.adminGeneratedBill(id),
+        data: data,
+      );
+      return GeneratedBillDto.fromJson(json ?? const {});
+    });
+  }
+
+  Future<void> deleteGeneratedBill(String id) {
+    return runApiSimple(() async {
+      await _client.delete(ApiEndpoints.adminGeneratedBill(id));
     });
   }
 }

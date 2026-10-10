@@ -497,7 +497,9 @@ class _ParentBody extends StatelessWidget {
             ? 'Parent details were skipped for now'
             : 'No guardian details added yet',
         description: 'Provide parent guidance preferences and contact details for official reports and receipts.',
-        buttonLabel: isSkipped ? 'Complete Parent Details' : '+ Add Parent Details',
+        buttonLabel: isSkipped
+            ? 'Complete Parent Perspective'
+            : '+ Add Parent Perspective',
         onTap: onEdit,
       );
     }

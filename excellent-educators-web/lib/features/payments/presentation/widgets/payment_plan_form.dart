@@ -14,6 +14,10 @@ class PaymentPlanFormController {
   PaymentPlanFormFieldsState? _state;
 
   Map<String, dynamic>? toPayload() => _state?.toPayload();
+
+  double? get totalAmount => _state?.currentTotalAmount;
+
+  double? get paidAmount => _state?.currentPaidAmount;
 }
 
 /// Shared payment plan fields for student create / plan setup.
@@ -26,6 +30,9 @@ class PaymentPlanFormFields extends ConsumerStatefulWidget {
     this.controller,
     this.initialType,
     this.initialMode,
+    this.initialPaidAmount,
+    this.initialNotes,
+    this.overrideTotalAmount,
     this.lockedTotalAmount,
     this.enabled = true,
   });
@@ -33,6 +40,10 @@ class PaymentPlanFormFields extends ConsumerStatefulWidget {
   final PaymentPlanFormController? controller;
   final String? initialType;
   final String? initialMode;
+  final double? initialPaidAmount;
+  final String? initialNotes;
+  /// Prefills totals (e.g. edit bill) without locking the amount fields.
+  final double? overrideTotalAmount;
   final double? lockedTotalAmount;
   final bool enabled;
 
@@ -66,19 +77,25 @@ class PaymentPlanFormFieldsState extends ConsumerState<PaymentPlanFormFields> {
     widget.controller?._state = this;
     _paymentType = widget.initialType;
     _paymentMode = widget.initialMode ?? 'offline';
+    final seededTotal = widget.lockedTotalAmount ?? widget.overrideTotalAmount;
+    if (seededTotal != null && seededTotal > 0) {
+      _settingsFull = seededTotal;
+      _settingsPartial = seededTotal;
+      _defaultsApplied = true;
+    }
     _total = TextEditingController(
-      text: widget.lockedTotalAmount != null
-          ? widget.lockedTotalAmount!.round().toString()
-          : '',
+      text: seededTotal != null ? seededTotal.round().toString() : '',
     );
     _amount = TextEditingController(
-      text: widget.initialType == 'full' && widget.lockedTotalAmount != null
-          ? widget.lockedTotalAmount!.round().toString()
-          : widget.lockedTotalAmount != null
-              ? '0'
-              : '',
+      text: widget.initialPaidAmount != null
+          ? widget.initialPaidAmount!.round().toString()
+          : widget.initialType == 'full' && seededTotal != null
+              ? seededTotal.round().toString()
+              : widget.lockedTotalAmount != null
+                  ? '0'
+                  : '',
     );
-    _notes = TextEditingController();
+    _notes = TextEditingController(text: widget.initialNotes ?? '');
   }
 
   @override
@@ -130,6 +147,16 @@ class PaymentPlanFormFieldsState extends ConsumerState<PaymentPlanFormFields> {
       _readAmount(data.items, 'payment_full_amount', 6000),
       _readAmount(data.items, 'payment_partial_total', 6500),
     );
+  }
+
+  double get currentTotalAmount =>
+      _paymentType == 'partial' ? _effectivePartialTotal : _effectiveFullTotal;
+
+  double get currentPaidAmount {
+    if (_paymentType == 'full') {
+      return double.tryParse(_amount.text.trim()) ?? currentTotalAmount;
+    }
+    return double.tryParse(_amount.text.trim()) ?? 0;
   }
 
   Map<String, dynamic>? toPayload() {

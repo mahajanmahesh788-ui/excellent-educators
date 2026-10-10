@@ -211,7 +211,7 @@ class AvailabilityCalculator
     }
 
     /**
-     * @return array{meet_url: ?string, google_meet_url: ?string, meet_url_source: string, is_manual: bool}|null
+     * @return array{meet_url: ?string, google_meet_url: ?string, meet_url_source: string, is_manual: bool, is_expired: bool}|null
      */
     private function meetingPayload(string $teacherId, string $date): ?array
     {
@@ -224,11 +224,19 @@ class AvailabilityCalculator
             return null;
         }
 
+        $isManual = $meeting->isManual();
+        $isExpired = $meeting->manualLinkIsExpired();
+
         return [
-            'meet_url' => $meeting->meet_url,
+            // Expired manual links are not offered for join; keep google fallback if any.
+            'meet_url' => $isExpired
+                ? ($meeting->google_meet_url ?: null)
+                : $meeting->meet_url,
             'google_meet_url' => $meeting->google_meet_url,
-            'meet_url_source' => $meeting->meet_url_source ?? 'google',
-            'is_manual' => ($meeting->meet_url_source ?? 'google') === 'manual',
+            'meet_url_source' => $isExpired ? 'google' : ($meeting->meet_url_source ?? 'google'),
+            'is_manual' => $isManual && ! $isExpired,
+            'is_expired' => $isExpired,
+            'expired_manual_url' => $isExpired ? $meeting->meet_url : null,
         ];
     }
 

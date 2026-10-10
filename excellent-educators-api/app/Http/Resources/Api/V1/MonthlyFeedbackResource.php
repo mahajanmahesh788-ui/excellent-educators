@@ -37,7 +37,7 @@ class MonthlyFeedbackResource extends JsonResource
             'master_teacher' => $this->whenLoaded('masterTeacher', fn () => [
                 'id' => $this->masterTeacher->id,
                 'full_name' => $this->masterTeacher->full_name,
-                'photo_url' => $this->masterTeacher->photo_url,
+                'photo_url' => \App\Support\TeacherPhotoStorage::accessibleUrl($this->masterTeacher->photo_url),
                 'professional_title' => $this->masterTeacher->professional_title,
             ]),
             'student' => $this->whenLoaded('student', fn () => [

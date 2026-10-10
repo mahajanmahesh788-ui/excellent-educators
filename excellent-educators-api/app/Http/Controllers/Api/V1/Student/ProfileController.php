@@ -44,8 +44,8 @@ class ProfileController extends Controller
         return ApiResponse::success(
             'Profile photo uploaded successfully.',
             [
-                'photo_url' => $photoUrl,
-                'student' => StudentResource::make($this->loadProfile($student))->resolve(),
+                'photo_url' => StudentPhotoStorage::accessibleUrl($photoUrl),
+                'student' => StudentResource::make($this->loadProfile($student->fresh()))->resolve(),
             ],
         );
     }

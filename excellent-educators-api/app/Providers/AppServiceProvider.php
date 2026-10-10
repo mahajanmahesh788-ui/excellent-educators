@@ -9,6 +9,7 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use App\Meetings\FakeGoogleMeetGateway;
 use App\Meetings\GoogleCalendarMeetGateway;
@@ -44,12 +45,17 @@ class AppServiceProvider extends ServiceProvider
         ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
             $base = rtrim((string) config('app.frontend_url'), '/');
             $email = urlencode($notifiable->getEmailForPasswordReset());
+            $token = urlencode($token);
 
-            return "{$base}/reset-password?email={$email}&token={$token}";
+            // Flutter web uses hash routes (#/…). Path-only links open the SPA
+            // but never reach /reset-password, so the email must include the hash.
+            return "{$base}/#/reset-password?email={$email}&token={$token}";
         });
 
         RateLimiter::for('auth', function (Request $request) {
-            return Limit::perMinute(5)->by($request->ip());
+            $email = Str::lower(trim((string) $request->input('email', '')));
+
+            return Limit::perMinute(5)->by($email.'|'.$request->ip());
         });
     }
 }

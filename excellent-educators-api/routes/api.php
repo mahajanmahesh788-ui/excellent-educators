@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\Admin\LoginPageContentController as AdminLoginPa
 use App\Http\Controllers\Api\V1\Admin\NotificationBroadcastController;
 use App\Http\Controllers\Api\V1\Admin\ScheduleController as AdminScheduleController;
 use App\Http\Controllers\Api\V1\Admin\LeaveRequestController as AdminLeaveRequestController;
+use App\Http\Controllers\Api\V1\Admin\GeneratedBillController as AdminGeneratedBillController;
 use App\Http\Controllers\Api\V1\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Api\V1\Admin\SitePageController as AdminSitePageController;
 use App\Http\Controllers\Api\V1\Admin\StudentController as AdminStudentController;
@@ -108,6 +109,7 @@ Route::middleware(['auth:sanctum', 'active', 'admin', 'admin.permission', 'subad
     Route::patch('payments/students/{student}/payments/{payment}', [AdminStudentPaymentController::class, 'updatePayment']);
     Route::post('payments/students/{student}/payments/{payment}/void', [AdminStudentPaymentController::class, 'voidPayment']);
     Route::post('payments/students/{student}/payments/{payment}/receipt', [AdminStudentPaymentController::class, 'storeReceipt']);
+    Route::get('payments/students/{student}/payments/{payment}/receipt', [AdminStudentPaymentController::class, 'showReceipt']);
     Route::post('payments/students/{student}/reminder', [AdminStudentPaymentController::class, 'reminderMessage']);
     Route::get('students/{student}/payments', [AdminStudentPaymentController::class, 'show']);
     Route::post('notifications/broadcast', [NotificationBroadcastController::class, 'store']);
@@ -186,6 +188,12 @@ Route::middleware(['auth:sanctum', 'active', 'admin', 'admin.permission', 'subad
     Route::get('site-pages', [AdminSitePageController::class, 'index']);
     Route::get('site-pages/{slug}', [AdminSitePageController::class, 'show']);
     Route::put('site-pages/{slug}', [AdminSitePageController::class, 'update']);
+    Route::get('generated-bills', [AdminGeneratedBillController::class, 'index']);
+    Route::post('generated-bills', [AdminGeneratedBillController::class, 'store']);
+    Route::get('generated-bills/{generatedBill}', [AdminGeneratedBillController::class, 'show']);
+    Route::put('generated-bills/{generatedBill}', [AdminGeneratedBillController::class, 'update']);
+    Route::delete('generated-bills/{generatedBill}', [AdminGeneratedBillController::class, 'destroy']);
+
     Route::get('settings', [AdminSettingsController::class, 'show']);
     Route::put('settings', [AdminSettingsController::class, 'update']);
 
@@ -301,4 +309,5 @@ Route::middleware(['auth:sanctum', 'active', 'role:student'])->prefix('student')
     Route::post('payments/online/initiate', [StudentSelfPaymentController::class, 'initiateOnline']);
     Route::post('payments/online/confirm', [StudentSelfPaymentController::class, 'confirmOnline']);
     Route::post('payments/{payment}/receipt', [StudentSelfPaymentController::class, 'storeReceipt']);
+    Route::get('payments/{payment}/receipt', [StudentSelfPaymentController::class, 'showReceipt']);
 });

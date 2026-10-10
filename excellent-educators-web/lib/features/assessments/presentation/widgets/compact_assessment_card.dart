@@ -10,7 +10,7 @@ class CompactAssessmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: Alignment.topLeft,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: DecoratedBox(
@@ -20,7 +20,7 @@ class CompactAssessmentCard extends StatelessWidget {
             border: const Border.fromBorderSide(BorderSide(color: Color(0xFFE6DCCB))),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             child: AssessmentResultView(
               result: result,
               compact: true,

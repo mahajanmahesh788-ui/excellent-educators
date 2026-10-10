@@ -123,7 +123,7 @@ class AttendanceService
 
         $studentName = (string) ($student?->full_name ?: 'Student');
         $teacherName = (string) ($teacher?->full_name ?: 'your teacher');
-        $loginUrl = rtrim((string) config('app.frontend_url'), '/').'/login';
+        $loginUrl = rtrim((string) config('app.frontend_url'), '/').'/#/login';
         $message = "Hi {$studentName},\n\n"
             ."Your scheduled class with {$teacherName} is currently in progress.\n"
             ."I'm waiting for you to join the class.\n\n"
@@ -517,7 +517,7 @@ class AttendanceService
             'teacher_booking_first_join_at' => $attendance?->teacher_first_join_at?->timezone(config('app.timezone'))->toIso8601String(),
             'teacher_day_join_at' => $dayMeet?->first_join_at?->timezone(config('app.timezone'))->toIso8601String(),
             'teacher_day_join_count' => (int) ($dayMeet?->join_count ?? 0),
-            'meeting_url' => $dayMeet?->meet_url,
+            'meeting_url' => $this->resolveMeetingUrl($booking, $dayMeet),
             'join_opens_at' => $starts?->copy()->subMinutes($joinLead)->toIso8601String(),
             'can_join' => $canStudentJoin || $canTeacherJoin,
             'can_report_teacher_did_not_join' => $canReportTeacher,
@@ -836,7 +836,7 @@ class AttendanceService
                 'admin_notes' => $issue->admin_notes,
                 'verified_at' => $issue->verified_at?->timezone(config('app.timezone'))->toIso8601String(),
                 'verified_by_name' => $issue->verifier?->name,
-                'meeting_url' => $dayMeet?->meet_url,
+                'meeting_url' => $booking ? $this->resolveMeetingUrl($booking, $dayMeet) : null,
                 'student_first_join_at' => $attendance?->student_first_join_at?->timezone(config('app.timezone'))->toIso8601String(),
                 'student_last_join_at' => $attendance?->student_last_join_at?->timezone(config('app.timezone'))->toIso8601String(),
                 'student_join_count' => (int) ($attendance?->student_join_count ?? 0),
@@ -967,6 +967,27 @@ class AttendanceService
             'last_join_at' => $now,
             'join_count' => (int) $meet->join_count + 1,
         ]);
+    }
+
+    /**
+     * Join only: active teacher manual day link overrides per-slot Meet.
+     * New bookings always keep their own per-slot URL on the booking row.
+     */
+    private function resolveMeetingUrl(SessionBooking $booking, ?TeacherDailyMeeting $dayMeet): ?string
+    {
+        if ($dayMeet?->isManual() && $dayMeet->manualLinkIsActive()) {
+            return $dayMeet->meet_url;
+        }
+
+        if (filled($booking->meet_url)) {
+            return $booking->meet_url;
+        }
+
+        if ($dayMeet?->isManual()) {
+            return null;
+        }
+
+        return $dayMeet?->meet_url;
     }
 
     /**

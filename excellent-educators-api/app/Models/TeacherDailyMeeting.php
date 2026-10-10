@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TeacherDailyMeetingStatus;
+use App\Support\AppClock;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,5 +45,27 @@ class TeacherDailyMeeting extends Model
     {
         return $this->status === TeacherDailyMeetingStatus::Ready
             && filled($this->meet_url);
+    }
+
+    public function isManual(): bool
+    {
+        return ($this->meet_url_source ?? '') === 'manual' && filled($this->meet_url);
+    }
+
+    /** Manual day links are only valid on their calendar day. */
+    public function manualLinkIsActive(): bool
+    {
+        if (! $this->isManual()) {
+            return false;
+        }
+
+        $date = $this->date?->timezone(config('app.timezone'))->toDateString();
+
+        return $date !== null && $date === AppClock::todayString();
+    }
+
+    public function manualLinkIsExpired(): bool
+    {
+        return $this->isManual() && ! $this->manualLinkIsActive();
     }
 }

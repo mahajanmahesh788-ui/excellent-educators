@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
@@ -358,13 +357,14 @@ class _StudentHeroSectionState extends ConsumerState<StudentHeroSection> {
                               return;
                             }
                             if (snapshot.nextSession != null) {
-                              context.go(RoutePaths.studentBookings);
+                              openAppLink(context, RoutePaths.studentBookings);
                             } else if (snapshot.primaryType != null) {
-                              context.go(
+                              openAppLink(
+                                context,
                                 '${RoutePaths.studentBookNew}?type=${snapshot.primaryType}',
                               );
                             } else {
-                              context.go(RoutePaths.studentBookings);
+                              openAppLink(context, RoutePaths.studentBookings);
                             }
                           },
                         ),
@@ -374,7 +374,8 @@ class _StudentHeroSectionState extends ConsumerState<StudentHeroSection> {
                             isPrimary: false,
                             label: 'Book Master Class',
                             icon: Icons.calendar_month_rounded,
-                            onPressed: () => context.go(
+                            onPressed: () => openAppLink(
+                              context,
                               '${RoutePaths.studentBookNew}?type=master_class',
                             ),
                           ),
@@ -395,7 +396,7 @@ class _StudentHeroSectionState extends ConsumerState<StudentHeroSection> {
                                   ),
                                 );
                               } else {
-                                context.go(RoutePaths.studentJournal);
+                                openAppLink(context, RoutePaths.studentJournal);
                               }
                             },
                           ),
@@ -594,7 +595,7 @@ class _HeroRatingPanel extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => context.go(RoutePaths.studentFeedback),
+        onTap: () => openAppLink(context, RoutePaths.studentFeedback),
         borderRadius: BorderRadius.circular(14),
         child: Container(
           width: fullWidth ? double.infinity : (compact ? 200 : 220),

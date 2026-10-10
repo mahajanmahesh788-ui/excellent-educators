@@ -348,6 +348,23 @@ class LearningJournalDto {
   final String? studentName;
   final String? currentLevelName;
   final List<LearningLevelGroupDto> levels;
+
+  /// Highest level first (e.g. Level 5 → 4 → 3 → 2 → 1).
+  List<LearningLevelGroupDto> get levelsNewestFirst {
+    final items = [...levels];
+    items.sort((a, b) {
+      final byNumber = _levelNumber(b.level.name).compareTo(_levelNumber(a.level.name));
+      if (byNumber != 0) return byNumber;
+      if (a.isCurrent != b.isCurrent) return a.isCurrent ? -1 : 1;
+      return 0;
+    });
+    return items;
+  }
+
+  static int _levelNumber(String name) {
+    final match = RegExp(r'(\d+)').firstMatch(name);
+    return int.tryParse(match?.group(1) ?? '') ?? 0;
+  }
 }
 
 class LearningDashboardDto {

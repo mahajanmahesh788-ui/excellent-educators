@@ -314,7 +314,7 @@ class ClassAttendanceTest extends TestCase
         $first = $this->book($student, $teacher, '10:00');
         $second = $this->book($other, $teacher, '10:30');
         $teacherToken = $this->tokenFor($teacher->user);
-        $login = rtrim((string) config('app.frontend_url'), '/').'/login';
+        $login = rtrim((string) config('app.frontend_url'), '/').'/#/login';
 
         $before = $this->withToken($teacherToken)
             ->getJson('/api/v1/teacher/schedule/day?date=2026-09-16')

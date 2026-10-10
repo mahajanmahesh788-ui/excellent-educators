@@ -1,0 +1,68 @@
+# Example Nginx site config for Flutter web (app-web).
+# Copy the relevant blocks into your Hostinger/VPS site config, then:
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# Adjust server_name and root to match production.
+
+server {
+    listen 443 ssl http2;
+    server_name excellenteducators.in www.excellenteducators.in;
+
+    root /var/www/excellent-educators/app-web;
+    index index.html;
+
+    # --- Compression (big win for main.dart.js + wasm) ---
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_min_length 1024;
+    gzip_types
+        text/plain
+        text/css
+        text/javascript
+        application/javascript
+        application/json
+        application/wasm
+        application/xml
+        image/svg+xml
+        font/woff2;
+
+    # Prefer Brotli if the module is installed (optional):
+    # brotli on;
+    # brotli_comp_level 6;
+    # brotli_types text/plain text/css application/javascript application/json application/wasm;
+
+    # Hashed/static Flutter assets — long cache (instant return visits)
+    location ~* \.(js|css|wasm|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|json)$ {
+        # Keep service-worker / version metadata fresher if needed:
+        # (flutter_service_worker.js and version.json are still under this glob;
+        # override below if you want shorter cache for those two.)
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    location = /flutter_service_worker.js {
+        expires off;
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+
+    location = /version.json {
+        expires off;
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+
+    # SPA entry — never long-cache index.html
+    location = /index.html {
+        expires off;
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

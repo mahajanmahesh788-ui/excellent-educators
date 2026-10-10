@@ -776,6 +776,8 @@ class ScheduleDayDto {
     this.googleMeetUrl,
     this.meetUrlSource = 'google',
     this.isManualMeeting = false,
+    this.isMeetingExpired = false,
+    this.expiredManualUrl,
   });
 
   factory ScheduleDayDto.fromJson(Map<String, dynamic> json) {
@@ -804,6 +806,8 @@ class ScheduleDayDto {
       googleMeetUrl: meeting?['google_meet_url'] as String?,
       meetUrlSource: meeting?['meet_url_source'] as String? ?? 'google',
       isManualMeeting: meeting?['is_manual'] == true,
+      isMeetingExpired: meeting?['is_expired'] == true,
+      expiredManualUrl: meeting?['expired_manual_url'] as String?,
     );
   }
 
@@ -816,6 +820,8 @@ class ScheduleDayDto {
   final String? googleMeetUrl;
   final String meetUrlSource;
   final bool isManualMeeting;
+  final bool isMeetingExpired;
+  final String? expiredManualUrl;
 }
 
 class ScheduleMonthDayDto {

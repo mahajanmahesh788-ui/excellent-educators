@@ -169,13 +169,23 @@ class ScheduleController extends Controller
             'meet_url' => ['required', 'url', 'max:2048'],
         ]);
 
+        if ($data['date'] < AppClock::todayString()) {
+            return ApiResponse::error(
+                'Manual meeting links can only be set for today or a future day.',
+                ErrorCode::VALIDATION_ERROR,
+                null,
+                422,
+            );
+        }
+
         $meeting = $meetings->setManualUrl($teacher, $data['date'], $data['meet_url']);
 
-        return ApiResponse::success('Meeting link saved for this day.', [
+        return ApiResponse::success('Meeting link saved for this day only. It expires the next day.', [
             'meet_url' => $meeting->meet_url,
             'google_meet_url' => $meeting->google_meet_url,
             'meet_url_source' => $meeting->meet_url_source,
             'is_manual' => true,
+            'is_expired' => false,
             'date' => $data['date'],
         ]);
     }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
@@ -46,10 +45,10 @@ class WeeklyJourneyWidget extends StatelessWidget {
                 RoutePaths.studentJournalWeekFor(journeyId, currentWeek),
               );
             } else {
-              context.go(RoutePaths.studentJournal);
+              openAppLink(context, RoutePaths.studentJournal);
             }
           } else {
-            context.go(RoutePaths.studentJournal);
+            openAppLink(context, RoutePaths.studentJournal);
           }
         },
       ),
@@ -73,7 +72,7 @@ class WeeklyJourneyWidget extends StatelessWidget {
               RoutePaths.studentJournalWeekFor(journeyId, currentWeek),
             );
           } else {
-            context.go(RoutePaths.studentJournal);
+            openAppLink(context, RoutePaths.studentJournal);
           }
         },
       ),
@@ -96,13 +95,16 @@ class WeeklyJourneyWidget extends StatelessWidget {
             : (snapshot.canBookMasterClass ? AppStrings.book : AppStrings.view),
         onTap: () {
           if (isMasterScheduled || isMasterCompleted) {
-            context.go(RoutePaths.studentBookings);
+            openAppLink(context, RoutePaths.studentBookings);
           } else if (snapshot.masterClassRequiresLevelWeeks) {
             MasterClassLevelWeeksDialog.show(context);
           } else if (snapshot.canBookMasterClass) {
-            context.go('${RoutePaths.studentBookNew}?type=master_class');
+            openAppLink(
+              context,
+              '${RoutePaths.studentBookNew}?type=master_class',
+            );
           } else {
-            context.go(RoutePaths.studentBookings);
+            openAppLink(context, RoutePaths.studentBookings);
           }
         },
       ),
@@ -115,7 +117,7 @@ class WeeklyJourneyWidget extends StatelessWidget {
             ? _StepStatus.completed
             : _StepStatus.upcoming,
         actionLabel: AppStrings.guidance,
-        onTap: () => context.go(RoutePaths.studentFeedback),
+        onTap: () => openAppLink(context, RoutePaths.studentFeedback),
       ),
     ];
 

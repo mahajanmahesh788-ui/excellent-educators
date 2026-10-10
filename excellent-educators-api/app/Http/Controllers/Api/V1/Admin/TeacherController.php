@@ -160,7 +160,7 @@ class TeacherController extends Controller
             return ApiResponse::success(
                 'Teacher photo uploaded successfully.',
                 [
-                    'photo_url' => $photoUrl,
+                    'photo_url' => TeacherPhotoStorage::accessibleUrl($photoUrl),
                     'teacher' => TeacherResource::make($teacher)->resolve(),
                 ],
             );
@@ -168,7 +168,7 @@ class TeacherController extends Controller
 
         return ApiResponse::success(
             'Teacher photo uploaded successfully.',
-            ['photo_url' => $photoUrl],
+            ['photo_url' => TeacherPhotoStorage::accessibleUrl($photoUrl)],
         );
     }
 

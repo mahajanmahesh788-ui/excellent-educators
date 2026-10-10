@@ -12,10 +12,11 @@ use App\Payments\PaymentOverviewService;
 use App\Payments\PaymentPlanService;
 use App\Support\ApiResponse;
 use App\Support\ErrorCode;
+use App\Support\PaymentReceiptStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudentPaymentController extends Controller
 {
@@ -135,10 +136,7 @@ class StudentPaymentController extends Controller
 
         $receiptPath = null;
         if ($request->hasFile('receipt')) {
-            $receiptPath = $request->file('receipt')->store(
-                'payment-receipts/'.$student->id,
-                'public',
-            );
+            $receiptPath = PaymentReceiptStorage::store($request->file('receipt'), $student->id);
         }
 
         $beforePending = (float) $plan->pending_amount;
@@ -228,19 +226,30 @@ class StudentPaymentController extends Controller
             'receipt' => ['required', 'file', 'max:5120', 'mimes:pdf'],
         ]);
 
-        if ($payment->receipt_path) {
-            Storage::disk('public')->delete($payment->receipt_path);
-        }
+        PaymentReceiptStorage::delete($payment->receipt_path);
 
-        $path = $data['receipt']->store(
-            'payment-receipts/'.$student->id,
-            'public',
-        );
+        $path = PaymentReceiptStorage::store($data['receipt'], $student->id);
         $payment->update(['receipt_path' => $path]);
 
         return ApiResponse::success(
             'Receipt saved.',
             ['payment' => (new StudentPaymentResource($payment->fresh()))->resolve()],
+        );
+    }
+
+    public function showReceipt(
+        Request $request,
+        StudentProfile $student,
+        StudentPayment $payment,
+    ): StreamedResponse|JsonResponse {
+        $this->ensureAgentOwnsStudent($request, $student);
+        if ($payment->student_id !== $student->id) {
+            return ApiResponse::error('Payment not found.', ErrorCode::NOT_FOUND, null, 404);
+        }
+
+        return PaymentReceiptStorage::response(
+            $payment->receipt_path,
+            'EE-Receipt-'.$payment->id.'.pdf',
         );
     }
 

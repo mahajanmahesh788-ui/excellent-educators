@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/core/utils/image_shrink.dart';
@@ -16,7 +17,7 @@ import 'package:excellent_educators_web/features/academic/presentation/widgets/s
 import 'package:excellent_educators_web/features/academic/presentation/widgets/student_onboarding_profile_section.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/providers/assessment_feature_providers.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/assessment_result_view.dart';
-import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_card.dart';
+import 'package:excellent_educators_web/features/assessments/presentation/widgets/compact_assessment_results_scroller.dart';
 import 'package:excellent_educators_web/features/feedback/presentation/widgets/student_read_only_ratings_section.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
@@ -289,25 +290,24 @@ class _StudentProfilePageState extends ConsumerState<StudentProfilePage> {
     );
     if (files.isEmpty) return;
 
-    final file = files.first;
-    late final Uint8List bytes;
+    setState(() => _uploading = true);
+
     try {
-      final raw = await file.readAsBytes();
+      final raw = await files.first.readAsBytes();
       if (raw.isEmpty) {
         throw StateError('Could not read the selected image.');
       }
-      bytes = shrinkImageToMaxBytes(raw);
-    } catch (error) {
-      if (mounted) showFailure(context, error);
-      return;
-    }
 
-    setState(() {
-      _localPreview = bytes;
-      _uploading = true;
-    });
+      if (mounted) {
+        setState(() => _localPreview = raw);
+      }
+      await Future<void>.delayed(Duration.zero);
 
-    try {
+      final bytes = await Future(() => shrinkImageToMaxBytes(raw));
+      if (mounted && !identical(bytes, raw)) {
+        setState(() => _localPreview = bytes);
+      }
+
       final photoUrl = await ref
           .read(academicRepositoryProvider)
           .uploadStudentPhoto(
@@ -466,8 +466,9 @@ class _StudentProfilePageState extends ConsumerState<StudentProfilePage> {
                 student: student,
                 useStudentCards: true,
                 onEditInterest: () =>
-                    context.go(RoutePaths.studentInterestProfile),
-                onEditParent: () => context.go(RoutePaths.studentParentIntake),
+                    openOnboarding(context, RoutePaths.studentInterestProfile),
+                onEditParent: () =>
+                    openOnboarding(context, RoutePaths.studentParentIntake),
               ),
               const SizedBox(height: 16),
               StudentSectionCard(
@@ -539,12 +540,31 @@ class _TeacherProfilePageState extends ConsumerState<TeacherProfilePage> {
     }
   }
 
+  void _cancelEditing(TeacherDto teacher) {
+    _draft?.dispose();
+    _draft = MentorProfileDraft.fromTeacher(teacher);
+    _editing = false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(teacherProfileProvider);
 
     return AppScaffold(
       title: AppStrings.myProfile,
+      forceShowBack: _editing,
+      onBack: _editing
+          ? () {
+              final teacher = profile.asData?.value;
+              setState(() {
+                if (teacher != null) {
+                  _cancelEditing(teacher);
+                } else {
+                  _editing = false;
+                }
+              });
+            }
+          : null,
       body: AsyncBody(
         value: profile,
         onRetry: () => ref.invalidate(teacherProfileProvider),
@@ -579,12 +599,10 @@ class _TeacherProfilePageState extends ConsumerState<TeacherProfilePage> {
                             saving: _saving,
                             onToggleEdit: () => setState(() {
                               if (_editing) {
-                                _draft?.dispose();
-                                _draft = MentorProfileDraft.fromTeacher(
-                                  teacher,
-                                );
+                                _cancelEditing(teacher);
+                              } else {
+                                _editing = true;
                               }
-                              _editing = !_editing;
                             }),
                           ),
                           const SizedBox(height: 18),
@@ -820,7 +838,7 @@ class _TeacherPrivateDetails extends StatelessWidget {
           child: StudentQuickLink(
             label: AppStrings.changePassword,
             icon: Icons.lock_outline_rounded,
-            onTap: () => context.go(RoutePaths.changePassword),
+            onTap: () => goDetail(context, RoutePaths.changePassword),
           ),
         ),
       ],
@@ -969,14 +987,7 @@ class TeacherStudentResultsPage extends ConsumerWidget {
                     );
                   }
 
-                  return Column(
-                    children: [
-                      for (final result in items) ...[
-                        CompactAssessmentCard(result: result),
-                        const SizedBox(height: 8),
-                      ],
-                    ],
-                  );
+                  return CompactAssessmentResultsScroller(results: items);
                 },
               ),
               const SizedBox(height: 16),

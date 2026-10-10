@@ -135,6 +135,9 @@ abstract final class ApiEndpoints {
   static const adminFeedbackCatalog = '/api/v1/admin/feedback-catalog';
   static const adminLoginPageContent = '/api/v1/admin/login-page';
   static const adminSettings = '/api/v1/admin/settings';
+  static const adminGeneratedBills = '/api/v1/admin/generated-bills';
+  static String adminGeneratedBill(String id) =>
+      '/api/v1/admin/generated-bills/$id';
 
   static const masterTeacherCatalog = '/api/v1/master-teacher/feedback-catalog';
   static String masterTeacherFeedback(String studentId) =>

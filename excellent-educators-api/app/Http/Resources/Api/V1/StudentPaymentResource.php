@@ -3,9 +3,9 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\StudentPayment;
+use App\Support\PaymentReceiptStorage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * @mixin StudentPayment
@@ -28,11 +28,24 @@ class StudentPaymentResource extends JsonResource
             'status' => $this->status?->value ?? $this->status,
             'status_label' => $this->status?->label(),
             'notes' => $this->notes,
-            'receipt_url' => $this->receipt_path
-                ? url(Storage::disk('public')->url($this->receipt_path))
-                : null,
+            'receipt_url' => $this->authorizedReceiptUrl($request),
             'gateway' => $this->gateway,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
+    }
+
+    private function authorizedReceiptUrl(Request $request): ?string
+    {
+        if (! PaymentReceiptStorage::exists($this->receipt_path)) {
+            return null;
+        }
+
+        $user = $request->user();
+        $studentProfileId = $user?->studentProfile?->id;
+        if ($studentProfileId !== null && $studentProfileId === $this->student_id) {
+            return url('/api/v1/student/payments/'.$this->id.'/receipt');
+        }
+
+        return url('/api/v1/admin/payments/students/'.$this->student_id.'/payments/'.$this->id.'/receipt');
     }
 }

@@ -1,10 +1,19 @@
 import 'package:excellent_educators_web/app/di/providers.dart';
+import 'package:excellent_educators_web/features/payments/data/dto/generated_bill_dto.dart';
 import 'package:excellent_educators_web/features/payments/data/dto/payment_dtos.dart';
 import 'package:excellent_educators_web/features/payments/data/payment_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
   return PaymentRepository(ref.watch(apiClientProvider));
+});
+
+final generatedBillsSearchProvider = StateProvider.autoDispose<String>((ref) => '');
+
+final generatedBillsProvider =
+    FutureProvider.autoDispose<List<GeneratedBillDto>>((ref) {
+  final search = ref.watch(generatedBillsSearchProvider);
+  return ref.watch(paymentRepositoryProvider).listGeneratedBills(search: search);
 });
 
 final agentDashboardProvider = FutureProvider.autoDispose<AgentDashboardDto>((ref) {

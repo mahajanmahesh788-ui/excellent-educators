@@ -6,7 +6,9 @@ use App\Enums\RoleName;
 use App\Enums\UserStatus;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -199,5 +201,64 @@ class AuthTest extends TestCase
             'password' => 'NewSecurePass1!',
             'password_confirmation' => 'NewSecurePass1!',
         ])->assertUnauthorized();
+    }
+
+    public function test_forgot_password_sends_hash_reset_link_and_reset_works(): void
+    {
+        Notification::fake();
+        config(['app.frontend_url' => 'https://app.example.com']);
+
+        $user = User::factory()->create([
+            'email' => 'forgot@excellenteducators.test',
+            'password' => 'OldSecurePass1!',
+            'status' => UserStatus::Active,
+        ]);
+        $user->assignRole(RoleName::OperationalAdmin->value);
+
+        $this->postJson('/api/v1/auth/forgot-password', [
+            'email' => 'forgot@excellenteducators.test',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $token = null;
+        Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notification) use ($user, &$token) {
+            $token = $notification->token;
+            $url = $notification->toMail($user)->actionUrl;
+
+            return is_string($url)
+                && str_starts_with($url, 'https://app.example.com/#/reset-password?')
+                && str_contains($url, 'email='.urlencode($user->email))
+                && str_contains($url, 'token='.urlencode($notification->token));
+        });
+
+        $this->assertNotNull($token);
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'email' => 'forgot@excellenteducators.test',
+            'token' => $token,
+            'password' => 'NewSecurePass1!',
+            'password_confirmation' => 'NewSecurePass1!',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'forgot@excellenteducators.test',
+            'password' => 'NewSecurePass1!',
+        ])->assertOk();
+    }
+
+    public function test_forgot_password_does_not_reveal_missing_emails(): void
+    {
+        Notification::fake();
+
+        $this->postJson('/api/v1/auth/forgot-password', [
+            'email' => 'missing@excellenteducators.test',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        Notification::assertNothingSent();
     }
 }

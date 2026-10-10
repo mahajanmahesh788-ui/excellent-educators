@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:excellent_educators_web/app/router/route_paths.dart';
+import 'package:excellent_educators_web/core/navigation/app_navigation.dart';
 import 'package:excellent_educators_web/features/schedule/data/dto/schedule_dtos.dart';
 import 'package:excellent_educators_web/features/schedule/presentation/widgets/session_countdown_badge.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
@@ -209,7 +209,7 @@ class _NextClassCardState extends ConsumerState<NextClassCard> {
                                   if (mounted) setState(() => _busy = false);
                                 }
                               })
-                      : () => context.go(RoutePaths.studentBookings),
+                      : () => openAppLink(context, RoutePaths.studentBookings),
                   style: FilledButton.styleFrom(
                     backgroundColor: isLive
                         ? StudentColors.emeraldDark
@@ -250,7 +250,8 @@ class _NextClassCardState extends ConsumerState<NextClassCard> {
                 const SizedBox(width: 8),
                 IconButton(
                   tooltip: 'View in schedule',
-                  onPressed: () => context.go(RoutePaths.studentBookings),
+                  onPressed: () =>
+                      openAppLink(context, RoutePaths.studentBookings),
                   icon: const Icon(
                     Icons.open_in_new_rounded,
                     color: StudentColors.textSecondary,
@@ -335,9 +336,12 @@ class _NextClassCardState extends ConsumerState<NextClassCard> {
               onPressed: () {
                 final type = snapshot.primaryType;
                 if (type != null) {
-                  context.go('${RoutePaths.studentBookNew}?type=$type');
+                  openAppLink(
+                    context,
+                    '${RoutePaths.studentBookNew}?type=$type',
+                  );
                 } else {
-                  context.go(RoutePaths.studentBookings);
+                  openAppLink(context, RoutePaths.studentBookings);
                 }
               },
               style: FilledButton.styleFrom(

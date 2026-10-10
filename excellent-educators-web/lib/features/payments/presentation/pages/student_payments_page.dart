@@ -2,12 +2,10 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
-import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/payments/data/dto/payment_dtos.dart';
 import 'package:excellent_educators_web/features/payments/presentation/providers/payment_providers.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_history.dart';
-import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_qr_popup.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_receipt.dart';
 import 'package:excellent_educators_web/features/payments/presentation/widgets/payment_status_badge.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/student_scaffold.dart';
@@ -69,13 +67,7 @@ class StudentPaymentsPage extends ConsumerWidget {
                       vertical: 20,
                     ),
                     children: [
-                      StudentPaymentStatusCard(
-                        plan: plan,
-                        onlineEnabled: data.onlineEnabled,
-                        onPayNow: data.onlineEnabled && plan.pendingAmount > 0
-                            ? () => _payNow(context, ref, plan)
-                            : null,
-                      ),
+                      StudentPaymentStatusCard(plan: plan),
                       const SizedBox(height: 20),
                       PaymentHistoryList(
                         payments: plan.payments,
@@ -100,61 +92,16 @@ class StudentPaymentsPage extends ConsumerWidget {
       ),
     );
   }
-
-  Future<void> _payNow(
-    BuildContext context,
-    WidgetRef ref,
-    StudentPaymentPlanDto plan,
-  ) async {
-    try {
-      final initiated = await ref
-          .read(paymentRepositoryProvider)
-          .initiateOnline(amount: plan.nextDueAmount ?? plan.pendingAmount);
-      final orderId = initiated['order_id'] as String?;
-      if (orderId == null) {
-        if (context.mounted) {
-          showFailure(context, AppStrings.unableToStartPayment);
-        }
-        return;
-      }
-      final amount = (initiated['amount'] as num?)?.toDouble() ?? 0;
-      if (!context.mounted) {
-        return;
-      }
-      final paid = await showEnrolmentPaymentQrPopup(
-        context,
-        amount: amount,
-      );
-      if (paid != true) {
-        return;
-      }
-      await ref.read(paymentRepositoryProvider).confirmOnline(orderId: orderId);
-      ref.invalidate(studentOwnPaymentsProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.paymentSuccessful)),
-        );
-      }
-    } catch (error) {
-      if (context.mounted) {
-        showFailure(context, error);
-      }
-    }
-  }
 }
 
 class StudentPaymentStatusCard extends StatelessWidget {
   const StudentPaymentStatusCard({
     super.key,
     required this.plan,
-    this.onlineEnabled = false,
-    this.onPayNow,
     this.onOpenHistory,
   });
 
   final StudentPaymentPlanDto plan;
-  final bool onlineEnabled;
-  final VoidCallback? onPayNow;
   final VoidCallback? onOpenHistory;
 
   Widget _buildMetricTile({
@@ -570,7 +517,7 @@ class StudentPaymentStatusCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                ] else if (onPayNow != null) ...[
+                ] else if (plan.pendingAmount > 0) ...[
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -578,10 +525,10 @@ class StudentPaymentStatusCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: const Color(0xFFCBD5E1)),
                     ),
-                    child: LayoutBuilder(
-                      builder: (context, c) {
-                        final narrow = c.maxWidth < 460;
-                        final infoBlock = Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(8),
@@ -622,93 +569,14 @@ class StudentPaymentStatusCard extends StatelessWidget {
                               ),
                             ),
                           ],
-                        );
-
-                        final payButton = FilledButton.icon(
-                          onPressed: onPayNow,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Brand.navy,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          icon: const Icon(Icons.credit_card_rounded, size: 16),
-                          label: const Text(
-                            AppStrings.payNow,
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        );
-
-                        if (narrow) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              infoBlock,
-                              const SizedBox(height: 12),
-                              payButton,
-                            ],
-                          );
-                        }
-                        return Row(
-                          children: [
-                            Expanded(child: infoBlock),
-                            const SizedBox(width: 16),
-                            payButton,
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                ] else if (plan.pendingAmount > 0) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Icon(
-                            Icons.info_outline_rounded,
-                            color: Brand.navy,
-                            size: 18,
-                          ),
                         ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Offline Fee Settlement',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                  color: Brand.navy,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                AppStrings.contactInstituteToPay,
-                                style: TextStyle(
-                                  color: Brand.muted,
-                                  fontSize: 12.5,
-                                  height: 1.35,
-                                ),
-                              ),
-                            ],
+                        const SizedBox(height: 12),
+                        Text(
+                          AppStrings.contactInstituteToPay,
+                          style: const TextStyle(
+                            color: Brand.muted,
+                            fontSize: 12.5,
+                            height: 1.35,
                           ),
                         ),
                       ],
@@ -764,10 +632,6 @@ class StudentPaymentDashboardCard extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: 16),
           child: StudentPaymentStatusCard(
             plan: plan,
-            onlineEnabled: data.onlineEnabled,
-            onPayNow: data.onlineEnabled && plan.pendingAmount > 0
-                ? () => context.go(RoutePaths.studentPayments)
-                : null,
             onOpenHistory: () => context.go(RoutePaths.studentPayments),
           ),
         );

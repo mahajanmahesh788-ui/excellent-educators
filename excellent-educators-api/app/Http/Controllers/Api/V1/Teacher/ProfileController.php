@@ -60,6 +60,7 @@ class ProfileController extends Controller
 
         $photoUrl = TeacherPhotoStorage::store($data['photo'], $teacher);
         $teacher->update(['photo_url' => $photoUrl]);
+        $teacher = $teacher->fresh() ?? $teacher;
         $teacher->load([
             'user.roles',
             'activeBatchAssignments.batch',
@@ -69,7 +70,7 @@ class ProfileController extends Controller
         return ApiResponse::success(
             'Profile photo uploaded successfully.',
             [
-                'photo_url' => $photoUrl,
+                'photo_url' => TeacherPhotoStorage::accessibleUrl($photoUrl),
                 'teacher' => TeacherResource::make($teacher)->resolve(),
             ],
         );

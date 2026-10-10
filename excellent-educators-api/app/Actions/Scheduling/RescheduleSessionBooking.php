@@ -100,7 +100,7 @@ class RescheduleSessionBooking
                     throw new ApiException(ErrorCode::BOOKING_OVERLAP, 'This teacher already has a booking in that time.', 409);
                 }
 
-                $this->meetings->getOrCreate($teacher, $date);
+                $meet = $this->meetings->createForBooking($teacher, $date);
 
                 $from = AppClock::formatTime($booking->starts_at);
                 $booking->update([
@@ -109,6 +109,8 @@ class RescheduleSessionBooking
                     'starts_at' => $startsAt,
                     'ends_at' => $endsAt,
                     'status' => SessionBookingStatus::Scheduled->value,
+                    'meet_url' => $meet->meetUrl,
+                    'google_meeting_space_id' => $meet->googleMeetingSpaceId,
                 ]);
 
                 $label = SessionBookingType::fromMixed($booking->type)?->label() ?? 'Introduction Call';

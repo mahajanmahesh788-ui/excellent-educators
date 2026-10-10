@@ -114,8 +114,8 @@ class _RequestListBody extends StatelessWidget {
         subtitle: emptyMessage,
         action: allowNew
             ? FilledButton.icon(
-                onPressed: () => context.go(newRoute),
-                icon: const Icon(Icons.add),
+          onPressed: () => context.go(newRoute),
+          icon: const Icon(Icons.add),
                 label: const Text(AppStrings.newRequest),
               )
             : null,
@@ -330,13 +330,13 @@ class _StudentNewRequestPageState extends ConsumerState<StudentNewRequestPage> {
               ),
             )
           : _NewRequestForm(
-              formKey: _formKey,
-              subtitle: _subtitle,
-              description: _description,
-              saving: _saving,
-              onSubmit: _submit,
+        formKey: _formKey,
+        subtitle: _subtitle,
+        description: _description,
+        saving: _saving,
+        onSubmit: _submit,
               nested: false,
-            ),
+      ),
     );
   }
 }
@@ -435,11 +435,11 @@ class _NewRequestForm extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.all(isMobile ? 16 : 24),
         child: Form(
-          key: formKey,
+      key: formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
-            children: [
+        children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -474,46 +474,46 @@ class _NewRequestForm extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: subtitle,
+          ),
+          const SizedBox(height: 20),
+          TextFormField(
+            controller: subtitle,
                 decoration: const InputDecoration(
                   labelText: AppStrings.subject,
                   hintText: 'e.g. Schedule clash or fee query',
                 ),
-                textCapitalization: TextCapitalization.sentences,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
+            textCapitalization: TextCapitalization.sentences,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
                     return AppStrings.enterASubject;
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: description,
-                decoration: const InputDecoration(
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: description,
+            decoration: const InputDecoration(
                   labelText: AppStrings.description,
                   hintText: 'Provide details about your request...',
-                  alignLabelWithHint: true,
-                ),
+              alignLabelWithHint: true,
+            ),
                 maxLines: 5,
-                textCapitalization: TextCapitalization.sentences,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
+            textCapitalization: TextCapitalization.sentences,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
                     return AppStrings.enterADescription;
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: saving ? null : onSubmit,
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: saving ? null : onSubmit,
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(44),
                 ),
-                child: saving
+            child: saving
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text(AppStrings.submitRequest),
               ),
@@ -766,7 +766,7 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                   horizontal: isMobile ? 12 : 24,
                   vertical: isMobile ? 14 : 20,
                 ),
-                children: [
+            children: [
                   // 1. Top Header Banner
                   _buildRequestHeader(item),
                   const SizedBox(height: 16),
@@ -869,8 +869,8 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                   children: [
                     const Icon(Icons.schedule_rounded, size: 13, color: Color(0xFF94A3B8)),
                     const SizedBox(width: 4),
-                    Text(
-                      'Submitted ${_formatDate(item.createdAt)}',
+              Text(
+                'Submitted ${_formatDate(item.createdAt)}',
                       style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                     ),
                   ],
@@ -899,7 +899,7 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
             children: [
               Icon(Icons.hourglass_top_rounded, size: 12, color: Color(0xFFD97706)),
               SizedBox(width: 4),
-              Text(
+                Text(
                 'Pending Review',
                 style: TextStyle(
                   color: Color(0xFFB45309),
@@ -1554,9 +1554,9 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
             runSpacing: 10,
             children: [
               if (item.isPromoteStudent) ...[
-                FilledButton.icon(
-                  onPressed: _resolving ? null : () => _resolve(applyAction: true),
-                  icon: _resolving
+                  FilledButton.icon(
+                    onPressed: _resolving ? null : () => _resolve(applyAction: true),
+                    icon: _resolving
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.check_circle_rounded, size: 18),
                   label: Text(
@@ -1590,8 +1590,8 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                   ),
                 ),
-                OutlinedButton(
-                  onPressed: _resolving ? null : () => _resolve(applyAction: false),
+                  OutlinedButton(
+                    onPressed: _resolving ? null : () => _resolve(applyAction: false),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
@@ -1608,9 +1608,9 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                   ),
                 ),
               ] else ...[
-                FilledButton.icon(
-                  onPressed: _resolving ? null : () => _resolve(applyAction: false),
-                  icon: _resolving
+                  FilledButton.icon(
+                    onPressed: _resolving ? null : () => _resolve(applyAction: false),
+                    icon: _resolving
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.check_circle_outline, size: 18),
                   label: const Text(AppStrings.markAsResolved),
@@ -1628,7 +1628,7 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
                     side: const BorderSide(color: Color(0xFFFCA5A5)),
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                   ),
-                ),
+                  ),
               ],
             ],
           ),
