@@ -168,19 +168,23 @@ class _MentorBookingCardState extends State<MentorBookingCard> {
           final portraitH = narrow ? 148.0 : 178.0;
           final cardH = narrow ? 132.0 : 148.0;
           final popOut = portraitH - cardH + 8;
-          final overlap = portraitW * 0.42;
+          // Keep avatar fully inside layout bounds so ListView/web clip
+          // does not slice the left edge of the pop-out portrait.
+          final leftGutter = narrow ? 8.0 : 12.0;
+          final overlap = portraitW * 0.36;
 
           return AnimatedScale(
             scale: _hovered ? 1.01 : 1,
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
+            alignment: Alignment.center,
             child: SizedBox(
               height: cardH + popOut + 8,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Positioned(
-                    left: overlap,
+                    left: leftGutter + overlap,
                     right: 0,
                     bottom: 0,
                     height: cardH,
@@ -249,7 +253,7 @@ class _MentorBookingCardState extends State<MentorBookingCard> {
                             ),
                             Padding(
                               padding: EdgeInsets.fromLTRB(
-                                portraitW - overlap + (narrow ? 10 : 16),
+                                portraitW - overlap + (narrow ? 12 : 18),
                                 narrow ? 14 : 16,
                                 narrow ? 12 : 18,
                                 narrow ? 12 : 14,
@@ -281,7 +285,7 @@ class _MentorBookingCardState extends State<MentorBookingCard> {
                   ),
                   if (indexLabel != null)
                     Positioned(
-                      left: 2,
+                      left: leftGutter + 2,
                       top: 0,
                       child: Text(
                         indexLabel,
@@ -294,7 +298,7 @@ class _MentorBookingCardState extends State<MentorBookingCard> {
                       ),
                     ),
                   Positioned(
-                    left: 0,
+                    left: leftGutter,
                     bottom: 6,
                     width: portraitW,
                     height: portraitH,
@@ -331,6 +335,8 @@ class _PopOutPortrait extends StatelessWidget {
       scale: hovered ? 1.03 : 1,
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
+      // Grow into the card, not off the clipped left edge.
+      alignment: Alignment.centerRight,
       child: LayoutBuilder(
         builder: (context, constraints) {
           return DecoratedBox(

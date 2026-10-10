@@ -36,6 +36,7 @@ class StudentTeachersPage extends ConsumerWidget {
             orElse: () => null,
           );
           return ListView(
+            clipBehavior: Clip.none,
             padding: const EdgeInsets.only(bottom: 48),
             children: [
               const Text(

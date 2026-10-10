@@ -188,7 +188,7 @@ class CreateSessionBooking
 
         if ($this->eligibility->masterClassRequiresLevelWeeks($student)) {
             $completed = $this->eligibility->levelWeeksCompletedForMasterClass($student);
-            $required = BookingEligibility::MASTER_CLASS_REQUIRED_LEVEL_WEEKS;
+            $required = $this->eligibility->requiredLevelWeeks();
             throw new ApiException(
                 ErrorCode::MASTER_CLASS_LEVEL_WEEKS_INCOMPLETE,
                 "Master Class unlocks after you complete all {$required} weeks of this level. You have finished {$completed} of {$required}.",

@@ -87,6 +87,43 @@ class SchedulingTest extends TestCase
         $this->assertSame(0, $withoutBooking['affected_count']);
     }
 
+    public function test_master_class_unlocks_immediately_when_required_weeks_is_zero(): void
+    {
+        [$student, $teacher] = $this->makeStudentWithTeacher();
+        $token = $this->tokenFor($student->user);
+
+        app(\App\Support\AppSettings::class)->update([
+            'master_class_required_level_weeks' => 0,
+        ]);
+
+        $this->withToken($token)->postJson('/api/v1/student/bookings', [
+            'teacher_id' => $teacher->id,
+            'type' => 'introduction_call',
+            'date' => '2026-09-16',
+            'start' => '11:00',
+        ])->assertCreated();
+
+        SessionBooking::query()->first()?->update([
+            'status' => 'completed',
+            'starts_at' => Carbon::parse('2026-09-10 11:00:00', 'Asia/Kolkata'),
+            'ends_at' => Carbon::parse('2026-09-10 11:30:00', 'Asia/Kolkata'),
+            'date' => '2026-09-10',
+        ]);
+
+        $this->withToken($token)->getJson('/api/v1/student/bookings/eligibility')
+            ->assertOk()
+            ->assertJsonPath('data.master_class_requires_level_weeks', false)
+            ->assertJsonPath('data.level_weeks_required', 0)
+            ->assertJsonPath('data.can_book_master_class', true);
+
+        $this->withToken($token)->postJson('/api/v1/student/bookings', [
+            'teacher_id' => $teacher->id,
+            'type' => 'master_class',
+            'date' => '2026-09-18',
+            'start' => '11:00',
+        ])->assertCreated();
+    }
+
     public function test_student_must_complete_introduction_before_master_class_and_monthly_limit(): void
     {
         [$student, $teacher] = $this->makeStudentWithTeacher();

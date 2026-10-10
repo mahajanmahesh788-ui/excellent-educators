@@ -1376,10 +1376,14 @@ abstract final class AppStrings {
   static const tryADifferentSearchTermOrFilter = 'Try a different search term or filter.';
   static const tryAgain = 'Try again';
   static const bookingCouldNotComplete = 'Could not complete booking';
+  static const bookingUnexpectedIssue =
+      'We could not save your booking right now. Please try again shortly.';
   static const bookingIssueSentToAdmin =
-      'We have sent this issue to the admin. They will look into it — please try again after some time.';
+      'Our team has been notified and will look into it.';
   static const bookingTryAnotherSlot =
-      'If this slot is taken, pick another available time and try again.';
+      'Please pick another available time and try again.';
+  static const unexpectedErrorTryAgain =
+      'Something went wrong. Please try again.';
   static const tryAnotherLevelBatchMonthOrRatedFilter = 'Try another level, batch, month, or rated filter.';
   static const tryChangingSearchTermsDatePeriodsOrEventCategoryFilters = 'Try changing search terms, date periods, or event category filters.';
   static const tue = 'TUE';

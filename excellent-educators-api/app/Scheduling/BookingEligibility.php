@@ -11,10 +11,12 @@ use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\WeeklyAssignmentAttempt;
 use App\Support\AppClock;
+use App\Support\AppSettings;
 use Illuminate\Support\Collection;
 
 class BookingEligibility
 {
+    /** Default when no admin setting is stored (kept for tests / helpers). */
     public const MASTER_CLASS_REQUIRED_LEVEL_WEEKS = 4;
 
     /**
@@ -56,9 +58,14 @@ class BookingEligibility
             'master_class_remaining' => $balance['remaining'],
             'master_class_requires_level_weeks' => $requiresLevelWeeks,
             'level_weeks_completed' => $levelWeeksCompleted,
-            'level_weeks_required' => self::MASTER_CLASS_REQUIRED_LEVEL_WEEKS,
+            'level_weeks_required' => $this->requiredLevelWeeks(),
             'current_month' => AppClock::currentYearMonth(),
         ];
+    }
+
+    public function requiredLevelWeeks(): int
+    {
+        return app(AppSettings::class)->masterClassRequiredLevelWeeks();
     }
 
     public function introductionCompleted(StudentProfile $student): bool
@@ -160,7 +167,7 @@ class BookingEligibility
 
     /**
      * Master Class stays locked after Introduction until the student completes
-     * the current level's first 4 weekly assignments.
+     * the configured number of weekly assignments on the current level (0–5).
      */
     public function masterClassRequiresLevelWeeks(StudentProfile $student): bool
     {
@@ -168,11 +175,21 @@ class BookingEligibility
             return false;
         }
 
-        return $this->levelWeeksCompletedForMasterClass($student) < self::MASTER_CLASS_REQUIRED_LEVEL_WEEKS;
+        $required = $this->requiredLevelWeeks();
+        if ($required <= 0) {
+            return false;
+        }
+
+        return $this->levelWeeksCompletedForMasterClass($student) < $required;
     }
 
     public function levelWeeksCompletedForMasterClass(StudentProfile $student): int
     {
+        $required = $this->requiredLevelWeeks();
+        if ($required <= 0) {
+            return 0;
+        }
+
         // Query directly — avoid a stale null currentLevelJourney relation from earlier in the request.
         $journeyId = \App\Models\StudentLevelJourney::query()
             ->where('student_id', $student->id)
@@ -186,7 +203,7 @@ class BookingEligibility
         return (int) WeeklyAssignmentAttempt::query()
             ->where('student_id', $student->id)
             ->where('student_level_journey_id', $journeyId)
-            ->whereBetween('week_number', [1, self::MASTER_CLASS_REQUIRED_LEVEL_WEEKS])
+            ->whereBetween('week_number', [1, $required])
             ->distinct()
             ->count('week_number');
     }

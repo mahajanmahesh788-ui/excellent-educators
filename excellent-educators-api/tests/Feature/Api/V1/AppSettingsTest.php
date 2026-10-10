@@ -42,6 +42,28 @@ class AppSettingsTest extends TestCase
         ])->assertUnprocessable();
     }
 
+    public function test_admin_can_update_master_class_unlock_weeks(): void
+    {
+        $admin = $this->makeAdmin();
+        $token = $this->tokenFor($admin);
+
+        $this->withToken($token)->getJson('/api/v1/admin/settings')
+            ->assertOk()
+            ->assertJsonPath('data.master_class_required_level_weeks', 4);
+
+        $this->withToken($token)->putJson('/api/v1/admin/settings', [
+            'master_class_required_level_weeks' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.master_class_required_level_weeks', 0);
+
+        $this->assertSame(0, app(AppSettings::class)->masterClassRequiredLevelWeeks());
+
+        $this->withToken($token)->putJson('/api/v1/admin/settings', [
+            'master_class_required_level_weeks' => 6,
+        ])->assertUnprocessable();
+    }
+
     public function test_teacher_cannot_change_settings(): void
     {
         $user = User::factory()->create(['email' => 'mt-settings@excellenteducators.test']);

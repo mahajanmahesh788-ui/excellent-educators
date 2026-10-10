@@ -86,8 +86,12 @@ trait CreatesActors
      */
     protected function completeLevelWeeksForMasterClass(
         StudentProfile $student,
-        int $weeks = BookingEligibility::MASTER_CLASS_REQUIRED_LEVEL_WEEKS,
+        ?int $weeks = null,
     ): void {
+        $weeks ??= app(\App\Support\AppSettings::class)->masterClassRequiredLevelWeeks();
+        if ($weeks <= 0) {
+            return;
+        }
         $student->loadMissing(['currentLevelJourney', 'academicLevel']);
         $level = $student->academicLevel
             ?? ($student->level_id !== null ? AcademicLevel::query()->find($student->level_id) : null);

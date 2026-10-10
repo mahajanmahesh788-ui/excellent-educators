@@ -8,6 +8,8 @@ class AppSettings
 {
     public const MAX_ACTIVE_STUDENTS = 'max_active_students';
 
+    public const MASTER_CLASS_REQUIRED_LEVEL_WEEKS = 'master_class_required_level_weeks';
+
     /**
      * Known settings. Add future keys here so Admin Settings can render them
      * without a new Flutter screen.
@@ -28,6 +30,17 @@ class AppSettings
                 'max' => 500,
                 'default' => (int) config('excellent_educators.batch.max_active_students', 50),
             ],
+            [
+                'key' => self::MASTER_CLASS_REQUIRED_LEVEL_WEEKS,
+                'group' => 'scheduling',
+                'group_label' => 'Scheduling',
+                'label' => 'Master Class unlock after (weeks)',
+                'help' => 'How many weekly assignments on the current level a student must finish before Master Class unlocks. 0 = unlock immediately after Introduction Call. Default 4.',
+                'type' => 'integer',
+                'min' => 0,
+                'max' => 5,
+                'default' => (int) config('excellent_educators.scheduling.master_class_required_level_weeks', 4),
+            ],
             ...\App\Payments\PaymentSettings::catalogItems(),
         ];
     }
@@ -47,6 +60,7 @@ class AppSettings
 
         return [
             'max_active_students' => $this->maxActiveStudents(),
+            'master_class_required_level_weeks' => $this->masterClassRequiredLevelWeeks(),
             'items' => $items,
         ];
     }
@@ -83,6 +97,13 @@ class AppSettings
     public function maxActiveStudents(): int
     {
         return (int) $this->get(self::MAX_ACTIVE_STUDENTS);
+    }
+
+    public function masterClassRequiredLevelWeeks(): int
+    {
+        $weeks = (int) $this->get(self::MASTER_CLASS_REQUIRED_LEVEL_WEEKS);
+
+        return max(0, min(5, $weeks));
     }
 
     public function get(string $key): mixed

@@ -2129,6 +2129,7 @@ class _StudentBookingWizardPageState
             );
           }
           return ListView(
+            clipBehavior: Clip.none,
             padding: EdgeInsets.only(bottom: isMobile ? 24 : 48),
             children: [
               Text(
@@ -2361,8 +2362,22 @@ class _StudentBookingWizardPageState
 }
 
 Future<void> _showBookingFailureDialog(BuildContext context, Object error) async {
-  final reason = friendlyErrorMessage(error);
+  const userFacingCodes = {
+    'SLOT_UNAVAILABLE',
+    'BOOKING_OVERLAP',
+    'INTRODUCTION_REQUIRED',
+    'MASTER_CLASS_LEVEL_WEEKS_INCOMPLETE',
+    'MASTER_CLASS_MONTHLY_LIMIT',
+    'TEACHER_NOT_ELIGIBLE',
+    'LEVEL_BATCH_NOT_ACTIVE',
+    'VALIDATION_ERROR',
+  };
+
   final code = error is ApiException ? error.code : null;
+  final reason = friendlyErrorMessage(error);
+  final showSpecificReason = code != null &&
+      userFacingCodes.contains(code) &&
+      !looksLikeTechnicalError(reason);
   final suggestOtherSlot = code == 'SLOT_UNAVAILABLE' ||
       code == 'BOOKING_OVERLAP' ||
       reason.toLowerCase().contains('no longer available') ||
@@ -2376,7 +2391,10 @@ Future<void> _showBookingFailureDialog(BuildContext context, Object error) async
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(reason, style: const TextStyle(height: 1.45)),
+          Text(
+            showSpecificReason ? reason : AppStrings.bookingUnexpectedIssue,
+            style: const TextStyle(height: 1.45),
+          ),
           const SizedBox(height: 12),
           const Text(
             AppStrings.bookingIssueSentToAdmin,
