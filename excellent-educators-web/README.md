@@ -15,6 +15,16 @@ flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8000
 
 Use a different port if needed, e.g. `--dart-define=API_BASE_URL=http://127.0.0.1:8001`.
 
+## Production web build
+
+Always pass the live API URL — the default is localhost and will break in production if omitted:
+
+```bash
+flutter build web --release --dart-define=API_BASE_URL=https://api.your-domain.com
+```
+
+Serve `build/web/` behind HTTPS (nginx, Cloudflare Pages, S3+CDN, etc.).
+
 ## Screens by role
 
 After login, routing depends on role:
