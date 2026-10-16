@@ -152,27 +152,33 @@ void popDetail(BuildContext context, {String? fallback}) {
 /// After an action on C (submit/save), land on [parent] and ensure C is not
 /// left in browser/app history (Back must not reopen the finished screen).
 ///
-/// Prefer popping a push-stack first. If this screen was opened with `go`
-/// (no pop), [GoRouter.replace] swaps the history entry so Back skips C.
+/// On Flutter web, [go] stacks parent above C so system Back returns to C.
+/// Always [replace] C with [parent] first (overwrites the history entry), then
+/// pop a duplicate parent frame if the detail was opened via [push].
 void completeAndReturnTo(BuildContext context, String parent) {
   dismissOverlayRoutes(context);
   final router = GoRouter.of(context);
   final parentNorm = AppNavHistory.normalize(parent);
 
-  while (router.canPop()) {
-    router.pop();
-  }
+  AppNavHistory.instance.clear();
+  AppNavHistory.instance.track(parentNorm);
 
-  AppNavHistory.instance.discardCurrent();
-
-  final current = AppNavHistory.normalize(router.state.uri.path);
-  if (current == parentNorm) {
-    AppNavHistory.instance.track(parentNorm);
-    return;
-  }
-
-  // replace (not go): go() would push parent on top of C in browser history.
+  // Overwrite the finished detail URL (e.g. week) so browser Back cannot
+  // reopen it from the journal.
   router.replace(parentNorm);
+
+  // push(journal) → push(week) → replace(journal) can leave [journal, journal].
+  // Pop once if we still can, but never leave parent.
+  if (router.canPop()) {
+    router.pop();
+    final afterPop = AppNavHistory.normalize(router.state.uri.path);
+    if (afterPop != parentNorm) {
+      router.replace(parentNorm);
+    }
+  }
+
+  AppNavHistory.instance.clear();
+  AppNavHistory.instance.track(parentNorm);
 }
 
 /// @Deprecated — use [completeAndReturnTo].

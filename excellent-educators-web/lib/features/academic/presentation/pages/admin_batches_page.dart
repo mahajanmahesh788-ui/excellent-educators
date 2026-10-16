@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
+import 'package:excellent_educators_web/core/widgets/app_person_avatar.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/app_status_toggle.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
@@ -1353,20 +1354,14 @@ class _BatchStudentList extends ConsumerWidget {
                             ),
                             child: Row(
                               children: [
-                                CircleAvatar(
+                                AppPersonAvatar(
+                                  name: student.fullName,
+                                  photoUrl: student.photoUrl,
                                   radius: 14,
                                   backgroundColor:
-                                      Brand.navy.withOpacity(0.1),
-                                  child: Text(
-                                    student.fullName.isNotEmpty
-                                        ? student.fullName[0].toUpperCase()
-                                        : 'S',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Brand.navy,
-                                    ),
-                                  ),
+                                      Brand.navy.withValues(alpha: 0.1),
+                                  foregroundColor: Brand.navy,
+                                  maxInitials: 1,
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(

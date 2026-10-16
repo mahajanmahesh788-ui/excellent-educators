@@ -176,6 +176,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
   String? _gender;
   bool _saving = false;
   bool _obscure = true;
+  bool _sendPasswordEmail = false;
 
   @override
   void dispose() {
@@ -237,6 +238,7 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
         'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
         'email': _email.text.trim(),
         'password': _password.text,
+        'send_password_email': _sendPasswordEmail,
         'class_grade': _classGrade,
         'gender': _gender,
         'guardian_name': _guardianName.text.trim().isEmpty ? null : _guardianName.text.trim(),
@@ -486,6 +488,16 @@ class _AdminCreateStudentPageState extends ConsumerState<AdminCreateStudentPage>
                   SizedBox(height: isMobile ? 16 : 24),
                   PaymentPlanFormFields(controller: _paymentForm),
                   SizedBox(height: isMobile ? 16 : 24),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: isMobile,
+                    value: _sendPasswordEmail,
+                    onChanged: (value) =>
+                        setState(() => _sendPasswordEmail = value ?? false),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text(AppStrings.sendPasswordOnEmail),
+                  ),
+                  SizedBox(height: isMobile ? 12 : 16),
                   FilledButton(
                     style: isMobile
                         ? FilledButton.styleFrom(

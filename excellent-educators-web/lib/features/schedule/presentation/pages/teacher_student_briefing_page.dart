@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/widgets/app_person_avatar.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/portal_chrome.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -62,31 +63,52 @@ class TeacherStudentBriefingPage extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          student.fullName,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: Brand.navy,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (student.studentCode.isNotEmpty)
-                              _InfoChip(student.studentCode),
-                            if (student.classGrade > 0)
-                              _InfoChip('Class ${student.classGrade}'),
-                            if (student.level != null &&
-                                !student.level!.isEmpty)
-                              _InfoChip(student.level!.label),
-                            if (student.batch != null &&
-                                !student.batch!.isEmpty)
-                              _InfoChip(student.batch!.label),
-                            if (slotLabel != null && slotLabel!.isNotEmpty)
-                              _InfoChip(slotLabel!),
+                            AppPersonAvatar(
+                              name: student.fullName,
+                              photoUrl: student.photoUrl,
+                              radius: 28,
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    student.fullName,
+                                    style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: Brand.navy,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      if (student.studentCode.isNotEmpty)
+                                        _InfoChip(student.studentCode),
+                                      if (student.classGrade > 0)
+                                        _InfoChip(
+                                          'Class ${student.classGrade}',
+                                        ),
+                                      if (student.level != null &&
+                                          !student.level!.isEmpty)
+                                        _InfoChip(student.level!.label),
+                                      if (student.batch != null &&
+                                          !student.batch!.isEmpty)
+                                        _InfoChip(student.batch!.label),
+                                      if (slotLabel != null &&
+                                          slotLabel!.isNotEmpty)
+                                        _InfoChip(slotLabel!),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                         if (student.feedbackOverallAverage != null) ...[

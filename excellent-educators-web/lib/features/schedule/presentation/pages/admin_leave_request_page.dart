@@ -2,6 +2,7 @@ import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
+import 'package:excellent_educators_web/core/widgets/app_person_avatar.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/app_status_chip.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -320,26 +321,13 @@ class _SummaryCard extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
+              AppPersonAvatar(
+                name: request.teacherName ?? AppStrings.teacher,
+                photoUrl: request.teacherPhotoUrl,
                 radius: 22,
                 backgroundColor: Brand.navyDeep,
-                backgroundImage: request.teacherPhotoUrl != null &&
-                        request.teacherPhotoUrl!.isNotEmpty
-                    ? NetworkImage(request.teacherPhotoUrl!)
-                    : null,
-                child: request.teacherPhotoUrl == null ||
-                        request.teacherPhotoUrl!.isEmpty
-                    ? Text(
-                        (request.teacherName ?? '?')
-                            .characters
-                            .first
-                            .toUpperCase(),
-                        style: const TextStyle(
-                          color: Brand.gold,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      )
-                    : null,
+                fontWeight: FontWeight.w800,
+                maxInitials: 1,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -565,24 +553,13 @@ class _AffectedBookingCard extends StatelessWidget {
                 children: [
                   for (final teacher in teachers)
                     ActionChip(
-                      avatar: CircleAvatar(
+                      avatar: AppPersonAvatar(
+                        name: teacher.fullName,
+                        photoUrl: teacher.photoUrl,
+                        radius: 12,
                         backgroundColor: Brand.navyDeep,
-                        backgroundImage: teacher.photoUrl != null &&
-                                teacher.photoUrl!.isNotEmpty
-                            ? NetworkImage(teacher.photoUrl!)
-                            : null,
-                        child: teacher.photoUrl == null ||
-                                teacher.photoUrl!.isEmpty
-                            ? Text(
-                                teacher.fullName.characters.first
-                                    .toUpperCase(),
-                                style: const TextStyle(
-                                  color: Brand.gold,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              )
-                            : null,
+                        fontWeight: FontWeight.w800,
+                        maxInitials: 1,
                       ),
                       label: Text(
                         teacher.callNumber.isEmpty

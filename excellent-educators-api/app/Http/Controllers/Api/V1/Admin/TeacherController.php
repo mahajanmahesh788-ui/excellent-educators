@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Actions\Admin\BuildAdminAcademySnapshot;
+use App\Actions\Auth\SendPortalCredentialsEmail;
 use App\Actions\Feedback\BuildMasterTeacherDashboard;
 use App\Actions\Teachers\BuildTeacherHistory;
 use App\Actions\Teachers\CreateTeacher;
@@ -76,10 +77,26 @@ class TeacherController extends Controller
         );
     }
 
-    public function store(StoreTeacherRequest $request, CreateTeacher $createTeacher): JsonResponse
-    {
-        $teacher = $createTeacher->execute($request->validated());
+    public function store(
+        StoreTeacherRequest $request,
+        CreateTeacher $createTeacher,
+        SendPortalCredentialsEmail $sendPortalCredentialsEmail,
+    ): JsonResponse {
+        $validated = $request->validated();
+        $sendPasswordEmail = (bool) ($validated['send_password_email'] ?? false);
+        $temporaryPassword = (string) $validated['password'];
+        unset($validated['send_password_email']);
+
+        $teacher = $createTeacher->execute($validated);
         $teacher->load('user.roles');
+
+        if ($sendPasswordEmail && $teacher->user) {
+            $sendPortalCredentialsEmail->execute(
+                $teacher->user,
+                $temporaryPassword,
+                'Teacher',
+            );
+        }
 
         return ApiResponse::success('Teacher created successfully.', TeacherResource::make($teacher)->resolve(), status: 201);
     }

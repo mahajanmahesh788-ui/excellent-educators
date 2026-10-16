@@ -221,8 +221,8 @@ class LearningJournalService
             ->where('id', $journeyId)
             ->first();
 
-        if ($journey === null || ! $journey->isCurrent()) {
-            throw new ApiException(ErrorCode::FORBIDDEN, 'Assignments can only be submitted on the current level journey.', 403);
+        if ($journey === null) {
+            throw new ApiException(ErrorCode::NOT_FOUND, 'Learning journey not found.', 404);
         }
 
         $maxWeek = $journey->weekNumberAt(AppClock::now());
@@ -319,7 +319,9 @@ class LearningJournalService
             'assignment_status' => $status,
             'attempts_used' => $attemptCount,
             'attempts_max' => 2,
-            'can_submit' => $unlocked && $journey->isCurrent() && $unit !== null && $attemptCount < 2,
+            'journey_is_current' => $journey->isCurrent(),
+            // Allow submit on previous levels too (history weeks with attempts left).
+            'can_submit' => $unlocked && $unit !== null && $attemptCount < 2,
             'video_url' => $videoUrl,
             'video_title' => filled($unit?->video_title) ? $unit->video_title : null,
             'has_video' => is_string($videoUrl) && $videoUrl !== '',

@@ -32,49 +32,52 @@ class StudentAssessmentForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (errorText != null)
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF2F2),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFFECACA), width: 1.4),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.info_outline_rounded,
-                  color: Color(0xFFB42318),
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    errorText!,
-                    style: const TextStyle(
-                      color: Color(0xFFB42318),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13.5,
+    // Students must not copy aptitude questions/options (anti-cheat).
+    return SelectionContainer.disabled(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (errorText != null)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFECACA), width: 1.4),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    color: Color(0xFFB42318),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      errorText!,
+                      style: const TextStyle(
+                        color: Color(0xFFB42318),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        for (var q = 0; q < assessment.questions.length; q++)
-          _QuestionCard(
-            index: q + 1,
-            question: assessment.questions[q],
-            selectedOptionId: selections[assessment.questions[q].id],
-            onSelect: (optionId) =>
-                onSelect(assessment.questions[q].id, optionId),
-          ),
-      ],
+          for (var q = 0; q < assessment.questions.length; q++)
+            _QuestionCard(
+              index: q + 1,
+              question: assessment.questions[q],
+              selectedOptionId: selections[assessment.questions[q].id],
+              onSelect: (optionId) =>
+                  onSelect(assessment.questions[q].id, optionId),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Actions\Auth\SendPortalCredentialsEmail;
 use App\Actions\Students\BuildStudentHistory;
 use App\Actions\Students\CreateStudent;
 use App\Actions\Students\DeleteStudent;
@@ -106,12 +107,29 @@ class StudentController extends Controller
         );
     }
 
-    public function store(StoreStudentRequest $request, CreateStudent $createStudent): JsonResponse
-    {
-        $student = $createStudent->execute($request->validated());
+    public function store(
+        StoreStudentRequest $request,
+        CreateStudent $createStudent,
+        SendPortalCredentialsEmail $sendPortalCredentialsEmail,
+    ): JsonResponse {
+        $validated = $request->validated();
+        $sendPasswordEmail = (bool) ($validated['send_password_email'] ?? false);
+        $temporaryPassword = (string) $validated['password'];
+        unset($validated['send_password_email']);
+
+        $student = $createStudent->execute($validated);
         $student->load($this->studentRelations());
         $student->loadCount($this->feedbackCounts());
         StudentProfile::attachOverallAverages([$student]);
+
+        if ($sendPasswordEmail && $student->user) {
+            $sendPortalCredentialsEmail->execute(
+                $student->user,
+                $temporaryPassword,
+                'Student',
+                $student->student_code,
+            );
+        }
 
         return ApiResponse::success('Student created successfully.', StudentResource::make($student)->resolve(), status: 201);
     }

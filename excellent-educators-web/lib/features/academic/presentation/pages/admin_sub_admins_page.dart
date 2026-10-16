@@ -159,6 +159,7 @@ class _SubAdminFormPageState extends ConsumerState<_SubAdminFormPage> {
   var _active = true;
   var _saving = false;
   var _obscurePassword = true;
+  var _sendPasswordEmail = false;
   final _toggles = <String, bool>{};
   String? _boundId;
 
@@ -249,6 +250,7 @@ class _SubAdminFormPageState extends ConsumerState<_SubAdminFormPage> {
           'name': _name.text.trim(),
           'email': _email.text.trim(),
           'password': _password.text,
+          'send_password_email': _sendPasswordEmail,
           'phone': _phone.text.trim(),
           'gender': _gender,
           'type': _type,
@@ -453,6 +455,17 @@ class _SubAdminFormPageState extends ConsumerState<_SubAdminFormPage> {
                     setState(() => _toggles[item.key] = value),
               ),
             const SizedBox(height: 8),
+          ],
+          if (!_editing) ...[
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _sendPasswordEmail,
+              onChanged: (value) =>
+                  setState(() => _sendPasswordEmail = value ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              title: const Text(AppStrings.sendPasswordOnEmail),
+            ),
+            const SizedBox(height: 12),
           ],
           FilledButton(
             onPressed: _saving ? null : () => _save(groups),

@@ -146,6 +146,7 @@ class _AdminCreateTeacherPageState
   String? _gender;
   bool _saving = false;
   bool _obscurePassword = true;
+  bool _sendPasswordEmail = false;
 
   @override
   void dispose() {
@@ -170,6 +171,7 @@ class _AdminCreateTeacherPageState
         'gender': _gender,
         'email': _email.text.trim(),
         'password': _password.text,
+        'send_password_email': _sendPasswordEmail,
         'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
         'whatsapp_number': _whatsapp.text.trim().isEmpty
             ? null
@@ -255,6 +257,15 @@ class _AdminCreateTeacherPageState
               onChanged: () => setState(() {}),
             ),
             const SizedBox(height: 24),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _sendPasswordEmail,
+              onChanged: (value) =>
+                  setState(() => _sendPasswordEmail = value ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              title: const Text(AppStrings.sendPasswordOnEmail),
+            ),
+            const SizedBox(height: 16),
             FilledButton(
               onPressed: _saving ? null : _submit,
               child: _saving

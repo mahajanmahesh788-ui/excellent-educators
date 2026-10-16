@@ -5,6 +5,7 @@ import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
 import 'package:excellent_educators_web/features/assessments/presentation/widgets/assessment_result_view.dart';
 import 'package:excellent_educators_web/features/learning/data/dto/learning_dtos.dart';
+import 'package:excellent_educators_web/features/learning/domain/learning_week_submit_gate.dart';
 import 'package:excellent_educators_web/features/learning/presentation/providers/learning_providers.dart';
 import 'package:excellent_educators_web/features/learning/presentation/widgets/weekly_video_lesson_card.dart';
 import 'package:excellent_educators_web/features/student/presentation/widgets/academy_ui.dart';
@@ -34,6 +35,7 @@ class _StudentLearningWeekPageState
   final _answers = <String, String>{};
   final _textControllers = <String, TextEditingController>{};
   final _questionKeys = <int, GlobalKey>{};
+  var _hydrated = false;
   var _submitting = false;
   String? _error;
 
@@ -41,6 +43,43 @@ class _StudentLearningWeekPageState
     return _textControllers.putIfAbsent(
       questionId,
       () => TextEditingController(text: seed ?? ''),
+    );
+  }
+
+  /// Seed local answers from the latest attempt (or empty) once per page open.
+  void _hydrateAnswers(LearningWeekDto week) {
+    if (_hydrated || !week.allowSubmit) {
+      return;
+    }
+    final latest = week.attempts.lastOrNull;
+    for (final question in week.questions) {
+      if (question.isText) {
+        final text = latest?.textAnswerFor(question.id) ?? '';
+        _textControllerFor(question.id, seed: text);
+      } else {
+        final optId = latest?.optionIdFor(question.id);
+        if (optId != null) {
+          _answers[question.id] = optId;
+        }
+      }
+    }
+    _hydrated = true;
+  }
+
+  bool _hasAnswerChanges(LearningWeekDto week) {
+    if (!_hydrated) {
+      return false;
+    }
+    final textAnswers = <String, String>{
+      for (final question in week.questions.where((q) => q.isText))
+        question.id: _textControllers[question.id]?.text ?? '',
+    };
+    return learningWeekHasAnswerChanges(
+      allowSubmit: week.allowSubmit,
+      questions: week.questions,
+      latestAttempt: week.attempts.lastOrNull,
+      optionAnswers: _answers,
+      textAnswers: textAnswers,
     );
   }
 
@@ -97,42 +136,26 @@ class _StudentLearningWeekPageState
         data: (week) {
           final totalQuestions = week.questions.length;
           final latestAttempt = week.attempts.lastOrNull;
-
-          // Prepopulate answers from latest attempt if available and not yet touched
-          if (_answers.isEmpty &&
-              _textControllers.isEmpty &&
-              latestAttempt != null &&
-              week.canSubmit) {
-            for (final q in week.questions) {
-              if (q.isText) {
-                final text = latestAttempt.textAnswerFor(q.id);
-                if (text != null) {
-                  _textControllerFor(q.id, seed: text);
-                }
-              } else {
-                final optId = latestAttempt.optionIdFor(q.id);
-                if (optId != null) {
-                  _answers[q.id] = optId;
-                }
-              }
-            }
-          }
+          _hydrateAnswers(week);
 
           bool isAnswered(LearningQuestionDto q) {
             if (q.isText) {
-              if (week.canSubmit) {
+              if (week.allowSubmit) {
                 return (_textControllers[q.id]?.text.trim().isNotEmpty ??
                     false);
               }
               return latestAttempt?.textAnswerFor(q.id) != null;
             }
-            if (week.canSubmit) {
+            if (week.allowSubmit) {
               return _answers.containsKey(q.id);
             }
             return latestAttempt?.optionIdFor(q.id) != null;
           }
 
           final answeredCount = week.questions.where(isAnswered).length;
+          final hasChanges = _hasAnswerChanges(week);
+          final canPressSubmit =
+              answeredCount == totalQuestions && hasChanges && !_submitting;
           final isMobile = MediaQuery.sizeOf(context).width < 600;
 
           for (var i = 0; i < totalQuestions; i++) {
@@ -163,7 +186,7 @@ class _StudentLearningWeekPageState
                           week.completed
                               ? AppStrings
                                     .assignmentCompletedYourSelectedAnswersAreShownBelow
-                              : !week.canSubmit
+                              : !week.allowSubmit
                               ? AppStrings
                                     .submissionsClosedYourSelectedAnswersAreShownBelow
                               : 'Attempt ${week.attemptsUsed + 1} of ${week.attemptsMax} · All questions on this screen.',
@@ -213,7 +236,7 @@ class _StudentLearningWeekPageState
               ],
 
               // Completion / Closed Status Banner (when submissions are finished)
-              if (!week.canSubmit && week.completed) ...[
+              if (!week.allowSubmit && week.completed) ...[
                 Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.symmetric(
@@ -259,7 +282,7 @@ class _StudentLearningWeekPageState
                     ],
                   ),
                 ),
-              ] else if (!week.canSubmit &&
+              ] else if (!week.allowSubmit &&
                   week.attemptsUsed >= week.attemptsMax) ...[
                 Container(
                   margin: const EdgeInsets.only(bottom: 16),
@@ -465,34 +488,36 @@ class _StudentLearningWeekPageState
                       (i == 0 || !week.questions[i - 1].isComprehension))
                     _ComprehensionPassage(
                       text: week.comprehensionParagraph!.trim(),
+                      allowTextSelection: false,
                     ),
                   _CompactQuestionCard(
                     key: _questionKeys[i],
                     index: i,
                     question: week.questions[i],
+                    allowTextSelection: false,
                     selectedOptionId: week.questions[i].isText
                         ? null
-                        : (week.canSubmit
+                        : (week.allowSubmit
                               ? _answers[week.questions[i].id]
                               : latestAttempt?.optionIdFor(
                                   week.questions[i].id,
                                 )),
-                    textController: week.questions[i].isText && week.canSubmit
+                    textController: week.questions[i].isText && week.allowSubmit
                         ? _textControllerFor(week.questions[i].id)
                         : null,
                     textAnswer: week.questions[i].isText
-                        ? (week.canSubmit
+                        ? (week.allowSubmit
                               ? _textControllers[week.questions[i].id]?.text
                               : latestAttempt?.textAnswerFor(
                                   week.questions[i].id,
                                 ))
                         : null,
-                    isReadOnly: !week.canSubmit,
+                    isReadOnly: !week.allowSubmit,
                     showResult:
-                        !week.canSubmit &&
+                        !week.allowSubmit &&
                         (week.completed || week.attemptsUsed > 0),
                     onOptionSelected:
-                        week.canSubmit && week.questions[i].isOptions
+                        week.allowSubmit && week.questions[i].isOptions
                         ? (optId) {
                             setState(() {
                               _answers[week.questions[i].id] = optId;
@@ -500,7 +525,7 @@ class _StudentLearningWeekPageState
                             });
                           }
                         : null,
-                    onTextChanged: week.canSubmit && week.questions[i].isText
+                    onTextChanged: week.allowSubmit && week.questions[i].isText
                         ? (_) => setState(() => _error = null)
                         : null,
                   ),
@@ -543,17 +568,24 @@ class _StudentLearningWeekPageState
                 ],
 
                 // Submit action when assignment is still open
-                if (week.canSubmit)
+                if (week.allowSubmit)
                   Builder(
                     builder: (context) {
                       final allAnswered = answeredCount == totalQuestions;
-                      final statusTitle = allAnswered
+                      final statusTitle = !allAnswered
                           ? (totalQuestions == 1
-                              ? 'All questions answered!'
-                              : 'All $totalQuestions questions answered!')
-                          : (totalQuestions == 1
                               ? '$answeredCount of 1 question answered'
-                              : '$answeredCount of $totalQuestions answered');
+                              : '$answeredCount of $totalQuestions answered')
+                          : !hasChanges
+                              ? AppStrings.changeAnAnswerToEnableSubmit
+                              : (totalQuestions == 1
+                                  ? 'All questions answered!'
+                                  : 'All $totalQuestions questions answered!');
+                      final statusSubtitle = !allAnswered
+                          ? AppStrings.selectAnswersForTheRemainingQuestionsAbove
+                          : !hasChanges
+                              ? AppStrings.submitEnabledAfterYouChangeAnAnswer
+                              : AppStrings.youAreReadyToSubmitYourAssignment;
                       return Container(
                     padding: EdgeInsets.all(isMobile ? 14 : 18),
                     decoration: BoxDecoration(
@@ -617,11 +649,7 @@ class _StudentLearningWeekPageState
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          allAnswered
-                                              ? AppStrings
-                                                  .youAreReadyToSubmitYourAssignment
-                                              : AppStrings
-                                                  .selectAnswersForTheRemainingQuestionsAbove,
+                                          statusSubtitle,
                                           style: const TextStyle(
                                             fontSize: 12.5,
                                             color: Academy.muted,
@@ -639,25 +667,33 @@ class _StudentLearningWeekPageState
                                 height: 46,
                                 child: FilledButton.icon(
                                   style: FilledButton.styleFrom(
-                                    backgroundColor: Brand.navy,
+                                    backgroundColor: canPressSubmit
+                                        ? Brand.navy
+                                        : Academy.line,
+                                    disabledBackgroundColor: Academy.line,
+                                    foregroundColor: canPressSubmit
+                                        ? Colors.white
+                                        : Academy.muted,
+                                    disabledForegroundColor: Academy.muted,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  onPressed: _submitting
-                                      ? null
-                                      : () => _submit(week),
-                                  icon: const Icon(
+                                  onPressed: canPressSubmit
+                                      ? () => _submit(week)
+                                      : null,
+                                  icon: Icon(
                                     Icons.check_circle_outline_rounded,
                                     size: 18,
-                                    color: Brand.gold,
+                                    color: canPressSubmit
+                                        ? Brand.gold
+                                        : Academy.muted,
                                   ),
                                   label: Text(
                                     _submitting
                                         ? AppStrings.submitting
                                         : AppStrings.submitAssignment,
                                     style: const TextStyle(
-                                      color: Colors.white,
                                       fontSize: 15,
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -703,11 +739,7 @@ class _StudentLearningWeekPageState
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      allAnswered
-                                          ? AppStrings
-                                              .youAreReadyToSubmitYourAssignment
-                                          : AppStrings
-                                              .selectAnswersForTheRemainingQuestionsAbove,
+                                      statusSubtitle,
                                       style: const TextStyle(
                                         fontSize: 13,
                                         color: Academy.muted,
@@ -719,7 +751,14 @@ class _StudentLearningWeekPageState
                               const SizedBox(width: 16),
                               FilledButton.icon(
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: Brand.navy,
+                                  backgroundColor: canPressSubmit
+                                      ? Brand.navy
+                                      : Academy.line,
+                                  disabledBackgroundColor: Academy.line,
+                                  foregroundColor: canPressSubmit
+                                      ? Colors.white
+                                      : Academy.muted,
+                                  disabledForegroundColor: Academy.muted,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 24,
                                     vertical: 14,
@@ -728,20 +767,21 @@ class _StudentLearningWeekPageState
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                                onPressed: _submitting
-                                    ? null
-                                    : () => _submit(week),
-                                icon: const Icon(
+                                onPressed: canPressSubmit
+                                    ? () => _submit(week)
+                                    : null,
+                                icon: Icon(
                                   Icons.check_circle_outline_rounded,
                                   size: 18,
-                                  color: Brand.gold,
+                                  color: canPressSubmit
+                                      ? Brand.gold
+                                      : Academy.muted,
                                 ),
                                 label: Text(
                                   _submitting
                                       ? AppStrings.submitting
                                       : AppStrings.submitAssignment,
                                   style: const TextStyle(
-                                    color: Colors.white,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -778,6 +818,13 @@ class _StudentLearningWeekPageState
       setState(() {
         _error =
             'Please answer all questions before submitting ($remaining remaining).';
+      });
+      return;
+    }
+
+    if (!_hasAnswerChanges(week)) {
+      setState(() {
+        _error = AppStrings.submitEnabledAfterYouChangeAnAnswer;
       });
       return;
     }
@@ -822,6 +869,7 @@ class _StudentLearningWeekPageState
         controller.dispose();
       }
       _textControllers.clear();
+      _hydrated = false;
       ref.invalidate(
         studentLearningWeekProvider((
           journeyId: widget.journeyId,
@@ -929,13 +977,17 @@ class _StudentLearningWeekPageState
 }
 
 class _ComprehensionPassage extends StatelessWidget {
-  const _ComprehensionPassage({required this.text});
+  const _ComprehensionPassage({
+    required this.text,
+    this.allowTextSelection = true,
+  });
 
   final String text;
+  final bool allowTextSelection;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final passage = Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(14),
@@ -977,6 +1029,10 @@ class _ComprehensionPassage extends StatelessWidget {
         ],
       ),
     );
+    if (allowTextSelection) {
+      return passage;
+    }
+    return SelectionContainer.disabled(child: passage);
   }
 }
 
@@ -990,6 +1046,7 @@ class _CompactQuestionCard extends StatelessWidget {
     this.textAnswer,
     this.isReadOnly = false,
     this.showResult = false,
+    this.allowTextSelection = true,
     this.onOptionSelected,
     this.onTextChanged,
   });
@@ -1001,6 +1058,8 @@ class _CompactQuestionCard extends StatelessWidget {
   final String? textAnswer;
   final bool isReadOnly;
   final bool showResult;
+  /// Staff may copy; students must not copy questions/options.
+  final bool allowTextSelection;
   final ValueChanged<String>? onOptionSelected;
   final ValueChanged<String>? onTextChanged;
 
@@ -1024,7 +1083,7 @@ class _CompactQuestionCard extends StatelessWidget {
       borderWidth = 1.0;
     }
 
-    return Container(
+    final card = Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1158,6 +1217,11 @@ class _CompactQuestionCard extends StatelessWidget {
         ],
       ),
     );
+
+    if (allowTextSelection) {
+      return card;
+    }
+    return SelectionContainer.disabled(child: card);
   }
 
   Widget _textAnswerField(String displayedText) {

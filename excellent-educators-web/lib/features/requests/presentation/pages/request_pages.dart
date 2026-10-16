@@ -1,6 +1,7 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/network/api_client.dart';
+import 'package:excellent_educators_web/core/widgets/app_person_avatar.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/features/academic/presentation/providers/admin_list_providers.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -1099,19 +1100,13 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
+                  AppPersonAvatar(
+                    name: item.student!.fullName,
+                    photoUrl: item.student!.photoUrl,
                     radius: 18,
                     backgroundColor: const Color(0xFFE0F2FE),
-                    child: Text(
-                      item.student!.fullName.isNotEmpty
-                          ? item.student!.fullName[0].toUpperCase()
-                          : 'S',
-                      style: const TextStyle(
-                        color: Color(0xFF0284C7),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
+                    foregroundColor: const Color(0xFF0284C7),
+                    maxInitials: 1,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1258,13 +1253,13 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
+                  AppPersonAvatar(
+                    name: item.student!.fullName,
+                    photoUrl: item.student!.photoUrl,
                     radius: 18,
                     backgroundColor: const Color(0xFFFEE2E2),
-                    child: Text(
-                      item.student!.fullName.isNotEmpty ? item.student!.fullName[0].toUpperCase() : 'S',
-                      style: const TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w700),
-                    ),
+                    foregroundColor: const Color(0xFFDC2626),
+                    maxInitials: 1,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1400,13 +1395,12 @@ class _AdminRequestDetailPageState extends ConsumerState<AdminRequestDetailPage>
           const SizedBox(height: 14),
           Row(
             children: [
-              CircleAvatar(
+              AppPersonAvatar(
+                name: name.isNotEmpty ? name : 'U',
                 radius: 20,
                 backgroundColor: const Color(0xFF03162B),
-                child: Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
-                ),
+                foregroundColor: Colors.white,
+                maxInitials: 1,
               ),
               const SizedBox(width: 12),
               Expanded(

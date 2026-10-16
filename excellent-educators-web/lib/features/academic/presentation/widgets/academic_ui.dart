@@ -6,6 +6,7 @@ import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/errors/api_error_message.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
+import 'package:excellent_educators_web/core/widgets/app_person_avatar.dart';
 import 'package:excellent_educators_web/core/widgets/app_pull_to_refresh.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/empty_state.dart';
@@ -585,13 +586,10 @@ class _PickerTeacherTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
+              AppPersonAvatar(
+                name: teacher.fullName,
+                photoUrl: teacher.photoUrl,
                 radius: 22,
-                backgroundColor: Brand.navy,
-                child: Text(
-                  _initials(teacher.fullName),
-                  style: const TextStyle(color: Brand.gold, fontWeight: FontWeight.w700, fontSize: 13),
-                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -662,13 +660,10 @@ class _PickerStudentTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
+              AppPersonAvatar(
+                name: student.fullName,
+                photoUrl: student.photoUrl,
                 radius: 22,
-                backgroundColor: Brand.navy,
-                child: Text(
-                  _initials(student.fullName),
-                  style: const TextStyle(color: Brand.gold, fontWeight: FontWeight.w700, fontSize: 13),
-                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -740,17 +735,6 @@ class _PickerChip extends StatelessWidget {
       ),
     );
   }
-}
-
-String _initials(String name) {
-  final parts = name.trim().split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
-  if (parts.isEmpty) {
-    return '?';
-  }
-  if (parts.length == 1) {
-    return parts.first[0].toUpperCase();
-  }
-  return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
 }
 
 String? validateRequired(String? value, {String message = AppStrings.thisFieldIsRequired}) {

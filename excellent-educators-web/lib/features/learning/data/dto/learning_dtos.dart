@@ -26,6 +26,7 @@ class LearningWeekDto {
     required this.attemptsUsed,
     required this.attemptsMax,
     required this.canSubmit,
+    this.journeyIsCurrent = true,
     required this.hasVideo,
     this.videoUrl,
     this.videoTitle,
@@ -66,6 +67,7 @@ class LearningWeekDto {
       attemptsUsed: (json['attempts_used'] as num?)?.toInt() ?? 0,
       attemptsMax: (json['attempts_max'] as num?)?.toInt() ?? 2,
       canSubmit: json['can_submit'] as bool? ?? false,
+      journeyIsCurrent: json['journey_is_current'] as bool? ?? true,
       hasVideo: json['has_video'] as bool? ?? false,
       videoUrl: json['video_url'] as String?,
       videoTitle: json['video_title'] as String?,
@@ -107,6 +109,7 @@ class LearningWeekDto {
   final int attemptsUsed;
   final int attemptsMax;
   final bool canSubmit;
+  final bool journeyIsCurrent;
   final bool hasVideo;
   final String? videoUrl;
   final String? videoTitle;
@@ -121,6 +124,9 @@ class LearningWeekDto {
   final List<LearningAttemptDto> attempts;
   final LearningWeekScoreDto? score;
   final AssessmentResultDto? result;
+
+  /// Submit when API says so (includes previous-level weeks with attempts left).
+  bool get allowSubmit => canSubmit;
 
   bool get completed => assignmentStatus == 'completed';
 
@@ -259,8 +265,12 @@ class LearningAttemptDto {
 
   String? optionIdFor(String questionId) {
     for (final answer in answers) {
-      if (answer['question_id'] == questionId) {
-        return answer['option_id'] as String?;
+      if ('${answer['question_id']}' == questionId) {
+        final optionId = answer['option_id'];
+        if (optionId == null) {
+          return null;
+        }
+        return '$optionId';
       }
     }
     return null;
@@ -268,7 +278,7 @@ class LearningAttemptDto {
 
   String? textAnswerFor(String questionId) {
     for (final answer in answers) {
-      if (answer['question_id'] == questionId) {
+      if ('${answer['question_id']}' == questionId) {
         final text = answer['text_answer'] as String?;
         if (text != null && text.trim().isNotEmpty) {
           return text;

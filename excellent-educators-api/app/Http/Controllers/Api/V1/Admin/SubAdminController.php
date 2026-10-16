@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Actions\Auth\SendPortalCredentialsEmail;
 use App\Actions\SubAdmins\CreateSubAdmin;
 use App\Actions\SubAdmins\UpdateSubAdmin;
 use App\Enums\PermissionName;
@@ -60,9 +61,22 @@ class SubAdminController extends Controller
         );
     }
 
-    public function store(StoreSubAdminRequest $request, CreateSubAdmin $create): JsonResponse
-    {
-        $user = $create->execute($request->validated());
+    public function store(
+        StoreSubAdminRequest $request,
+        CreateSubAdmin $create,
+        SendPortalCredentialsEmail $sendPortalCredentialsEmail,
+    ): JsonResponse {
+        $validated = $request->validated();
+        $sendPasswordEmail = (bool) ($validated['send_password_email'] ?? false);
+        $temporaryPassword = (string) $validated['password'];
+        unset($validated['send_password_email']);
+
+        $user = $create->execute($validated);
+
+        if ($sendPasswordEmail) {
+            $roleLabel = ($user->adminProfile?->isAgent() ?? false) ? 'Agent' : 'Sub Admin';
+            $sendPortalCredentialsEmail->execute($user, $temporaryPassword, $roleLabel);
+        }
 
         return ApiResponse::success('Sub admin created successfully.', SubAdminResource::make($user)->resolve(), status: 201);
     }

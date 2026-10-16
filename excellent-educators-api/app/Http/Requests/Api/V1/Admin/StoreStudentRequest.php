@@ -45,6 +45,7 @@ class StoreStudentRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->whereNull('deleted_at')],
             'password' => ['required', Password::defaults()],
+            'send_password_email' => ['sometimes', 'boolean'],
             'class_grade' => ['required', 'integer', 'min:5', 'max:12'],
             'gender' => ['required', Rule::enum(Gender::class)],
             'phone' => ['required', 'string', 'min:10', 'max:15', 'unique:student_profiles,phone'],

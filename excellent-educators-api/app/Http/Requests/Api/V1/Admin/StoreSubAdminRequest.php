@@ -37,6 +37,7 @@ class StoreSubAdminRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->whereNull('deleted_at')],
             'password' => ['required', Password::defaults()],
+            'send_password_email' => ['sometimes', 'boolean'],
             'phone' => ['required', 'string', 'min:10', 'max:15', 'unique:admin_profiles,phone'],
             'gender' => ['required', Rule::enum(Gender::class)],
             'type' => ['sometimes', Rule::enum(AdminAccountType::class)],

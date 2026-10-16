@@ -53,6 +53,7 @@ class StoreTeacherRequest extends FormRequest
             'gender' => ['required', Rule::enum(Gender::class)],
             'email' => ['required', 'email', Rule::unique('users', 'email')->whereNull('deleted_at')],
             'password' => ['required', Password::defaults()],
+            'send_password_email' => ['sometimes', 'boolean'],
             'employee_code' => ['nullable', 'string', 'max:32', 'unique:teacher_profiles,employee_code'],
             'phone' => ['nullable', 'string', 'min:10', 'max:15'],
             'whatsapp_number' => ['nullable', 'string', 'min:10', 'max:15'],

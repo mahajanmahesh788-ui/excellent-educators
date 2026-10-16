@@ -348,23 +348,27 @@ class AppScaffold extends ConsumerWidget {
             )
           : null,
       floatingActionButton: floatingActionButton,
-      body: destinations.isEmpty || !wide
-          ? content
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _SideNav(
-                  destinations: destinations,
-                  selectedIndex: selected,
-                  disabledPaths: disabledNavPaths,
-                  onSelect: (index) {
-                    goMenu(context, destinations[index].path);
-                  },
-                ),
-                const VerticalDivider(width: 1, color: Color(0x33000000)),
-                Expanded(child: content),
-              ],
-            ),
+      // SelectionArea must sit under Navigator Overlay (inside Scaffold), not in
+      // MaterialApp.builder — otherwise Flutter web throws "No Overlay widget found".
+      body: SelectionArea(
+        child: destinations.isEmpty || !wide
+            ? content
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _SideNav(
+                    destinations: destinations,
+                    selectedIndex: selected,
+                    disabledPaths: disabledNavPaths,
+                    onSelect: (index) {
+                      goMenu(context, destinations[index].path);
+                    },
+                  ),
+                  const VerticalDivider(width: 1, color: Color(0x33000000)),
+                  Expanded(child: content),
+                ],
+              ),
+      ),
     ),
     );
   }

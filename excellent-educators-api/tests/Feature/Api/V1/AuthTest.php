@@ -249,15 +249,16 @@ class AuthTest extends TestCase
         ])->assertOk();
     }
 
-    public function test_forgot_password_does_not_reveal_missing_emails(): void
+    public function test_forgot_password_rejects_missing_emails(): void
     {
         Notification::fake();
 
         $this->postJson('/api/v1/auth/forgot-password', [
             'email' => 'missing@excellenteducators.test',
         ])
-            ->assertOk()
-            ->assertJsonPath('success', true);
+            ->assertNotFound()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error.code', 'NOT_FOUND');
 
         Notification::assertNothingSent();
     }

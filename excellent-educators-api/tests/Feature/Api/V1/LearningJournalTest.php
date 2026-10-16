@@ -93,15 +93,33 @@ class LearningJournalTest extends TestCase
             ->json('data');
 
         $this->assertCount(2, $journal['levels']);
-        $this->assertFalse($journal['levels'][0]['is_current']);
-        $this->assertTrue($journal['levels'][1]['is_current']);
-        $this->assertSame(1, $journal['levels'][0]['weeks'][0]['week_number']);
-        $this->assertSame('completed', $journal['levels'][0]['weeks'][0]['assignment_status']);
-        $this->assertSame('https://video.test/l1w1', $journal['levels'][0]['weeks'][0]['video_url']);
-        $this->assertNull($journal['levels'][0]['weeks'][0]['score']);
-        $this->assertSame(1, $journal['levels'][1]['weeks'][0]['week_number']);
-        $this->assertSame('pending', $journal['levels'][1]['weeks'][0]['assignment_status']);
-        $this->assertNull($journal['levels'][1]['weeks'][0]['score']);
+        $previous = collect($journal['levels'])->firstWhere('is_current', false);
+        $current = collect($journal['levels'])->firstWhere('is_current', true);
+        $this->assertNotNull($previous);
+        $this->assertNotNull($current);
+        $this->assertSame(1, $previous['weeks'][0]['week_number']);
+        $this->assertSame('completed', $previous['weeks'][0]['assignment_status']);
+        $this->assertSame('https://video.test/l1w1', $previous['weeks'][0]['video_url']);
+        $this->assertNull($previous['weeks'][0]['score']);
+        // Previous level still has 1 attempt left — student may submit again.
+        $this->assertTrue($previous['weeks'][0]['can_submit']);
+        $this->assertSame(1, $current['weeks'][0]['week_number']);
+        $this->assertSame('pending', $current['weeks'][0]['assignment_status']);
+        $this->assertNull($current['weeks'][0]['score']);
+        $this->assertTrue($current['weeks'][0]['can_submit']);
+
+        $answers = [];
+        foreach ($week1['questions'] as $question) {
+            $answers[] = [
+                'question_id' => $question['id'],
+                'option_id' => $question['options'][1]['id'],
+            ];
+        }
+        $this->withToken($this->tokenFor($student->user))
+            ->postJson("/api/v1/student/learning/journal/{$previous['journey_id']}/1", [
+                'answers' => $answers,
+            ])
+            ->assertCreated();
 
         $dashboard = $this->withToken($this->tokenFor($student->user))
             ->getJson('/api/v1/student/learning/dashboard')

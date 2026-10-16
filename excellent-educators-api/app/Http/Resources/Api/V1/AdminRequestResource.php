@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\AdminRequest;
+use App\Support\StudentPhotoStorage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -28,6 +29,7 @@ class AdminRequestResource extends JsonResource
                 'id' => $this->student->id,
                 'full_name' => $this->student->full_name,
                 'student_code' => $this->student->student_code,
+                'photo_url' => StudentPhotoStorage::accessibleUrl($this->student->photo_url),
             ]),
             'batch' => $this->whenLoaded('batch', fn () => $this->batch === null ? null : [
                 'id' => $this->batch->id,

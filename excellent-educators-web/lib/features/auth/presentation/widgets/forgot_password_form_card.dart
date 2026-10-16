@@ -1,12 +1,13 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/app/theme/breakpoints.dart';
+import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/errors/api_error_message.dart';
 import 'package:excellent_educators_web/features/auth/presentation/providers/auth_controller.dart';
 import 'package:excellent_educators_web/features/auth/presentation/widgets/auth_form_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:excellent_educators_web/core/constants/app_strings.dart';
 
 class ForgotPasswordFormCard extends ConsumerStatefulWidget {
   const ForgotPasswordFormCard({super.key});
@@ -43,7 +44,7 @@ class _ForgotPasswordFormCardState extends ConsumerState<ForgotPasswordFormCard>
         _message = AppStrings.ifThatEmailExistsAPasswordResetLinkHasBeen;
       });
     } catch (error) {
-      setState(() => _error = error.toString());
+      setState(() => _error = friendlyErrorMessage(error));
     } finally {
       if (mounted) {
         setState(() => _loading = false);

@@ -1,6 +1,7 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/app/theme/breakpoints.dart';
+import 'package:excellent_educators_web/core/widgets/app_person_avatar.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/portal_chrome.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -948,10 +949,6 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
     final showJoin = !widget.isPast && !isCancelled && (booking.meetingUrl ?? '').isNotEmpty;
     final canWhatsApp = booking.attendance?.canWhatsAppStudent ?? false;
     final borderColor = _sessionBorderColor(booking, DateTime.now());
-    final studentInitial = (booking.studentName?.isNotEmpty ?? false)
-        ? booking.studentName!.substring(0, 1).toUpperCase()
-        : 'S';
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 660;
@@ -1216,18 +1213,12 @@ class _ExecutiveBookingCardState extends ConsumerState<_ExecutiveBookingCard> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // Initial Avatar
-                            CircleAvatar(
+                            AppPersonAvatar(
+                              name: booking.studentName ?? AppStrings.student,
+                              photoUrl: booking.studentPhotoUrl,
                               radius: isNarrow ? 16 : 19,
-                              backgroundColor: Brand.navy,
-                              child: Text(
-                                studentInitial,
-                                style: TextStyle(
-                                  color: Brand.gold,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: isNarrow ? 13 : 15,
-                                ),
-                              ),
+                              fontWeight: FontWeight.w900,
+                              maxInitials: 1,
                             ),
                             const SizedBox(width: 10),
                             Expanded(

@@ -73,9 +73,36 @@ class AuthController extends Controller
 
     public function forgotPassword(ForgotPasswordRequest $request, SendPasswordResetLink $sendPasswordResetLink): JsonResponse
     {
-        $sendPasswordResetLink->execute($request->string('email')->toString());
+        $status = $sendPasswordResetLink->execute($request->string('email')->toString());
 
-        return ApiResponse::success('If that email exists, a password reset link has been sent.');
+        if ($status === Password::INVALID_USER) {
+            return ApiResponse::error(
+                'No account found with that email address.',
+                'NOT_FOUND',
+                ['email' => ['No account found with that email address.']],
+                404,
+            );
+        }
+
+        if ($status === Password::RESET_THROTTLED) {
+            return ApiResponse::error(
+                'Please wait a moment before requesting another reset link.',
+                'VALIDATION_ERROR',
+                ['email' => [__($status)]],
+                429,
+            );
+        }
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            return ApiResponse::error(
+                'Unable to send a password reset link. Please try again.',
+                'VALIDATION_ERROR',
+                ['email' => [__($status)]],
+                422,
+            );
+        }
+
+        return ApiResponse::success('A password reset link has been sent to your email.');
     }
 
     public function resetPassword(ResetPasswordRequest $request, ResetPassword $resetPassword): JsonResponse

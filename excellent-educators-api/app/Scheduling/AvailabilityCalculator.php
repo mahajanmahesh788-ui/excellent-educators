@@ -14,6 +14,7 @@ use App\Models\TeacherLeave;
 use App\Models\TeacherProfile;
 use App\Models\TeacherWeeklyOff;
 use App\Support\AppClock;
+use App\Support\StudentPhotoStorage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -64,6 +65,7 @@ class AvailabilityCalculator
                 'status' => $inside ? ScheduleSlotStatus::Available->value : $outsideStatus,
                 'booking_id' => null,
                 'student_name' => null,
+                'student_photo_url' => null,
                 'booking_type' => null,
             ];
         }
@@ -161,6 +163,9 @@ class AvailabilityCalculator
                 $slots[$start]['status'] = ScheduleSlotStatus::Booked->value;
                 $slots[$start]['booking_id'] = $booking->id;
                 $slots[$start]['student_name'] = $booking->student?->full_name;
+                $slots[$start]['student_photo_url'] = StudentPhotoStorage::accessibleUrl(
+                    $booking->student?->photo_url,
+                );
                 $slots[$start]['booking_type'] = $booking->type?->value ?? $booking->type;
             }
         }
@@ -422,6 +427,9 @@ class AvailabilityCalculator
                 'student_id' => $booking->student_id,
                 'teacher_id' => $booking->teacher_id,
                 'student_name' => $booking->student?->full_name,
+                'student_photo_url' => StudentPhotoStorage::accessibleUrl(
+                    $booking->student?->photo_url,
+                ),
                 'teacher_name' => $booking->teacher?->full_name,
                 'type' => $type,
                 'date' => $booking->date?->toDateString() ?? SlotGrid::dateFrom($booking->starts_at),

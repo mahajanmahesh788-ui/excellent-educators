@@ -579,7 +579,8 @@ abstract final class AppStrings {
   static const hobbies = 'Hobbies';
   static const howDoYouWantToTakeLeave = 'How do you want to take leave?';
   static const icon = 'Icon';
-  static const ifThatEmailExistsAPasswordResetLinkHasBeen = 'If that email exists, a password reset link has been sent.';
+  static const ifThatEmailExistsAPasswordResetLinkHasBeen =
+      'A password reset link has been sent to your email.';
   static const improve = 'Improve';
   static const inSelectedMonth = 'in selected month';
   static const inactive = 'Inactive';
@@ -1323,6 +1324,7 @@ abstract final class AppStrings {
   static const teamwork = 'Teamwork';
   static const technicalIssues = 'Technical issues';
   static const temporaryPassword = 'Temporary password';
+  static const sendPasswordOnEmail = 'Send password on email';
   static const thankYouForSharingWhatYouLoveAndHowYou = 'Thank you for sharing what you love and how you think. Your teachers will use this to guide you — and you will see their notes here on your dashboard.';
   static const theGettingToKnowYouAptitudeResultWillAppearHere = 'The Getting to Know You aptitude result will appear here after the student submits.';
   static const theNewLevelStartsFromItsOwnWeek1Previous = 'The new level starts from its own Week 1. Previous level history stays in the journal.';
@@ -1448,6 +1450,9 @@ abstract final class AppStrings {
       'You and your teacher join this Google Meet for your session.';
   static const addToCalendar = 'Add to calendar';
   static const youAreReadyToSubmitYourAssignment = 'You are ready to submit your assignment.';
+  static const changeAnAnswerToEnableSubmit = 'Change an answer to enable submit';
+  static const submitEnabledAfterYouChangeAnAnswer =
+      'Change at least one option or text answer before submitting again.';
   static const youDonTHaveASessionScheduledYet = 'You don’t have a session scheduled yet.';
   static const youHaveBeenHeard = 'You have been heard';
   static const youWillBeSignedOutOnAllDevicesAfterSaving = 'You will be signed out on all devices after saving a new password.';

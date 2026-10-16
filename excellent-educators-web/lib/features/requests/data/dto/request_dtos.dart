@@ -3,6 +3,7 @@ class AdminRequestStudentRefDto {
     required this.id,
     required this.fullName,
     required this.studentCode,
+    this.photoUrl,
   });
 
   factory AdminRequestStudentRefDto.fromJson(Map<String, dynamic> json) {
@@ -10,12 +11,14 @@ class AdminRequestStudentRefDto {
       id: json['id'] as String? ?? '',
       fullName: json['full_name'] as String? ?? '',
       studentCode: json['student_code'] as String? ?? '',
+      photoUrl: json['photo_url'] as String?,
     );
   }
 
   final String id;
   final String fullName;
   final String studentCode;
+  final String? photoUrl;
 
   /// Prefer this in UI when names may collide.
   String get labeledName {

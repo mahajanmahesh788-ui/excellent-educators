@@ -125,6 +125,7 @@ class ScheduleSlotDto {
     required this.status,
     this.bookingId,
     this.studentName,
+    this.studentPhotoUrl,
     this.bookingType,
     this.leaveId,
   });
@@ -136,6 +137,7 @@ class ScheduleSlotDto {
       status: json['status'] as String? ?? 'available',
       bookingId: json['booking_id'] as String?,
       studentName: json['student_name'] as String?,
+      studentPhotoUrl: json['student_photo_url'] as String?,
       bookingType: json['booking_type'] as String?,
       leaveId: json['leave_id'] as String?,
     );
@@ -146,6 +148,7 @@ class ScheduleSlotDto {
   final String status;
   final String? bookingId;
   final String? studentName;
+  final String? studentPhotoUrl;
   final String? bookingType;
   final String? leaveId;
 
@@ -474,6 +477,7 @@ class SessionBookingDto {
     required this.end,
     required this.status,
     this.studentName,
+    this.studentPhotoUrl,
     this.teacherName,
     this.meetingUrl,
     this.attemptNumber,
@@ -497,6 +501,7 @@ class SessionBookingDto {
       end: json['end'] as String? ?? '',
       status: json['status'] as String? ?? 'scheduled',
       studentName: json['student_name'] as String?,
+      studentPhotoUrl: json['student_photo_url'] as String?,
       teacherName: json['teacher_name'] as String?,
       meetingUrl: json['meeting_url'] as String?,
       attemptNumber: (json['attempt_number'] as num?)?.toInt(),
@@ -521,6 +526,7 @@ class SessionBookingDto {
   final String end;
   final String status;
   final String? studentName;
+  final String? studentPhotoUrl;
   final String? teacherName;
   final String? meetingUrl;
   final int? attemptNumber;

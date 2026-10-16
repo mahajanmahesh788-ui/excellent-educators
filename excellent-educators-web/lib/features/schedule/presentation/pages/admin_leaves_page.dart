@@ -1,6 +1,7 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
+import 'package:excellent_educators_web/core/widgets/app_person_avatar.dart';
 import 'package:excellent_educators_web/core/widgets/app_scaffold.dart';
 import 'package:excellent_educators_web/core/widgets/app_status_chip.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -131,27 +132,13 @@ class _LeaveCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
+              AppPersonAvatar(
+                name: leave.teacherName ?? AppStrings.teacher,
+                photoUrl: leave.teacherPhotoUrl,
                 radius: 24,
                 backgroundColor: Brand.navyDeep,
-                backgroundImage: leave.teacherPhotoUrl != null &&
-                        leave.teacherPhotoUrl!.isNotEmpty
-                    ? NetworkImage(leave.teacherPhotoUrl!)
-                    : null,
-                child: leave.teacherPhotoUrl == null ||
-                        leave.teacherPhotoUrl!.isEmpty
-                    ? Text(
-                        (leave.teacherName ?? '?')
-                            .characters
-                            .first
-                            .toUpperCase(),
-                        style: const TextStyle(
-                          color: Brand.gold,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                        ),
-                      )
-                    : null,
+                fontWeight: FontWeight.w800,
+                maxInitials: 1,
               ),
               const SizedBox(width: 12),
               Expanded(

@@ -1,6 +1,7 @@
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
 import 'package:excellent_educators_web/core/constants/app_strings.dart';
 import 'package:excellent_educators_web/core/utils/display_date.dart';
+import 'package:excellent_educators_web/core/widgets/app_person_avatar.dart';
 import 'package:excellent_educators_web/core/widgets/app_status_toggle.dart';
 import 'package:excellent_educators_web/features/academic/data/dto/academic_dtos.dart';
 import 'package:excellent_educators_web/features/academic/presentation/widgets/academic_ui.dart';
@@ -119,7 +120,8 @@ class StudentCard extends StatelessWidget {
             : AppStrings.notRated);
 
     return _DirectoryCard(
-      initials: _initials(student.fullName),
+      name: student.fullName,
+      photoUrl: student.photoUrl,
       title: title,
       subtitle: student.email.isNotEmpty ? student.email : null,
       chips: placeChipsBelow ? statusChips : const [],
@@ -180,7 +182,8 @@ class TeacherCard extends StatelessWidget {
     );
 
     return _DirectoryCard(
-      initials: _initials(teacher.fullName),
+      name: teacher.fullName,
+      photoUrl: teacher.photoUrl,
       title: teacher.fullName,
       subtitle: teacher.email,
       chips: const [],
@@ -218,7 +221,7 @@ class AcademicLevelCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _DirectoryCard(
-      initials: _initials(level.name),
+      name: level.name,
       title: level.name,
       subtitle: 'Academic year ${level.academicYear}',
       chips: [
@@ -247,7 +250,7 @@ class BatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _DirectoryCard(
-      initials: _initials(batch.name),
+      name: batch.name,
       title: batch.name,
       subtitle: 'Academic year ${batch.academicYear}',
       chips: [if (batch.isFull) const _InfoChip(AppStrings.full)],
@@ -263,9 +266,10 @@ class BatchCard extends StatelessWidget {
 
 class _DirectoryCard extends StatelessWidget {
   const _DirectoryCard({
-    required this.initials,
+    required this.name,
     required this.title,
     required this.facts,
+    this.photoUrl,
     this.subtitle,
     this.chips = const [],
     this.action,
@@ -273,7 +277,8 @@ class _DirectoryCard extends StatelessWidget {
     this.onTap,
   });
 
-  final String initials;
+  final String name;
+  final String? photoUrl;
   final String title;
   final String? subtitle;
   final List<Widget> chips;
@@ -316,7 +321,11 @@ class _DirectoryCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              _Avatar(initials: initials, isCompact: isMobile),
+              AppPersonAvatar(
+                name: name,
+                photoUrl: photoUrl,
+                radius: isMobile ? 15 : 18,
+              ),
               SizedBox(width: isMobile ? 8 : 12),
               Expanded(
                 child: Column(
@@ -381,29 +390,6 @@ class _DirectoryCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.initials, this.isCompact = false});
-
-  final String initials;
-  final bool isCompact;
-
-  @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: isCompact ? 15 : 18,
-      backgroundColor: Brand.navy,
-      child: Text(
-        initials,
-        style: TextStyle(
-          color: Brand.gold,
-          fontWeight: FontWeight.w700,
-          fontSize: isCompact ? 11 : 12,
         ),
       ),
     );
@@ -507,17 +493,6 @@ class _FactView extends StatelessWidget {
       ),
     );
   }
-}
-
-String _initials(String name) {
-  final parts = name.trim().split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
-  if (parts.isEmpty) {
-    return AppStrings.ee;
-  }
-  if (parts.length == 1) {
-    return parts.first.substring(0, 1).toUpperCase();
-  }
-  return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
 }
 
 class _OverallRatingBadge extends StatelessWidget {
