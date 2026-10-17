@@ -24,6 +24,18 @@ class StartStudentLevelJourney
                 ->first();
 
             if ($current !== null && $current->level_id === $level->id) {
+                // Batch activate may pass a new starts_on — realign so weeks
+                // count from the batch active date, not an older journey clock.
+                if ($startedAt !== null) {
+                    $aligned = $startedAt->copy()->startOfDay();
+                    if ($current->started_at === null
+                        || ! $current->started_at->copy()->startOfDay()->equalTo($aligned)) {
+                        $current->update(['started_at' => $aligned]);
+
+                        return $current->fresh();
+                    }
+                }
+
                 return $current;
             }
 
@@ -35,7 +47,7 @@ class StartStudentLevelJourney
             return StudentLevelJourney::query()->create([
                 'student_id' => $student->id,
                 'level_id' => $level->id,
-                'started_at' => $now,
+                'started_at' => $now->copy()->startOfDay(),
                 'ended_at' => null,
             ]);
         });

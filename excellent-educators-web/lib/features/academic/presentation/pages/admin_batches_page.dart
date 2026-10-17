@@ -1,5 +1,6 @@
 import 'package:excellent_educators_web/app/router/route_paths.dart';
 import 'package:excellent_educators_web/app/theme/app_theme.dart';
+import 'package:excellent_educators_web/core/utils/display_date.dart';
 import 'package:excellent_educators_web/core/widgets/app_confirm_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_dialog.dart';
 import 'package:excellent_educators_web/core/widgets/app_person_avatar.dart';
@@ -957,6 +958,19 @@ class _MetricPill extends StatelessWidget {
   }
 }
 
+/// Prefer full batch activation date; fall back to cohort year/month.
+String? _batchDateLabel(BatchDto batch) {
+  final startsOn = batch.startsOn?.trim();
+  if (startsOn != null && startsOn.isNotEmpty) {
+    return formatDisplayDate(startsOn);
+  }
+  if (batch.monthName.isNotEmpty || batch.year != null) {
+    return '${batch.year ?? batch.academicYear}'
+        '${batch.monthName.isNotEmpty ? ' · ${batch.monthName}' : ''}';
+  }
+  return null;
+}
+
 class _BatchRowCard extends ConsumerStatefulWidget {
   const _BatchRowCard({
     required this.levelId,
@@ -1125,7 +1139,7 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
                         color: isActive ? Brand.navy : Colors.grey.shade700,
                       ),
                     ),
-                    if (batch.monthName.isNotEmpty || batch.year != null)
+                    if (_batchDateLabel(batch) != null)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
@@ -1133,7 +1147,7 @@ class _BatchRowCardState extends ConsumerState<_BatchRowCard> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          '${batch.year ?? batch.academicYear}${batch.monthName.isNotEmpty ? ' · ${batch.monthName}' : ''}',
+                          _batchDateLabel(batch)!,
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.blueGrey.shade700,

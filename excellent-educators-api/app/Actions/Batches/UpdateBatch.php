@@ -7,7 +7,10 @@ use App\Models\Batch;
 
 class UpdateBatch
 {
-    public function __construct(private readonly ActivateBatch $activateBatch) {}
+    public function __construct(
+        private readonly ActivateBatch $activateBatch,
+        private readonly DeactivateBatch $deactivateBatch,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $input
@@ -18,6 +21,9 @@ class UpdateBatch
         $becomingActive = $nextStatus === BatchStatus::Active->value
             || $nextStatus === BatchStatus::Active
             || $nextStatus === 'active';
+        $becomingInactive = $nextStatus === BatchStatus::Inactive->value
+            || $nextStatus === BatchStatus::Inactive
+            || $nextStatus === 'inactive';
 
         $wasActive = $batch->status === BatchStatus::Active || $batch->status === 'active';
 
@@ -33,6 +39,20 @@ class UpdateBatch
             $batch->save();
 
             return $this->activateBatch->execute($batch);
+        }
+
+        if ($becomingInactive && $wasActive) {
+            $batch->fill([
+                'name' => $input['name'] ?? $batch->name,
+                'academic_year' => $input['academic_year'] ?? $batch->academic_year,
+                'year' => $input['year'] ?? ($input['academic_year'] ?? $batch->year),
+                'month' => $input['month'] ?? $batch->month,
+                'starts_on' => array_key_exists('starts_on', $input) ? $input['starts_on'] : $batch->starts_on,
+                'ends_on' => array_key_exists('ends_on', $input) ? $input['ends_on'] : $batch->ends_on,
+            ]);
+            $batch->save();
+
+            return $this->deactivateBatch->execute($batch);
         }
 
         $batch->fill([

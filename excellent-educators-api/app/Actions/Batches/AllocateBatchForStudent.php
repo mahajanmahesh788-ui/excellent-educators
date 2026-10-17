@@ -29,11 +29,12 @@ class AllocateBatchForStudent
         $batch = DB::transaction(function () use ($level, $student, $actor, &$previousBatch, &$createdEnrollment) {
             $maxActive = app(AppSettings::class)->maxActiveStudents();
 
-            // Fill the oldest open batch (active or inactive) that still has room.
-            // Do not skip inactive batches — students wait there until the batch is activated.
+            // Only fill inactive batches that still have room. Once a batch is
+            // active (admin or auto-full), new auto-allocations go to a new
+            // inactive batch — never into an already-running cohort.
             $batch = Batch::query()
                 ->where('level_id', $level->id)
-                ->whereIn('status', [BatchStatus::Active->value, BatchStatus::Inactive->value])
+                ->where('status', BatchStatus::Inactive->value)
                 ->where('enrolled_watermark', '<', $maxActive)
                 ->orderBy('created_at')
                 ->lockForUpdate()

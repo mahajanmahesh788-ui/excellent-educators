@@ -143,6 +143,42 @@ class AcademicLevelBatchAllocationTest extends TestCase
         $this->assertNotNull($batch1->starts_on);
     }
 
+    public function test_active_batch_with_room_routes_new_students_to_new_inactive_batch(): void
+    {
+        $admin = $this->makeAdmin();
+        $token = $this->tokenFor($admin);
+
+        $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+        $batch1 = Batch::query()->where('level_id', $level1->id)->where('name', 'Batch 1')->firstOrFail();
+
+        // Admin started the cohort early — still has seats, but must not take new autos.
+        $batch1->update([
+            'status' => 'active',
+            'starts_on' => now()->toDateString(),
+            'enrolled_watermark' => 6,
+        ]);
+
+        $response = $this->withToken($token)->postJson('/api/v1/admin/students', [
+            'name' => 'Post Activate Student',
+            'email' => 'post.activate@excellenteducators.test',
+            'password' => 'StudentPass1!',
+            'phone' => '9800000075',
+            'class_grade' => 6,
+            'gender' => 'male',
+        ])->assertCreated();
+
+        $student = StudentProfile::query()->with('activeEnrollment.batch')->findOrFail($response->json('data.id'));
+        $batch2 = $student->activeEnrollment->batch;
+
+        $this->assertNotEquals($batch1->id, $batch2->id);
+        $this->assertEquals('Batch 2', $batch2->name);
+        $this->assertEquals('inactive', $batch2->status->value ?? $batch2->status);
+        $this->assertEquals(1, $batch2->enrolled_watermark);
+
+        $batch1->refresh();
+        $this->assertEquals(6, $batch1->enrolled_watermark);
+    }
+
     public function test_new_auto_batch_is_inactive_and_activates_when_full(): void
     {
         $admin = $this->makeAdmin();
@@ -257,5 +293,106 @@ class AcademicLevelBatchAllocationTest extends TestCase
         $this->assertNotContains(1, $available);
         $this->assertNotContains(2, $available);
         $this->assertNotContains(3, $available);
+    }
+
+    public function test_activating_batch_starts_journey_from_activation_day_not_old_date(): void
+    {
+        $admin = $this->makeAdmin();
+        $token = $this->tokenFor($admin);
+
+        $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+        $batch1 = Batch::query()->where('level_id', $level1->id)->where('name', 'Batch 1')->firstOrFail();
+
+        // Stale starts_on (e.g. level go-live) must not drive weeks after activate.
+        $batch1->update([
+            'status' => 'inactive',
+            'starts_on' => '2026-07-12',
+        ]);
+
+        $created = $this->withToken($token)->postJson('/api/v1/admin/students', [
+            'name' => 'Week Clock Student',
+            'email' => 'week.clock@excellenteducators.test',
+            'password' => 'StudentPass1!',
+            'phone' => '9800000076',
+            'class_grade' => 6,
+            'gender' => 'male',
+        ])->assertCreated();
+
+        $student = StudentProfile::query()->findOrFail($created->json('data.id'));
+
+        // Pre-existing open journey with Jul 12 clock (legacy ensure / early start).
+        \App\Models\StudentLevelJourney::query()->create([
+            'student_id' => $student->id,
+            'level_id' => $level1->id,
+            'started_at' => '2026-07-12 00:00:00',
+            'ended_at' => null,
+        ]);
+
+        $this->withToken($token)->patchJson("/api/v1/admin/batches/{$batch1->id}/status")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'active');
+
+        $batch1->refresh();
+        $student->refresh()->load('currentLevelJourney');
+
+        $this->assertSame(now()->toDateString(), $batch1->starts_on?->toDateString());
+        $this->assertNotNull($student->currentLevelJourney);
+        $this->assertSame(
+            now()->toDateString(),
+            $student->currentLevelJourney->started_at?->toDateString(),
+        );
+        $this->assertSame(1, $student->currentLevelJourney->weekNumberAt(now()));
+    }
+
+    public function test_deactivating_active_batch_locks_enrolled_students_out(): void
+    {
+        $admin = $this->makeAdmin();
+        $token = $this->tokenFor($admin);
+
+        $level1 = AcademicLevel::query()->where('name', 'Level 1')->firstOrFail();
+        $batch1 = Batch::query()->where('level_id', $level1->id)->where('name', 'Batch 1')->firstOrFail();
+
+        $created = $this->withToken($token)->postJson('/api/v1/admin/students', [
+            'name' => 'Batch Pause Student',
+            'email' => 'batch.pause@excellenteducators.test',
+            'password' => 'StudentPass1!',
+            'phone' => '9800000077',
+            'class_grade' => 6,
+            'gender' => 'female',
+        ])->assertCreated();
+
+        $student = StudentProfile::query()->with('user')->findOrFail($created->json('data.id'));
+
+        $this->withToken($token)->patchJson("/api/v1/admin/batches/{$batch1->id}/status")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'active');
+
+        $student->refresh()->load(['user', 'currentLevelJourney']);
+        $this->assertSame('active', $student->status->value);
+        $this->assertSame('active', $student->user->status->value);
+        $this->assertNotNull($student->currentLevelJourney);
+
+        $this->withToken($token)->patchJson("/api/v1/admin/batches/{$batch1->id}/status")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'inactive');
+
+        $student->refresh()->load(['user', 'currentLevelJourney']);
+        $this->assertSame('inactive', $student->status->value);
+        $this->assertSame('inactive', $student->user->status->value);
+        $this->assertNull($student->currentLevelJourney);
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'batch.pause@excellenteducators.test',
+            'password' => 'StudentPass1!',
+        ])->assertStatus(403);
+
+        $this->withToken($token)->patchJson("/api/v1/admin/batches/{$batch1->id}/status")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'active');
+
+        $student->refresh()->load(['user', 'currentLevelJourney']);
+        $this->assertSame('active', $student->status->value);
+        $this->assertSame('active', $student->user->status->value);
+        $this->assertNotNull($student->currentLevelJourney);
     }
 }

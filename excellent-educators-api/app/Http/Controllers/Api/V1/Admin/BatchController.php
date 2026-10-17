@@ -132,12 +132,15 @@ class BatchController extends Controller
         return ApiResponse::success('Student removed from batch.', BatchResource::make($batch)->resolve());
     }
 
-    public function toggleStatus(Batch $batch, \App\Actions\Batches\ActivateBatch $activateBatch): JsonResponse
-    {
+    public function toggleStatus(
+        Batch $batch,
+        \App\Actions\Batches\ActivateBatch $activateBatch,
+        \App\Actions\Batches\DeactivateBatch $deactivateBatch,
+    ): JsonResponse {
         $isActive = $batch->status === BatchStatus::Active || $batch->status === 'active';
 
         if ($isActive) {
-            $batch->update(['status' => BatchStatus::Inactive]);
+            $batch = $deactivateBatch->execute($batch);
             $newStatus = 'inactive';
         } else {
             $batch = $activateBatch->execute($batch);

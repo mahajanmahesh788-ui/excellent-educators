@@ -8,7 +8,9 @@ use App\Enums\ProfileStatus;
 use App\Models\AcademicLevel;
 use App\Models\Batch;
 use App\Models\BatchStudent;
+use App\Models\StudentProfile;
 use App\Support\AppClock;
+use App\Support\SyncUserAccess;
 use Illuminate\Support\Facades\DB;
 
 class ActivateBatch
@@ -23,15 +25,15 @@ class ActivateBatch
             $alreadyActive = $batch->status === BatchStatus::Active
                 || $batch->status === 'active';
 
-            $startsOn = $batch->starts_on ?? AppClock::todayString();
-
+            // Journey weeks follow batch activation day — not level go-live
+            // and not a stale starts_on left from an earlier draft.
             if (! $alreadyActive) {
                 $batch->update([
                     'status' => BatchStatus::Active,
-                    'starts_on' => $startsOn,
+                    'starts_on' => AppClock::todayString(),
                 ]);
             } elseif ($batch->starts_on === null) {
-                $batch->update(['starts_on' => $startsOn]);
+                $batch->update(['starts_on' => AppClock::todayString()]);
             }
 
             $batch->refresh();
@@ -50,10 +52,22 @@ class ActivateBatch
                 ->pluck('student_id');
 
             foreach ($studentIds as $studentId) {
-                $student = \App\Models\StudentProfile::query()->find($studentId);
+                $student = StudentProfile::query()->with('user')->find($studentId);
                 if ($student === null) {
                     continue;
                 }
+
+                // Re-enable students paused when this batch was deactivated.
+                if ($student->status !== ProfileStatus::Active) {
+                    $student->update(['status' => ProfileStatus::Active]);
+                }
+                if ($student->user !== null) {
+                    SyncUserAccess::syncFromProfileStatus(
+                        $student->user,
+                        ProfileStatus::Active->value,
+                    );
+                }
+
                 $this->startStudentLevelJourney->execute($student, $level, $startedAt);
             }
 
